@@ -1,6 +1,6 @@
 import { defineConfig } from "~";
 import { z } from "zod";
-import { Book, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
 import { AVForm, AVFormField, AVFormSubmitButton, AVInput, AVTextarea, SelectInput, singleFieldForm, ToggleBooleanInput, UserMessageInputComponent } from "~/components/form";
 import { ItemAssistantMessageComponent, ItemUserMessageComponent, DisplayBooleanComponent } from "~/components/display";
 import { ProductDisplay } from "./ProductDisplay";
@@ -48,7 +48,22 @@ export default defineConfig({
                             }
                         }
                     ]
-                }
+                },
+                displayProperties: [
+                    {
+                        title: "Langfuse trace",
+                        value: ({ run }) => {
+                            if (!run.metadata?.trace_id) {
+                                return <span className="text-muted-foreground">No trace</span>
+                            }
+                            return <Button variant="outline" size="xs" onClick={() => {
+                                window.open(`https://cloud.langfuse.com/project/cmfmholwz00k1ad074onno73u/traces/${run.metadata.trace_id}`, "_blank")
+                            }}>
+                                Trace <ExternalLink className="size-4" />
+                            </Button>
+                        }
+                    }
+                ],
             }
         },
         {

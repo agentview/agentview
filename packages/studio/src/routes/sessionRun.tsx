@@ -11,6 +11,9 @@ import { getListParams, toQueryParams } from "~/lib/listParams";
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "~/components/ui/dialog";
 import { PropertyList } from "~/components/PropertyList";
 import { TerminalIcon } from "lucide-react";
+import { requireAgentConfig, requireItemConfig, requireRunConfig } from "~/lib/config";
+import { config } from "~/config";
+import { DisplayProperties } from "~/components/DisplayProperties";
 
 function loader({ request, params }: LoaderFunctionArgs) {
     const listParams = getListParams(request);
@@ -31,10 +34,14 @@ function Component() {
         throw data({ message: "Run not found" }, { status: 404 });
     }
 
+    const agentConfig = requireAgentConfig(config, session.agent);
+    const runConfig = requireRunConfig(agentConfig, run.sessionItems[0].type, run.sessionItems[0].role);
+
     const close = () => {                
         navigate(`../?${toQueryParams(listParams)}`);
     }
 
+    console.log('run', run)
     return <Dialog
         open={true}
         onOpenChange={(open) => {
@@ -55,6 +62,16 @@ function Component() {
                             {run.state}
                         </PropertyList.TextValue>
                     </PropertyList.Item>
+
+                    {run.failReason && (
+                        <PropertyList.Item>
+                            <PropertyList.Title>Fail reason</PropertyList.Title>
+                            <PropertyList.TextValue className="text-red-500">
+                                {run.failReason.message ?? "Unknown reason"}
+                            </PropertyList.TextValue>
+                        </PropertyList.Item>
+                    )}
+
                     <PropertyList.Item>
                         <PropertyList.Title>Version</PropertyList.Title>
                         <PropertyList.TextValue>
@@ -85,16 +102,8 @@ function Component() {
                                 : "-"}
                         </PropertyList.TextValue>
                     </PropertyList.Item>
-                    {/* { agentConfig.displayProperties && <DisplayProperties displayProperties={agentConfig.displayProperties} inputArgs={{ session }} /> } */}
+                    { runConfig.displayProperties && <DisplayProperties displayProperties={runConfig.displayProperties} inputArgs={{ session, run }} /> }
 
-                    {run.failReason && (
-                        <PropertyList.Item>
-                            <PropertyList.Title>Fail reason</PropertyList.Title>
-                            <PropertyList.TextValue className="text-red-500">
-                                {run.failReason.message ?? "Unknown reason"}
-                            </PropertyList.TextValue>
-                        </PropertyList.Item>
-                    )}
 
                 </PropertyList.Root>
 

@@ -196,8 +196,12 @@ function SessionPage() {
 
                             let content: React.ReactNode = null;
 
+                                console.log('---')
+                            console.log('item', item)
+                            console.log('agent config', agentConfig)
                             const itemConfig = findItemConfig(agentConfig, item.type, item.role);
                             if (!itemConfig?.displayComponent) {
+                                console.log('no component')
                                 content = <div className="text-muted-foreground italic">No component (type: "{item.type}"{item.role ? `, role: "${item.role}"` : ""})</div>
                             }
                             else {
