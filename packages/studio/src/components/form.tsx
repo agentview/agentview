@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, createContext, useContext } from "react";
 import type { ReactNode } from "react";
 import { useOnFormReset } from '~/hooks/useOnFormReset';
 import type { FormInputProps, InputComponent, InputComponentProps } from "~/types";
@@ -25,6 +25,17 @@ import { Button } from "./ui/button";
 import { z } from "zod";
 import type { BaseError } from "~/lib/errors";
 import { cn } from "~/lib/utils";
+
+// AVFormContext
+const AVFormContext = createContext<InputComponentProps | null>(null);
+
+function useAVFormContext() {
+    const context = useContext(AVFormContext);
+    if (!context) {
+        throw new Error("useAVFormContext must be used within AVForm");
+    }
+    return context;
+}
 
 export type FormFieldBaseProps = {
     id: string,
@@ -203,47 +214,6 @@ export type AVFormHelperOptions = {
     cancellable?: boolean
 }
 
-export function form(fields: AVFormHelperField[], options: AVFormHelperOptions = {}): InputComponent {
-    const defaultValues: Record<string, any> = {}
-    for (const field of fields) {
-        defaultValues[field.name] = field.defaultValue;
-    }
-
-    return ({ submit, error, schema, isRunning }) => {
-        const form = useForm({
-            resolver: zodResolver<any, any, any>(schema),
-            defaultValues,
-            // mode: "onSubmit",
-            // reValidateMode: "onSubmit"
-        })
-
-        return <Form {...form}>
-            {(error) && <Alert variant="destructive" className="mb-4">
-                <AlertCircleIcon className="h-4 w-4" />
-                <AlertDescription>{error.message}</AlertDescription>
-            </Alert>}
-            <form onSubmit={(e) => {
-                e.preventDefault();
-                form.handleSubmit(submit)(e);
-            }} className="space-y-4">
-                {fields.map((field) => {
-                    const { defaultValue, ...fieldProps } = field;
-                    return <AVFormField
-                        {...fieldProps}
-                    />
-                })}
-                <Button type="submit" disabled={isRunning}>{ isRunning ? "Creating..." : "Create" }</Button>
-                {/* TEst<br/>
-                <Button type="submit" disabled={true}>Test</Button> */}
-            </form>
-        </Form>
-    }
-}
-
-export function field<TValue extends z.ZodTypeAny = any, TInput = any, TOutput = TInput>(props: AVFormHelperField<TValue, TInput, TOutput>) {
-    return props;
-}
-
 /**
  * TODO:
  * 
@@ -255,6 +225,103 @@ export function field<TValue extends z.ZodTypeAny = any, TInput = any, TOutput =
  * Add cancellable
  * Create good input message control
  */
+
+type AVFormProps = InputComponentProps & {
+    defaultValues?: Record<string, any>,
+    className?: string,
+    children?: ReactNode
+}
+
+export function AVForm(props: AVFormProps) {
+    const { schema, defaultValues, submit, error, isRunning, children, cancel } = props;
+
+    const form = useForm({
+        resolver: zodResolver<any, any, any>(schema),
+        defaultValues,
+    })
+
+    const contextValue: InputComponentProps = {
+        submit,
+        cancel,
+        isRunning,
+        error,
+        schema
+    };
+
+    return <AVFormContext.Provider value={contextValue}>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(submit)} className={cn("space-y-4", props.className)}>
+                { children }
+            </form>
+        </Form>
+    </AVFormContext.Provider>
+}
+
+export function AVFormError({ className }: { className?: string }) {
+    const { error } = useAVFormContext();
+    
+    if (!error) return null;
+    
+    return <Alert variant="destructive" className={cn("mb-4", className)}>
+        <AlertCircleIcon className="h-4 w-4" />
+        <AlertDescription>{error.message}</AlertDescription>
+    </Alert>
+}
+
+type AVFormSubmitButtonProps = React.ComponentProps<typeof Button>
+
+export function AVFormSubmitButton({ children, disabled, ...buttonProps }: AVFormSubmitButtonProps) {
+    const { isRunning } = useAVFormContext();
+    
+    return <Button 
+        type="submit" 
+        disabled={disabled || isRunning}
+        {...buttonProps}
+    >
+        {children ?? (isRunning ? "Submitting..." : "Submit")}
+    </Button>
+}
+
+
+export function form(fields: AVFormHelperField[], options: AVFormHelperOptions = {}): InputComponent {
+
+    return ({ submit, error, schema, isRunning }) => {
+        const defaultValues: Record<string, any> = {}
+        for (const field of fields) {
+            defaultValues[field.name] = field.defaultValue;
+        }
+
+        const form = useForm({
+            resolver: zodResolver<any, any, any>(schema),
+            defaultValues,
+            // mode: "onSubmit",
+            // reValidateMode: "onSubmit"
+        })
+
+        return <Form {...form}>
+            <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
+
+                {(error) && <Alert variant="destructive" className="mb-4">
+                    <AlertCircleIcon className="h-4 w-4" />
+                    <AlertDescription>{error.message}</AlertDescription>
+                </Alert>}
+                {fields.map((field) => {
+                    const { defaultValue, ...fieldProps } = field;
+                    return <AVFormField
+                        {...fieldProps}
+                    />
+                })}
+                <Button type="submit" disabled={isRunning}>{isRunning ? "Creating..." : "Create"}</Button>
+                {/* TEst<br/>
+                <Button type="submit" disabled={true}>Test</Button> */}
+            </form>
+        </Form>
+    }
+}
+
+export function field<TValue extends z.ZodTypeAny = any, TInput = any, TOutput = TInput>(props: AVFormHelperField<TValue, TInput, TOutput>) {
+    return props;
+}
 
 export function singleFieldForm(field: { defaultValue: any, control: any }): InputComponent {
     const { defaultValue, ...fieldProps } = field;
