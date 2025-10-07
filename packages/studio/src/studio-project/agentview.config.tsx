@@ -50,10 +50,6 @@ export default defineConfig({
                         ]
                     },
                     inputComponent: UserMessageInputComponent
-                    // inputComponent: singleFieldForm({
-                    //     defaultValue: "",
-                    //     control: (props) => <AVTextarea {...props} placeholder="Enter your message" />
-                    // })
                 }
             ]
         },
