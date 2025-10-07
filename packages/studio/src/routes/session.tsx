@@ -25,6 +25,7 @@ import { findItemConfig, requireAgentConfig, requireItemConfig } from "~/lib/con
 import { Loader } from "~/components/Loader";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import type { BaseError } from "~/lib/errors";
+import { ErrorBoundary } from "~/components/ErrorBoundary";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<Session>(`/api/sessions/${params.id}`);
@@ -272,7 +273,9 @@ function SessionPage() {
     </>
 }
 
-
+function DisplayPropertyRenderer<T>({ value, inputArgs }: { value: (inputArgs: T) => React.ReactNode, inputArgs: T }) {
+    return <div>{value(inputArgs)}</div>
+}
 
 function SessionDetails({ session, agentConfig }: { session: Session, agentConfig: AgentConfig }) {
     const versions = getVersions(session);
@@ -314,12 +317,17 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
                     </PropertyList.TextValue>
                 </PropertyList.Item>
 
-                {agentConfig.displayedProperties && agentConfig.displayedProperties.map((property) => (
-                    <PropertyList.Item>
-                        <PropertyList.Title>{property.title}</PropertyList.Title>
-                        <PropertyList.TextValue>{property.value({ session })}</PropertyList.TextValue>
-                    </PropertyList.Item>
-                ))}
+                <ErrorBoundary>
+                    {agentConfig.displayedProperties && agentConfig.displayedProperties.map((property) => {
+
+                        return <PropertyList.Item key={property?.title}>
+                            <PropertyList.Title>{property?.title ?? "Unknown property"}</PropertyList.Title>
+                            <PropertyList.TextValue>
+                                <DisplayPropertyRenderer value={property?.value} inputArgs={{ session }} />
+                            </PropertyList.TextValue>
+                        </PropertyList.Item>
+                    })}
+                </ErrorBoundary>
 
                 {/* {(agentConfig.metadata ?? []).map((metafield: any) => (
                     <PropertyList.Item className="items-start">
@@ -442,12 +450,12 @@ function InputForm({ session, agentConfig }: { session: Session, agentConfig: Ag
                                 {error && <AVFormError error={error} className="mb-4" />}
 
                                 {InputComponent && <InputComponent
-                                        cancel={cancel}
-                                        submit={(values) => { submit(values, inputConfig) }}
-                                        schema={inputConfig.content}
-                                        error={error}
-                                        isRunning={lastRun?.state === 'in_progress'}
-                                    />}
+                                    cancel={cancel}
+                                    submit={(values) => { submit(values, inputConfig) }}
+                                    schema={inputConfig.content}
+                                    error={error}
+                                    isRunning={lastRun?.state === 'in_progress'}
+                                />}
 
                                 {!InputComponent && <div className="text-muted-foreground">No input component for session item: <code className="text-sm">{"{"} type: "{inputConfig.type}"{inputConfig.role ? `, role: "${inputConfig.role}"` : ""} {"}"}</code></div>}
                             </TabsContent>
