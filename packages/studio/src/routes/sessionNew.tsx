@@ -23,7 +23,7 @@ async function action({ request, params }: ActionFunctionArgs): Promise<ActionRe
 
   // This action only supports JSON payloads, other encoding methods (like form data) treat this request as if context was not provided
   let payload: any = undefined;
-  if(request.headers.get("Content-Type") === "application/json") {
+  if (request.headers.get("Content-Type") === "application/json") {
     payload = await request.json();
   }
 
@@ -31,7 +31,7 @@ async function action({ request, params }: ActionFunctionArgs): Promise<ActionRe
   if (agentConfig.context && !payload?.context) {
     return redirect(`/sessions/new?${toQueryParams(listParams)}`, { status: 303 });
   }
-  
+
   const clientResponse = await apiFetch('/api/clients', {
     method: 'POST',
     body: {
@@ -74,14 +74,16 @@ function Component() {
 
     <div className="flex-1 overflow-y-auto">
       <div className="p-6 max-w-4xl space-y-6">
+        {error && <AVFormError error={error} className="mb-6" />}
+
         {agentConfig.inputComponent && <agentConfig.inputComponent
-         submit={(values) => {fetcher.submit({ context: values }, { method: 'post', encType: 'application/json' })}}
-         schema={agentConfig.context!}
-         error={error}
-         isRunning={fetcher.state === "submitting"}
+          cancel={() => { console.warn("New session operation does not support cancel.") }}
+          submit={(values) => { fetcher.submit({ context: values }, { method: 'post', encType: 'application/json' }) }}
+          schema={agentConfig.context!}
+          error={error}
+          isRunning={fetcher.state === "submitting"}
         />}
 
-        { !agentConfig.context && !agentConfig.inputComponent && error && <AVFormError error={error} />}
       </div>
     </div>
   </div>
