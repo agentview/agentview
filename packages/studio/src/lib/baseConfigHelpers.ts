@@ -13,11 +13,11 @@ export function getBaseConfig(config: AgentViewConfig): BaseConfig {
       name: agent.name,
       url: agent.url,
       context: agent.context,
-      runs: agent.runs.map((run) => ({
+      runs: agent.runs?.map((run) => ({
         input: getBaseSessionItem(run.input),
         output: getBaseSessionItem(run.output),
         steps: run.steps?.map((step) => getBaseSessionItem(step)),
-      }))
+      })) ?? []
     }))
   }
 }

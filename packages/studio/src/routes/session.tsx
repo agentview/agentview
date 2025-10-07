@@ -377,7 +377,7 @@ function InputForm({ session, agentConfig }: { session: Session, agentConfig: Ag
         })
     }
 
-    const runConfigs = agentConfig.runs;
+    const runConfigs = agentConfig.runs ?? [];
 
     const FirstInputComponent = runConfigs[0]?.input.inputComponent;
 

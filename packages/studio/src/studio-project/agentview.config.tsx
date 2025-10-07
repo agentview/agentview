@@ -49,41 +49,7 @@ export default defineConfig({
                         }
                     ]
                 }
-            },
-            runs: [{
-                input: {
-                    type: "message",
-                    role: "user",
-                    content: z.string(),
-                    displayComponent: ItemUserMessageComponent,
-                    inputComponent: UserMessageInputComponent
-                },
-                output: {
-                    type: "message",
-                    role: "assistant",
-                    content: z.string(),
-                    displayComponent: ItemAssistantMessageComponent,
-                    scores: [
-                        {
-                            name: "user_reaction",
-                            title: "Can it go to client?",
-                            schema: z.boolean(),
-                            inputComponent: ToggleBooleanInput,
-                            displayComponent: DisplayBooleanComponent,
-                            options: {
-                                true: {
-                                    icon: ThumbsUp,
-                                    label: "Yes"
-                                },
-                                false: {
-                                    icon: ThumbsDown,
-                                    label: "No"
-                                }
-                            }
-                        }
-                    ]
-                }
-            }]
+            }
         },
         {
             name: "pdp_chat",
@@ -114,7 +80,6 @@ export default defineConfig({
                     value: ({ session }) => <ProductDisplay value={session.context?.product_id} />
                 }
             ],
-            multipleRuns: true,
             runs: [
                 {
                     title: "Message",

@@ -57,32 +57,15 @@ export type RunConfig = BaseRunConfig<SessionItemConfig, SessionInputItemConfig>
   displayProperties?: DisplayProperty<{ session: Session, run: Run }>[];
 };
 
-
-export type SharedAgentConfigProperties = {
+export type AgentConfig = Omit<BaseAgentConfig<RunConfig>, "runs"> & {
   displayProperties?: DisplayProperty<{ session: Session }>[];
   inputComponent?: React.ComponentType<InputComponentProps>;
+  runs?: RunConfig[];
+  run?: RunConfig;
 }
-
-export type MultipleRunsAgentConfig = Omit<BaseAgentConfig<RunConfig>, "runs"> & SharedAgentConfigProperties & {
-  multipleRuns: true;
-  runs: RunConfig[];
-}
-
-export type SingleRunAgentConfig = Omit<BaseAgentConfig<RunConfig>, "runs"> & SharedAgentConfigProperties & {
-  multipleRuns?: false;
-  run: RunConfig;
-}
-
-export type AgentConfig = MultipleRunsAgentConfig | SingleRunAgentConfig;
 
 export type AgentViewConfig = {
   apiBaseUrl: string;
   agents?: AgentConfig[],
-  customRoutes?: CustomRoute[],
-}
-
-export type AgentViewConfigInternal = {
-  apiBaseUrl: string;
-  agents?: MultipleRunsAgentConfig[],
   customRoutes?: CustomRoute[],
 }

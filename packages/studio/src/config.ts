@@ -1,6 +1,6 @@
-import type { AgentViewConfig, AgentViewConfigInternal, MultipleRunsAgentConfig, SingleRunAgentConfig } from "~/types";
+import type { AgentConfig, AgentViewConfig } from "~/types";
 
-export function loadConfig(): AgentViewConfigInternal {
+export function loadConfig(): AgentViewConfig {
     const config: AgentViewConfig | undefined = (window as any).agentview?.config;
     if (!config) {
         throw new Error("Config not found");
@@ -8,7 +8,11 @@ export function loadConfig(): AgentViewConfigInternal {
     return {
         ...config,
         agents: config.agents?.map((agent) => {
-            if (agent.multipleRuns === false || agent.multipleRuns === undefined) {
+            if (!agent.runs && !agent.run) {
+                throw new Error("Agent config must have either runs or run");
+            }
+
+            if (!agent.runs && agent.run) {
                 return {
                     ...agent,
                     multipleRuns: true,
@@ -16,7 +20,7 @@ export function loadConfig(): AgentViewConfigInternal {
                 }
             }
             else {
-                return agent as MultipleRunsAgentConfig;
+                return agent as AgentConfig;
             }
         })
     }
