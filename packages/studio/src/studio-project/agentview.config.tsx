@@ -1,7 +1,7 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ThumbsDown, ThumbsUp } from "lucide-react";
-import { AVForm, AVFormError, AVFormField, AVFormSubmitButton, AVInput, AVTextarea, SelectInput, singleFieldForm, ToggleBooleanInput } from "~/components/form";
+import { AVForm, AVFormError, AVFormField, AVFormSubmitButton, AVInput, AVTextarea, SelectInput, singleFieldForm, ToggleBooleanInput, UserMessageInputComponent } from "~/components/form";
 import { ItemAssistantMessageComponent, ItemUserMessageComponent, DisplayBooleanComponent } from "~/components/display";
 import { marked } from "marked";
 import { ProductDisplay } from "./ProductDisplay";
@@ -50,10 +50,11 @@ export default defineConfig({
                             }
                         ]
                     },
-                    inputComponent: singleFieldForm({
-                        defaultValue: "",
-                        control: (props) => <AVTextarea {...props} placeholder="Enter your message" />
-                    })
+                    inputComponent: UserMessageInputComponent
+                    // inputComponent: singleFieldForm({
+                    //     defaultValue: "",
+                    //     control: (props) => <AVTextarea {...props} placeholder="Enter your message" />
+                    // })
                 }
             ]
         },

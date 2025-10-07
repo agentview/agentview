@@ -757,6 +757,8 @@ app.openapi(runsPOSTRoute, async (c) => {
   const agentConfig = requireAgentConfig(config, session.agent)
   const itemConfig = requireItemConfig(agentConfig, type, role, "input")
 
+  return c.json({ message: `Some error` }, 400);
+
   // Validate content against the schema
   try {
     // return c.json({ message: `Error parsing session item`, code: 'parse.schema' }, 400);

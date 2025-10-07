@@ -391,9 +391,9 @@ function InputForm({ session, agentConfig }: { session: Session, agentConfig: Ag
 
     const FirstInputComponent = runConfigs[0]?.inputComponent;
 
-    return <div className="border-t">
+    return <div className="">
 
-        <div className="p-6 pr-0 max-w-[720px]">
+        <div className="pl-6 pb-6 pr-0 max-w-[720px]">
 
             {runConfigs.length === 0 && <div className="text-sm text-muted-foreground">No runs</div>}
 

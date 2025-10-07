@@ -19,12 +19,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "./ui/form";
 import { Alert } from "./ui/alert";
-import { AlertCircleIcon, Loader2 } from "lucide-react";
+import { AlertCircleIcon, ArrowUpIcon, Loader2, PauseIcon, PlusIcon, StopCircleIcon } from "lucide-react";
 import { AlertDescription } from "./ui/alert";
 import { Button } from "./ui/button";
 import { z } from "zod";
 import type { BaseError } from "~/lib/errors";
 import { cn } from "~/lib/utils";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupText, InputGroupTextarea } from "./ui/input-group";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { Separator } from "./ui/separator";
 
 // AVFormContext
 const AVFormContext = createContext<InputComponentProps | null>(null);
@@ -239,7 +242,7 @@ export function AVForm(props: AVFormProps) {
         resolver: zodResolver<any, any, any>(schema),
         defaultValues
     })
-    
+
     return <AVFormContext.Provider value={props}>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(submit)} className={cn("space-y-4", props.className)}>
@@ -250,12 +253,12 @@ export function AVForm(props: AVFormProps) {
 }
 
 
-export function AVFormError(props: { className?: string, error?: BaseError | null}) {
+export function AVFormError(props: { className?: string, error?: BaseError | null }) {
     const formContext = useAVFormContext();
     const error = props.error ?? formContext?.error;
     if (!error) return null;
 
-    return <Alert variant="destructive" className={cn("mb-6", props.className)}>
+    return <Alert variant="destructive" className={cn("mb-4", props.className)}>
         <AlertCircleIcon className="h-4 w-4" />
         <AlertDescription>{error.message}</AlertDescription>
     </Alert>
@@ -266,18 +269,18 @@ export type AVFormSubmitButtonProps = React.ComponentProps<typeof Button>;
 export function AVFormSubmitButton(props: AVFormSubmitButtonProps) {
     const formContext = useAVFormContext();
     const isRunning = formContext?.isRunning ?? false;
-    
+
     const shouldShowIcon = !props.children || typeof props.children === "string";
 
     return (
-        <Button 
-            type={"submit"} 
+        <Button
+            type={"submit"}
             disabled={props.disabled || isRunning}
             className={cn("transition-colors", props.className)}
             {...props}
         >
             {shouldShowIcon && isRunning && <Loader2 className="animate-spin" />}
-            { props.children ?? "Submit"}
+            {props.children ?? "Submit"}
         </Button>
     )
 }
@@ -315,3 +318,49 @@ export function singleFieldForm(field: { defaultValue: any, control: any }): Inp
     }
 }
 
+
+
+export function UserMessageInputComponent(props: InputComponentProps & { placeholder?: string }) {
+    const [value, setValue] = useState<string>("");
+
+    return <form onSubmit={(e) => {
+        e.preventDefault();
+        props.submit(value);
+    }}>
+        {props.error && <AVFormError error={props.error} />}
+
+        <InputGroup>
+            <InputGroupTextarea placeholder={props.placeholder ?? "Enter your message..."} rows={2} className="min-h-0 pb-0 md:text-md" value={value} onChange={(e) => setValue(e.target.value)} />
+
+            <InputGroupAddon align="block-end">
+
+                {/* <InputGroupText className="ml-auto">52% used</InputGroupText>
+      <Separator orientation="vertical" className="!h-4" /> */}
+                <InputGroupButton
+                    variant="default"
+                    className={`rounded-full ml-auto ${props.isRunning ? "hidden" : ""}`}
+                    size="icon-sm"
+                    type="submit"
+                    disabled={props.isRunning || value.trim() === ""}
+                >
+                    <ArrowUpIcon />
+                    <span className="sr-only">Send</span>
+                </InputGroupButton>
+
+                <InputGroupButton
+                    variant="default"
+                    className={`rounded-full ml-auto ${!props.isRunning ? "hidden" : ""}`}
+                    size="icon-sm"
+                    onClick={() => {
+                        props.cancel();
+                    }}
+                >
+                    <PauseIcon />
+                    <span className="sr-only">Pause</span>
+                </InputGroupButton>
+
+            </InputGroupAddon>
+        </InputGroup>
+
+    </form>
+}
