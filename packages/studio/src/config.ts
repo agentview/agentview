@@ -11,19 +11,14 @@ export function loadConfig(): AgentViewConfigInternal {
             if (agent.multipleRuns === false || agent.multipleRuns === undefined) {
                 return {
                     ...agent,
+                    multipleRuns: true,
                     runs: [agent.run]
                 }
             }
-            return agent
+            else {
+                return agent as MultipleRunsAgentConfig;
+            }
         })
-    }
-}
-
-function toMultipleRunsAgentConfig(agent: SingleRunAgentConfig): MultipleRunsAgentConfig {
-    return {
-        ...agent,
-        multipleRuns: true,
-        runs: [agent.run]
     }
 }
 
