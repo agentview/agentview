@@ -1,7 +1,7 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ThumbsDown, ThumbsUp } from "lucide-react";
-import { AVForm, AVInput, AVTextarea, SelectInput, singleFieldForm, ToggleBooleanInput } from "~/components/form";
+import { AVForm, AVFormError, AVFormField, AVFormSubmitButton, AVInput, AVTextarea, SelectInput, singleFieldForm, ToggleBooleanInput } from "~/components/form";
 import { ItemAssistantMessageComponent, ItemUserMessageComponent, DisplayBooleanComponent } from "~/components/display";
 import { marked } from "marked";
 import { ProductDisplay } from "./ProductDisplay";
@@ -65,20 +65,20 @@ export default defineConfig({
                 test: z.string().min(5, "Test must be at least 5 characters long")
             }),
             inputComponent: (props) => <AVForm {...props}>
-                <AVForm.Error />
-                <AVForm.Field
+                <AVFormError />
+                <AVFormField
                     name="product_id"
                     label="Product"
                     disabled={true}
                     control={ProductSelect}
                 />
-                <AVForm.Field
+                <AVFormField
                     name="test"
                     label="Test"
                     defaultValue="dupa"
                     control={(props) => <AVInput {...props} placeholder="Enter your test" />}
                 />
-                <AVForm.SubmitButton />
+                <AVFormSubmitButton />
             </AVForm>,
             
             displayedProperties: ({ session }) => [

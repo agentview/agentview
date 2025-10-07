@@ -266,11 +266,6 @@ export function AVForm(props: AVFormProps) {
 }
 
 
-
-
-
-
-
 export function AVFormError(props: { className?: string, error?: BaseError | null}) {
     const formContext = useAVFormContext();
     const error = props.error ?? formContext.error;
@@ -302,11 +297,6 @@ export function AVFormSubmitButton(props: AVFormSubmitButtonProps) {
         </Button>
     )
 }
-
-AVForm.Error = AVFormError;
-AVForm.SubmitButton = AVFormSubmitButton;
-AVForm.Field = AVFormField;
-
 
 
 export function singleFieldForm(field: { defaultValue: any, control: any }): InputComponent {
