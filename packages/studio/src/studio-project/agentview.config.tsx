@@ -9,6 +9,7 @@ import { ProductSelect } from "./ProductSelect";
 import { ScoreBadge } from "./ScoreBadge";
 import { CustomPage } from "./CustomPage";
 import { ProductChatInputForm } from "./ProductChatSessionForm";
+import { Button } from "~/components/ui/button";
 
 export default defineConfig({
     apiBaseUrl: "http://localhost:8080",
@@ -77,6 +78,7 @@ export default defineConfig({
                 />
                 <AVFormSubmitButton />
             </AVForm>,
+
             // inputComponent: form([
             //     {
             //         name: "product_id",

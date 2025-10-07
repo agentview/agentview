@@ -229,57 +229,56 @@ export type AVFormHelperOptions = {
 type AVFormProps = InputComponentProps & {
     defaultValues?: Record<string, any>,
     className?: string,
-    children?: ReactNode
+    children?: ReactNode,
+    hideDefaultError?: boolean
+    hideDefaultButtons?: boolean
 }
 
 export function AVForm(props: AVFormProps) {
-    const { schema, defaultValues, submit, error, isRunning, children, cancel } = props;
+    const { schema, defaultValues, submit, error, isRunning, children, cancel, hideDefaultError, hideDefaultButtons } = props;
 
     const form = useForm({
         resolver: zodResolver<any, any, any>(schema),
         defaultValues,
     })
-
-    const contextValue: InputComponentProps = {
-        submit,
-        cancel,
-        isRunning,
-        error,
-        schema
-    };
-
-    return <AVFormContext.Provider value={contextValue}>
+    
+    return <AVFormContext.Provider value={props}>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(submit)} className={cn("space-y-4", props.className)}>
-                { children }
+                {children}
             </form>
         </Form>
     </AVFormContext.Provider>
 }
 
-export function AVFormError({ className }: { className?: string }) {
-    const { error } = useAVFormContext();
-    
+export function AVFormError(props: { className?: string, error?: BaseError | null}) {
+    const formContext = useAVFormContext();
+    const error = props.error ?? formContext.error;
     if (!error) return null;
-    
-    return <Alert variant="destructive" className={cn("mb-4", className)}>
+
+    return <Alert variant="destructive" className={cn("mb-4", props.className)}>
         <AlertCircleIcon className="h-4 w-4" />
         <AlertDescription>{error.message}</AlertDescription>
     </Alert>
 }
 
-type AVFormSubmitButtonProps = React.ComponentProps<typeof Button>
+export type AVFormSubmitButtonProps = React.ComponentProps<typeof Button>;
 
-export function AVFormSubmitButton({ children, disabled, ...buttonProps }: AVFormSubmitButtonProps) {
-    const { isRunning } = useAVFormContext();
-    
-    return <Button 
-        type="submit" 
-        disabled={disabled || isRunning}
-        {...buttonProps}
-    >
-        {children ?? (isRunning ? "Submitting..." : "Submit")}
-    </Button>
+export function AVFormSubmitButton(props: AVFormSubmitButtonProps) {
+    const formContext = useAVFormContext();
+    const isRunning = formContext.isRunning;
+
+    return (
+        <Button 
+            type={"submit"} 
+            disabled={props.disabled || isRunning}
+            className={cn("transition-colors", props.className)}
+            {...props}
+        >
+            {isRunning && <Loader2 className="animate-spin" />}
+            Submit
+        </Button>
+    )
 }
 
 
