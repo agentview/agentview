@@ -19,10 +19,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "./ui/form";
 import { Alert } from "./ui/alert";
-import { AlertCircleIcon } from "lucide-react";
+import { AlertCircleIcon, Loader2 } from "lucide-react";
 import { AlertDescription } from "./ui/alert";
 import { Button } from "./ui/button";
 import { z } from "zod";
+import type { BaseError } from "~/lib/errors";
+import { cn } from "~/lib/utils";
 
 export type FormFieldBaseProps = {
     id: string,
@@ -194,11 +196,14 @@ export const AVTextarea = ({ value, onChange, name, ...textareaProps }: React.Co
 }
 
 export type AVFormHelperField<TValue extends z.ZodTypeAny = any, TInput = any, TOutput = TInput> = AVFormFieldProps<TInput, TOutput> & {
-    schema: TValue
     defaultValue?: z.infer<TValue>
 }
 
-export function form(fields: AVFormHelperField[]): InputComponent {
+export type AVFormHelperOptions = {
+    cancellable?: boolean
+}
+
+export function form(fields: AVFormHelperField[], options: AVFormHelperOptions = {}): InputComponent {
     const defaultValues: Record<string, any> = {}
     for (const field of fields) {
         defaultValues[field.name] = field.defaultValue;
@@ -207,7 +212,9 @@ export function form(fields: AVFormHelperField[]): InputComponent {
     return ({ submit, error, schema, isRunning }) => {
         const form = useForm({
             resolver: zodResolver<any, any, any>(schema),
-            defaultValues
+            defaultValues,
+            // mode: "onSubmit",
+            // reValidateMode: "onSubmit"
         })
 
         return <Form {...form}>
@@ -215,14 +222,19 @@ export function form(fields: AVFormHelperField[]): InputComponent {
                 <AlertCircleIcon className="h-4 w-4" />
                 <AlertDescription>{error.message}</AlertDescription>
             </Alert>}
-            <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
+            <form onSubmit={(e) => {
+                e.preventDefault();
+                form.handleSubmit(submit)(e);
+            }} className="space-y-4">
                 {fields.map((field) => {
                     const { defaultValue, ...fieldProps } = field;
                     return <AVFormField
                         {...fieldProps}
                     />
                 })}
-                <Button type="submit">{isRunning ? 'Submitting' : 'Submit'}</Button>
+                <Button type="submit" disabled={isRunning}>{ isRunning ? "Creating..." : "Create" }</Button>
+                {/* TEst<br/>
+                <Button type="submit" disabled={true}>Test</Button> */}
             </form>
         </Form>
     }
@@ -232,18 +244,28 @@ export function field<TValue extends z.ZodTypeAny = any, TInput = any, TOutput =
     return props;
 }
 
-export function controlForm(field: { defaultValue: any, control: any }): InputComponent {
+/**
+ * TODO:
+ * 
+ * Create abstraction over useForm!!!
+ * - no zodResolver
+ * - take input errors into account (from backend)
+ * - potentially no extra wrapper (<Form> and <form>, onsubmit taken into account)
+ * 
+ * Add cancellable
+ * Create good input message control
+ */
+
+export function singleFieldForm(field: { defaultValue: any, control: any }): InputComponent {
     const { defaultValue, ...fieldProps } = field;
     const Control = field.control;
-
-    const defaultValues = {
-        value: defaultValue
-    }
 
     return ({ submit, error, schema, isRunning }) => {
         const form = useForm({
             resolver: zodResolver<any, any, any>(z.object({ value: schema })),
-            defaultValues
+            defaultValues: {
+                value: defaultValue
+            }
         })
 
         return <Form {...form}>
@@ -260,7 +282,7 @@ export function controlForm(field: { defaultValue: any, control: any }): InputCo
                         </FormItem>
                     }}
                 />
-                <Button type="submit" disabled={isRunning}>{isRunning ? 'Submitting' : 'Submit'}</Button>
+                <Button type="submit" disabled={isRunning}>{isRunning ? 'Submitting...' : 'Submit'}</Button>
             </form>
         </Form>
     }

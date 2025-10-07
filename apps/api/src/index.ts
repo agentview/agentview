@@ -606,6 +606,11 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     }
   })()
 
+
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  return c.json({ message: `Some error` }, 400);
+
+  
   // Validate context against the schema
   if (agentConfig.context) {
     try {

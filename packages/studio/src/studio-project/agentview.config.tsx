@@ -1,7 +1,7 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ThumbsDown, ThumbsUp } from "lucide-react";
-import { AVTextarea, controlForm, field, form, SelectInput, TextareaInput, ToggleBooleanInput } from "~/components/form";
+import { AVInput, AVTextarea, field, form, SelectInput, singleFieldForm, TextareaInput, ToggleBooleanInput } from "~/components/form";
 import { ItemAssistantMessageComponent, ItemUserMessageComponent, DisplayBooleanComponent } from "~/components/display";
 import { marked } from "marked";
 import { ProductDisplay } from "./ProductDisplay";
@@ -49,9 +49,9 @@ export default defineConfig({
                             }
                         ]
                     },
-                    inputComponent: controlForm({
+                    inputComponent: singleFieldForm({
                         defaultValue: "",
-                        control: AVTextarea
+                        control: (props) => <AVTextarea {...props} placeholder="Enter your message" />
                     })
                 }
             ]
@@ -61,19 +61,24 @@ export default defineConfig({
             url: "http://127.0.0.1:8000/product_chat",
             context: z.object({
                 product_id: z.string(),
+                test: z.string().min(5)
             }),
             inputComponent: form([
                 {
                     name: "product_id",
                     label: "Product",
-                    schema: z.string(),
                     control: ProductSelect
+                },
+                {
+                    name: "test",
+                    label: "Test",
+                    control: (props) => <AVInput {...props} placeholder="Enter your test" />
                 }
             ]),
             displayedProperties: ({ session }) => [
                 {
                     title: "Product",
-                    value: <ProductDisplay value={session.context.product_id} />
+                    value: <ProductDisplay value={session.context.product_id} /> // TODO: Bad abstraction...? Shouldn't it be (session) => ... ?
                 }
             ],
             runs: [
