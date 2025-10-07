@@ -184,18 +184,6 @@ export function AVFormField<TInput = any, TOutput = TInput>(props: AVFormFieldPr
 }
 
 
-/**
- * <FormField2>
- *  name="username"
- * >
- *    <FormLabel>Label</FormLabel>
- *    <Input placeholder="shadcn" />
- *    <FormDescription>Description</FormDescription>
- *    <FormMessage />
- * </FormField2>
- */
-
-
 export const AVInput = ({ value, onChange, name, ...inputProps }: React.ComponentProps<"input"> & AVFormControlProps<string | undefined>) => {
     return <FormControl>
         <Input

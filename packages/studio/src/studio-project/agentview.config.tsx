@@ -69,12 +69,12 @@ export default defineConfig({
                 <AVFormField
                     name="product_id"
                     label="Product"
-                    disabled={true}
                     control={ProductSelect}
                 />
                 <AVFormField
                     name="test"
                     label="Test"
+                    disabled={true}
                     defaultValue="dupa"
                     control={(props) => <AVInput {...props} placeholder="Enter your test" />}
                 />
