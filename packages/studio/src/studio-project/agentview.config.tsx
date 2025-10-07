@@ -64,22 +64,20 @@ export default defineConfig({
                 product_id: z.string(),
                 test: z.string().min(5, "Test must be at least 5 characters long")
             }),
-            inputComponent: (props) => <AVForm {...props} defaultValues={{test: "dupa"}}>
+            inputComponent: (props) => <AVForm {...props}>
                 <AVForm.Error />
-
                 <AVForm.Field
                     name="product_id"
                     label="Product"
                     disabled={true}
                     control={ProductSelect}
                 />
-
                 <AVForm.Field
                     name="test"
                     label="Test"
+                    defaultValue="dupa"
                     control={(props) => <AVInput {...props} placeholder="Enter your test" />}
                 />
-
                 <AVForm.SubmitButton />
             </AVForm>,
             

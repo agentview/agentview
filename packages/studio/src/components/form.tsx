@@ -161,9 +161,11 @@ export type AVFormFieldProps<TInput = any, TOutput = TInput> = {
     name: string,
     label?: string,
     description?: string,
+    defaultValue?: TOutput,
     disabled?: boolean,
     control: AVFormControl<TInput, TOutput>
 }
+
 
 export function AVFormField<TInput = any, TOutput = TInput>(props: AVFormFieldProps<TInput, TOutput>) {
     const Control = props.control;
@@ -171,6 +173,7 @@ export function AVFormField<TInput = any, TOutput = TInput>(props: AVFormFieldPr
     return <FormFieldShadcn
         name={props.name}
         disabled={props.disabled}
+        defaultValue={props.defaultValue}
         render={({ field }) => {
             return <FormItem>
                 <FormLabel>{props.label ?? props.name}</FormLabel>
