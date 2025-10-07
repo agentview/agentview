@@ -314,10 +314,10 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
                     </PropertyList.TextValue>
                 </PropertyList.Item>
 
-                {agentConfig.displayedProperties && agentConfig.displayedProperties({ session }).map((property) => (
+                {agentConfig.displayedProperties && agentConfig.displayedProperties.map((property) => (
                     <PropertyList.Item>
                         <PropertyList.Title>{property.title}</PropertyList.Title>
-                        <PropertyList.TextValue>{property.value}</PropertyList.TextValue>
+                        <PropertyList.TextValue>{property.value({ session })}</PropertyList.TextValue>
                     </PropertyList.Item>
                 ))}
 

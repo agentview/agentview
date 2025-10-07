@@ -82,10 +82,10 @@ export default defineConfig({
                 <AVFormSubmitButton />
             </AVForm>,
 
-            displayedProperties: ({ session }) => [
+            displayedProperties: [
                 {
                     title: "Product",
-                    value: <ProductDisplay value={session.context.product_id} /> // TODO: Bad abstraction...? Shouldn't it be (session) => ... ?
+                    value: ({ session }) => <ProductDisplay value={session.context.product_id} /> // TODO: Bad abstraction...? Shouldn't it be (session) => ... ?
                 }
             ],
             runs: [
@@ -176,128 +176,8 @@ export default defineConfig({
                             <Button type="submit">Submit</Button>
                         </form>
                     }
-
-
-                    // inputComponent: form([
-                    //     {
-                    //         name: "value",
-                    //         label: "Message",
-                    //         schema: z.string(),
-                    //         control: AVTextarea
-                    //     }
-                    // ])
                 }
             ]
-            // items: [
-            //     {
-            //         input: true,
-            //         type: "message",
-            //         role: "user",
-            //         title: "Message",
-            //         content: z.string(),
-            //         inputComponent: TextareaInput,
-            //         displayComponent: ItemUserMessageComponent
-            //     },
-            //     {
-            //         type: "message",
-            //         role: "assistant",
-            //         content: z.string(),
-            //         displayComponent: ItemAssistantMessageComponent,
-            //         scores: [
-            //             {
-            //                 name: "user_reaction",
-            //                 title: "Reaction",
-            //                 schema: z.boolean(),
-            //                 inputComponent: ToggleBooleanInput,
-            //                 displayComponent: DisplayBooleanComponent,
-            //                 options: {
-            //                     true: {
-            //                         icon: ThumbsUp,
-            //                         label: "Like"
-            //                     },
-            //                     false: {
-            //                         icon: ThumbsDown,
-            //                         label: "Don't like"
-            //                     }
-            //                 }
-            //             }
-
-            //         ]
-            //     },
-            //     {
-            //         input: true,
-            //         type: "change_page",
-            //         title: "Change page",
-            //         content: z.object({
-            //             product_id: z.string(),
-            //         }),
-            //         inputComponent: ({ value, onChange }) => {
-            //             return <ProductSelect value={value?.product_id} onChange={(product_id) => { onChange({ product_id }) }} />
-            //         },
-            //         displayComponent: ({ value }) => <div className="flex flex-row items-center justify-end gap-2"><div className="text-muted-foreground">Changed page to</div><ProductDisplay value={value?.product_id} /></div>
-            //     },
-            //     {
-            //         type: "change_page_output",
-            //         content: z.object({
-            //             score: z.enum(["best_fit", "great_option", "optional", "not_recommended"]),
-            //             comment: z.string()
-            //         }).nullable(),
-            //         displayComponent: ({ value }) => {
-            //             return (
-            //                 <div className="relative pr-[10%]">
-            //                     <div className="border p-3 rounded-lg bg-muted">
-            //                         { !value && <div className="text-muted-foreground italic">Not enough user info to show product comment</div> }
-            //                         {value && <>
-            //                             <div className="mb-2">
-            //                                 <ScoreBadge score={value.score} />
-            //                             </div>
-            //                             <div
-            //                                 className="prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline"
-            //                                 dangerouslySetInnerHTML={{
-            //                                     __html: marked.parse(value.comment, { async: false })
-            //                                 }}
-            //                             />
-            //                         </>}
-            //                     </div>
-            //                 </div>
-            //             );
-            //         },
-            //         scores: [
-            //             {
-            //                 name: "user_reaction",
-            //                 title: "Reaction",
-            //                 schema: z.boolean(),
-            //                 inputComponent: ToggleBooleanInput,
-            //                 displayComponent: DisplayBooleanComponent,
-            //                 options: {
-            //                     true: {
-            //                         icon: ThumbsUp,
-            //                         label: "Like"
-            //                     },
-            //                     false: {
-            //                         icon: ThumbsDown,
-            //                         label: "Don't like"
-            //                     }
-            //                 }
-            //             },
-            //             {
-            //                 name: "recommended_score",
-            //                 title: "Your score",
-            //                 schema: z.string(),
-            //                 inputComponent: SelectInput,
-            //                 displayComponent: ({ value }) => <ScoreBadge score={value} />,
-            //                 options: {
-            //                     items: [
-            //                         { value: "best_fit", label: "Best Fit" },
-            //                         { value: "great_option", label: "Great Option" },
-            //                         { value: "optional", label: "Optional" },
-            //                         { value: "not_recommended", label: "Not Recommended" }
-            //                     ]
-            //                 }
-            //             }
-            //         ]
-            //     },
-            // ]
         }
     ],
     customRoutes: [
