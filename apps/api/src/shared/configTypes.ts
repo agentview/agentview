@@ -37,8 +37,8 @@ export interface BaseSessionItemConfig<TScoreConfig> {
     scores?: TScoreConfig[];
 }
 
-export interface BaseRunConfig<TSessionItemConfig> {
-    input: TSessionItemConfig;
+export interface BaseRunConfig<TSessionItemConfig, TSessionInputItemConfig> {
+    input: TSessionInputItemConfig;
     output: TSessionItemConfig;
     steps?: TSessionItemConfig[];
 }
@@ -51,5 +51,5 @@ export interface BaseAgentConfig<TRunConfig> {
 }
 
 export type BaseConfig = {
-    agents?: BaseAgentConfig<BaseRunConfig<BaseSessionItemConfig<BaseScoreConfig>>>[],
+    agents?: BaseAgentConfig<BaseRunConfig<BaseSessionItemConfig<BaseScoreConfig>, BaseSessionItemConfig<BaseScoreConfig>>>[],
 }

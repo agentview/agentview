@@ -26,6 +26,7 @@ import { Loader } from "~/components/Loader";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import type { BaseError } from "~/lib/errors";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
+import { DisplayProperties } from "~/components/DisplayProperties";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<Session>(`/api/sessions/${params.id}`);
@@ -273,9 +274,7 @@ function SessionPage() {
     </>
 }
 
-function DisplayPropertyRenderer<T>({ value, inputArgs }: { value: (inputArgs: T) => React.ReactNode, inputArgs: T }) {
-    return <div>{value(inputArgs)}</div>
-}
+
 
 function SessionDetails({ session, agentConfig }: { session: Session, agentConfig: AgentConfig }) {
     const versions = getVersions(session);
@@ -317,24 +316,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
                     </PropertyList.TextValue>
                 </PropertyList.Item>
 
-                <ErrorBoundary>
-                    {agentConfig.displayedProperties && agentConfig.displayedProperties.map((property) => {
-
-                        return <PropertyList.Item key={property?.title}>
-                            <PropertyList.Title>{property?.title ?? "Unknown property"}</PropertyList.Title>
-                            <PropertyList.TextValue>
-                                <DisplayPropertyRenderer value={property?.value} inputArgs={{ session }} />
-                            </PropertyList.TextValue>
-                        </PropertyList.Item>
-                    })}
-                </ErrorBoundary>
-
-                {/* {(agentConfig.metadata ?? []).map((metafield: any) => (
-                    <PropertyList.Item className="items-start">
-                        <PropertyList.Title>{metafield.title ?? metafield.name}</PropertyList.Title>
-                        <PropertyList.TextValue><metafield.display value={session.metadata?.[metafield.name]} options={metafield.options} /></PropertyList.TextValue>
-                    </PropertyList.Item>
-                ))} */}
+                { agentConfig.displayProperties && <DisplayProperties displayProperties={agentConfig.displayProperties} inputArgs={{ session }} /> }
             </PropertyList.Root>
         </div>
     );
@@ -397,7 +379,7 @@ function InputForm({ session, agentConfig }: { session: Session, agentConfig: Ag
 
     const runConfigs = agentConfig.runs;
 
-    const FirstInputComponent = runConfigs[0]?.inputComponent;
+    const FirstInputComponent = runConfigs[0]?.input.inputComponent;
 
     return <div className="border-t">
         <div className="p-6 pr-0 max-w-[720px]">
@@ -443,7 +425,7 @@ function InputForm({ session, agentConfig }: { session: Session, agentConfig: Ag
                         const inputConfig = runConfig.input;
                         const tabValue = `${inputConfig.type}-${inputConfig.role || 'default'}`;
 
-                        const InputComponent = runConfig.inputComponent;
+                        const InputComponent = runConfig.input.inputComponent;
 
                         return (
                             <TabsContent key={index} value={tabValue}>

@@ -85,6 +85,8 @@ function Component() {
                                 : "-"}
                         </PropertyList.TextValue>
                     </PropertyList.Item>
+                    {/* { agentConfig.displayProperties && <DisplayProperties displayProperties={agentConfig.displayProperties} inputArgs={{ session }} /> } */}
+
                     {run.failReason && (
                         <PropertyList.Item>
                             <PropertyList.Title>Fail reason</PropertyList.Title>

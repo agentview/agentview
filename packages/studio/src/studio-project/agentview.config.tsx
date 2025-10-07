@@ -23,6 +23,7 @@ export default defineConfig({
                         role: "user",
                         content: z.string(),
                         displayComponent: ItemUserMessageComponent,
+                        inputComponent: UserMessageInputComponent
                     },
                     output: {
                         type: "message",
@@ -48,8 +49,7 @@ export default defineConfig({
                                 }
                             }
                         ]
-                    },
-                    inputComponent: UserMessageInputComponent
+                    }
                 }
             ]
         },
@@ -76,7 +76,7 @@ export default defineConfig({
                 <AVFormSubmitButton />
             </AVForm>,
 
-            displayedProperties: [
+            displayProperties: [
                 {
                     title: "Product",
                     value: ({ session }) => <ProductDisplay value={session.context?.product_id} />
@@ -89,7 +89,8 @@ export default defineConfig({
                         type: "message",
                         role: "user",
                         content: z.string(),
-                        displayComponent: ItemUserMessageComponent
+                        displayComponent: ItemUserMessageComponent,
+                        inputComponent: UserMessageInputComponent
                     },
                     output: {
                         type: "message",
@@ -97,7 +98,6 @@ export default defineConfig({
                         content: z.string(),
                         displayComponent: ItemAssistantMessageComponent
                     },
-                    inputComponent: UserMessageInputComponent
                 },
                 {
                     title: "Change page",
@@ -107,6 +107,28 @@ export default defineConfig({
                         content: z.object({
                             product_id: z.string(),
                         }),
+                        inputComponent: ({ submit, isRunning, schema }) => {
+                            const [productId, setProductId] = useState<string | undefined>(undefined);
+                            const [error, setError] = useState<string | undefined>(undefined);
+
+                            return <form onSubmit={(e) => {
+                                e.preventDefault();
+                                if (!productId) {
+                                    setError("Product ID is required");
+                                    return;
+                                }
+                                submit({ product_id: productId });
+                            }}
+                                className="space-y-2"
+                            >
+                                <ProductSelect value={productId} onChange={(productId) => {
+                                    setProductId(productId);
+                                    setError(undefined);
+                                }} />
+                                {error && <div className="text-red-500 mt-2 text-sm">{error}</div>}
+                                <Button type="submit">Submit</Button>
+                            </form>
+                        }
                     },
                     output: {
                         type: "message",
@@ -147,28 +169,6 @@ export default defineConfig({
                                 }
                             }
                         ]
-                    },
-                    inputComponent: ({ submit, isRunning, schema }) => {
-                        const [productId, setProductId] = useState<string | undefined>(undefined);
-                        const [error, setError] = useState<string | undefined>(undefined);
-
-                        return <form onSubmit={(e) => {
-                            e.preventDefault();
-                            if (!productId) {
-                                setError("Product ID is required");
-                                return;
-                            }
-                            submit({ product_id: productId });
-                        }}
-                            className="space-y-2"
-                        >
-                            <ProductSelect value={productId} onChange={(productId) => {
-                                setProductId(productId);
-                                setError(undefined);
-                            }} />
-                            {error && <div className="text-red-500 mt-2">{error}</div>}
-                            <Button type="submit">Submit</Button>
-                        </form>
                     }
                 }
             ]

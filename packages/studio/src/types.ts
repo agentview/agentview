@@ -22,7 +22,7 @@ export type CustomRoute = {
   title: React.ReactNode,
 }
 
-export type DisplayedProperty<InputArgsT=any> = {
+export type DisplayProperty<InputArgsT=any> = {
   title: string;
   value: (args: InputArgsT) => React.ReactNode;
 }
@@ -48,13 +48,17 @@ export type SessionItemConfig = BaseSessionItemConfig<ScoreConfig> & {
   displayComponent?: React.ComponentType<DisplayComponentProps>;
 };
 
-export type RunConfig = BaseRunConfig<SessionItemConfig> & {
-  title?: string;
+export type SessionInputItemConfig = SessionItemConfig & {
   inputComponent?: React.ComponentType<InputComponentProps>;
 };
 
+export type RunConfig = BaseRunConfig<SessionItemConfig, SessionInputItemConfig> & {
+  title?: string;
+  displayProperties?: DisplayProperty<{ session: Session, run: Run }>[];
+};
+
 export type AgentConfig = BaseAgentConfig<RunConfig> & {
-  displayedProperties?: DisplayedProperty<{ session: Session }>[];
+  displayProperties?: DisplayProperty<{ session: Session }>[];
   inputComponent?: React.ComponentType<InputComponentProps>;
 };
 
