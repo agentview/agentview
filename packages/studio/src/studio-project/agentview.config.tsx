@@ -10,6 +10,7 @@ import { ScoreBadge } from "./ScoreBadge";
 import { CustomPage } from "./CustomPage";
 import { ProductChatInputForm } from "./ProductChatSessionForm";
 import { Button } from "~/components/ui/button";
+import { useState } from "react";
 
 export default defineConfig({
     apiBaseUrl: "http://localhost:8080",
@@ -80,7 +81,7 @@ export default defineConfig({
                 />
                 <AVFormSubmitButton />
             </AVForm>,
-            
+
             displayedProperties: ({ session }) => [
                 {
                     title: "Product",
@@ -153,6 +154,30 @@ export default defineConfig({
                             }
                         ]
                     },
+                    inputComponent: ({ submit, isRunning, schema }) => {
+                        const [productId, setProductId] = useState<string | undefined>(undefined);
+                        const [error, setError] = useState<string | undefined>(undefined);
+
+                        return <form onSubmit={(e) => {
+                            e.preventDefault();
+                            if (!productId) {
+                                setError("Product ID is required");
+                                return;
+                            }
+                            submit({ product_id: productId });
+                        }}
+                            className="space-y-2"
+                        >
+                            <ProductSelect value={productId} onChange={(productId) => {
+                                setProductId(productId);
+                                setError(undefined);
+                            }} />
+                            {error && <div className="text-red-500 mt-2">{error}</div>}
+                            <Button type="submit">Submit</Button>
+                        </form>
+                    }
+
+
                     // inputComponent: form([
                     //     {
                     //         name: "value",

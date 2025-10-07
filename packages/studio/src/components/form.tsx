@@ -149,7 +149,7 @@ export const SelectInput: React.ComponentType<FormInputProps<string | undefined>
 
 /** NEW VERSION **/
 
-export type AVFormControlProps<TInput = any, TOutput = TInput> = ControllerRenderProps<FieldValues, any> & {
+export type AVFormControlProps<TInput = any, TOutput = TInput> = Partial<ControllerRenderProps<FieldValues, any>> & {
     value: TInput
     onChange: (value: TOutput) => void
 }
