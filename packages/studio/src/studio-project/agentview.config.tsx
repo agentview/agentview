@@ -1,14 +1,12 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ThumbsDown, ThumbsUp } from "lucide-react";
-import { AVForm, AVFormError, AVFormField, AVFormSubmitButton, AVInput, AVTextarea, SelectInput, singleFieldForm, ToggleBooleanInput, UserMessageInputComponent } from "~/components/form";
+import { AVForm, AVFormField, AVFormSubmitButton, AVInput, AVTextarea, SelectInput, singleFieldForm, ToggleBooleanInput, UserMessageInputComponent } from "~/components/form";
 import { ItemAssistantMessageComponent, ItemUserMessageComponent, DisplayBooleanComponent } from "~/components/display";
-import { marked } from "marked";
 import { ProductDisplay } from "./ProductDisplay";
 import { ProductSelect } from "./ProductSelect";
 import { ScoreBadge } from "./ScoreBadge";
 import { CustomPage } from "./CustomPage";
-import { ProductChatInputForm } from "./ProductChatSessionForm";
 import { Button } from "~/components/ui/button";
 import { useState } from "react";
 
