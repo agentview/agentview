@@ -85,7 +85,7 @@ export default defineConfig({
             displayedProperties: [
                 {
                     title: "Product",
-                    value: ({ session }) => <ProductDisplay value={session.context.product_id} /> // TODO: Bad abstraction...? Shouldn't it be (session) => ... ?
+                    value: ({ session }) => <ProductDisplay value={session.context?.product_id} /> // TODO: Bad abstraction...? Shouldn't it be (session) => ... ?
                 }
             ],
             runs: [
