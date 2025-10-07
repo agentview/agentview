@@ -56,10 +56,10 @@ export default defineConfig({
                             if (!run.metadata?.trace_id) {
                                 return <span className="text-muted-foreground">No trace</span>
                             }
-                            return <Button variant="outline" size="xs" onClick={() => {
-                                window.open(`https://cloud.langfuse.com/project/cmfmholwz00k1ad074onno73u/traces/${run.metadata.trace_id}`, "_blank")
-                            }}>
+                            return <Button asChild variant="outline" size="xs">
+                                <a href={`https://cloud.langfuse.com/project/cmfmholwz00k1ad074onno73u/traces/${run.metadata.trace_id}`} target="_blank">
                                 Trace <ExternalLink className="size-4" />
+                                </a>
                             </Button>
                         }
                     }
