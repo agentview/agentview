@@ -1,7 +1,7 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ThumbsDown, ThumbsUp } from "lucide-react";
-import { AVForm, AVFormError, AVFormField, AVFormSubmitButton, AVInput, AVTextarea, field, form, SelectInput, singleFieldForm, TextareaInput, ToggleBooleanInput } from "~/components/form";
+import { AVForm, AVInput, AVTextarea, SelectInput, singleFieldForm, ToggleBooleanInput } from "~/components/form";
 import { ItemAssistantMessageComponent, ItemUserMessageComponent, DisplayBooleanComponent } from "~/components/display";
 import { marked } from "marked";
 import { ProductDisplay } from "./ProductDisplay";
@@ -62,49 +62,27 @@ export default defineConfig({
             url: "http://127.0.0.1:8000/product_chat",
             context: z.object({
                 product_id: z.string(),
-                test: z.string().min(5)
+                test: z.string().min(5, "Test must be at least 5 characters long")
             }),
             inputComponent: (props) => <AVForm {...props} defaultValues={{test: "dupa"}}>
-                <AVFormError />
-                <AVFormField
+                <AVForm.Error />
+
+                <AVForm.Field
                     name="product_id"
                     label="Product"
+                    disabled={true}
                     control={ProductSelect}
                 />
-                <AVFormField
+
+                <AVForm.Field
                     name="test"
                     label="Test"
                     control={(props) => <AVInput {...props} placeholder="Enter your test" />}
                 />
-                <AVFormSubmitButton />
-            </AVForm>,
 
-            // inputComponent: form([
-            //     {
-            //         name: "product_id",
-            //         label: "Product",
-            //         control: ProductSelect
-            //     },
-            //     {
-            //         name: "test",
-            //         label: "Test",
-            //         control: (props) => <AVInput {...props} placeholder="Enter your test" />
-            //     }
-            // ]),
-            // inputComponent: (props) => <Form {...props}>
-            //     <Form.Error />
-            //     <Form.Field
-            //         name="product_id"
-            //         label="Product"
-            //         control={ProductSelect}
-            //     />
-            //     <Form.Field
-            //         name="test"
-            //         label="Test"
-            //         control={(props) => <AVInput {...props} placeholder="Enter your test" />}
-            //     />
-            //     <Button type="submit">Submit</Button>
-            // </Form>,
+                <AVForm.SubmitButton />
+            </AVForm>,
+            
             displayedProperties: ({ session }) => [
                 {
                     title: "Product",
@@ -179,14 +157,14 @@ export default defineConfig({
                             }
                         ]
                     },
-                    inputComponent: form([
-                        {
-                            name: "value",
-                            label: "Message",
-                            schema: z.string(),
-                            control: AVTextarea
-                        }
-                    ])
+                    // inputComponent: form([
+                    //     {
+                    //         name: "value",
+                    //         label: "Message",
+                    //         schema: z.string(),
+                    //         control: AVTextarea
+                    //     }
+                    // ])
                 }
             ]
             // items: [
