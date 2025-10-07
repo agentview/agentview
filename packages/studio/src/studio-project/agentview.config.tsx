@@ -102,9 +102,7 @@ export default defineConfig({
                         content: z.string(),
                         displayComponent: ItemAssistantMessageComponent
                     },
-                    inputComponent: ({ submit, isRunning, error, schema }) => {
-                        return <div>pizda</div>
-                    }
+                    inputComponent: UserMessageInputComponent
                 },
                 {
                     title: "Change page",

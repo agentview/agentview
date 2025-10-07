@@ -14,7 +14,7 @@ import { AlertCircleIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, Messag
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig } from "~/types";
-import { FormField } from "~/components/form";
+import { AVFormError, FormField } from "~/components/form";
 import { parseFormData } from "~/lib/parseFormData";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/ItemsWithCommentsLayout";
@@ -217,7 +217,7 @@ function SessionPage() {
                                         {run.state === "in_progress" && <div className="text-muted-foreground mt-5">
                                             <Loader />
                                         </div>}
-                                        
+
                                         {run.state === "failed" && <div className="text-xs flex justify-start my-3 gap-1">
                                             <Alert variant="destructive">
                                                 <AlertCircleIcon />
@@ -314,7 +314,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
                     </PropertyList.TextValue>
                 </PropertyList.Item>
 
-                { agentConfig.displayedProperties && agentConfig.displayedProperties({ session }).map((property) => (
+                {agentConfig.displayedProperties && agentConfig.displayedProperties({ session }).map((property) => (
                     <PropertyList.Item>
                         <PropertyList.Title>{property.title}</PropertyList.Title>
                         <PropertyList.TextValue>{property.value}</PropertyList.TextValue>
@@ -391,66 +391,73 @@ function InputForm({ session, agentConfig }: { session: Session, agentConfig: Ag
 
     const FirstInputComponent = runConfigs[0]?.inputComponent;
 
-    return <div className="">
-
-        <div className="pl-6 pb-6 pr-0 max-w-[720px]">
-
+    return <div className="border-t">
+        <div className="p-6 pr-0 max-w-[720px]">
             {runConfigs.length === 0 && <div className="text-sm text-muted-foreground">No runs</div>}
 
-                {runConfigs.length === 1 ? (
-                    // Single input config - no tabs
-                    <div>
-                        { FirstInputComponent && <FirstInputComponent
+            {runConfigs.length === 1 ? (
+                // Single input config - no tabs
+                <div>
+                    {FirstInputComponent && <div>
+                        {error && <AVFormError error={error} className="mb-4" />}
+
+                        <FirstInputComponent
                             cancel={cancel}
                             submit={(values) => { submit(values, runConfigs[0].input) }}
                             schema={runConfigs[0].input.content}
                             error={error}
                             isRunning={lastRun?.state === 'in_progress'}
-                        /> }
-                    </div>
-                ) : (
-                    // Multiple input configs - use tabs
-                    <Tabs defaultValue={`${runConfigs[0].input.type}-${runConfigs[0].input.role || 'default'}`}>
-                        <TabsList>
-                            {runConfigs.map((runConfig, index) => {
-                                const inputConfig = runConfig.input;
-
-                                const tabName = runConfig.title || (inputConfig.role
-                                    ? `${inputConfig.type} / ${inputConfig.role}`
-                                    : inputConfig.type)
-                                const tabValue = `${inputConfig.type}-${inputConfig.role || 'default'}`;
-
-                                return (
-                                    <TabsTrigger key={index} value={tabValue}>
-                                        {tabName}
-                                    </TabsTrigger>
-                                );
-                            })}
-                        </TabsList>
-
+                        /></div>}
+                </div>
+            ) : (
+                // Multiple input configs - use tabs
+                <Tabs defaultValue={`${runConfigs[0].input.type}-${runConfigs[0].input.role || 'default'}`} className="gap-3" onValueChange={() => {
+                    setError(undefined)
+                }}>
+                    <TabsList>
                         {runConfigs.map((runConfig, index) => {
                             const inputConfig = runConfig.input;
+
+                            const tabName = runConfig.title || (inputConfig.role
+                                ? `${inputConfig.type} / ${inputConfig.role}`
+                                : inputConfig.type)
                             const tabValue = `${inputConfig.type}-${inputConfig.role || 'default'}`;
 
-                            const InputComponent = runConfig.inputComponent;
-
                             return (
-                                <TabsContent key={index} value={tabValue}>
-                                    { InputComponent && <InputComponent
+                                <TabsTrigger key={index} value={tabValue}>
+                                    {tabName}
+                                </TabsTrigger>
+                            );
+                        })}
+                    </TabsList>
+
+                    {runConfigs.map((runConfig, index) => {
+                        const inputConfig = runConfig.input;
+                        const tabValue = `${inputConfig.type}-${inputConfig.role || 'default'}`;
+
+                        const InputComponent = runConfig.inputComponent;
+
+                        return (
+                            <TabsContent key={index} value={tabValue}>
+                                {error && <AVFormError error={error} className="mb-4" />}
+
+                                {InputComponent && <InputComponent
                                         cancel={cancel}
                                         submit={(values) => { submit(values, inputConfig) }}
                                         schema={inputConfig.content}
                                         error={error}
                                         isRunning={lastRun?.state === 'in_progress'}
-                                    /> }
-                                </TabsContent>
-                            );
-                        })}
-                    </Tabs>
-                )}
+                                    />}
 
-                {/* <Textarea name="message" placeholder="Reply here..." rows={1} className="mb-2" /> */}
-{/* 
+                                {!InputComponent && <div className="text-muted-foreground">No input component for session item: <code className="text-sm">{"{"} type: "{inputConfig.type}"{inputConfig.role ? `, role: "${inputConfig.role}"` : ""} {"}"}</code></div>}
+                            </TabsContent>
+                        );
+                    })}
+                </Tabs>
+            )}
+
+            {/* <Textarea name="message" placeholder="Reply here..." rows={1} className="mb-2" /> */}
+            {/* 
                 <div className="flex flex-row gap-2 items-center mt-2">
 
                     {lastRun?.state !== 'in_progress' && <Button type="submit">Send <SendHorizonalIcon /></Button>}
@@ -464,7 +471,7 @@ function InputForm({ session, agentConfig }: { session: Session, agentConfig: Ag
 
                 </div>
             </form> */}
-            
+
         </div>
     </div>
 }

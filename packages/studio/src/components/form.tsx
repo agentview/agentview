@@ -253,14 +253,10 @@ export function AVForm(props: AVFormProps) {
 }
 
 
-export function AVFormError(props: { className?: string, error?: BaseError | null }) {
-    const formContext = useAVFormContext();
-    const error = props.error ?? formContext?.error;
-    if (!error) return null;
-
-    return <Alert variant="destructive" className={cn("mb-4", props.className)}>
+export function AVFormError(props: { className?: string, error: BaseError }) {
+    return <Alert variant="destructive" className={cn("", props.className)}>
         <AlertCircleIcon className="h-4 w-4" />
-        <AlertDescription>{error.message}</AlertDescription>
+        <AlertDescription>{props.error.message}</AlertDescription>
     </Alert>
 }
 
@@ -327,8 +323,6 @@ export function UserMessageInputComponent(props: InputComponentProps & { placeho
         e.preventDefault();
         props.submit(value);
     }}>
-        {props.error && <AVFormError error={props.error} />}
-
         <InputGroup>
             <InputGroupTextarea placeholder={props.placeholder ?? "Enter your message..."} rows={2} className="min-h-0 pb-0 md:text-md" value={value} onChange={(e) => setValue(e.target.value)} />
 
