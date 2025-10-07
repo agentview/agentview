@@ -57,10 +57,18 @@ export type RunConfig = BaseRunConfig<SessionItemConfig, SessionInputItemConfig>
   displayProperties?: DisplayProperty<{ session: Session, run: Run }>[];
 };
 
-export type AgentConfig = BaseAgentConfig<RunConfig> & {
+export type MultipleRunsAgentConfig = BaseAgentConfig<RunConfig> & {
   displayProperties?: DisplayProperty<{ session: Session }>[];
   inputComponent?: React.ComponentType<InputComponentProps>;
-};
+  run?: never;
+}
+
+export type SingleRunAgentConfig = Omit<MultipleRunsAgentConfig, "runs" | "run"> & {
+  run: RunConfig;
+  runs?: never;
+}
+
+export type AgentConfig = MultipleRunsAgentConfig | SingleRunAgentConfig;
 
 export type AgentViewConfig = {
   apiBaseUrl: string;

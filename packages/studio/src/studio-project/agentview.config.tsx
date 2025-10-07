@@ -16,42 +16,40 @@ export default defineConfig({
         {
             name: "simple_chat",
             url: "http://127.0.0.1:8000/simple_chat",
-            runs: [
-                {
-                    input: {
-                        type: "message",
-                        role: "user",
-                        content: z.string(),
-                        displayComponent: ItemUserMessageComponent,
-                        inputComponent: UserMessageInputComponent
-                    },
-                    output: {
-                        type: "message",
-                        role: "assistant",
-                        content: z.string(),
-                        displayComponent: ItemAssistantMessageComponent,
-                        scores: [
-                            {
-                                name: "user_reaction",
-                                title: "Can it go to client?",
-                                schema: z.boolean(),
-                                inputComponent: ToggleBooleanInput,
-                                displayComponent: DisplayBooleanComponent,
-                                options: {
-                                    true: {
-                                        icon: ThumbsUp,
-                                        label: "Yes"
-                                    },
-                                    false: {
-                                        icon: ThumbsDown,
-                                        label: "No"
-                                    }
+            run: {
+                input: {
+                    type: "message",
+                    role: "user",
+                    content: z.string(),
+                    displayComponent: ItemUserMessageComponent,
+                    inputComponent: UserMessageInputComponent
+                },
+                output: {
+                    type: "message",
+                    role: "assistant",
+                    content: z.string(),
+                    displayComponent: ItemAssistantMessageComponent,
+                    scores: [
+                        {
+                            name: "user_reaction",
+                            title: "Can it go to client?",
+                            schema: z.boolean(),
+                            inputComponent: ToggleBooleanInput,
+                            displayComponent: DisplayBooleanComponent,
+                            options: {
+                                true: {
+                                    icon: ThumbsUp,
+                                    label: "Yes"
+                                },
+                                false: {
+                                    icon: ThumbsDown,
+                                    label: "No"
                                 }
                             }
-                        ]
-                    }
+                        }
+                    ]
                 }
-            ]
+            }
         },
         {
             name: "pdp_chat",
