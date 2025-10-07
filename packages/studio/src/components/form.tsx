@@ -30,11 +30,7 @@ import { cn } from "~/lib/utils";
 const AVFormContext = createContext<InputComponentProps | null>(null);
 
 function useAVFormContext() {
-    const context = useContext(AVFormContext);
-    if (!context) {
-        throw new Error("useAVFormContext must be used within AVForm");
-    }
-    return context;
+    return useContext(AVFormContext);
 }
 
 export type FormFieldBaseProps = {
@@ -268,7 +264,7 @@ export function AVForm(props: AVFormProps) {
 
 export function AVFormError(props: { className?: string, error?: BaseError | null}) {
     const formContext = useAVFormContext();
-    const error = props.error ?? formContext.error;
+    const error = props.error ?? formContext?.error;
     if (!error) return null;
 
     return <Alert variant="destructive" className={cn("mb-6", props.className)}>
@@ -281,7 +277,7 @@ export type AVFormSubmitButtonProps = React.ComponentProps<typeof Button>;
 
 export function AVFormSubmitButton(props: AVFormSubmitButtonProps) {
     const formContext = useAVFormContext();
-    const isRunning = formContext.isRunning;
+    const isRunning = formContext?.isRunning ?? false;
     
     const shouldShowIcon = !props.children || typeof props.children === "string";
 

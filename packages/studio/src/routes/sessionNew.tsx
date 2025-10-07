@@ -6,6 +6,7 @@ import { getListParams, toQueryParams } from "~/lib/listParams";
 import { type ActionResponse } from "~/lib/errors";
 import { config } from "~/config";
 import { requireAgentConfig } from "~/lib/config";
+import { AVFormError } from "~/components/form";
 
 async function loader({ request }: LoaderFunctionArgs) {
   const listParams = getListParams(request);
@@ -79,6 +80,8 @@ function Component() {
          error={error}
          isRunning={fetcher.state === "submitting"}
         />}
+
+        { !agentConfig.context && !agentConfig.inputComponent && error && <AVFormError error={error} />}
       </div>
     </div>
   </div>
