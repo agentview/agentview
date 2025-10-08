@@ -1,7 +1,7 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
-import { AVForm, AVFormField, AVFormSubmitButton, AVInput, AVTextarea, SelectInput, singleFieldForm, ToggleBooleanInput, UserMessageInputComponent } from "~/components/form";
+import { AVForm, AVFormField, AVInput, SelectInput, ToggleBooleanInput, UserMessageInputComponent } from "~/components/form";
 import { ItemAssistantMessageComponent, ItemUserMessageComponent, DisplayBooleanComponent } from "~/components/display";
 import { ProductDisplay } from "./ProductDisplay";
 import { ProductSelect } from "./ProductSelect";
@@ -9,6 +9,9 @@ import { ScoreBadge } from "./ScoreBadge";
 import { CustomPage } from "./CustomPage";
 import { Button } from "~/components/ui/button";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { FormField, FormItem, FormLabel, FormMessage, Form } from "~/components/ui/form";
 
 export default defineConfig({
     apiBaseUrl: "http://localhost:8080",
@@ -58,7 +61,7 @@ export default defineConfig({
                             }
                             return <Button asChild variant="outline" size="xs">
                                 <a href={`https://cloud.langfuse.com/project/cmfmholwz00k1ad074onno73u/traces/${run.metadata.trace_id}`} target="_blank">
-                                Trace <ExternalLink className="size-4" />
+                                    Trace <ExternalLink className="size-4" />
                                 </a>
                             </Button>
                         }
@@ -73,21 +76,53 @@ export default defineConfig({
                 product_id: z.string(),
                 test: z.string().min(5, "Test must be at least 5 characters long")
             }),
-            inputComponent: (props) => <AVForm {...props}>
-                <AVFormField
-                    name="product_id"
-                    label="Product"
-                    control={ProductSelect}
-                />
-                <AVFormField
-                    name="test"
-                    label="Test"
-                    // disabled={true}
-                    defaultValue="dupa"
-                    control={(props) => <AVInput {...props} placeholder="Enter your test" />}
-                />
-                <AVFormSubmitButton />
-            </AVForm>,
+            inputComponent: ({ schema, submit, isRunning }) => {
+                const form = useForm({
+                    resolver: zodResolver<any, any, any>(schema),
+                })
+
+                return <Form {...form}>
+                    <form onSubmit={form.handleSubmit(submit)} className={"space-y-4"}>
+                        <FormField
+                            name={"product_id"}
+                            render={({ field }) => <FormItem>
+                                    <FormLabel>Product</FormLabel>
+                                    <ProductSelect {...field} />
+                                    <FormMessage />
+                                </FormItem> 
+                            }
+                        />
+                        <FormField
+                            name={"test"}
+                            defaultValue={"Dupa"}
+                            render={({ field }) => <FormItem>
+                                <FormLabel>Product</FormLabel>
+                                <AVInput {...field} placeholder="Enter your test" />
+                                <FormMessage />
+                            </FormItem>
+                            }
+                        />
+                        <Button type="submit" disabled={isRunning}>Submit</Button>
+                    </form>
+                </Form>
+            },
+            // inputComponent: (props) => <AVForm {...props}>
+            //     <AVFormField
+            //         name="product_id"
+            //         label="Product"
+            //         control={ProductSelect}
+            //     />
+
+            //     <AVFormField
+            //         name="test"
+            //         label="Test"
+            //         // disabled={true}
+            //         defaultValue="dupa"
+            //         control={(props) => <AVInput {...props} placeholder="Enter your test" />}
+            //     />
+            //     <Button type="submit" disabled={props.isRunning}>Submit</Button>
+            // </AVForm>,
+
 
             displayProperties: [
                 {
@@ -95,6 +130,7 @@ export default defineConfig({
                     value: ({ session }) => <ProductDisplay value={session.context?.product_id} />
                 }
             ],
+
             runs: [
                 {
                     title: "Message",

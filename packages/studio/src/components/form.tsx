@@ -243,13 +243,11 @@ export function AVForm(props: AVFormProps) {
         defaultValues
     })
 
-    return <AVFormContext.Provider value={props}>
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(submit)} className={cn("space-y-4", props.className)}>
-                {children}
-            </form>
-        </Form>
-    </AVFormContext.Provider>
+    return <Form {...form}>
+        <form onSubmit={form.handleSubmit(submit)} className={cn("space-y-4", props.className)}>
+            {children}
+        </form>
+    </Form>
 }
 
 
@@ -260,59 +258,59 @@ export function AVFormError(props: { className?: string, error: BaseError }) {
     </Alert>
 }
 
-export type AVFormSubmitButtonProps = React.ComponentProps<typeof Button>;
+// export type AVFormSubmitButtonProps = React.ComponentProps<typeof Button>;
 
-export function AVFormSubmitButton(props: AVFormSubmitButtonProps) {
-    const formContext = useAVFormContext();
-    const isRunning = formContext?.isRunning ?? false;
+// export function AVFormSubmitButton(props: AVFormSubmitButtonProps) {
+//     const formContext = useAVFormContext();
+//     const isRunning = formContext?.isRunning ?? false;
 
-    const shouldShowIcon = !props.children || typeof props.children === "string";
+//     const shouldShowIcon = !props.children || typeof props.children === "string";
 
-    return (
-        <Button
-            type={"submit"}
-            disabled={props.disabled || isRunning}
-            className={cn("transition-colors", props.className)}
-            {...props}
-        >
-            {shouldShowIcon && isRunning && <Loader2 className="animate-spin" />}
-            {props.children ?? "Submit"}
-        </Button>
-    )
-}
+//     return (
+//         <Button
+//             type={"submit"}
+//             disabled={props.disabled || isRunning}
+//             className={cn("transition-colors", props.className)}
+//             {...props}
+//         >
+//             {shouldShowIcon && isRunning && <Loader2 className="animate-spin" />}
+//             {props.children ?? "Submit"}
+//         </Button>
+//     )
+// }
 
 
-export function singleFieldForm(field: { defaultValue: any, control: any }): InputComponent {
-    const { defaultValue, ...fieldProps } = field;
-    const Control = field.control;
+// export function singleFieldForm(field: { defaultValue: any, control: any }): InputComponent {
+//     const { defaultValue, ...fieldProps } = field;
+//     const Control = field.control;
 
-    return ({ submit, error, schema, isRunning }) => {
-        const form = useForm({
-            resolver: zodResolver<any, any, any>(z.object({ value: schema })),
-            defaultValues: {
-                value: defaultValue
-            }
-        })
+//     return ({ submit, error, schema, isRunning }) => {
+//         const form = useForm({
+//             resolver: zodResolver<any, any, any>(z.object({ value: schema })),
+//             defaultValues: {
+//                 value: defaultValue
+//             }
+//         })
 
-        return <Form {...form}>
-            {error && <Alert variant="destructive" className="mb-4">
-                <AlertCircleIcon className="h-4 w-4" />
-                <AlertDescription>{error.message}</AlertDescription>
-            </Alert>}
-            <form onSubmit={form.handleSubmit((values) => submit(values.value))} className="space-y-2">
-                <FormFieldShadcn
-                    name={"value"}
-                    render={({ field }) => {
-                        return <FormItem>
-                            <Control {...field} />
-                        </FormItem>
-                    }}
-                />
-                <Button type="submit" disabled={isRunning}>{isRunning ? 'Submitting...' : 'Submit'}</Button>
-            </form>
-        </Form>
-    }
-}
+//         return <Form {...form}>
+//             {error && <Alert variant="destructive" className="mb-4">
+//                 <AlertCircleIcon className="h-4 w-4" />
+//                 <AlertDescription>{error.message}</AlertDescription>
+//             </Alert>}
+//             <form onSubmit={form.handleSubmit((values) => submit(values.value))} className="space-y-2">
+//                 <FormFieldShadcn
+//                     name={"value"}
+//                     render={({ field }) => {
+//                         return <FormItem>
+//                             <Control {...field} />
+//                         </FormItem>
+//                     }}
+//                 />
+//                 <Button type="submit" disabled={isRunning}>{isRunning ? 'Submitting...' : 'Submit'}</Button>
+//             </form>
+//         </Form>
+//     }
+// }
 
 
 

@@ -368,9 +368,6 @@ export function CommentMessageItem({ message, item, session,compressionLevel = "
     );
 
 
-
-    
-
     useFetcherSuccess(fetcher, () => {
         setIsEditing(false);
     });
