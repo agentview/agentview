@@ -37,7 +37,10 @@ export default defineConfig({
                             name: "user_reaction",
                             title: "Can it go to client?",
                             schema: z.boolean(),
-                            inputComponent: (props) => <BooleanToggleGroupControl {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
+                            inputComponent: (props) => {
+                                console.log('props', props);
+                                return <BooleanToggleGroupControl {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />
+                            },
                             displayComponent: (props) => <BooleanToggleGroupDisplay {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
                         }
                     ]

@@ -18,14 +18,15 @@ async function action({ request, params }: ActionFunctionArgs): Promise<ActionRe
 
     }
     else if (request.method === 'PUT') {
-        const formData = await request.formData();
-        const extractionResponse = commentFormDataToJSON(formData);
+        const { comment, scores } = await request.json();
+        // const formData = await request.formData();
+        // const extractionResponse = commentFormDataToJSON(formData);
 
-        if (!extractionResponse.ok) {
-            return extractionResponse;
-        }
+        // if (!extractionResponse.ok) {
+        //     return extractionResponse;
+        // }
 
-        const { comment, scores } = extractionResponse.data;
+        // const { comment, scores } = extractionResponse.data;
 
         const response = await apiFetch(`/api/sessions/${params.id}/items/${params.itemId}/comments/${params.commentId}`, {
             method: 'PUT',

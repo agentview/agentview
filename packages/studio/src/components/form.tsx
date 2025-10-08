@@ -181,10 +181,14 @@ export const BooleanToggleGroupControl = ({ value, onChange, trueLabel, trueIcon
 
     const stringValue = value === true ? "true" : value === false ? "false" : undefined;
 
+    console.log('string value', stringValue);
+
     return (
         <ToggleGroupControl
             value={stringValue}
             onChange={(newValue) => {
+                console.log('on change', newValue);
+                
                 if (newValue === undefined) {
                     onChange(undefined);
                 } else {

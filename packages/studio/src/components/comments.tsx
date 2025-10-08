@@ -76,7 +76,7 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
             Object.fromEntries(
                 unassignedScoreConfigs.map((scoreConfig) => [
                     scoreConfig.name,
-                    scoreConfig.schema
+                    scoreConfig.schema.optional()
                 ])
             )
         )
@@ -236,57 +236,6 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
                             console.log('form values', form.getValues());
                         }}>Log form values</Button>
                     </Form>
-
-                    {/* <fetcher.Form method="post" action={`/sessions/${session.id}/items/${item.id}/comments`} ref={formRef}>
-
-                        {unassignedScoreConfigs.length > 0 && <div className="mb-4 space-y-2">
-                            {unassignedScoreConfigs.map((scoreConfig) => (
-                                <FormField
-                                    key={scoreConfig.name}
-                                    id={scoreConfig.name}
-                                    label={scoreConfig.title ?? scoreConfig.name}
-                                    error={fetcher.data?.error?.fieldErrors?.["scores." + scoreConfig.name]}
-                                    name={"scores." + scoreConfig.name}
-                                    defaultValue={scores[scoreConfig.name] ?? undefined}
-                                    InputComponent={scoreConfig.inputComponent}
-                                    options={scoreConfig.options}
-                                />
-                            ))}
-                        </div>}
-
-                        <div>
-                            {unassignedScoreConfigs.length > 0 && <div className="text-sm mb-1 text-gray-700">Comment</div>}
-                            <TextEditor
-                                mentionItems={members.filter((member) => member.id !== user.id).map(member => ({
-                                    id: member.id,
-                                    label: member.name ?? "Unknown"
-                                }))}
-                                name="comment"
-                                placeholder={(hasZeroVisisbleComments ? "Comment" : "Reply") + " or tag other, using @"}
-                                className="min-h-[10px] resize-none mb-0"
-                            />
-                        </div>
-
-                        <div className={`gap-2 justify-end mt-2 flex`}>
-                            <Button
-                                type="reset"
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                    formRef.current?.reset();
-                                }}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                size="sm"
-                                disabled={fetcher.state !== 'idle'}
-                            >
-                                {fetcher.state !== 'idle' ? 'Posting...' : 'Submit'}
-                            </Button>
-                        </div>
-                    </fetcher.Form> */}
                 </div>
 
 
@@ -419,7 +368,6 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
 
     const fetcher = useFetcher();
     const isOwn = author.id === user.id;
-    const formRef = useRef<HTMLFormElement>(null);
 
     const createdAt = timeAgoShort(message.createdAt);
     const subtitle = createdAt + (message.updatedAt && message.updatedAt !== message.createdAt ? " · edited" : "")
@@ -444,6 +392,29 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
             message.scores.some((score) => score.name === scoreConfig.name)
     );
 
+    const schema = z.object({
+        comment: z.string(),
+        scores: z.object(
+            Object.fromEntries(
+                messageScoreConfigs.map((scoreConfig) => [
+                    scoreConfig.name,
+                    scoreConfig.schema.optional()
+                ])
+            )
+        )
+    }).partial();
+
+    const form = useForm({
+        resolver: zodResolver(schema),
+        defaultValues: {
+            comment: message.content ?? undefined,
+            scores: scores
+        }
+    });
+
+    const submit = (data: z.infer<typeof schema>) => {
+        fetcher.submit(data as any, { method: 'put', action: `/sessions/${session.id}/items/${item.id}/comments/${message.id}`, encType: 'application/json' })
+    }
 
     useFetcherSuccess(fetcher, () => {
         setIsEditing(false);
@@ -489,59 +460,72 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
                         </Alert>
                     )}
 
-                    <fetcher.Form method="put" action={`/sessions/${session.id}/items/${item.id}/comments/${message.id}`} ref={formRef} className="space-y-2">
-                        {messageScoreConfigs.length > 0 && <div className="mb-4 space-y-2">
-                            {messageScoreConfigs.map((scoreConfig) => <FormField
-                                key={scoreConfig.name}
-                                id={scoreConfig.name}
-                                label={scoreConfig.title ?? scoreConfig.name}
-                                error={fetcher.data?.error?.fieldErrors?.["scores." + scoreConfig.name]}
-                                name={"scores." + scoreConfig.name}
-                                defaultValue={scores[scoreConfig.name] ?? undefined}
-                                InputComponent={scoreConfig.inputComponent}
-                                options={scoreConfig.options}
-                            />)}
-                        </div>}
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(submit)} className="space-y-2">
+                            {messageScoreConfigs.length > 0 && <div className="mb-4 space-y-2">
+                                {messageScoreConfigs.map((scoreConfig) => (
+                                    <AVFormField
+                                        key={scoreConfig.name}
+                                        label={scoreConfig.title ?? scoreConfig.name}
+                                        name={"scores." + scoreConfig.name}
+                                        control={scoreConfig.inputComponent}
+                                    />
+                                ))}
+                            </div>}
 
-                        <TextEditor
-                            mentionItems={members.filter((member) => member.id !== user.id).map(member => ({
-                                id: member.id,
-                                label: member.name ?? "Unknown"
-                            }))}
-                            name="comment"
-                            placeholder={"Edit or tag others, using @"}
-                            defaultValue={message.content ?? ""}
-                            className="min-h-[10px] resize-none mb-0"
-                        />
+                            <AVFormField
+                                key={"comment"}
+                                label={"Comment"}
+                                name={"comment"}
+                                control={(props) => <TextEditor
+                                    mentionItems={members.filter((member) => member.id !== user.id).map(member => ({
+                                        id: member.id,
+                                        label: member.name ?? "Unknown"
+                                    }))}
+                                    placeholder={"Edit or tag others, using @"}
+                                    className="min-h-[10px] resize-none mb-0"
+                                    {...props}
+                                />}
+                            />
 
-                        <div className="flex gap-2 mt-1">
-                            <Button type="submit" size="sm" disabled={fetcher.state !== 'idle'}>
-                                {fetcher.state !== 'idle' ? 'Saving...' : 'Save'}
-                            </Button>
-                            <Button
-                                type="reset"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                    formRef.current?.reset();
-                                    setIsEditing(false);
-                                }}
-                            >
-                                Cancel
-                            </Button>
-                        </div>
-                    </fetcher.Form>
+                            <div className="flex gap-2 mt-1">
+                                <Button type="submit" size="sm" disabled={fetcher.state !== 'idle'}>
+                                    {fetcher.state !== 'idle' ? 'Saving...' : 'Save'}
+                                </Button>
+                                <Button
+                                    type="reset"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        form.reset();
+                                        setIsEditing(false);
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button onClick={(e) => {
+                                    e.preventDefault();
+                                    console.log('form values', form.getValues());
+                                }}>Log form</Button>
+                            </div>
+                        </form>
+                    </Form>
 
                 </div>) : <div>
 
                     {messageScoreConfigs.length > 0 && <div>
                         <PropertyList.Root className="mb-2">
-                            {messageScoreConfigs.map((scoreConfig) => (
-                                <PropertyList.Item key={scoreConfig.name}>
-                                    <PropertyList.Title>{scoreConfig.title ?? scoreConfig.name}</PropertyList.Title>
-                                    <PropertyList.TextValue><scoreConfig.displayComponent value={scores[scoreConfig.name]} options={scoreConfig.options} /></PropertyList.TextValue>
-                                </PropertyList.Item>
-                            ))}
+                            {messageScoreConfigs.map((scoreConfig) => {
+                                const DisplayComponent = scoreConfig.displayComponent;
+                                return (
+                                    <PropertyList.Item key={scoreConfig.name}>
+                                        <PropertyList.Title>{scoreConfig.title ?? scoreConfig.name}</PropertyList.Title>
+                                        <PropertyList.TextValue>
+                                            {DisplayComponent && <DisplayComponent value={scores[scoreConfig.name]} />}
+                                        </PropertyList.TextValue>
+                                    </PropertyList.Item>
+                                );
+                            })}
                         </PropertyList.Root>
                     </div>}
 
