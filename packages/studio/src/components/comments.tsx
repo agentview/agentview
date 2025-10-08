@@ -23,6 +23,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { Form } from "./ui/form";
+import React from "react";
 
 export type CommentSessionProps = {
     session: Session,

@@ -40,7 +40,7 @@ export type FormComponent = React.ComponentType<FormComponentProps>;
 
 export type ControlComponentProps<TValue> = {
   value: TValue | undefined;
-  onChange: (value: TValue | undefined) => void;
+  onChange: (value: TValue) => void;
   name?: string;
   onBlur?: () => void;
   disabled?: boolean;

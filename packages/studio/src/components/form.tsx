@@ -1,7 +1,7 @@
 import { useState, createContext, useContext } from "react";
 import type { ReactNode } from "react";
 import { useOnFormReset } from '~/hooks/useOnFormReset';
-import type { ControlComponent, ControlComponentProps, FormInputProps, InputComponent, InputComponentProps } from "~/types";
+import type { ControlComponent, ControlComponentProps, FormInputProps } from "~/types";
 import { Input } from "./ui/input";
 import { Switch } from "./ui/switch";
 import {
@@ -29,13 +29,6 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupText, InputGro
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Separator } from "./ui/separator";
 import { Badge } from "./ui/badge";
-
-// AVFormContext
-const AVFormContext = createContext<InputComponentProps | null>(null);
-
-function useAVFormContext() {
-    return useContext(AVFormContext);
-}
 
 export type FormFieldBaseProps = {
     id: string,
@@ -120,11 +113,15 @@ export const ToggleGroupControl = ({ value, onChange, options } : ControlCompone
 
     return (
         <ToggleGroup type="single" variant="outline" size="sm" value={toggleValue} onValueChange={(value) => {
-            if (value === "") {
-                onChange(undefined);
-            } else {
+            if (options.some(option => option.value === value)) {
                 onChange(value);
             }
+// )
+//             if (value === "") {
+//                 onChange(undefined);
+//             } else {
+//                 onChange(value);
+//             }
         }}>
             {options.map((option) => {
                 const icon = option.icon;
@@ -181,19 +178,16 @@ export const BooleanToggleGroupControl = ({ value, onChange, trueLabel, trueIcon
 
     const stringValue = value === true ? "true" : value === false ? "false" : undefined;
 
-    console.log('string value', stringValue);
-
     return (
         <ToggleGroupControl
             value={stringValue}
             onChange={(newValue) => {
-                console.log('on change', newValue);
-                
-                if (newValue === undefined) {
-                    onChange(undefined);
-                } else {
-                    onChange(newValue === "true");
-                }
+                onChange(newValue === "true");
+                // if (newValue === undefined) {
+                //     onChange(undefined);
+                // } else {
+                //     onChange(newValue === "true");
+                // }
             }}
             options={options}
         />
@@ -306,7 +300,6 @@ export function AVFormField<TInput = any, TOutput = TInput>(props: AVFormFieldPr
 
 
 export const AVInput = ({ value, onChange, name, ...inputProps }: React.ComponentProps<"input"> & AVFormControlProps<string | undefined>) => {
-    console.log('AVInput value', value);
     return <FormControl>
         <Input
             value={value ?? ""}
