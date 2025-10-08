@@ -10,7 +10,7 @@ import {
 } from "./ui/toggle-group"
 import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { FormDescription, FormItem, FormLabel, FormMessage, useFormField, FormField as FormFieldShadcn, FormControl } from "./ui/form";
+import { FormDescription, FormItem, FormLabel, FormMessage, useFormField, FormField, FormControl } from "./ui/form";
 import React from "react";
 import type { ControllerRenderProps, FieldValues } from "react-hook-form";
 
@@ -183,7 +183,7 @@ export type AVFormFieldProps<TInput = any, TOutput = TInput> = {
 export function AVFormField<TInput = any, TOutput = TInput>(props: AVFormFieldProps<TInput, TOutput>) {
     const Control = props.control;
 
-    return <FormFieldShadcn
+    return <FormField
         name={props.name}
         disabled={props.disabled}
         defaultValue={props.defaultValue}
