@@ -208,16 +208,6 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
                                         {...props}
                                     />}
                                 />
-
-                                {/* <TextEditor
-                                    mentionItems={members.filter((member) => member.id !== user.id).map(member => ({
-                                        id: member.id,
-                                        label: member.name ?? "Unknown"
-                                    }))}
-                                    name="comment"
-                                    placeholder={(hasZeroVisisbleComments ? "Comment" : "Reply") + " or tag other, using @"}
-                                    className="min-h-[10px] resize-none mb-0"
-                                /> */}
                             </div>
                             <div className={`gap-2 justify-end mt-2 flex`}>
                                 <Button
