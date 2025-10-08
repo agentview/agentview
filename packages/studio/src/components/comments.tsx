@@ -193,11 +193,11 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
                             </div>}
 
                             <div>
-                                {unassignedScoreConfigs.length > 0 && <div className="text-sm mb-1 text-gray-700">Comment</div>}
+                                {/* {unassignedScoreConfigs.length > 0 && <div className="text-sm mb-1 text-gray-700">Comment</div>} */}
 
                                 <AVFormField
                                     key={"comment"}
-                                    label={"Comment"}
+                                    label={unassignedScoreConfigs.length > 0 ? "Comment" : undefined}
                                     name={"comment"}
                                     control={(props) => <TextEditor
                                         mentionItems={members.filter((member) => member.id !== user.id).map(member => ({
@@ -506,7 +506,7 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
 
                 </div>) : <div>
 
-                    {messageScoreConfigs.length > 0 && <div className="border rounded-md p-3">
+                    {messageScoreConfigs.length > 0 && <div className="">
                         <PropertyList className="mb-2">
                             {messageScoreConfigs.map((scoreConfig) => {
                                 const DisplayComponent = scoreConfig.displayComponent;

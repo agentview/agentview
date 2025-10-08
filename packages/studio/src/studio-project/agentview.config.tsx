@@ -72,7 +72,7 @@ export default defineConfig({
                 })
 
                 return <Form {...form}>
-                    <form onSubmit={form.handleSubmit(submit)} className={"space-y-4"}>
+                    <form onSubmit={form.handleSubmit(submit)} className={"space-y-5"}>
                         <FormField
                             name={"product_id"}
                             render={({ field }) => <FormItem>
@@ -86,7 +86,7 @@ export default defineConfig({
                             name={"test"}
                             // defaultValue={"Dupa"}
                             render={({ field }) => <FormItem>
-                                <FormLabel>Product</FormLabel>
+                                <FormLabel>Test Field</FormLabel>
                                 <AVInput {...field} placeholder="Enter your test" />
                                 <FormMessage />
                             </FormItem>

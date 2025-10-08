@@ -189,7 +189,7 @@ export function AVFormField<TInput = any, TOutput = TInput>(props: AVFormFieldPr
         defaultValue={props.defaultValue}
         render={({ field }) => {
             return <FormItem>
-                <FormLabel>{props.label ?? props.name}</FormLabel>
+                { props.label && <FormLabel>{props.label}</FormLabel> }
                 <Control {...field} />
                 {props.description && <FormDescription>
                     {props.description}
