@@ -1,5 +1,4 @@
 import { apiFetch } from "~/lib/apiFetch";
-import { commentFormDataToJSON } from "~/lib/commentForm";
 import { type ActionResponse } from "~/lib/errors";
 import type { ActionFunctionArgs, RouteObject } from "react-router";
 
@@ -19,14 +18,6 @@ async function action({ request, params }: ActionFunctionArgs): Promise<ActionRe
     }
     else if (request.method === 'PUT') {
         const { comment, scores } = await request.json();
-        // const formData = await request.formData();
-        // const extractionResponse = commentFormDataToJSON(formData);
-
-        // if (!extractionResponse.ok) {
-        //     return extractionResponse;
-        // }
-
-        // const { comment, scores } = extractionResponse.data;
 
         const response = await apiFetch(`/api/sessions/${params.id}/items/${params.itemId}/comments/${params.commentId}`, {
             method: 'PUT',

@@ -30,77 +30,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Separator } from "./ui/separator";
 import { Badge } from "./ui/badge";
 
-export type FormFieldBaseProps = {
-    id: string,
-    children: ReactNode
-    label?: string;
-    description?: string;
-    error?: string;
-};
 
-export function FormFieldBase<T = any>(props: FormFieldBaseProps) {
-    const { id, label, description, error, children } = props;
-    return <div className="flex flex-row gap-4">
-        {label && <label className="text-sm text-gray-700 w-[170px] flex-shrink-0 truncate" htmlFor={id}>{label}</label>}
-        {<div className="flex-1">
-            <div>
-                {children}
-            </div>
-            {description && <div className="text-xs text-gray-500">{description}</div>}
-            {error && <div className="text-xs text-red-500">{error}</div>}
-        </div>}
-    </div>
-}
-
-export type FormFieldProps<T = any> = Omit<FormFieldBaseProps, "children"> & {
-    name: string,
-    defaultValue: T,
-    options?: any,
-    InputComponent: React.ComponentType<FormInputProps<T>>,
-}
-
-export function FormField<T = any>(props: FormFieldProps<T>) {
-    const { id, label, description, error, name, defaultValue, InputComponent, options } = props;
-    const [fieldValue, setFieldValue] = useState<T>(defaultValue);
-
-    const inputRef = useOnFormReset(() => {
-        setFieldValue(defaultValue);
-    });
-
-    // const [fieldError, setFieldError] = useState<string | undefined>(error);
-
-    // useEffect(() => {
-    //     setFieldError(error);
-    // }, [error]);
-
-    return <>
-        <input type="hidden" name={name} value={JSON.stringify(fieldValue) ?? ""} ref={inputRef} />
-        <FormFieldBase id={id} label={label} description={description} error={error}>
-            <InputComponent id={id} name={`agentview__${name}`} value={fieldValue} options={options} onChange={(newValue) => {
-                setFieldValue(newValue);
-                // setFieldError(undefined);
-            }} />
-        </FormFieldBase>
-    </>
-}
-
-export const TextInput: React.ComponentType<FormInputProps<string | undefined>> = ({ value, onChange, name, id }) => {
-    return <Input value={value ?? ""} placeholder={"Enter value"} onChange={(e) => onChange(e.target.value === "" ? undefined : e.target.value)} name={name} id={id} />
-}
-
-export const TextareaInput: React.ComponentType<FormInputProps<string | undefined>> = ({ value, onChange, name, id }) => {
-    return <Textarea value={value ?? ""} placeholder={"Enter value"} onChange={(e) => onChange(e.target.value === "" ? undefined : e.target.value)} name={name} id={id} />
-}
-
-export const SwitchInput: React.ComponentType<FormInputProps<boolean>> = ({ value, onChange, name, id }) => {
-    return <Switch checked={value ?? false} onCheckedChange={(checked) => onChange(checked)} name={name} id={id} />
-}
-
-
-
-
-
-// Toggle Buttons
 
 export type ToggleGroupControlOption = {
     value: string;
@@ -212,52 +142,24 @@ export function BooleanToggleGroupDisplay({ value, trueLabel, trueIcon, falseLab
 
 
 
+// export const SelectInput: React.ComponentType<FormInputProps<string | undefined>> = ({ value, onChange, name, id, options }) => {
+//     return <Select onValueChange={(value) => onChange(value === "" ? undefined : value)} defaultValue={value}>
+//         <SelectTrigger>
+//             <SelectValue placeholder="Pick option" />
+//         </SelectTrigger>
+//         <SelectContent>
+//             {options.items.map((item: any) => {
+//                 const value = typeof item === 'string' ? item : item.value;
+//                 const label = typeof item === 'string' ? item : (item.label ?? item.value)
 
-
-// export const ToggleBooleanInput: ControlComponent<boolean> = ({ value, onChange }) => {
-//     const toggleValue = value === true ? "true" : value === false ? "false" : "";
-
-//     const TrueIcon = options?.true?.icon ?? null;
-//     const trueLabel = TrueIcon ? null : options?.true?.label ?? "True";
-
-//     const FalseIcon = options?.false?.icon ?? null;
-//     const falseLabel = FalseIcon ? null : options?.false?.label ?? "False";
-
-//     return (
-//         <ToggleGroup type="single" variant="outline" size="sm" value={toggleValue} onValueChange={(value) => {
-//             if (value === "") {
-//                 onChange(undefined);
-//             } else {
-//                 onChange(value === "true");
-//             }
-//         }}>
-//             <ToggleGroupItem value="true" aria-label="Toggle true">
-//                 {TrueIcon ? <TrueIcon className="h-2 w-2" /> : null}
-//                 {trueLabel}
-//             </ToggleGroupItem>
-//             <ToggleGroupItem value="false" aria-label="Toggle false">
-//                 {FalseIcon ? <FalseIcon className="h-2 w-2" /> : null}
-//                 {falseLabel}
-//             </ToggleGroupItem>
-//         </ToggleGroup>
-//     )
+//                 return <SelectItem value={item.value}>{item.label}</SelectItem>
+//             })}
+//         </SelectContent>
+//     </Select>
 // }
 
-export const SelectInput: React.ComponentType<FormInputProps<string | undefined>> = ({ value, onChange, name, id, options }) => {
-    return <Select onValueChange={(value) => onChange(value === "" ? undefined : value)} defaultValue={value}>
-        <SelectTrigger>
-            <SelectValue placeholder="Pick option" />
-        </SelectTrigger>
-        <SelectContent>
-            {options.items.map((item: any) => {
-                const value = typeof item === 'string' ? item : item.value;
-                const label = typeof item === 'string' ? item : (item.label ?? item.value)
 
-                return <SelectItem value={item.value}>{item.label}</SelectItem>
-            })}
-        </SelectContent>
-    </Select>
-}
+
 
 /** NEW VERSION **/
 
@@ -369,61 +271,6 @@ export function AVFormError(props: { className?: string, error: BaseError }) {
         <AlertDescription>{props.error.message}</AlertDescription>
     </Alert>
 }
-
-// export type AVFormSubmitButtonProps = React.ComponentProps<typeof Button>;
-
-// export function AVFormSubmitButton(props: AVFormSubmitButtonProps) {
-//     const formContext = useAVFormContext();
-//     const isRunning = formContext?.isRunning ?? false;
-
-//     const shouldShowIcon = !props.children || typeof props.children === "string";
-
-//     return (
-//         <Button
-//             type={"submit"}
-//             disabled={props.disabled || isRunning}
-//             className={cn("transition-colors", props.className)}
-//             {...props}
-//         >
-//             {shouldShowIcon && isRunning && <Loader2 className="animate-spin" />}
-//             {props.children ?? "Submit"}
-//         </Button>
-//     )
-// }
-
-
-// export function singleFieldForm(field: { defaultValue: any, control: any }): InputComponent {
-//     const { defaultValue, ...fieldProps } = field;
-//     const Control = field.control;
-
-//     return ({ submit, error, schema, isRunning }) => {
-//         const form = useForm({
-//             resolver: zodResolver<any, any, any>(z.object({ value: schema })),
-//             defaultValues: {
-//                 value: defaultValue
-//             }
-//         })
-
-//         return <Form {...form}>
-//             {error && <Alert variant="destructive" className="mb-4">
-//                 <AlertCircleIcon className="h-4 w-4" />
-//                 <AlertDescription>{error.message}</AlertDescription>
-//             </Alert>}
-//             <form onSubmit={form.handleSubmit((values) => submit(values.value))} className="space-y-2">
-//                 <FormFieldShadcn
-//                     name={"value"}
-//                     render={({ field }) => {
-//                         return <FormItem>
-//                             <Control {...field} />
-//                         </FormItem>
-//                     }}
-//                 />
-//                 <Button type="submit" disabled={isRunning}>{isRunning ? 'Submitting...' : 'Submit'}</Button>
-//             </form>
-//         </Form>
-//     }
-// }
-
 
 
 export function UserMessageInputComponent(props: InputComponentProps & { placeholder?: string }) {

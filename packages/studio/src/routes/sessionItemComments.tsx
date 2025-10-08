@@ -1,19 +1,9 @@
 import { apiFetch } from "~/lib/apiFetch";
 import { type ActionResponse } from "~/lib/errors";
-import { commentFormDataToJSON } from "~/lib/commentForm";
 import type { ActionFunctionArgs, RouteObject } from "react-router";
 
 async function action({ request, params }: ActionFunctionArgs): Promise<ActionResponse> {
     const { comment, scores } = await request.json();
-    // const formData = await request.formData();
-    // const extractionResponse = commentFormDataToJSON(formData);
-
-    // // error
-    // if (!extractionResponse.ok) {
-    //     return extractionResponse;
-    // }
-
-    // const { comment, scores } = data;
 
     if (!comment && Object.keys(scores).length === 0) {
         return { 

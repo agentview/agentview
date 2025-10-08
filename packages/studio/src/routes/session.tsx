@@ -14,8 +14,7 @@ import { AlertCircleIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, Messag
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig } from "~/types";
-import { AVFormError, FormField } from "~/components/form";
-import { parseFormData } from "~/lib/parseFormData";
+import { AVFormError } from "~/components/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/ItemsWithCommentsLayout";
 import { CommentSessionFloatingBox } from "~/components/comments";
@@ -169,8 +168,6 @@ function SessionPage() {
     return <>
         {/* <div className="basis-[720px] flex-shrink-0 flex-grow-0 border-r  flex flex-col"> */}
         <div className="flex-shrink-0 flex-grow-1 border-r  flex flex-col">
-
-
             <Header>
                 <HeaderTitle title={`Session ${session.handle}`} />
                 <ShareForm session={session} />
