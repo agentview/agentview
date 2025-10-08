@@ -9,7 +9,7 @@ import { useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "~/components/ui/dialog";
-import { PropertyList } from "~/components/PropertyList";
+import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
 import { TerminalIcon } from "lucide-react";
 import { requireAgentConfig, requireItemConfig, requireRunConfig } from "~/lib/config";
 import { config } from "~/config";
@@ -41,7 +41,6 @@ function Component() {
         navigate(`../?${toQueryParams(listParams)}`);
     }
 
-    console.log('run', run)
     return <Dialog
         open={true}
         onOpenChange={(open) => {
@@ -55,39 +54,39 @@ function Component() {
                 <DialogTitle>Run details</DialogTitle>
             </DialogHeader>
             <DialogBody>
-                <PropertyList.Root>
-                    <PropertyList.Item>
-                        <PropertyList.Title>Status</PropertyList.Title>
-                        <PropertyList.TextValue>
+                <PropertyList>
+                    <PropertyListItem>
+                        <PropertyListTitle>Status</PropertyListTitle>
+                        <PropertyListTextValue>
                             {run.state}
-                        </PropertyList.TextValue>
-                    </PropertyList.Item>
+                        </PropertyListTextValue>
+                    </PropertyListItem>
 
                     {run.failReason && (
-                        <PropertyList.Item>
-                            <PropertyList.Title>Fail reason</PropertyList.Title>
-                            <PropertyList.TextValue className="text-red-500">
+                        <PropertyListItem>
+                            <PropertyListTitle>Fail reason</PropertyListTitle>
+                            <PropertyListTextValue className="text-red-500">
                                 {run.failReason.message ?? "Unknown reason"}
-                            </PropertyList.TextValue>
-                        </PropertyList.Item>
+                            </PropertyListTextValue>
+                        </PropertyListItem>
                     )}
 
-                    <PropertyList.Item>
-                        <PropertyList.Title>Version</PropertyList.Title>
-                        <PropertyList.TextValue>
+                    <PropertyListItem>
+                        <PropertyListTitle>Version</PropertyListTitle>
+                        <PropertyListTextValue>
                             {run.version?.version ?? "-"}
-                        </PropertyList.TextValue>
-                    </PropertyList.Item>
+                        </PropertyListTextValue>
+                    </PropertyListItem>
 
-                    <PropertyList.Item>
-                        <PropertyList.Title>Started at</PropertyList.Title>
-                        <PropertyList.TextValue>
+                    <PropertyListItem>
+                        <PropertyListTitle>Started at</PropertyListTitle>
+                        <PropertyListTextValue>
                             {new Date(run.createdAt).toLocaleString()}
-                        </PropertyList.TextValue>
-                    </PropertyList.Item>
-                    <PropertyList.Item>
-                        <PropertyList.Title>Duration</PropertyList.Title>
-                        <PropertyList.TextValue>
+                        </PropertyListTextValue>
+                    </PropertyListItem>
+                    <PropertyListItem>
+                        <PropertyListTitle>Duration</PropertyListTitle>
+                        <PropertyListTextValue>
                             {run.finishedAt
                                 ? (() => {
                                     const ms = new Date(run.finishedAt).getTime() - new Date(run.createdAt).getTime();
@@ -100,12 +99,12 @@ function Component() {
                                     return `${seconds}s`;
                                 })()
                                 : "-"}
-                        </PropertyList.TextValue>
-                    </PropertyList.Item>
+                        </PropertyListTextValue>
+                    </PropertyListItem>
                     { runConfig.displayProperties && <DisplayProperties displayProperties={runConfig.displayProperties} inputArgs={{ session, run }} /> }
 
 
-                </PropertyList.Root>
+                </PropertyList>
 
                 <div className="mt-8 border p-4 rounded-lg flex flex-row gap-4 items-center">  
 

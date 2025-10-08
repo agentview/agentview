@@ -38,7 +38,7 @@ export type ToggleGroupControlOption = {
     label?: string;
 }
 
-export const ToggleGroupControl = ({ value, onChange, options } : ControlComponentProps<string> & { options: ToggleGroupControlOption[] }) => {
+export const ToggleGroupControl = ({ value, onChange, options }: ControlComponentProps<string> & { options: ToggleGroupControlOption[] }) => {
     const toggleValue = value ?? "";
 
     return (
@@ -46,12 +46,12 @@ export const ToggleGroupControl = ({ value, onChange, options } : ControlCompone
             if (options.some(option => option.value === value)) {
                 onChange(value);
             }
-// )
-//             if (value === "") {
-//                 onChange(undefined);
-//             } else {
-//                 onChange(value);
-//             }
+            // )
+            //             if (value === "") {
+            //                 onChange(undefined);
+            //             } else {
+            //                 onChange(value);
+            //             }
         }}>
             {options.map((option) => {
                 const icon = option.icon;

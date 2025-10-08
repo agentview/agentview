@@ -1,4 +1,4 @@
-import { PropertyList } from "./PropertyList"
+import { PropertyListItem, PropertyListTextValue, PropertyListTitle } from "./PropertyList"
 
 import { ErrorBoundary } from "./ErrorBoundary"
 import type { DisplayProperty } from "~/types"
@@ -7,12 +7,12 @@ export function DisplayProperties<T>(props: { displayProperties: DisplayProperty
     return <ErrorBoundary>
         {props.displayProperties.map((property) => {
 
-            return <PropertyList.Item key={property?.title}>
-                <PropertyList.Title>{property?.title ?? "Unknown property"}</PropertyList.Title>
-                <PropertyList.TextValue>
+            return <PropertyListItem key={property?.title}>
+                <PropertyListTitle>{property?.title ?? "Unknown property"}</PropertyListTitle>
+                <PropertyListTextValue>
                     <DisplayPropertyRenderer value={property?.value} inputArgs={props.inputArgs} />
-                </PropertyList.TextValue>
-            </PropertyList.Item>
+                </PropertyListTextValue>
+            </PropertyListItem>
         })}
     </ErrorBoundary>
 }

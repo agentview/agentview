@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 
-interface PropertyListRootProps {
+interface PropertyListProps {
   children: React.ReactNode;
   className?: string;
 }
@@ -24,7 +24,7 @@ interface PropertyListTextValueProps {
   isMuted?: boolean;
 }
 
-const PropertyListRoot: React.FC<PropertyListRootProps> = ({ children, className }) => {
+const PropertyList: React.FC<PropertyListProps> = ({ children, className }) => {
   return (
     <div className={cn("grid grid-cols-1 gap-2", className)}>
       {children}
@@ -46,7 +46,7 @@ const PropertyListTitle: React.FC<PropertyListTitleProps> = ({
   width = "w-32" 
 }) => {
   return (
-    <span className={cn("text-sm text-gray-600 w-[170px] flex-shrink-0 truncate", className)}>
+    <span className={cn("text-sm text-muted-foreground w-[170px] flex-shrink-0 truncate", className)}>
       {children}
     </span>
   );
@@ -70,12 +70,4 @@ const PropertyListTextValue: React.FC<PropertyListTextValueProps> = ({
   );
 };
 
-// Compound component structure
-export const PropertyList = Object.assign(PropertyListRoot, {
-  Root: PropertyListRoot,
-  Item: PropertyListItem,
-  Title: PropertyListTitle,
-  TextValue: PropertyListTextValue,
-});
-
-export { PropertyListRoot, PropertyListItem, PropertyListTitle, PropertyListTextValue };
+export { PropertyList, PropertyListItem, PropertyListTitle, PropertyListTextValue };

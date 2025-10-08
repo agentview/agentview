@@ -12,7 +12,7 @@ import {
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { timeAgoShort } from "~/lib/timeAgo";
 import { AVFormField } from "./form";
-import { PropertyList } from "./PropertyList";
+import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "./PropertyList";
 import { Alert, AlertDescription } from "./ui/alert";
 import { TextEditor, textToElements } from "./TextEditor";
 import { useSessionContext } from "~/lib/SessionContext";
@@ -232,10 +232,6 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
 
 
                         </form>
-                        <br/>
-                        <Button onClick={() => {
-                            console.log('form values', form.getValues());
-                        }}>Log form values</Button>
                     </Form>
                 </div>
 
@@ -504,30 +500,26 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
                                 >
                                     Cancel
                                 </Button>
-                                <Button onClick={(e) => {
-                                    e.preventDefault();
-                                    console.log('form values', form.getValues());
-                                }}>Log form</Button>
                             </div>
                         </form>
                     </Form>
 
                 </div>) : <div>
 
-                    {messageScoreConfigs.length > 0 && <div>
-                        <PropertyList.Root className="mb-2">
+                    {messageScoreConfigs.length > 0 && <div className="border rounded-md p-3">
+                        <PropertyList className="mb-2">
                             {messageScoreConfigs.map((scoreConfig) => {
                                 const DisplayComponent = scoreConfig.displayComponent;
                                 return (
-                                    <PropertyList.Item key={scoreConfig.name}>
-                                        <PropertyList.Title>{scoreConfig.title ?? scoreConfig.name}</PropertyList.Title>
-                                        <PropertyList.TextValue>
+                                    <PropertyListItem key={scoreConfig.name}>
+                                        <PropertyListTitle>{scoreConfig.title ?? scoreConfig.name}</PropertyListTitle>
+                                        <PropertyListTextValue>
                                             {DisplayComponent && <DisplayComponent value={scores[scoreConfig.name]} />}
-                                        </PropertyList.TextValue>
-                                    </PropertyList.Item>
+                                        </PropertyListTextValue>
+                                    </PropertyListItem>
                                 );
                             })}
-                        </PropertyList.Root>
+                        </PropertyList>
                     </div>}
 
                     {message.content && <div className={`${compressionLevel === "high" ? "line-clamp-6" : compressionLevel === "medium" ? "line-clamp-3" : ""}`}>

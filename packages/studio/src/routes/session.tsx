@@ -9,7 +9,7 @@ import { getAPIBaseUrl } from "~/lib/getAPIBaseUrl";
 import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/lib/shared/sessionUtils";
 import { type Session } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
-import { PropertyList } from "~/components/PropertyList";
+import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
 import { AlertCircleIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, Share, SquareIcon, ThumbsDown, ThumbsUp, UserIcon, UsersIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
@@ -277,14 +277,22 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
 
     return (
         <div className="w-full">
-            <PropertyList.Root>
-                <PropertyList.Item>
-                    <PropertyList.Title>Agent</PropertyList.Title>
-                    <PropertyList.TextValue>{session.agent}</PropertyList.TextValue>
-                </PropertyList.Item>
-                <PropertyList.Item>
-                    <PropertyList.Title>Created</PropertyList.Title>
-                    <PropertyList.TextValue>
+
+            {/* <div className="text-foreground">Lorem ipsum</div>
+            <div className="text-gray-400">Lorem ipsum</div>
+            <div className="text-muted-foreground">Lorem ipsum</div>
+            <div className="text-gray-600">Lorem ipsum</div> */}
+
+            {/* <div className="text-foreground-subtle">Lorem ipsum</div> */}
+
+            <PropertyList>
+                <PropertyListItem>
+                    <PropertyListTitle>Agent</PropertyListTitle>
+                    <PropertyListTextValue>{session.agent}</PropertyListTextValue>
+                </PropertyListItem>
+                <PropertyListItem>
+                    <PropertyListTitle>Created</PropertyListTitle>
+                    <PropertyListTextValue>
                         {new Date(session.createdAt).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long',
@@ -292,25 +300,25 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
                             hour: '2-digit',
                             minute: '2-digit'
                         })}
-                    </PropertyList.TextValue>
-                </PropertyList.Item>
-                <PropertyList.Item>
-                    <PropertyList.Title>Source</PropertyList.Title>
-                    <PropertyList.TextValue>
+                    </PropertyListTextValue>
+                </PropertyListItem>
+                <PropertyListItem>
+                    <PropertyListTitle>Source</PropertyListTitle>
+                    <PropertyListTextValue>
                         {simulatedBy ? <>Simulated by <span className="text-cyan-700">{simulatedBy.name}</span></> : "Real"}
-                    </PropertyList.TextValue>
-                </PropertyList.Item>
-                <PropertyList.Item>
-                    <PropertyList.Title>
+                    </PropertyListTextValue>
+                </PropertyListItem>
+                <PropertyListItem>
+                    <PropertyListTitle>
                         {versions.length > 1 ? "Versions" : "Version"}
-                    </PropertyList.Title>
-                    <PropertyList.TextValue>
+                    </PropertyListTitle>
+                    <PropertyListTextValue>
                         {versions.length > 0 ? versions.map(version => (version?.version ?? "") + "." + (version?.env ?? "")).join(", ") : "-"}
-                    </PropertyList.TextValue>
-                </PropertyList.Item>
+                    </PropertyListTextValue>
+                </PropertyListItem>
 
                 { agentConfig.displayProperties && <DisplayProperties displayProperties={agentConfig.displayProperties} inputArgs={{ session }} /> }
-            </PropertyList.Root>
+            </PropertyList>
         </div>
     );
 }
