@@ -1,7 +1,7 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
-import { AVForm, AVFormField, AVInput, SelectInput, ToggleBooleanInput, UserMessageInputComponent } from "~/components/form";
+import { AVForm, AVFormField, AVInput, SelectInput, BooleanToggleGroupControl, UserMessageInputComponent, BooleanToggleGroupDisplay } from "~/components/form";
 import { ItemAssistantMessageComponent, ItemUserMessageComponent, DisplayBooleanComponent } from "~/components/display";
 import { ProductDisplay } from "./ProductDisplay";
 import { ProductSelect } from "./ProductSelect";
@@ -37,18 +37,8 @@ export default defineConfig({
                             name: "user_reaction",
                             title: "Can it go to client?",
                             schema: z.boolean(),
-                            inputComponent: ToggleBooleanInput,
-                            displayComponent: DisplayBooleanComponent,
-                            options: {
-                                true: {
-                                    icon: ThumbsUp,
-                                    label: "Yes"
-                                },
-                                false: {
-                                    icon: ThumbsDown,
-                                    label: "No"
-                                }
-                            }
+                            inputComponent: (props) => <BooleanToggleGroupControl {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
+                            displayComponent: (props) => <BooleanToggleGroupDisplay {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
                         }
                     ]
                 },
@@ -94,7 +84,7 @@ export default defineConfig({
                         />
                         <FormField
                             name={"test"}
-                            defaultValue={"Dupa"}
+                            // defaultValue={"Dupa"}
                             render={({ field }) => <FormItem>
                                 <FormLabel>Product</FormLabel>
                                 <AVInput {...field} placeholder="Enter your test" />
@@ -184,40 +174,40 @@ export default defineConfig({
                         role: "assistant",
                         content: z.string(),
                         displayComponent: ItemAssistantMessageComponent,
-                        scores: [
-                            {
-                                name: "user_reaction",
-                                title: "Reaction",
-                                schema: z.boolean(),
-                                inputComponent: ToggleBooleanInput,
-                                displayComponent: DisplayBooleanComponent,
-                                options: {
-                                    true: {
-                                        icon: ThumbsUp,
-                                        label: "Like"
-                                    },
-                                    false: {
-                                        icon: ThumbsDown,
-                                        label: "Don't like"
-                                    }
-                                }
-                            },
-                            {
-                                name: "recommended_score",
-                                title: "Your score",
-                                schema: z.string(),
-                                inputComponent: SelectInput,
-                                displayComponent: ({ value }) => <ScoreBadge score={value} />,
-                                options: {
-                                    items: [
-                                        { value: "best_fit", label: "Best Fit" },
-                                        { value: "great_option", label: "Great Option" },
-                                        { value: "optional", label: "Optional" },
-                                        { value: "not_recommended", label: "Not Recommended" }
-                                    ]
-                                }
-                            }
-                        ]
+                        // scores: [
+                        //     {
+                        //         name: "user_reaction",
+                        //         title: "Reaction",
+                        //         schema: z.boolean(),
+                        //         inputComponent: ToggleBooleanInput,
+                        //         displayComponent: DisplayBooleanComponent,
+                        //         options: {
+                        //             true: {
+                        //                 icon: ThumbsUp,
+                        //                 label: "Like"
+                        //             },
+                        //             false: {
+                        //                 icon: ThumbsDown,
+                        //                 label: "Don't like"
+                        //             }
+                        //         }
+                        //     },
+                        //     {
+                        //         name: "recommended_score",
+                        //         title: "Your score",
+                        //         schema: z.string(),
+                        //         inputComponent: SelectInput,
+                        //         displayComponent: ({ value }) => <ScoreBadge score={value} />,
+                        //         options: {
+                        //             items: [
+                        //                 { value: "best_fit", label: "Best Fit" },
+                        //                 { value: "great_option", label: "Great Option" },
+                        //                 { value: "optional", label: "Optional" },
+                        //                 { value: "not_recommended", label: "Not Recommended" }
+                        //             ]
+                        //         }
+                        //     }
+                        // ]
                     }
                 }
             ]

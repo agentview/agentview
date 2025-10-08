@@ -472,7 +472,7 @@ function RootForm({ schema, errors, onSubmit }: RootFormProps) {
   const form = useForm({
     resolver: zodResolver(schema),
     // defaultValues: props.defaultValues,
-  })
+  });
 
   return <Form {...form}>
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

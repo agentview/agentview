@@ -11,7 +11,7 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { timeAgoShort } from "~/lib/timeAgo";
-import { FormField } from "./form";
+import { AVFormField, FormField } from "./form";
 import { PropertyList } from "./PropertyList";
 import { Alert, AlertDescription } from "./ui/alert";
 import { TextEditor, textToElements } from "./TextEditor";
@@ -19,6 +19,10 @@ import { useSessionContext } from "~/lib/SessionContext";
 import { apiFetch } from "~/lib/apiFetch";
 import { config } from "~/config";
 import { requireAgentConfig, requireItemConfig } from "~/lib/config";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import z from "zod";
+import { Form } from "./ui/form";
 
 export type CommentSessionProps = {
     session: Session,
@@ -45,18 +49,16 @@ function getAllScoreConfigs(session: Session, item: SessionItem) {
     return itemConfig?.scores || [];
 }
 
-export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, item, collapsed = false, singleLineMessageHeader = false, small=false }, ref) => {
+export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, item, collapsed = false, singleLineMessageHeader = false, small = false }, ref) => {
+    const { members, user } = useSessionContext();
     const fetcher = useFetcher();
 
     const visibleMessages = item.commentMessages.filter((m: any) => !m.deletedAt) ?? []
     const hasZeroVisisbleComments = visibleMessages.length === 0
 
-    const formRef = useRef<HTMLFormElement>(null);
-    const { members, user } = useSessionContext();
-
     const allScoreConfigs = getAllScoreConfigs(session, item);
 
-    const scores : Record<string, any> = {};
+    const scores: Record<string, any> = {};
     for (const messageItem of visibleMessages) {
         for (const score of messageItem.scores ?? []) {
             if (score.deletedAt || score.createdBy !== user.id) {
@@ -68,21 +70,38 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
 
     const unassignedScoreConfigs = allScoreConfigs.filter((scoreConfig) => scores[scoreConfig.name] === undefined || scores[scoreConfig.name] === null);
 
+    const schema = z.object({
+        comment: z.string(),
+        scores: z.object(
+            Object.fromEntries(
+                unassignedScoreConfigs.map((scoreConfig) => [
+                    scoreConfig.name,
+                    scoreConfig.schema
+                ])
+            )
+        )
+    }).partial();
+
+    const form = useForm({
+        resolver: zodResolver(schema),
+    });
+
+    const submit = (data: z.infer<typeof schema>) => {
+        fetcher.submit(data as any, { method: 'post', action: `/sessions/${session.id}/items/${item.id}/comments`, encType: 'application/json' })
+    }
+
     useFetcherSuccess(fetcher, () => {
-        // setCurrentlyEditedItemId(null);
-        // console.log('resetting form')
-        formRef.current?.reset();
+        form.reset();
     });
 
     useImperativeHandle(ref, () => ({
         reset: () => {
-            // setCurrentlyEditedItemId(null);
-            formRef.current?.reset();
+            form.reset();
         }
     }));
 
     return (<div ref={ref}>
-        { visibleMessages.length > 0 && <div className={`flex flex-col gap-4 ${small ? "p-4" : "p-6"}`}>
+        {visibleMessages.length > 0 && <div className={`flex flex-col gap-4 ${small ? "p-4" : "p-6"}`}>
 
             {/* Display comments */}
             {visibleMessages.map((message: any, index: number) => {
@@ -129,9 +148,9 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
                 />
             })}
 
-        </div> }
+        </div>}
 
-        { !collapsed && visibleMessages.length > 0 && <div className={`border-t ${small ? "px-3" : "px-4"} max-w-2xl`}></div>}
+        {!collapsed && visibleMessages.length > 0 && <div className={`border-t ${small ? "px-3" : "px-4"} max-w-2xl`}></div>}
 
         {!collapsed && <div className={`max-w-2xl ${small ? "p-4" : "p-6"}`}>
 
@@ -145,80 +164,148 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
 
                 <div className="flex-1">
                     {unassignedScoreConfigs.length > 0 && <div className="text-sm font-medium mb-3">Your Scores & Comment</div>}
-{/* 
+                    {/* 
                 <div className="flex flex-row items-center gap-2 mb-10">
                     <Button size="sm"><GaugeIcon />Add Score</Button>
                     <Button variant="outline" size="sm"><ReplyIcon /> Just reply</Button>
                 </div> */}
 
-                {fetcher.state === 'idle' && fetcher.data?.ok === false && (
-                    <Alert variant="destructive" className="mb-4">
-                        <AlertCircleIcon className="h-4 w-4" />
-                        <AlertDescription>{fetcher.data.error.message}</AlertDescription>
-                    </Alert>
-                )}
+                    {fetcher.state === 'idle' && fetcher.data?.ok === false && (
+                        <Alert variant="destructive" className="mb-4">
+                            <AlertCircleIcon className="h-4 w-4" />
+                            <AlertDescription>{fetcher.data.error.message}</AlertDescription>
+                        </Alert>
+                    )}
 
-                <fetcher.Form method="post" action={`/sessions/${session.id}/items/${item.id}/comments`} ref={formRef}>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(submit)} className="space-y-2">
 
-                    {unassignedScoreConfigs.length > 0 && <div className="mb-4 space-y-2">
-                        {unassignedScoreConfigs.map((scoreConfig) => (
-                            <FormField
-                                key={scoreConfig.name}
-                                id={scoreConfig.name}
-                                label={scoreConfig.title ?? scoreConfig.name}
-                                error={fetcher.data?.error?.fieldErrors?.["scores." + scoreConfig.name]}
-                                name={"scores." + scoreConfig.name}
-                                defaultValue={scores[scoreConfig.name] ?? undefined}
-                                InputComponent={scoreConfig.inputComponent}
-                                options={scoreConfig.options}
+                            {unassignedScoreConfigs.length > 0 && <div className="mb-4 space-y-2">
+                                {unassignedScoreConfigs.map((scoreConfig) => (
+                                    <AVFormField
+                                        key={scoreConfig.name}
+                                        label={scoreConfig.title ?? scoreConfig.name}
+                                        name={"scores." + scoreConfig.name}
+                                        control={scoreConfig.inputComponent}
+                                    />
+                                ))}
+                            </div>}
+
+                            <div>
+                                {unassignedScoreConfigs.length > 0 && <div className="text-sm mb-1 text-gray-700">Comment</div>}
+
+                                <AVFormField
+                                    key={"comment"}
+                                    label={"Comment"}
+                                    name={"comment"}
+                                    control={(props) => <TextEditor
+                                        mentionItems={members.filter((member) => member.id !== user.id).map(member => ({
+                                            id: member.id,
+                                            label: member.name ?? "Unknown"
+                                        }))}
+                                        placeholder={(hasZeroVisisbleComments ? "Comment" : "Reply") + " or tag other, using @"}
+                                        className="min-h-[10px] resize-none mb-0"
+                                        {...props}
+                                    />}
+                                />
+
+                                {/* <TextEditor
+                                    mentionItems={members.filter((member) => member.id !== user.id).map(member => ({
+                                        id: member.id,
+                                        label: member.name ?? "Unknown"
+                                    }))}
+                                    name="comment"
+                                    placeholder={(hasZeroVisisbleComments ? "Comment" : "Reply") + " or tag other, using @"}
+                                    className="min-h-[10px] resize-none mb-0"
+                                /> */}
+                            </div>
+                            <div className={`gap-2 justify-end mt-2 flex`}>
+                                <Button
+                                    type="reset"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        form.reset();
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    size="sm"
+                                    disabled={fetcher.state !== 'idle'}
+                                >
+                                    {fetcher.state !== 'idle' ? 'Posting...' : 'Submit'}
+                                </Button>
+                            </div>
+
+
+                        </form>
+                        <br/>
+                        <Button onClick={() => {
+                            console.log('form values', form.getValues());
+                        }}>Log form values</Button>
+                    </Form>
+
+                    {/* <fetcher.Form method="post" action={`/sessions/${session.id}/items/${item.id}/comments`} ref={formRef}>
+
+                        {unassignedScoreConfigs.length > 0 && <div className="mb-4 space-y-2">
+                            {unassignedScoreConfigs.map((scoreConfig) => (
+                                <FormField
+                                    key={scoreConfig.name}
+                                    id={scoreConfig.name}
+                                    label={scoreConfig.title ?? scoreConfig.name}
+                                    error={fetcher.data?.error?.fieldErrors?.["scores." + scoreConfig.name]}
+                                    name={"scores." + scoreConfig.name}
+                                    defaultValue={scores[scoreConfig.name] ?? undefined}
+                                    InputComponent={scoreConfig.inputComponent}
+                                    options={scoreConfig.options}
+                                />
+                            ))}
+                        </div>}
+
+                        <div>
+                            {unassignedScoreConfigs.length > 0 && <div className="text-sm mb-1 text-gray-700">Comment</div>}
+                            <TextEditor
+                                mentionItems={members.filter((member) => member.id !== user.id).map(member => ({
+                                    id: member.id,
+                                    label: member.name ?? "Unknown"
+                                }))}
+                                name="comment"
+                                placeholder={(hasZeroVisisbleComments ? "Comment" : "Reply") + " or tag other, using @"}
+                                className="min-h-[10px] resize-none mb-0"
                             />
-                        ))}
-                    </div>}
+                        </div>
 
-                    <div>
-                        { unassignedScoreConfigs.length > 0 && <div className="text-sm mb-1 text-gray-700">Comment</div>}
-                        <TextEditor
-                            mentionItems={members.filter((member) => member.id !== user.id).map(member => ({
-                                id: member.id,
-                                label: member.name ?? "Unknown"
-                            }))}
-                            name="comment"
-                            placeholder={(hasZeroVisisbleComments ? "Comment" : "Reply") + " or tag other, using @"}
-                            className="min-h-[10px] resize-none mb-0"
-                        />
-                    </div>
-
-                    <div className={`gap-2 justify-end mt-2 flex`}>
-                        <Button
-                            type="reset"
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                                formRef.current?.reset();
-                            }}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit"
-                            size="sm"
-                            disabled={fetcher.state !== 'idle'}
-                        >
-                            {fetcher.state !== 'idle' ? 'Posting...' : 'Submit'}
-                        </Button>
-                    </div>
-                </fetcher.Form>
+                        <div className={`gap-2 justify-end mt-2 flex`}>
+                            <Button
+                                type="reset"
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                    formRef.current?.reset();
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                size="sm"
+                                disabled={fetcher.state !== 'idle'}
+                            >
+                                {fetcher.state !== 'idle' ? 'Posting...' : 'Submit'}
+                            </Button>
+                        </div>
+                    </fetcher.Form> */}
                 </div>
 
-            
+
             </div>
         </div>}
 
     </div>
     );
 });
-
-
 
 export function CommentSessionFloatingBox({ session, item, selected = false, onSelect }: CommentSessionFloatingBoxProps) {
     const commentThreadRef = useRef<any>(null);
@@ -329,7 +416,7 @@ export function CommentMessageHeader({ title, subtitle, actions, singleLineMessa
 type MessageCompressionLevel = "none" | "medium" | "high";
 
 // New subcomponent for comment message item with edit logic
-export function CommentMessageItem({ message, item, session,compressionLevel = "none", singleLineMessageHeader = false }: { message: CommentMessage, fetcher: any, item: SessionItem, session: Session,  compressionLevel?: MessageCompressionLevel, singleLineMessageHeader?: boolean }) {
+export function CommentMessageItem({ message, item, session, compressionLevel = "none", singleLineMessageHeader = false }: { message: CommentMessage, fetcher: any, item: SessionItem, session: Session, compressionLevel?: MessageCompressionLevel, singleLineMessageHeader?: boolean }) {
     if (message.deletedAt) {
         throw new Error("Deleted messages don't have rendering code.")
     }
@@ -352,7 +439,7 @@ export function CommentMessageItem({ message, item, session,compressionLevel = "
 
     const allScoreConfigs = getAllScoreConfigs(session, item);
 
-    const scores : Record<string, any> = {};
+    const scores: Record<string, any> = {};
     for (const score of message.scores ?? []) {
         if (score.deletedAt !== null) {
             continue;

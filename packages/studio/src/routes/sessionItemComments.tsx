@@ -4,17 +4,17 @@ import { commentFormDataToJSON } from "~/lib/commentForm";
 import type { ActionFunctionArgs, RouteObject } from "react-router";
 
 async function action({ request, params }: ActionFunctionArgs): Promise<ActionResponse> {
-    const formData = await request.formData();
-    const extractionResponse = commentFormDataToJSON(formData);
+    const { comment, scores } = await request.json();
+    // const formData = await request.formData();
+    // const extractionResponse = commentFormDataToJSON(formData);
 
-    // error
-    if (!extractionResponse.ok) {
-        return extractionResponse;
-    }
+    // // error
+    // if (!extractionResponse.ok) {
+    //     return extractionResponse;
+    // }
 
-    const { comment, scores } = extractionResponse.data;
+    // const { comment, scores } = data;
 
-    // Validation: at least one of content or scores must be provided
     if (!comment && Object.keys(scores).length === 0) {
         return { 
             ok: false, 

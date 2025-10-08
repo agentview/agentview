@@ -1,7 +1,7 @@
 import { useState, createContext, useContext } from "react";
 import type { ReactNode } from "react";
 import { useOnFormReset } from '~/hooks/useOnFormReset';
-import type { FormInputProps, InputComponent, InputComponentProps } from "~/types";
+import type { ControlComponent, ControlComponentProps, FormInputProps, InputComponent, InputComponentProps } from "~/types";
 import { Input } from "./ui/input";
 import { Switch } from "./ui/switch";
 import {
@@ -28,6 +28,7 @@ import { cn } from "~/lib/utils";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupText, InputGroupTextarea } from "./ui/input-group";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Separator } from "./ui/separator";
+import { Badge } from "./ui/badge";
 
 // AVFormContext
 const AVFormContext = createContext<InputComponentProps | null>(null);
@@ -102,34 +103,147 @@ export const SwitchInput: React.ComponentType<FormInputProps<boolean>> = ({ valu
     return <Switch checked={value ?? false} onCheckedChange={(checked) => onChange(checked)} name={name} id={id} />
 }
 
-export const ToggleBooleanInput: React.ComponentType<FormInputProps<boolean | undefined>> = ({ value, onChange, name, id, options }) => {
-    const toggleValue = value === true ? "true" : value === false ? "false" : "";
 
-    const TrueIcon = options?.true?.icon ?? null;
-    const trueLabel = TrueIcon ? null : options?.true?.label ?? "True";
 
-    const FalseIcon = options?.false?.icon ?? null;
-    const falseLabel = FalseIcon ? null : options?.false?.label ?? "False";
+
+
+// Toggle Buttons
+
+export type ToggleGroupControlOption = {
+    value: string;
+    icon?: React.ReactNode;
+    label?: string;
+}
+
+export const ToggleGroupControl = ({ value, onChange, options } : ControlComponentProps<string> & { options: ToggleGroupControlOption[] }) => {
+    const toggleValue = value ?? "";
 
     return (
         <ToggleGroup type="single" variant="outline" size="sm" value={toggleValue} onValueChange={(value) => {
             if (value === "") {
                 onChange(undefined);
             } else {
-                onChange(value === "true");
+                onChange(value);
             }
         }}>
-            <ToggleGroupItem value="true" aria-label="Toggle true">
-                {TrueIcon ? <TrueIcon className="h-2 w-2" /> : null}
-                {trueLabel}
-            </ToggleGroupItem>
-            <ToggleGroupItem value="false" aria-label="Toggle false">
-                {FalseIcon ? <FalseIcon className="h-2 w-2" /> : null}
-                {falseLabel}
-            </ToggleGroupItem>
+            {options.map((option) => {
+                const icon = option.icon;
+                const label = icon ? null : (option.label ?? option.value);
+
+                return (
+                    <ToggleGroupItem key={option.value} value={option.value} aria-label={`Toggle ${option.value}`}>
+                        {icon}
+                        {label}
+                    </ToggleGroupItem>
+                );
+            })}
         </ToggleGroup>
     )
 }
+
+export function ToogleGroupDisplay({ value, options }: { value: string, options: ToggleGroupControlOption[] }) {
+    const option = options.find(opt => opt.value === value);
+
+    if (!option) {
+        return <div className="text-sm text-muted-foreground">Undefined</div>;
+    }
+
+    return (
+        <Badge variant="default" className="text-xs flex items-center gap-1">
+            {option.icon}
+            {option.label}
+        </Badge>
+    );
+}
+
+export type BooleanToggleGroupOptions = {
+    trueLabel?: string;
+    trueIcon?: React.ReactNode;
+    falseLabel?: string;
+    falseIcon?: React.ReactNode;
+}
+
+export type BooleanToggleGroupControlProps = ControlComponentProps<boolean> & BooleanToggleGroupOptions
+
+export const BooleanToggleGroupControl = ({ value, onChange, trueLabel, trueIcon, falseLabel, falseIcon }: BooleanToggleGroupControlProps) => {
+    const options: ToggleGroupControlOption[] = [
+        {
+            value: "true",
+            label: trueLabel,
+            icon: trueIcon
+        },
+        {
+            value: "false",
+            label: falseLabel,
+            icon: falseIcon
+        }
+    ];
+
+    const stringValue = value === true ? "true" : value === false ? "false" : undefined;
+
+    return (
+        <ToggleGroupControl
+            value={stringValue}
+            onChange={(newValue) => {
+                if (newValue === undefined) {
+                    onChange(undefined);
+                } else {
+                    onChange(newValue === "true");
+                }
+            }}
+            options={options}
+        />
+    );
+}
+
+export function BooleanToggleGroupDisplay({ value, trueLabel, trueIcon, falseLabel, falseIcon }: { value: boolean } & BooleanToggleGroupOptions) {
+    const options: ToggleGroupControlOption[] = [
+        {
+            value: "true",
+            label: trueLabel,
+            icon: trueIcon
+        },
+        {
+            value: "false",
+            label: falseLabel,
+            icon: falseIcon
+        }
+    ];
+    return <ToogleGroupDisplay value={value ? "true" : "false"} options={options} />
+}
+
+
+
+
+
+// export const ToggleBooleanInput: ControlComponent<boolean> = ({ value, onChange }) => {
+//     const toggleValue = value === true ? "true" : value === false ? "false" : "";
+
+//     const TrueIcon = options?.true?.icon ?? null;
+//     const trueLabel = TrueIcon ? null : options?.true?.label ?? "True";
+
+//     const FalseIcon = options?.false?.icon ?? null;
+//     const falseLabel = FalseIcon ? null : options?.false?.label ?? "False";
+
+//     return (
+//         <ToggleGroup type="single" variant="outline" size="sm" value={toggleValue} onValueChange={(value) => {
+//             if (value === "") {
+//                 onChange(undefined);
+//             } else {
+//                 onChange(value === "true");
+//             }
+//         }}>
+//             <ToggleGroupItem value="true" aria-label="Toggle true">
+//                 {TrueIcon ? <TrueIcon className="h-2 w-2" /> : null}
+//                 {trueLabel}
+//             </ToggleGroupItem>
+//             <ToggleGroupItem value="false" aria-label="Toggle false">
+//                 {FalseIcon ? <FalseIcon className="h-2 w-2" /> : null}
+//                 {falseLabel}
+//             </ToggleGroupItem>
+//         </ToggleGroup>
+//     )
+// }
 
 export const SelectInput: React.ComponentType<FormInputProps<string | undefined>> = ({ value, onChange, name, id, options }) => {
     return <Select onValueChange={(value) => onChange(value === "" ? undefined : value)} defaultValue={value}>
@@ -188,6 +302,7 @@ export function AVFormField<TInput = any, TOutput = TInput>(props: AVFormFieldPr
 
 
 export const AVInput = ({ value, onChange, name, ...inputProps }: React.ComponentProps<"input"> & AVFormControlProps<string | undefined>) => {
+    console.log('AVInput value', value);
     return <FormControl>
         <Input
             value={value ?? ""}

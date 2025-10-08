@@ -240,25 +240,25 @@ export function textToElements(text: string, mentionItems: TextEditorMentionItem
 
 
 export type TextEditorProps = {
-  defaultValue?: string
+  value?: string
   placeholder?: string
-  name?: string
+  onChange?: (value: string | undefined) => void
   mentionItems: TextEditorMentionItem[],
   className?: string
   onFocus?: () => void
 }
 
-export function TextEditor({ placeholder = 'Add a comment...', mentionItems = [], defaultValue = '', name = 'text-editor', className, onFocus }: TextEditorProps) {
-  const [value, setValue] = useState(defaultValue)
+export function TextEditor({ placeholder = 'Add a comment...', mentionItems = [], value = '', className, onFocus, onChange }: TextEditorProps) {
   const [mentionListProps, setMentionListProps] = useState<SuggestionProps<MentionNodeAttrs, any> | null>(null)
   const mentionListRef = useRef<HTMLDivElement>(null)
   
   const editor = useEditor({
     content: textToJson(value, mentionItems),
-    immediatelyRender: false,
+    immediatelyRender: true,
 
     onUpdate: ({ editor }) => {
-      setValue(editor.getText({ blockSeparator: "\n"}))
+      const newValue = editor.getText({ blockSeparator: "\n" })
+      onChange?.(newValue === "" ? undefined : newValue)
     },
     onFocus,
     editorProps: {
@@ -272,7 +272,7 @@ export function TextEditor({ placeholder = 'Add a comment...', mentionItems = []
 
     extensions: [
       Document, 
-      Paragraph, 
+      Paragraph,
       Text,
       UndoRedo,
       Placeholder.configure({
@@ -335,15 +335,19 @@ export function TextEditor({ placeholder = 'Add a comment...', mentionItems = []
       ]
   })
 
-  const inputRef = useOnFormReset(() => {
-    if (editor) {
-      editor.commands.setContent(textToJson(defaultValue, mentionItems))
-    }
-  })
+  useEffect(() => {
+    editor?.commands.setContent(textToJson(value, mentionItems))
+  }, [value])
+
+  // const inputRef = useOnFormReset(() => {
+  //   if (editor) {
+  //     editor.commands.setContent(textToJson(defaultValue, mentionItems))
+  //   }
+  // })
 
   return <div>
     { mentionListProps && <MentionList {...mentionListProps} ref={mentionListRef} /> }
-    <input type="hidden" name={name} value={value} ref={inputRef} />
+    {/* <input type="hidden" name={name} value={value} ref={inputRef} /> */}
     <EditorContent editor={editor} />
   </div>
 

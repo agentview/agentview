@@ -3,6 +3,7 @@ import type { BaseScoreConfig, BaseSessionItemConfig, BaseAgentConfig, BaseConfi
 import type { Run, Session } from "./lib/shared/apiTypes";
 import type { z } from "zod";
 import type { BaseError } from "./lib/errors";
+import type { AVFormControlProps } from "./components/form";
 
 export type FormInputProps<T=any> = {
   id: string,
@@ -27,7 +28,7 @@ export type DisplayProperty<InputArgsT=any> = {
   value: (args: InputArgsT) => React.ReactNode;
 }
 
-export type InputComponentProps = {
+export type FormComponentProps = {
   submit: (value: any) => void,
   cancel: () => void,
   isRunning: boolean,
@@ -35,13 +36,22 @@ export type InputComponentProps = {
   schema: z.ZodTypeAny,
 }
 
-export type InputComponent = React.ComponentType<InputComponentProps>;
+export type FormComponent = React.ComponentType<FormComponentProps>;
 
+export type ControlComponentProps<TValue> = {
+  value: TValue | undefined;
+  onChange: (value: TValue | undefined) => void;
+  name?: string;
+  onBlur?: () => void;
+  disabled?: boolean;
+}
 
-export type ScoreConfig<T=any> = BaseScoreConfig & {
+export type ControlComponent<TValue> = React.ComponentType<ControlComponentProps<TValue>>;
+
+export type ScoreConfig<TValue=any> = BaseScoreConfig & {
   title?: string;
-  inputComponent: React.ComponentType<FormInputProps>;
-  displayComponent?: React.ComponentType<DisplayComponentProps>;
+  inputComponent: ControlComponent<TValue>;
+  displayComponent?: React.ComponentType<{ value: TValue }>;
 }
 
 export type SessionItemConfig = BaseSessionItemConfig<ScoreConfig> & {
@@ -49,7 +59,7 @@ export type SessionItemConfig = BaseSessionItemConfig<ScoreConfig> & {
 };
 
 export type SessionInputItemConfig = SessionItemConfig & {
-  inputComponent?: React.ComponentType<InputComponentProps>;
+  inputComponent?: FormComponent;
 };
 
 export type RunConfig = BaseRunConfig<SessionItemConfig, SessionInputItemConfig> & {
@@ -59,7 +69,7 @@ export type RunConfig = BaseRunConfig<SessionItemConfig, SessionInputItemConfig>
 
 export type AgentConfig = Omit<BaseAgentConfig<RunConfig>, "runs"> & {
   displayProperties?: DisplayProperty<{ session: Session }>[];
-  inputComponent?: React.ComponentType<InputComponentProps>;
+  inputComponent?: FormComponent;
   runs?: RunConfig[];
   run?: RunConfig;
 }
