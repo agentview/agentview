@@ -7,10 +7,10 @@ import { parseSSE } from "~/lib/parseSSE";
 import { apiFetch } from "~/lib/apiFetch";
 import { getAPIBaseUrl } from "~/lib/getAPIBaseUrl";
 import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/lib/shared/sessionUtils";
-import { type Session } from "~/lib/shared/apiTypes";
+import { type Run, type Session } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
-import { AlertCircleIcon, ChevronDown, CircleDollarSign, CircleDollarSignIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, ThumbsDown, ThumbsUp, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
+import { AlertCircleIcon, ChevronDown, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, ThumbsDown, ThumbsUp, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig } from "~/types";
@@ -26,6 +26,7 @@ import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import type { BaseError } from "~/lib/errors";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { DisplayProperties } from "~/components/DisplayProperties";
+import { cn } from "~/lib/utils";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<Session>(`/api/sessions/${params.id}`);
@@ -213,112 +214,19 @@ function SessionPage() {
                                             <Loader />
                                         </div>}
 
-                                        {run.state === "failed" && <div className="text-xs flex justify-start my-3 gap-1">
+                                        {/* {run.state === "failed" && <div className="text-xs flex justify-start my-3 gap-1">
                                             <Alert variant="destructive">
                                                 <AlertCircleIcon />
                                                 {run.failReason?.message ?? "Unknown reason"}
                                             </Alert>
+                                        </div>} */}
+
+                                        {run.state === "failed" && <div className="border rounded-md flex items-center gap-2 px-3 py-2 bg-gray-50 text-gray-700 text-sm my-2">
+                                            <AlertCircleIcon className="w-4 h-4 text-red-500" />
+                                            <span>{run.failReason?.message ?? "Unknown reason"}</span>
                                         </div>}
 
-                                        {run.state !== "in_progress" && isLastRunItem && <div>
-
-{/* 
-                                            <div className="flex flex-row gap-1 items-center text-sm mt-2 mb-2">
-                                                <div className="flex flex-row gap-1 items-center h-[20px] rounded-xs bg-gray-100 px-1 text-xs">
-                                                    4s
-                                                </div>
-
-                                                <div className="flex flex-row gap-1 items-center h-[20px] rounded-xs bg-gray-100 px-1 text-xs">
-                                                    $1.25
-                                                </div>
-                                            </div>
-
-
-                                            <div className="border-t mt-3 mb-2" /> */}
-
-                                            <div className="mt-3">
-
-                                                <div className="text-xs flex justify-between mb-8 gap-2 items-center">
-                                                    {/* <Button variant="outline" size="icon_xs"><ThumbsUp className="size-4" /></Button>
-<Button variant="outline" size="icon_xs"><ThumbsDown className="size-4" /></Button> */}
-
-                                                    <div className="flex flex-row gap-2 items-center">
-                                                        <div className="flex flex-row gap-2 border rounded-md px-2 py-1 h-[28px] items-center">
-                                                            <ThumbsUp className="size-4" />
-                                                            <ThumbsDown className="size-4" />
-                                                        </div>
-
-                                                        {/* <Button variant="ghost" size="xs"><ThumbsUp className="size-4" /></Button>
-<Button variant="ghost" size="icon_xs"><ThumbsDown className="size-4" /></Button> */}
-
-                                                        <Button variant="outline" size="xs"><PenTool /> Style</Button>
-
-
-                                                        {/* <Button variant="outline" size="icon_xs"><WrenchIcon className="size-4" /></Button> */}
-                                                        <Button variant="outline" size="xs"><FilePenLineIcon className="size-4" /> Scores</Button>
-                                                        
-                                                        {/* <div className=" h-[27px] bg-gray-100 px-2 rounded-md text-sm flex items-center justify-center font-medium flex-row gap-1">
-                                                            <CircleDollarSignIcon className="size-4"/>1.25
-                                                        </div>
-
-                                                        <div className=" h-[27px] bg-gray-100 px-2 rounded-md text-sm flex items-center justify-center font-medium flex-row gap-1">
-                                                            <TimerIcon className="size-4"/>4s
-                                                        </div> */}
-
-
-                                                    </div>
-
-                                                    <div className="flex flex-row  items-center text-sm">
-                                                        {/* <span className="text-muted-foreground underline text-sm">Run</span> */}
-
-                                                        {/* <Button variant="outline" size="xs"><PencilIcon className="size-4" /> Run</Button> */}
-                                                        {/* <div className="text-muted-foreground hover:underline cursor-pointer">
-                                                            Trace
-                                                        </div> */}
-                                                        {/* <Button variant="ghost" size="xs" className="text-muted-foreground">Trace</Button> */}
-
-                                                        {/* <span className="text-muted-foreground">·</span> */}
-                                                        {/* <Button variant="ghost" size="xs" className="text-muted-foreground">Run</Button> */}
-                                                        {/* <div className="text-muted-foreground hover:underline cursor-pointer">
-                                                            Run
-                                                        </div> */}
-
-                                                        <Button variant="ghost" size="icon_xs" className="text-muted-foreground"><FilePenLineIcon /></Button>
-
-
-                                                        <Button variant="ghost" size="icon_xs" className="text-muted-foreground"><WorkflowIcon /></Button>
-
-
-                                                    </div>
-
-
-                                                </div>
-
-                                            </div>
-
-                                            {/* <div className="border-t my-2" /> */}
-
-                                            {/* <div className="flex flex-row gap-1">
-                                                <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-white inline-flex flex-row gap-1 items-center">
-                                                    <PencilLineIcon className="w-4 h-4 opacity-60" /> <div className="opacity-60 text-sm">Concise</div> <div className="text-sm">0.65</div>
-                                                </div>
-
-                                                <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-green-700 text-white inline-flex flex-row gap-1 items-center">
-                                                    <PencilLineIcon className="w-4 h-4 opacity-80" /> <div className="opacity-80 text-sm">Some label</div> <div className="text-sm">0.65</div>
-                                                </div>
-
-
-                                            </div> */}
-
-
-
-
-                                            {/* <BooleanToggleGroupControl trueIcon={<ThumbsUp className="size-4" />} falseIcon={<ThumbsDown className="size-4" />} value={true} onChange={() => {}} />
-
-                                            <Button asChild variant="outline" size="xs">
-                                                <Link to={`/sessions/${session.id}/runs/${run.id}?${toQueryParams(listParams)}`}>Run <WrenchIcon className="size-4" /></Link>
-                                            </Button> */}
-                                        </div>}
+                                        {run.state !== "in_progress" && isLastRunItem && <MessageFooter session={session} run={run} listParams={listParams} />}
                                     </div>
                                     {/* { !hasComments && <div className="absolute top-[8px] right-[408px] opacity-0 group-hover:opacity-100">
                                         <Button variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}><MessageSquareTextIcon /></Button>
@@ -558,26 +466,99 @@ function InputForm({ session, agentConfig }: { session: Session, agentConfig: Ag
     </div>
 }
 
-// function InputFormFields({ inputConfig }: { inputConfig: SessionItemConfig }) {
-//     return <>
-//         <input type="hidden" name="type" value={inputConfig.type} />
-//         <input type="hidden" name="role" value={inputConfig.role} />
-
-//         {inputConfig.input && (
-//             <FormField
-//                 id={"inputFormValue"}
-//                 // error={fetcher.data?.error?.fieldErrors?.[`metadata.${metafield.name}`]}
-//                 name={"value"}
-//                 defaultValue={undefined}
-//                 // defaultValue={scores[metafield.name] ?? undefined}
-//                 InputComponent={inputConfig.inputComponent}
-//                 options={inputConfig.options}
-//             />
-//         )}
-//     </>
-// }
-
 export const sessionRoute: RouteObject = {
     Component,
     loader,
+}
+
+
+function NotionPill({ children }: { children: React.ReactNode }) {
+    return <div className="flex flex-row gap-1 items-center h-[20px] rounded-xs bg-gray-100 px-1 text-xs [&>*]:size-3 text-gray-700">
+        {children}
+    </div>
+}
+
+function NotionPillMedium({ children, className }: { children: React.ReactNode, className?: string }) {
+    return <div className={cn("flex flex-row gap-1 items-center h-[28px] rounded-md bg-gray-100 px-2 text-sm [&>*]:size-4 text-gray-700", className)}>
+        {children}
+    </div>
+}
+
+function NotionPillMediumBold({ children, className }: { children: React.ReactNode, className?: string }) {
+    return <div className={cn("flex flex-row gap-1 items-center h-[28px] rounded-md bg-gray-100 px-2 text-sm [&>*]:size-4 text-gray-600 font-medium ", className)}>
+        {children}
+    </div>
+}
+
+function LargePillOutline({ children }: { children: React.ReactNode }) {
+    return <div className=" h-[27px] bg-gray-100 px-2 rounded-md text-sm flex items-center justify-center flex-row gap-1 [&>*]:size-4 text-gray-700">
+        {children}
+    </div>
+}
+
+
+function AlertBox({ children }: { children: React.ReactNode }) {
+    return <div className=" rounded-md flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 text-sm">
+        <AlertCircleIcon className="size-4 text-yellow-500" />
+        {children}
+    </div>
+}
+
+function LikeWidget() {
+    return <div className="flex flex-row border rounded-md px-1.5 h-[28px] items-center">
+        <ThumbsUp className="size-4" />
+        <div className="border-l h-full mx-1.5" />
+        <ThumbsDown className="size-4" />
+    </div>
+}
+
+
+function MessageFooter({ session, run, listParams }: { session: Session, run: Run, listParams: ReturnType<typeof getListParams> }) {
+    return <div className="mt-3  mb-8 ">
+
+        {/* <div className="flex flex-col gap-2 text-sm flex-wrap items-start">
+            <div className="flex flex-row gap-1 items-center text-sm">
+                <NotionPill><TimerIcon /> 4s</NotionPill>
+                <NotionPill>$1.25</NotionPill>
+                <NotionPill>Neutral</NotionPill>
+            </div>
+            <AlertBox>This is a textual alert about something important.</AlertBox>
+        </div>
+
+        <div className="border-t mt-3 mb-2" /> */}
+        <div>
+            <div className="text-xs flex justify-between gap-2 items-start">
+                <div className="flex flex-row flex-wrap gap-1.5 items-center">
+                    <LikeWidget />
+                    <Button variant="outline" size="xs"><MessageCirclePlus />Comment</Button>
+
+                    {/* <Button variant="outline" size="xs"><ThumbsUp />Like</Button>
+                    <Button variant="outline" size="xs"><ThumbsDown />One, Two, Three and 3 others...</Button>
+                    <Button variant="outline" size="xs"><CircleGauge />Score</Button>
+                    <Button variant="outline" size="xs"><FilePenLineIcon />Edit</Button>
+                    <Button variant="outline" size="xs"><WorkflowIcon />Dog, Cattle, Hipopotamus and 2 others...</Button>
+                    <Button variant="outline" size="xs"><ChevronDown />More</Button>
+                    <Button variant="outline" size="xs"><AlertCircleIcon />Alert</Button>
+                    <Button variant="outline" size="xs"><TimerIcon />Time</Button>
+                    <Button variant="outline" size="xs"><MessageCirclePlus />Comment</Button>
+                    <Button variant="outline" size="xs"><MessageSquareTextIcon />Note</Button>
+                    <Button variant="outline" size="xs"><WrenchIcon />Tools</Button>
+                    <Button variant="outline" size="xs"><CircleGauge />Metrics</Button> */}
+                    <Button variant="outline" size="xs"><CircleGauge />Score</Button>
+                </div>
+
+                <div className="flex flex-row  items-center text-sm">
+                    {/* <Button variant="ghost" size="icon_xs" className="text-muted-foreground"><FilePenLineIcon /></Button> */}
+                    <Button variant="ghost" size="xs" className="text-muted-foreground" asChild>
+                        <Link to={`/sessions/${session.id}/runs/${run.id}?${toQueryParams(listParams)}`}><WrenchIcon className="size-4" />Run</Link>
+                    </Button>
+                </div>
+            </div>
+        </div>
+
+
+        {/* <Button asChild variant="outline" size="xs">
+        <Link to={`/sessions/${session.id}/runs/${run.id}?${toQueryParams(listParams)}`}>Run <WrenchIcon className="size-4" /></Link>
+    </Button> */}
+    </div>
 }
