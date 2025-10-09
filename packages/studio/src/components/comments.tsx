@@ -69,7 +69,7 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
         }
     }
 
-    const unassignedScoreConfigs = []//allScoreConfigs.filter((scoreConfig) => scores[scoreConfig.name] === undefined || scores[scoreConfig.name] === null);
+    const unassignedScoreConfigs = allScoreConfigs.filter((scoreConfig) => scores[scoreConfig.name] === undefined || scores[scoreConfig.name] === null);
 
     const schema = z.object({
         comment: z.string(),
