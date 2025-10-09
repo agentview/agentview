@@ -10,14 +10,14 @@ import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/li
 import { type Run, type Session } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
-import { AlertCircleIcon, ChevronDown, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, ThumbsDown, ThumbsUp, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
+import { AlertCircleIcon, ChevronDown, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, ThumbsDown, ThumbsUp, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig } from "~/types";
 import { AVFormError, BooleanToggleGroupControl } from "~/components/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/ItemsWithCommentsLayout";
-import { CommentSessionFloatingBox } from "~/components/comments";
+import { CommentSessionFloatingBox, CommentThread } from "~/components/comments";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from "~/components/ui/dialog";
 import { config } from "~/config";
 import { findItemConfig, requireAgentConfig, requireItemConfig } from "~/lib/config";
@@ -512,6 +512,28 @@ function LikeWidget() {
     </div>
 }
 
+// function MultiSelectWidget() {
+//     return <div className="flex flex-col border rounded-md h-[40px] items-center gap-1 px-1.5">
+//         <div className="text-sm font-medium">Tags</div>
+//         <div className="flex flex-row gap-1">
+//             <NotionPill>Tag 1</NotionPill>
+//             <NotionPill>Tag 2</NotionPill>
+//             <NotionPill>Tag 3</NotionPill>
+//         </div>
+//     </div>
+// }
+
+function MultiSelectWidget() {
+    return <div className="flex flex-row border rounded-md h-[28px] items-center gap-1 px-1.5">
+        <div className="text-sm font-medium flex flex-row gap-1 items-center"><TagsIcon className="size-4" /> Tags</div>
+        <div className="text-muted-foreground">· 3 choices</div>
+        {/* <div className="flex flex-row gap-1">
+            <NotionPill>First Tag</NotionPill>
+            <NotionPill>Inconsequential</NotionPill>
+            <NotionPill>Tag 3</NotionPill>
+        </div> */}
+    </div>
+}
 
 function MessageFooter({ session, run, listParams }: { session: Session, run: Run, listParams: ReturnType<typeof getListParams> }) {
     return <div className="mt-3  mb-8 ">
@@ -545,6 +567,7 @@ function MessageFooter({ session, run, listParams }: { session: Session, run: Ru
                     <Button variant="outline" size="xs"><WrenchIcon />Tools</Button>
                     <Button variant="outline" size="xs"><CircleGauge />Metrics</Button> */}
                     <Button variant="outline" size="xs"><CircleGauge />Score</Button>
+                    <MultiSelectWidget />
                 </div>
 
                 <div className="flex flex-row  items-center text-sm">
@@ -556,6 +579,15 @@ function MessageFooter({ session, run, listParams }: { session: Session, run: Ru
             </div>
         </div>
 
+        {/* <div className="border mt-3 mb-2 rounded-md">
+            <CommentThread
+                session={session}
+                item={run.sessionItems[run.sessionItems.length - 1]}
+                collapsed={true}
+                small={true}
+                singleLineMessageHeader={true}
+            />
+        </div> */}
 
         {/* <Button asChild variant="outline" size="xs">
         <Link to={`/sessions/${session.id}/runs/${run.id}?${toQueryParams(listParams)}`}>Run <WrenchIcon className="size-4" /></Link>

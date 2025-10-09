@@ -69,7 +69,7 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
         }
     }
 
-    const unassignedScoreConfigs = allScoreConfigs.filter((scoreConfig) => scores[scoreConfig.name] === undefined || scores[scoreConfig.name] === null);
+    const unassignedScoreConfigs = []//allScoreConfigs.filter((scoreConfig) => scores[scoreConfig.name] === undefined || scores[scoreConfig.name] === null);
 
     const schema = z.object({
         comment: z.string(),
@@ -100,6 +100,7 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
             form.reset();
         }
     }));
+
 
     return (<div ref={ref}>
         {visibleMessages.length > 0 && <div className={`flex flex-col gap-4 ${small ? "p-4" : "p-6"}`}>
