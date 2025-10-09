@@ -10,11 +10,11 @@ import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/li
 import { type Session } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
-import { AlertCircleIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, Share, SquareIcon, ThumbsDown, ThumbsUp, UserIcon, UsersIcon, WrenchIcon } from "lucide-react";
+import { AlertCircleIcon, ChevronDown, CircleDollarSign, CircleDollarSignIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, ThumbsDown, ThumbsUp, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig } from "~/types";
-import { AVFormError } from "~/components/form";
+import { AVFormError, BooleanToggleGroupControl } from "~/components/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/ItemsWithCommentsLayout";
 import { CommentSessionFloatingBox } from "~/components/comments";
@@ -220,13 +220,102 @@ function SessionPage() {
                                             </Alert>
                                         </div>}
 
-                                        {run.state !== "in_progress" && isLastRunItem && <div className="text-xs flex justify-start mb-8 mt-2 gap-1">
-                                            {/* <Button variant="outline" size="icon_xs"><ThumbsUp className="size-4" /></Button>
-                                            <Button variant="outline" size="icon_xs"><ThumbsDown className="size-4" /></Button> */}
+                                        {run.state !== "in_progress" && isLastRunItem && <div>
+
+{/* 
+                                            <div className="flex flex-row gap-1 items-center text-sm mt-2 mb-2">
+                                                <div className="flex flex-row gap-1 items-center h-[20px] rounded-xs bg-gray-100 px-1 text-xs">
+                                                    4s
+                                                </div>
+
+                                                <div className="flex flex-row gap-1 items-center h-[20px] rounded-xs bg-gray-100 px-1 text-xs">
+                                                    $1.25
+                                                </div>
+                                            </div>
+
+
+                                            <div className="border-t mt-3 mb-2" /> */}
+
+                                            <div className="mt-3">
+
+                                                <div className="text-xs flex justify-between mb-8 gap-2 items-center">
+                                                    {/* <Button variant="outline" size="icon_xs"><ThumbsUp className="size-4" /></Button>
+<Button variant="outline" size="icon_xs"><ThumbsDown className="size-4" /></Button> */}
+
+                                                    <div className="flex flex-row gap-2 items-center">
+                                                        <div className="flex flex-row gap-2 border rounded-md px-2 py-1 h-[28px] items-center">
+                                                            <ThumbsUp className="size-4" />
+                                                            <ThumbsDown className="size-4" />
+                                                        </div>
+
+                                                        {/* <Button variant="ghost" size="xs"><ThumbsUp className="size-4" /></Button>
+<Button variant="ghost" size="icon_xs"><ThumbsDown className="size-4" /></Button> */}
+
+                                                        {/* <Button variant="outline" size="icon_xs"><WrenchIcon className="size-4" /></Button> */}
+                                                        <Button variant="outline" size="xs"><FilePenLineIcon className="size-4" /> Score</Button>
+                                                        <Button variant="outline" size="xs">Option <ChevronDown /></Button>
+                                                        
+                                                        <div className=" h-[27px] bg-gray-100 px-2 rounded-md text-sm flex items-center justify-center font-medium flex-row gap-1">
+                                                            <CircleDollarSignIcon className="size-4"/>1.25
+                                                        </div>
+
+                                                        <div className=" h-[27px] bg-gray-100 px-2 rounded-md text-sm flex items-center justify-center font-medium flex-row gap-1">
+                                                            <TimerIcon className="size-4"/>4s
+                                                        </div>
+
+
+                                                    </div>
+
+                                                    <div className="flex flex-row  items-center text-sm">
+                                                        {/* <span className="text-muted-foreground underline text-sm">Run</span> */}
+
+                                                        {/* <Button variant="outline" size="xs"><PencilIcon className="size-4" /> Run</Button> */}
+                                                        {/* <div className="text-muted-foreground hover:underline cursor-pointer">
+                                                            Trace
+                                                        </div> */}
+                                                        {/* <Button variant="ghost" size="xs" className="text-muted-foreground">Trace</Button> */}
+
+                                                        {/* <span className="text-muted-foreground">·</span> */}
+                                                        {/* <Button variant="ghost" size="xs" className="text-muted-foreground">Run</Button> */}
+                                                        {/* <div className="text-muted-foreground hover:underline cursor-pointer">
+                                                            Run
+                                                        </div> */}
+
+                                                        <Button variant="ghost" size="icon_xs" className="text-muted-foreground"><FilePenLineIcon /></Button>
+
+
+                                                        <Button variant="ghost" size="icon_xs" className="text-muted-foreground"><WorkflowIcon /></Button>
+
+
+                                                    </div>
+
+
+                                                </div>
+
+                                            </div>
+
+                                            {/* <div className="border-t my-2" /> */}
+
+                                            {/* <div className="flex flex-row gap-1">
+                                                <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-white inline-flex flex-row gap-1 items-center">
+                                                    <PencilLineIcon className="w-4 h-4 opacity-60" /> <div className="opacity-60 text-sm">Concise</div> <div className="text-sm">0.65</div>
+                                                </div>
+
+                                                <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-green-700 text-white inline-flex flex-row gap-1 items-center">
+                                                    <PencilLineIcon className="w-4 h-4 opacity-80" /> <div className="opacity-80 text-sm">Some label</div> <div className="text-sm">0.65</div>
+                                                </div>
+
+
+                                            </div> */}
+
+
+
+
+                                            {/* <BooleanToggleGroupControl trueIcon={<ThumbsUp className="size-4" />} falseIcon={<ThumbsDown className="size-4" />} value={true} onChange={() => {}} />
 
                                             <Button asChild variant="outline" size="xs">
                                                 <Link to={`/sessions/${session.id}/runs/${run.id}?${toQueryParams(listParams)}`}>Run <WrenchIcon className="size-4" /></Link>
-                                            </Button>
+                                            </Button> */}
                                         </div>}
                                     </div>
                                     {/* { !hasComments && <div className="absolute top-[8px] right-[408px] opacity-0 group-hover:opacity-100">
@@ -317,7 +406,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
                     </PropertyListTextValue>
                 </PropertyListItem>
 
-                { agentConfig.displayProperties && <DisplayProperties displayProperties={agentConfig.displayProperties} inputArgs={{ session }} /> }
+                {agentConfig.displayProperties && <DisplayProperties displayProperties={agentConfig.displayProperties} inputArgs={{ session }} />}
             </PropertyList>
         </div>
     );

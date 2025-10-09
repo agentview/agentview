@@ -507,7 +507,7 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
                 </div>) : <div>
 
                     <div className="flex flex-row flex-wrap gap-1 mb-2">
-
+{/* 
                     <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-white inline-flex flex-row gap-1 items-center">
                         <PencilLineIcon className="w-4 h-4 opacity-60" /> <div className="opacity-60 text-sm">Concise</div> <div className="text-sm">0.65</div>
                     </div>
@@ -523,7 +523,7 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
                     <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-white inline-flex flex-row gap-1 items-start">
                         <div className="flex flex-row gap-1 items-center"><PencilLineIcon className="w-4 h-4 opacity-60" /> <div className="opacity-60 text-sm">Reasons</div> </div>
                          <div className="text-sm truncate">Reason one, Reason two, Reason three, Reason four</div>
-                    </div>
+                    </div> */}
 {/* 
                     <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-white inline-block">
                         <span className="text-gray-600 text-sm -mb-1">Concise</span> <span className="text-sm">0.65</span>
