@@ -84,7 +84,7 @@ export default defineConfig({
                         />
                         <FormField
                             name={"test"}
-                            // defaultValue={"Dupa"}
+                            // defaultValue={"Test"}
                             render={({ field }) => <FormItem>
                                 <FormLabel>Test Field</FormLabel>
                                 <AVInput {...field} placeholder="Enter your test" />

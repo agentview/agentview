@@ -1,4 +1,4 @@
-import { AlertCircleIcon, EllipsisVerticalIcon, Gauge, GaugeIcon, Reply, ReplyIcon } from "lucide-react";
+import { AlertCircleIcon, EllipsisVerticalIcon, Gauge, GaugeIcon, PencilIcon, PencilLineIcon, Reply, ReplyIcon } from "lucide-react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useFetcher, useRevalidator } from "react-router";
 import type { SessionItem, CommentMessage, Session, User } from "~/lib/shared/apiTypes";
@@ -506,7 +506,44 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
 
                 </div>) : <div>
 
-                    {messageScoreConfigs.length > 0 && <div className="">
+                    <div className="flex flex-row flex-wrap gap-1 mb-2">
+
+                    <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-white inline-flex flex-row gap-1 items-center">
+                        <PencilLineIcon className="w-4 h-4 opacity-60" /> <div className="opacity-60 text-sm">Concise</div> <div className="text-sm">0.65</div>
+                    </div>
+
+                    <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-green-700 text-white inline-flex flex-row gap-1 items-center">
+                        <PencilLineIcon className="w-4 h-4 opacity-80" /> <div className="opacity-80 text-sm">Some label</div> <div className="text-sm">0.65</div>
+                    </div>
+
+                    <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-green-700 text-white inline-flex flex-row gap-1 items-center">
+                        <div className="opacity-80 text-sm">Suggested Score:</div> <div className="text-sm">Neutral</div>
+                    </div>
+
+                    <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-white inline-flex flex-row gap-1 items-start">
+                        <div className="flex flex-row gap-1 items-center"><PencilLineIcon className="w-4 h-4 opacity-60" /> <div className="opacity-60 text-sm">Reasons</div> </div>
+                         <div className="text-sm truncate">Reason one, Reason two, Reason three, Reason four</div>
+                    </div>
+{/* 
+                    <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-white inline-block">
+                        <span className="text-gray-600 text-sm -mb-1">Concise</span> <span className="text-sm">0.65</span>
+                    </div> */}
+
+                    </div>
+                    {/* { messageScoreConfigs.length > 0 && <Button size="xs" variant="outline" className="mb-1" >
+                       <PencilLineIcon /> <span className="text-gray-600">Conciseness</span> 0.65
+                    </Button> }
+
+                    { messageScoreConfigs.length > 0 && <Button size="xs" variant="outline" className="mb-1" >
+                        <div className="flex flex-col gap-1">
+                            <span className="text-gray-600">Suggested</span>
+                            <span className="text-gray-600 text-wrap">Neutral, Good, Evil, Bad, I don't understand, Blablabla</span>
+
+                        </div>
+                    </Button> } */}
+
+
+                    {/* {messageScoreConfigs.length > 0 && <div className="">
                         <PropertyList className="mb-2">
                             {messageScoreConfigs.map((scoreConfig) => {
                                 const DisplayComponent = scoreConfig.displayComponent;
@@ -520,7 +557,7 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
                                 );
                             })}
                         </PropertyList>
-                    </div>}
+                    </div>} */}
 
                     {message.content && <div className={`${compressionLevel === "high" ? "line-clamp-6" : compressionLevel === "medium" ? "line-clamp-3" : ""}`}>
                         {textToElements(message.content, members.map((member) => ({
