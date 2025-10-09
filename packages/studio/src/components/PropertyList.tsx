@@ -34,7 +34,7 @@ const PropertyList: React.FC<PropertyListProps> = ({ children, className }) => {
 
 const PropertyListItem: React.FC<PropertyListItemProps> = ({ children, className }) => {
   return (
-    <div className={cn("flex flex-row gap-4", className)}>
+    <div className={cn("flex flex-row gap-2", className)}>
       {children}
     </div>
   );
@@ -46,7 +46,7 @@ const PropertyListTitle: React.FC<PropertyListTitleProps> = ({
   width = "w-32" 
 }) => {
   return (
-    <span className={cn("text-sm text-muted-foreground w-[170px] flex-shrink-0 truncate", className)}>
+    <span className={cn("text-sm text-gray-600 w-[160px] flex-shrink-0 truncate", className)}>
       {children}
     </span>
   );

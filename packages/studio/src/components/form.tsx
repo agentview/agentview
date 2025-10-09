@@ -35,7 +35,7 @@ export const ToggleGroupControl = ({ value, onChange, options }: ControlComponen
     const toggleValue = value ?? "";
 
     return (
-        <ToggleGroup type="single" variant="outline" size="sm" value={toggleValue} onValueChange={(value) => {
+        <ToggleGroup type="single" variant="outline" size="xs" value={toggleValue} onValueChange={(value) => {
             if (options.some(option => option.value === value)) {
                 onChange(value);
             }
@@ -169,18 +169,37 @@ export type AVFormFieldProps<TInput = any, TOutput = TInput> = {
     description?: string,
     defaultValue?: TOutput,
     disabled?: boolean,
-    control: AVFormControl<TInput, TOutput>
+    control: AVFormControl<TInput, TOutput>,
+    variant?: "default" | "row"
 }
 
 
 export function AVFormField<TInput = any, TOutput = TInput>(props: AVFormFieldProps<TInput, TOutput>) {
     const Control = props.control;
+    const variant = props.variant ?? "default";
 
     return <FormField
         name={props.name}
         disabled={props.disabled}
         defaultValue={props.defaultValue}
         render={({ field }) => {
+            if (variant === "row") {
+                return <FormItem className="flex flex-row gap-4 items-start space-y-0">
+                    {props.label && (
+                        <FormLabel className="text-sm text-gray-600 w-[160px] flex-shrink-0 pt-1 truncate">
+                            {props.label}
+                        </FormLabel>
+                    )}
+                    <div className="flex-1 flex flex-col gap-1">
+                        <Control {...field} />
+                        {props.description && <FormDescription>
+                            {props.description}
+                        </FormDescription>}
+                        <FormMessage />
+                    </div>
+                </FormItem>
+            }
+
             return <FormItem>
                 { props.label && <FormLabel>{props.label}</FormLabel> }
                 <Control {...field} />

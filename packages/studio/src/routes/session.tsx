@@ -7,18 +7,19 @@ import { parseSSE } from "~/lib/parseSSE";
 import { apiFetch } from "~/lib/apiFetch";
 import { getAPIBaseUrl } from "~/lib/getAPIBaseUrl";
 import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/lib/shared/sessionUtils";
-import { type Run, type Session } from "~/lib/shared/apiTypes";
+import { type Run, type Session, type SessionItem } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
 import { AlertCircleIcon, ChevronDown, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, ThumbsDown, ThumbsUp, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig } from "~/types";
-import { AVFormError, BooleanToggleGroupControl } from "~/components/form";
+import { AVFormError, BooleanToggleGroupControl, AVFormField } from "~/components/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/ItemsWithCommentsLayout";
 import { CommentSessionFloatingBox, CommentThread } from "~/components/comments";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from "~/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "~/components/ui/dialog";
+import { Popover, PopoverTrigger, PopoverContent } from "~/components/ui/popover";
 import { config } from "~/config";
 import { findItemConfig, requireAgentConfig, requireItemConfig } from "~/lib/config";
 import { Loader } from "~/components/Loader";
@@ -27,6 +28,10 @@ import type { BaseError } from "~/lib/errors";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { DisplayProperties } from "~/components/DisplayProperties";
 import { cn } from "~/lib/utils";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import z from "zod";
+import { Form as HookForm } from "~/components/ui/form";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<Session>(`/api/sessions/${params.id}`);
@@ -535,7 +540,119 @@ function MultiSelectWidget() {
     </div>
 }
 
+function getAllScoreConfigs(session: Session, item: SessionItem) {
+    const agentConfig = requireAgentConfig(config, session.agent);
+    const itemConfig = requireItemConfig(agentConfig, item.type, item.role);
+    return itemConfig?.scores || [];
+}
+
+function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, item: SessionItem, open: boolean, onOpenChange: (open: boolean) => void }) {
+    const { user } = useSessionContext();
+    const fetcher = useFetcher();
+
+    const allScoreConfigs = getAllScoreConfigs(session, item);
+
+    // Get current user's existing scores from the item
+    const existingScores: Record<string, any> = {};
+    const visibleMessages = item.commentMessages.filter((m: any) => !m.deletedAt) ?? [];
+    for (const messageItem of visibleMessages) {
+        for (const score of messageItem.scores ?? []) {
+            if (score.deletedAt || score.createdBy !== user.id) {
+                continue;
+            }
+            existingScores[score.name] = score.value;
+        }
+    }
+
+    const schema = z.object({
+        scores: z.object(
+            Object.fromEntries(
+                allScoreConfigs.map((scoreConfig) => [
+                    scoreConfig.name,
+                    scoreConfig.schema.optional()
+                ])
+            )
+        )
+    });
+
+    const form = useForm({
+        resolver: zodResolver(schema),
+        defaultValues: {
+            scores: existingScores
+        }
+    });
+
+    const submit = (data: z.infer<typeof schema>) => {
+        fetcher.submit(data as any, { 
+            method: 'post', 
+            action: `/sessions/${session.id}/items/${item.id}/comments`, 
+            encType: 'application/json' 
+        });
+    }
+
+    useFetcherSuccess(fetcher, () => {
+        onOpenChange(false);
+    });
+
+    return (
+        <Popover open={open} onOpenChange={onOpenChange}>
+            <PopoverTrigger asChild>
+                <Button variant="outline" size="xs"><CircleGauge />Score</Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-96 p-3">
+                <div>
+                    <div className="font-medium text-sm mb-4">Scores</div>
+
+                    {fetcher.state === 'idle' && fetcher.data?.ok === false && (
+                        <Alert variant="destructive" className="mb-4">
+                            <AlertCircleIcon className="h-4 w-4" />
+                            <AlertDescription>{fetcher.data.error.message}</AlertDescription>
+                        </Alert>
+                    )}
+
+                    <HookForm {...form}>
+                        <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
+                            <div className="space-y-3">
+                                {allScoreConfigs.map((scoreConfig) => (
+                                    <AVFormField
+                                        variant="row"
+                                        key={scoreConfig.name}
+                                        label={scoreConfig.title ?? scoreConfig.name}
+                                        name={"scores." + scoreConfig.name}
+                                        control={scoreConfig.inputComponent}
+                                    />
+                                ))}
+                            </div>
+                            <div className="flex gap-2 justify-end mt-4">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onOpenChange(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    size="sm"
+                                    disabled={fetcher.state !== 'idle'}
+                                >
+                                    {fetcher.state !== 'idle' ? 'Saving...' : 'Save'}
+                                </Button>
+                            </div>
+                        </form>
+                    </HookForm>
+
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
 function MessageFooter({ session, run, listParams }: { session: Session, run: Run, listParams: ReturnType<typeof getListParams> }) {
+    const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
+    const lastItem = run.sessionItems[run.sessionItems.length - 1];
+
     return <div className="mt-3  mb-8 ">
 
         {/* <div className="flex flex-col gap-2 text-sm flex-wrap items-start">
@@ -566,7 +683,12 @@ function MessageFooter({ session, run, listParams }: { session: Session, run: Ru
                     <Button variant="outline" size="xs"><MessageSquareTextIcon />Note</Button>
                     <Button variant="outline" size="xs"><WrenchIcon />Tools</Button>
                     <Button variant="outline" size="xs"><CircleGauge />Metrics</Button> */}
-                    <Button variant="outline" size="xs"><CircleGauge />Score</Button>
+                    <ScoreDialog 
+                        session={session} 
+                        item={lastItem} 
+                        open={scoreDialogOpen} 
+                        onOpenChange={setScoreDialogOpen}
+                    />
                     <MultiSelectWidget />
                 </div>
 

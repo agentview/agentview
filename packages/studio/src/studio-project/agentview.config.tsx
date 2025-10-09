@@ -39,6 +39,20 @@ export default defineConfig({
                             schema: z.boolean(),
                             inputComponent: (props) => <BooleanToggleGroupControl {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
                             displayComponent: (props) => <BooleanToggleGroupDisplay {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
+                        },
+                        {
+                            name: "user_reaction2",
+                            title: "Test",
+                            schema: z.boolean(),
+                            inputComponent: (props) => <BooleanToggleGroupControl {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
+                            displayComponent: (props) => <BooleanToggleGroupDisplay {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
+                        },
+                        {
+                            name: "user_reaction3",
+                            title: "Lorem ipsum dolor sit amet",
+                            schema: z.boolean(),
+                            inputComponent: (props) => <BooleanToggleGroupControl {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
+                            displayComponent: (props) => <BooleanToggleGroupDisplay {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
                         }
                     ]
                 },
