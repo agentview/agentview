@@ -50,7 +50,7 @@ function Component() {
 
   return <div className="flex flex-row items-stretch h-full">
 
-    <div className="basis-[280px] flex-shrink-0 flex-grow-0 border-r flex flex-col ">
+    <div className="basis-[300px] flex-shrink-0 flex-grow-0 border-r flex flex-col ">
 
       <Header className="px-3">
         <HeaderTitle title={`${listParams.list === "real" ? "Sessions" : listParams.list === "simulated_private" ? "Private Sessions" : "Shared Sessions"}`} />

@@ -10,7 +10,7 @@ import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/li
 import { type Session } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
-import { AlertCircleIcon, ChevronDown, CircleDollarSign, CircleDollarSignIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, ThumbsDown, ThumbsUp, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
+import { AlertCircleIcon, ChevronDown, CircleDollarSign, CircleDollarSignIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, ThumbsDown, ThumbsUp, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig } from "~/types";
@@ -251,17 +251,19 @@ function SessionPage() {
                                                         {/* <Button variant="ghost" size="xs"><ThumbsUp className="size-4" /></Button>
 <Button variant="ghost" size="icon_xs"><ThumbsDown className="size-4" /></Button> */}
 
+                                                        <Button variant="outline" size="xs"><PenTool /> Style</Button>
+
+
                                                         {/* <Button variant="outline" size="icon_xs"><WrenchIcon className="size-4" /></Button> */}
-                                                        <Button variant="outline" size="xs"><FilePenLineIcon className="size-4" /> Score</Button>
-                                                        <Button variant="outline" size="xs">Option <ChevronDown /></Button>
+                                                        <Button variant="outline" size="xs"><FilePenLineIcon className="size-4" /> Scores</Button>
                                                         
-                                                        <div className=" h-[27px] bg-gray-100 px-2 rounded-md text-sm flex items-center justify-center font-medium flex-row gap-1">
+                                                        {/* <div className=" h-[27px] bg-gray-100 px-2 rounded-md text-sm flex items-center justify-center font-medium flex-row gap-1">
                                                             <CircleDollarSignIcon className="size-4"/>1.25
                                                         </div>
 
                                                         <div className=" h-[27px] bg-gray-100 px-2 rounded-md text-sm flex items-center justify-center font-medium flex-row gap-1">
                                                             <TimerIcon className="size-4"/>4s
-                                                        </div>
+                                                        </div> */}
 
 
                                                     </div>
