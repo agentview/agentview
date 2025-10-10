@@ -14,7 +14,7 @@ import { AlertCircleIcon, ChevronDown, CircleDollarSign, CircleDollarSignIcon, C
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig } from "~/types";
-import { AVFormError, BooleanToggleGroupControl, AVFormField } from "~/components/form";
+import { AVFormError, AVFormField } from "~/components/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/ItemsWithCommentsLayout";
 import { CommentSessionFloatingBox, CommentThread } from "~/components/comments";

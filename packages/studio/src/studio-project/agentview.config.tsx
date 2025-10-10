@@ -1,7 +1,7 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
-import { AVInput, BooleanToggleGroupControl, UserMessageInputComponent, BooleanToggleGroupDisplay, SelectControl } from "~/components/form";
+import { AVInput, ToggleGroupControl, UserMessageInputComponent, SelectControl, OptionDisplay } from "~/components/form";
 import { ItemAssistantMessageComponent, ItemUserMessageComponent } from "~/components/display";
 import { ProductDisplay } from "./ProductDisplay";
 import { ProductSelect } from "./ProductSelect";
@@ -38,15 +38,15 @@ export default defineConfig({
                             name: "user_reaction",
                             title: "Can it go to client?",
                             schema: z.boolean(),
-                            inputComponent: (props) => <BooleanToggleGroupControl {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
-                            displayComponent: (props) => <BooleanToggleGroupDisplay {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} trueLabel="Like" falseLabel="Don't Like" />,
+                            inputComponent: (props) => <ToggleGroupControl {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} collapseOnSelect />,
+                            displayComponent: (props) => <OptionDisplay {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} />,
                         },
                         {
                             name: "user_reaction2",
                             title: "Test",
                             schema: z.string(),
                             inputComponent: (props) => <SelectControl {...props} options={[{ value: "one", label: "One" }, { value: "two", label: "Two" }, { value: "three", label: "Three" }, { value: "four", label: "Four" }, { value: "five", label: "Five" }]} />,
-                            displayComponent: (props) => <TagPill>{ props.value } </TagPill>
+                            displayComponent: (props) => <OptionDisplay {...props} options={[{ value: "one", label: "One" }, { value: "two", label: "Two" }, { value: "three", label: "Three" }, { value: "four", label: "Four" }, { value: "five", label: "Five" }]} />,
                         },
                         // {
                         //     name: "user_reaction3",

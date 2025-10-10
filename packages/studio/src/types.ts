@@ -3,7 +3,6 @@ import type { BaseScoreConfig, BaseSessionItemConfig, BaseAgentConfig, BaseConfi
 import type { Run, Session } from "./lib/shared/apiTypes";
 import type { z } from "zod";
 import type { BaseError } from "./lib/errors";
-import type { AVFormControlProps } from "./components/form";
 
 export type FormInputProps<T=any> = {
   id: string,
