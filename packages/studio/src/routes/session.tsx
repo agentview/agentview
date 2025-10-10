@@ -231,7 +231,7 @@ function SessionPage() {
                                             <span>{run.failReason?.message ?? "Unknown reason"}</span>
                                         </div>}
 
-                                        {run.state !== "in_progress" && isLastRunItem && <MessageFooter session={session} run={run} listParams={listParams} />}
+                                        {run.state !== "in_progress" && isLastRunItem && <MessageFooter session={session} run={run} listParams={listParams} item={item} />}
                                     </div>
                                     {/* { !hasComments && <div className="absolute top-[8px] right-[408px] opacity-0 group-hover:opacity-100">
                                         <Button variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}><MessageSquareTextIcon /></Button>
@@ -646,9 +646,8 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
     );
 }
 
-function MessageFooter({ session, run, listParams }: { session: Session, run: Run, listParams: ReturnType<typeof getListParams> }) {
+function MessageFooter({ session, run, listParams, item }: { session: Session, run: Run, listParams: ReturnType<typeof getListParams>, item: SessionItem }) {
     const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
-    const lastItem = run.sessionItems[run.sessionItems.length - 1];
 
     return <div className="mt-3  mb-8 ">
 
@@ -667,7 +666,7 @@ function MessageFooter({ session, run, listParams }: { session: Session, run: Ru
                 <div className="flex flex-row flex-wrap gap-1.5 items-center">
                     <LikeWidget />
                     <Button variant="outline" size="xs" asChild>
-                        <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: lastItem.id })}`}>
+                        <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: item.id })}`}>
                             <MessageCirclePlus />Comment
                         </Link>
                     </Button>
@@ -686,7 +685,7 @@ function MessageFooter({ session, run, listParams }: { session: Session, run: Ru
                     <Button variant="outline" size="xs"><CircleGauge />Metrics</Button> */}
                     <ScoreDialog 
                         session={session} 
-                        item={lastItem} 
+                        item={item} 
                         open={scoreDialogOpen} 
                         onOpenChange={setScoreDialogOpen}
                     />
