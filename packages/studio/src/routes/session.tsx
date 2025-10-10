@@ -592,7 +592,9 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
     return (
         <Popover open={open} onOpenChange={onOpenChange}>
             <PopoverTrigger asChild>
-                <Button variant="outline" size="xs"><CircleGauge />Score</Button>
+                <Button variant="outline" size="xs">
+                    <CircleGauge />Score <ChevronDown />
+                </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[450px] p-3">
                 <div>
