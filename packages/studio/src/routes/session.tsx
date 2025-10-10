@@ -32,6 +32,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { Form as HookForm } from "~/components/ui/form";
+import { TagPill } from "~/components/TagPill";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<Session>(`/api/sessions/${params.id}`);
@@ -317,7 +318,11 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
                         {versions.length > 1 ? "Versions" : "Version"}
                     </PropertyListTitle>
                     <PropertyListTextValue>
-                        {versions.length > 0 ? versions.map(version => (version?.version ?? "") + "." + (version?.env ?? "")).join(", ") : "-"}
+                        {versions.length === 0 && <span className="text-muted-foreground">-</span>}
+                        {versions.length > 0 && <div className="flex flex-row gap-1">{versions.map(version => {
+                            const versionString = (version?.version ?? "") + "." + (version?.env ?? "")
+                            return <TagPill key={versionString} size="sm">{versionString}</TagPill>
+                        })}</div>}
                     </PropertyListTextValue>
                 </PropertyListItem>
 
