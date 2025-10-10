@@ -96,31 +96,29 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
     const visibleMessages = item.commentMessages.filter((m: any) => !m.deletedAt) ?? []
 
     const stackedMessages = getStackedCommentMessages(visibleMessages);
-
-
-
-
     const hasZeroVisisbleComments = stackedMessages.length === 0
 
-    const schema = z.object({
-        comment: z.string()
-    }).partial();
+    const [comment, setComment] = useState("");
 
-    const form = useForm({
-        resolver: zodResolver(schema),
-    });
+    // const schema = z.object({
+    //     comment: z.string()
+    // }).partial();
 
-    const submit = (data: z.infer<typeof schema>) => {
-        fetcher.submit(data as any, { method: 'post', action: `/sessions/${session.id}/items/${item.id}/comments`, encType: 'application/json' })
+    // const form = useForm({
+    //     resolver: zodResolver(schema),
+    // });
+
+    const submit = () => {
+        fetcher.submit({ comment }, { method: 'post', action: `/sessions/${session.id}/items/${item.id}/comments`, encType: 'application/json' })
     }
 
     useFetcherSuccess(fetcher, () => {
-        form.reset();
+        setComment("");
     });
 
     useImperativeHandle(ref, () => ({
         reset: () => {
-            form.reset();
+            setComment("");
         }
     }));
 
@@ -178,11 +176,9 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
 
         {!collapsed && <div className={`max-w-2xl ${small ? "p-4" : "p-6"}`}>
 
-
             <div className="flex flex-row gap-2">
 
-
-                <div className={`rounded-full bg-gray-300 flex-shrink-0`}
+                <div className={`rounded-full bg-gray-300 flex-shrink-0 mt-[6px]`}
                     style={{ width: 24, height: 24 }}
                 />
 
@@ -194,46 +190,41 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
                         </Alert>
                     )}
 
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(submit)} className="space-y-2">
-                            <div>
-                                <AVFormField
-                                    key={"comment"}
-                                    name={"comment"}
-                                    control={(props) => <TextEditor
-                                        mentionItems={members.filter((member) => member.id !== user.id).map(member => ({
-                                            id: member.id,
-                                            label: member.name ?? "Unknown"
-                                        }))}
-                                        placeholder={(hasZeroVisisbleComments ? "Comment" : "Reply") + " or tag other, using @"}
-                                        className="min-h-[10px] resize-none mb-0"
-                                        {...props}
-                                    />}
-                                />
-                            </div>
-                            <div className={`gap-2 justify-end mt-2 flex`}>
-                                <Button
-                                    type="reset"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                        form.reset();
-                                    }}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    size="sm"
-                                    disabled={fetcher.state !== 'idle'}
-                                >
-                                    {fetcher.state !== 'idle' ? 'Posting...' : 'Submit'}
-                                </Button>
-                            </div>
+                    <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="space-y-2">
+                        <div>
+                            <TextEditor
+                                mentionItems={members.filter((member) => member.id !== user.id).map(member => ({
+                                    id: member.id,
+                                    label: member.name ?? "Unknown"
+                                }))}
+                                placeholder={(hasZeroVisisbleComments ? "Comment" : "Reply") + " or tag other, using @"}
+                                className="min-h-[10px] resize-none mb-0"
+                                value={comment}
+                                onChange={(value) => setComment(value ?? "")}
+                            />
+                        </div>
+                        <div className={`gap-2 justify-end mt-2 flex ${ comment.trim() === "" ? "hidden" : ""}`}>
+                            <Button
+                                type="reset"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    setComment("");
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                size="sm"
+                                disabled={fetcher.state !== 'idle' || comment.trim() === ""}
+                            >
+                                {fetcher.state !== 'idle' ? 'Sending...' : 'Send'}
+                            </Button>
+                        </div>
 
 
-                        </form>
-                    </Form>
+                    </form>
                 </div>
 
 
