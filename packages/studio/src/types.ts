@@ -51,6 +51,7 @@ export type ScoreConfig<TValue=any> = BaseScoreConfig & {
   title?: string;
   inputComponent: ControlComponent<TValue>;
   displayComponent?: React.ComponentType<{ value: TValue }>;
+  actionBarComponent?: ControlComponent<TValue>;
 }
 
 export type SessionItemConfig = BaseSessionItemConfig<ScoreConfig> & {
