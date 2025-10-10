@@ -1542,6 +1542,8 @@ app.openapi(scoresPUTRoute, async (c) => {
   const { sessionId, itemId } = c.req.param()
   const inputScores = await c.req.valid('json');
 
+  console.log(inputScores);
+
   const config = await requireConfig()
   const session = await requireSession(sessionId, { type: 'user', session: authSession })
   const item = await requireSessionItem(session, itemId);

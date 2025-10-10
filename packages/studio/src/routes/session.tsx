@@ -552,18 +552,6 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
 
     const allScoreConfigs = getAllScoreConfigs(session, item);
 
-    // // Get current user's existing scores from the item
-    // const existingScores: Record<string, any> = {};
-    // const visibleMessages = item.commentMessages.filter((m: any) => !m.deletedAt) ?? [];
-    // for (const messageItem of visibleMessages) {
-    //     for (const score of messageItem.scores ?? []) {
-    //         if (score.deletedAt || score.createdBy !== user.id) {
-    //             continue;
-    //         }
-    //         existingScores[score.name] = score.value;
-    //     }
-    // }
-
     const schema = z.object(
         Object.fromEntries(
             allScoreConfigs.map((scoreConfig) => [
@@ -581,21 +569,15 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
         defaultValues[score.name] = score.value;
     }
 
-    console.log('scores', item.scores);
-    console.log('defaultValues', defaultValues);
-
     const form = useForm({
         resolver: zodResolver<any, any, any>(schema),
         defaultValues
     });
 
-    console.log('form error', form.formState.errors);
-
     const submit = (data: z.infer<typeof schema>) => {
-        console.log('data', data);
         const payload = Object.entries(data).map(([name, value]) => ({ name, value }));
-        console.log('payload', payload);
 
+        // @ts-ignore i don't know why but payload as array is not correct body but it's correct JSON.
         fetcher.submit(payload, { 
             method: 'put', 
             action: `/sessions/${session.id}/items/${item.id}/scores`, 
