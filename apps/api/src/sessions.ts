@@ -42,7 +42,7 @@ export async function fetchSessions(session_id?: string, tx?: Transaction) {
               commentMessages: {
                 orderBy: (commentMessages, { asc }) => [asc(commentMessages.createdAt)],
                 with: {
-                  scores: true
+                  score: true
                 }
               },
               scores: true

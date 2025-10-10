@@ -121,6 +121,9 @@ export const commentMessages = pgTable('comment_messages', {
   // Soft delete fields
   deletedAt: timestamp('deleted_at', { withTimezone: true, mode: "string" }),
   deletedBy: text('deleted_by').references(() => users.id, { onDelete: 'set null' }),
+
+  // scoreId: uuid('score_id').notNull().references(() => scores.id, { onDelete: 'cascade' }),
+  // scoreId: uuid('score_id').references(() => scores.id, { onDelete: 'set null' }),
 });
 
 // User mentions within comment messages
@@ -272,7 +275,12 @@ export const commentMessagesRelations = relations(commentMessages, ({ one, many 
   }),
   mentions: many(commentMentions),
   edits: many(commentMessageEdits),
-  scores: many(scores),
+  // scoreId: uuid('score_id').references(() => scores.id, { onDelete: 'set null' }),
+
+  score: one(scores, {
+    fields: [commentMessages.id],
+    references: [scores.commentId],
+  }),
 }));
 
 export const commentMentionsRelations = relations(commentMentions, ({ one }) => ({

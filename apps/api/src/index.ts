@@ -1315,36 +1315,36 @@ app.openapi(itemSeenRoute, async (c) => {
 /* --------- FEED --------- */
 
 
-function validateScore(config: BaseConfig, session: Session, item: SessionItem, user: BetterAuthUser, scoreName: string, scoreValue: any, options?: { mustNotExist?: boolean }) {
-  const agentConfig = requireAgentConfig(config, session.agent);
-  const itemConfig = requireItemConfig(agentConfig, item.type, item.role ?? undefined)
-  const itemTypeCuteName = `${item.type}' / '${item.role}`
+// function validateScore(config: BaseConfig, session: Session, item: SessionItem, user: BetterAuthUser, scoreName: string, scoreValue: any, options?: { mustNotExist?: boolean }) {
+//   const agentConfig = requireAgentConfig(config, session.agent);
+//   const itemConfig = requireItemConfig(agentConfig, item.type, item.role ?? undefined)
+//   const itemTypeCuteName = `${item.type}' / '${item.role}`
 
-  // Find the score config for this item
-  const scoreConfig = itemConfig.scores?.find((scoreConfig) => scoreConfig.name === scoreName);
-  if (!scoreConfig) {
-    throw new HTTPException(400, { message: `Score name '${scoreName}' not found in configuration for item  '${itemTypeCuteName}' in agent '${session.agent}'` });
-  }
+//   // Find the score config for this item
+//   const scoreConfig = itemConfig.scores?.find((scoreConfig) => scoreConfig.name === scoreName);
+//   if (!scoreConfig) {
+//     throw new HTTPException(400, { message: `Score name '${scoreName}' not found in configuration for item  '${itemTypeCuteName}' in agent '${session.agent}'` });
+//   }
 
-  // Check if there is already a score with the same name in any commentMessage's scores
-  if (item.commentMessages && options?.mustNotExist === true) {
-    for (const message of item.commentMessages) {
-      if (message.scores) {
-        for (const score of message.scores) {
-          if (score.name === scoreName && !score.deletedAt && score.createdBy === user.id) {
-            throw new HTTPException(400, { message: `A score with name '${scoreName}' already exists.` });
-          }
-        }
-      }
-    }
-  }
+//   // Check if there is already a score with the same name in any commentMessage's scores
+//   if (item.commentMessages && options?.mustNotExist === true) {
+//     for (const message of item.commentMessages) {
+//       if (message.scores) {
+//         for (const score of message.scores) {
+//           if (score.name === scoreName && !score.deletedAt && score.createdBy === user.id) {
+//             throw new HTTPException(400, { message: `A score with name '${scoreName}' already exists.` });
+//           }
+//         }
+//       }
+//     }
+//   }
 
-  // Validate value against the schema
-  const result = scoreConfig.schema.safeParse(scoreValue);
-  if (!result) {
-    throw new HTTPException(400, { message: `Error parsing the score value for score "${scoreName}"` }); // todo: add result.error.issues and "parse.schema" error code.
-  }
-}
+//   // Validate value against the schema
+//   const result = scoreConfig.schema.safeParse(scoreValue);
+//   if (!result) {
+//     throw new HTTPException(400, { message: `Error parsing the score value for score "${scoreName}"` }); // todo: add result.error.issues and "parse.schema" error code.
+//   }
+// }
 
 
 

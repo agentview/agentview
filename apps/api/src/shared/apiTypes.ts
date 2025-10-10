@@ -76,7 +76,7 @@ export const CommentMessageSchema = z.object({
     updatedAt: z.iso.date().nullable(),
     deletedAt: z.iso.date().nullable(),
     deletedBy: z.string().nullable(),
-    scores: z.array(ScoreSchema).nullable(),
+    score: ScoreSchema.nullable(),
 })
 
 export type CommentMessage = z.infer<typeof CommentMessageSchema>
