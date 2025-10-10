@@ -44,15 +44,11 @@ export const ToggleGroupControl = ({ value, onChange, options }: ControlComponen
 
     return (
         <ToggleGroup type="single" variant="outline" size="xs" value={toggleValue} onValueChange={(value) => {
-            // if (options.some(option => option.value === value)) {
-            //     onChange(value);
-            // }
-            // )
-                        if (value === "") {
-                            onChange(null);
-                        } else {
-                            onChange(value);
-                        }
+            if (value === "") {
+                onChange(null);
+            } else {
+                onChange(value);
+            }
         }}>
             {options.map((option) => {
                 const icon = option.icon;
@@ -254,7 +250,7 @@ export function AVFormField<TInput = any, TOutput = TInput>(props: AVFormFieldPr
             }
 
             return <FormItem>
-                { props.label && <FormLabel>{props.label}</FormLabel> }
+                {props.label && <FormLabel>{props.label}</FormLabel>}
                 <Control {...field} />
                 {props.description && <FormDescription>
                     {props.description}
