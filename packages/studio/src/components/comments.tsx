@@ -3,16 +3,9 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import { useFetcher, useRevalidator } from "react-router";
 import type { SessionItem, CommentMessage, Session, User } from "~/lib/shared/apiTypes";
 import { Button } from "~/components/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { timeAgoShort } from "~/lib/timeAgo";
 import { AVFormField } from "./form";
-import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "./PropertyList";
 import { Alert, AlertDescription } from "./ui/alert";
 import { TextEditor, textToElements } from "./TextEditor";
 import { useSessionContext } from "~/lib/SessionContext";
