@@ -1,7 +1,7 @@
 import { AlertCircleIcon, EllipsisVerticalIcon, Gauge, GaugeIcon, PencilIcon, PencilLineIcon, Reply, ReplyIcon } from "lucide-react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useFetcher, useRevalidator } from "react-router";
-import type { SessionItem, CommentMessage, Session, User } from "~/lib/shared/apiTypes";
+import type { SessionItem, CommentMessage, Session, User, Score } from "~/lib/shared/apiTypes";
 import { Button } from "~/components/ui/button";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { timeAgoShort } from "~/lib/timeAgo";
@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { Form } from "./ui/form";
 import React from "react";
+import type { ScoreConfig } from "~/types";
 
 export type CommentSessionProps = {
     session: Session,
@@ -37,10 +38,55 @@ export type CommentSessionFloatingButtonProps = CommentSessionFloatingBoxProps &
     onSelect: (item: any) => void,
 }
 
-function getAllScoreConfigs(session: Session, item: SessionItem) {
-    const agentConfig = requireAgentConfig(config, session.agent);
-    const itemConfig = requireItemConfig(agentConfig, item.type, item.role);
-    return itemConfig?.scores || [];
+type StackedCommentMessage = CommentMessage & {
+    scores: Score[],
+}
+
+function getStackedCommentMessages(messages: CommentMessage[]): StackedCommentMessage[] {
+    const result: StackedCommentMessage[] = [];
+    let i = 0;
+
+    while (i < messages.length) {
+        const currentMessage = messages[i];
+        const currentUserId = currentMessage.userId;
+
+        // Start a new group for this user
+        const groupScores: Score[] = [];
+        let groupContent: CommentMessage | null = null;
+        let groupStartIndex = i;
+
+        // Collect consecutive messages from the same user
+        while (i < messages.length && messages[i].userId === currentUserId) {
+            const msg = messages[i];
+
+            if (msg.score !== null) {
+                // This message has a score
+                groupScores.push(msg.score);
+            } else if (msg.content !== null && msg.content.trim() !== '') {
+                // This message has content
+                if (groupContent === null) {
+                    groupContent = msg;
+                } else {
+                    // If we already have content, this breaks the group
+                    // Start a new group from this message
+                    break;
+                }
+            }
+
+            i++;
+        }
+
+        // Create the result entry
+        // Use the first message of the group as the base, or the content message if exists
+        const baseMessage = groupContent || messages[groupStartIndex];
+
+        result.push({
+            ...baseMessage,
+            scores: groupScores,
+        });
+    }
+
+    return result;
 }
 
 export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, item, collapsed = false, singleLineMessageHeader = false, small = false }, ref) => {
@@ -49,11 +95,12 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
 
     const visibleMessages = item.commentMessages.filter((m: any) => !m.deletedAt) ?? []
 
+    const stackedMessages = getStackedCommentMessages(visibleMessages);
 
 
 
 
-    const hasZeroVisisbleComments = visibleMessages.length === 0
+    const hasZeroVisisbleComments = stackedMessages.length === 0
 
     const schema = z.object({
         comment: z.string()
@@ -78,11 +125,11 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
     }));
 
     return (<div ref={ref}>
-        {visibleMessages.length > 0 && <div className={`flex flex-col gap-4 ${small ? "p-4" : "p-6"}`}>
+        {stackedMessages.length > 0 && <div className={`flex flex-col gap-4 ${small ? "p-4" : "p-6"}`}>
 
             {/* Display comments */}
-            {visibleMessages.map((message: any, index: number) => {
-                const count = visibleMessages.length;
+            {stackedMessages.map((message: any, index: number) => {
+                const count = stackedMessages.length;
 
                 let compressionLevel: MessageCompressionLevel = "none";
 
@@ -127,7 +174,7 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
 
         </div>}
 
-        {!collapsed && visibleMessages.length > 0 && <div className={`border-t ${small ? "px-3" : "px-4"} max-w-2xl`}></div>}
+        {!collapsed && stackedMessages.length > 0 && <div className={`border-t ${small ? "px-3" : "px-4"} max-w-2xl`}></div>}
 
         {!collapsed && <div className={`max-w-2xl ${small ? "p-4" : "p-6"}`}>
 
@@ -306,7 +353,7 @@ export function CommentMessageHeader({ title, subtitle, actions, singleLineMessa
 type MessageCompressionLevel = "none" | "medium" | "high";
 
 // New subcomponent for comment message item with edit logic
-export function CommentMessageItem({ message, item, session, compressionLevel = "none", singleLineMessageHeader = false }: { message: CommentMessage, fetcher: any, item: SessionItem, session: Session, compressionLevel?: MessageCompressionLevel, singleLineMessageHeader?: boolean }) {
+export function CommentMessageItem({ message, item, session, compressionLevel = "none", singleLineMessageHeader = false }: { message: StackedCommentMessage, fetcher: any, item: SessionItem, session: Session, compressionLevel?: MessageCompressionLevel, singleLineMessageHeader?: boolean }) {
     if (message.deletedAt) {
         throw new Error("Deleted messages don't have rendering code.")
     }
@@ -371,12 +418,20 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
         setIsEditing(false);
     });
 
-    const scoreConfig = getAllScoreConfigs(session, item).find((scoreConfig) => scoreConfig.name === message.score?.name);
+    const agentConfig = requireAgentConfig(config, session.agent);
+    const itemConfig = requireItemConfig(agentConfig, item.type, item.role);
+
+    // score configs
+    const getScoreConfig = (score: Score) => {
+        return itemConfig.scores?.find((scoreConfig) => scoreConfig.name === score.name);
+    }
+
+    const activeScores = message.scores.filter((score) => score.deletedAt === null && getScoreConfig(score));
 
     return (
         <div>
 
-            <CommentMessageHeader title={author.name ?? author.email} subtitle={subtitle} singleLineMessageHeader={singleLineMessageHeader} 
+            <CommentMessageHeader title={author.name ?? author.email} subtitle={subtitle} singleLineMessageHeader={singleLineMessageHeader}
             // actions={
             //     isOwn && (<DropdownMenu>
             //         <DropdownMenuTrigger asChild>
@@ -402,7 +457,7 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
             //     </DropdownMenu>
             //     )
             // }
-             />
+            />
 
             {/* Comment content */}
             <div className="text-sm ml-8">
@@ -462,11 +517,26 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
                         </form>
                     </Form>
 
-                </div>) : <div>
+                </div>) : <div className="space-y-2">
 
-                    { message.score && scoreConfig && <div>
+                    <div className="space-y-2">
+                        {message.scores.map((score) => {
+                            const scoreConfig = getScoreConfig(score)!;
+                            if (!scoreConfig) {
+                                return null;
+                            }
+                            return (
+                                <div key={score.name}>
+                                    {scoreConfig.displayComponent && <scoreConfig.displayComponent value={score.value} />}
+                                </div>
+                            )
+                        })}
+                    </div>
+
+
+                    {/* { message.score && scoreConfig && <div>
                         {scoreConfig.displayComponent && <scoreConfig.displayComponent value={message.score.value} />}
-                    </div>}
+                    </div>} */}
 
                     {/* {messageScoreConfigs.length > 0 && <div className="">
                         <PropertyList className="mb-2">
