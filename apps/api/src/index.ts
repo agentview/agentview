@@ -1525,7 +1525,7 @@ const scoresPUTRoute = createRoute({
     }),
     body: body(z.array(z.object({
       name: z.string(),
-      value: z.any().nullable()
+      value: z.any()
     })))
   },
   responses: {
@@ -1541,8 +1541,6 @@ app.openapi(scoresPUTRoute, async (c) => {
 
   const { sessionId, itemId } = c.req.param()
   const inputScores = await c.req.valid('json');
-
-  console.log(inputScores);
 
   const config = await requireConfig()
   const session = await requireSession(sessionId, { type: 'user', session: authSession })
@@ -1568,7 +1566,7 @@ app.openapi(scoresPUTRoute, async (c) => {
       });
 
       // delete
-      if (value === null) {
+      if (value === null || value === undefined) {
         if (existingScore) {
           await deleteComment(tx, session, item, existingScore.commentId, authSession.user);
           await tx.delete(scores)
