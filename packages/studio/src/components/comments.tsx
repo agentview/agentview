@@ -189,6 +189,7 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
                                         label={scoreConfig.title ?? scoreConfig.name}
                                         name={"scores." + scoreConfig.name}
                                         control={scoreConfig.inputComponent}
+                                        variant="row"
                                     />
                                 ))}
                             </div>}

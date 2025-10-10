@@ -10,6 +10,13 @@ import { Textarea } from "./ui/textarea";
 import { FormDescription, FormItem, FormLabel, FormMessage, FormField, FormControl } from "./ui/form";
 import React from "react";
 import type { ControllerRenderProps, FieldValues } from "react-hook-form";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "./ui/select";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -133,6 +140,51 @@ export function BooleanToggleGroupDisplay({ value, trueLabel, trueIcon, falseLab
     return <ToogleGroupDisplay value={value ? "true" : "false"} options={options} />
 }
 
+export type SelectControlOption = {
+    value: string;
+    label?: string;
+    icon?: React.ReactNode;
+}
+
+export type SelectControlProps = ControlComponentProps<string | undefined> & {
+    options: SelectControlOption[];
+    placeholder?: string;
+}
+
+export const SelectControl = ({ value, onChange, options, placeholder = "Select an option..." }: SelectControlProps) => {
+    return (
+        <Select value={value ?? ""} onValueChange={(newValue) => {
+            onChange(newValue === "" ? undefined : newValue);
+        }}>
+            <SelectTrigger size="sm">
+                <SelectValue placeholder={placeholder} />
+            </SelectTrigger>
+            <SelectContent>
+                {options.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                        {option.icon && <span className="mr-2">{option.icon}</span>}
+                        {option.label ?? option.value}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    );
+}
+
+export function SelectDisplay({ value, options }: { value: string | undefined, options: SelectControlOption[] }) {
+    const option = options.find(opt => opt.value === value);
+
+    if (!option || value === undefined) {
+        return <div className="text-sm text-muted-foreground">Not selected</div>;
+    }
+
+    return (
+        <Badge variant="default" className="text-xs flex items-center gap-1">
+            {option.icon}
+            {option.label ?? option.value}
+        </Badge>
+    );
+}
 
 
 // export const SelectInput: React.ComponentType<FormInputProps<string | undefined>> = ({ value, onChange, name, id, options }) => {
@@ -232,6 +284,31 @@ export const AVTextarea = ({ value, onChange, name, ...textareaProps }: React.Co
             name={name}
             {...textareaProps}
         />
+    </FormControl>
+}
+
+export type AVSelectProps = AVFormControlProps<string | undefined> & {
+    options: SelectControlOption[];
+    placeholder?: string;
+}
+
+export const AVSelect = ({ value, onChange, options, placeholder = "Select an option..." }: AVSelectProps) => {
+    return <FormControl>
+        <Select value={value ?? ""} onValueChange={(newValue) => {
+            onChange(newValue === "" ? undefined : newValue);
+        }}>
+            <SelectTrigger>
+                <SelectValue placeholder={placeholder} />
+            </SelectTrigger>
+            <SelectContent>
+                {options.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                        {option.icon && <span className="mr-2">{option.icon}</span>}
+                        {option.label ?? option.value}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
     </FormControl>
 }
 

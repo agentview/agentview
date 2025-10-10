@@ -1,7 +1,7 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
-import { AVInput, BooleanToggleGroupControl, UserMessageInputComponent, BooleanToggleGroupDisplay } from "~/components/form";
+import { AVInput, BooleanToggleGroupControl, UserMessageInputComponent, BooleanToggleGroupDisplay, SelectControl } from "~/components/form";
 import { ItemAssistantMessageComponent, ItemUserMessageComponent } from "~/components/display";
 import { ProductDisplay } from "./ProductDisplay";
 import { ProductSelect } from "./ProductSelect";
@@ -43,17 +43,17 @@ export default defineConfig({
                         {
                             name: "user_reaction2",
                             title: "Test",
-                            schema: z.boolean(),
-                            inputComponent: (props) => <BooleanToggleGroupControl {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
-                            displayComponent: (props) => <BooleanToggleGroupDisplay {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
+                            schema: z.string(),
+                            inputComponent: (props) => <SelectControl {...props} options={[{ value: "one", label: "One" }, { value: "two", label: "Two" }, { value: "three", label: "Three" }, { value: "four", label: "Four" }, { value: "five", label: "Five" }]} />,
+                            displayComponent: (props) => <div>{ props.value } </div>
                         },
-                        {
-                            name: "user_reaction3",
-                            title: "Lorem ipsum dolor sit amet",
-                            schema: z.boolean(),
-                            inputComponent: (props) => <BooleanToggleGroupControl {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
-                            displayComponent: (props) => <BooleanToggleGroupDisplay {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
-                        }
+                        // {
+                        //     name: "user_reaction3",
+                        //     title: "Lorem ipsum dolor sit amet",
+                        //     schema: z.boolean(),
+                        //     inputComponent: (props) => <BooleanToggleGroupControl {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
+                        //     displayComponent: (props) => <BooleanToggleGroupDisplay {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
+                        // }
                     ]
                 },
                 displayProperties: [
