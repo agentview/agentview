@@ -1184,8 +1184,7 @@ const commentsPOSTRoute = createRoute({
       itemId: z.string(),
     }),
     body: body(z.object({
-      comment: z.string().optional(),
-      scores: z.record(z.string(), z.any()).optional()
+      comment: z.string().optional()
     }))
   },
   responses: {
@@ -1205,13 +1204,6 @@ app.openapi(commentsPOSTRoute, async (c) => {
 
   const session = await requireSession(sessionId, { type: 'user', session: authSession })
   const item = await requireSessionItem(session, itemId);
-  const config = await requireConfig()
-
-  const inputScores = body.scores ?? {}
-
-  for (const [scoreName, scoreValue] of Object.entries(inputScores)) {
-    validateScore(config, session, item, authSession.user, scoreName, scoreValue, { mustNotExist: true })
-  }
 
   await db.transaction(async (tx) => {
 
@@ -1245,17 +1237,6 @@ app.openapi(commentsPOSTRoute, async (c) => {
       }
     }
 
-    // add scores
-    for (const [scoreName, scoreValue] of Object.entries(inputScores)) {
-      await tx.insert(scores).values({
-        sessionItemId: itemId,
-        name: scoreName,
-        value: scoreValue,
-        commentId: newMessage.id,
-        createdBy: authSession.user.id,
-      })
-    }
-
     // add event
     const [event] = await tx.insert(events).values({
       type: 'comment_created',
@@ -1264,7 +1245,6 @@ app.openapi(commentsPOSTRoute, async (c) => {
         comment_id: newMessage.id, // never gets deleted
         has_comment: body.comment ? true : false,
         user_mentions: userMentions,
-        scores: inputScores,
       }
     }).returning();
 
@@ -1336,8 +1316,7 @@ const commentsPUTRoute = createRoute({
       commentId: z.string(),
     }),
     body: body(z.object({
-      comment: z.string().optional(),
-      scores: z.record(z.string(), z.any()).optional()
+      comment: z.string().optional()
     }))
   },
   responses: {
@@ -1354,16 +1333,9 @@ app.openapi(commentsPUTRoute, async (c) => {
   const { sessionId, itemId, commentId } = c.req.param()
   const body = await c.req.json()
 
-  const config = await requireConfig()
   const session = await requireSession(sessionId, { type: 'user', session: authSession })
   const item = await requireSessionItem(session, itemId)
   const commentMessage = await requireCommentMessageFromUser(item, commentId, authSession.user);
-
-  const inputScores = body.scores ?? {}
-
-  for (const [scoreName, scoreValue] of Object.entries(inputScores)) {
-    validateScore(config, session, item, authSession.user, scoreName, scoreValue, { mustNotExist: false })
-  }
 
   await db.transaction(async (tx) => {
 
@@ -1438,25 +1410,141 @@ app.openapi(commentsPUTRoute, async (c) => {
       }
     }
 
-    /** EDIT SCORES **/
+    /** ADD EVENT **/
+    const [event] = await tx.insert(events).values({
+      type: 'comment_edited',
+      authorId: authSession.user.id,
+      payload: {
+        comment_id: commentId, // never gets deleted
+        has_comment: body.comment ? true : false,
+        user_mentions: newUserMentions,
+      }
+    }).returning();
 
-    // Get existing scores for this comment
-    const existingScores = commentMessage.scores ?? [];
+    await updateInboxes(tx, event, session, item);
+  });
 
-    // Find scores to delete (exist in database but not in inputScores)
-    const scoresToDelete = existingScores.filter(score =>
-      !Object.keys(inputScores).includes(score.name)
-    );
+  return c.json({}, 200);
+})
 
-    // Delete scores that are no longer present
-    if (scoresToDelete.length > 0) {
-      await tx.delete(scores)
-        .where(inArray(scores.id, scoresToDelete.map(s => s.id)));
-    }
 
-    // Update or insert scores from inputScores
-    for (const [scoreName, scoreValue] of Object.entries(inputScores)) {
-      const existingScore = existingScores.find(s => s.name === scoreName);
+/* --------- SCORES --------- */
+
+
+// Scores GET (get all scores for an item)
+const scoresGETRoute = createRoute({
+  method: 'get',
+  path: '/api/sessions/{sessionId}/items/{itemId}/scores',
+  request: {
+    params: z.object({
+      sessionId: z.string(),
+      itemId: z.string(),
+    }),
+  },
+  responses: {
+    200: response_data(z.array(z.object({
+      name: z.string(),
+      value: z.any()
+    }))),
+    401: response_error(),
+    404: response_error(),
+  },
+})
+
+app.openapi(scoresGETRoute, async (c) => {
+  const authSession = await requireAuthSession(c.req.raw.headers);
+
+  const { sessionId, itemId } = c.req.param()
+
+  const session = await requireSession(sessionId, { type: 'user', session: authSession })
+  const item = await requireSessionItem(session, itemId);
+
+  // Get all scores for this item created by the current user
+  const itemScores = await db.query.scores.findMany({
+    where: and(
+      eq(scores.sessionItemId, itemId),
+      eq(scores.createdBy, authSession.user.id),
+      isNull(scores.deletedAt)
+    )
+  });
+
+  // Convert to array format
+  const scoresArray = itemScores.map(score => ({
+    name: score.name,
+    value: score.value
+  }));
+
+  return c.json(scoresArray, 200);
+})
+
+
+// Scores PUT (create or update scores for an item)
+const scoresPUTRoute = createRoute({
+  method: 'put',
+  path: '/api/sessions/{sessionId}/items/{itemId}/scores',
+  request: {
+    params: z.object({
+      sessionId: z.string(),
+      itemId: z.string(),
+    }),
+    body: body(z.array(z.object({
+      name: z.string(),
+      value: z.any()
+    })))
+  },
+  responses: {
+    200: response_data(z.object({})),
+    400: response_error(),
+    401: response_error(),
+    404: response_error(),
+  },
+})
+
+app.openapi(scoresPUTRoute, async (c) => {
+  const authSession = await requireAuthSession(c.req.raw.headers);
+
+  const { sessionId, itemId } = c.req.param()
+  const inputScores = await c.req.json()
+
+  const config = await requireConfig()
+  const session = await requireSession(sessionId, { type: 'user', session: authSession })
+  const item = await requireSessionItem(session, itemId);
+  const agentConfig = requireAgentConfig(config, session.agent);
+  const itemConfig = requireItemConfig(agentConfig, item.type, item.role ?? undefined)
+
+  await db.transaction(async (tx) => {
+    const scoresRecord: Record<string, any> = {};
+    
+    for (const scoreInput of inputScores) {
+      const { name: scoreName, value: scoreValue } = scoreInput;
+      
+      // Find the score config for this item
+      const scoreConfig = itemConfig.scores?.find((scoreConfig) => scoreConfig.name === scoreName);
+      
+      // If score key doesn't exist in config, ignore it (don't error)
+      if (!scoreConfig) {
+        continue;
+      }
+
+      // Validate value against the schema
+      const result = scoreConfig.schema.safeParse(scoreValue);
+      if (!result.success) {
+        return c.json({ 
+          message: `Error parsing the score value for score "${scoreName}"`, 
+          code: 'parse.schema', 
+          details: result.error.issues 
+        }, 400);
+      }
+
+      // Check if score already exists for this user
+      const existingScore = await tx.query.scores.findFirst({
+        where: and(
+          eq(scores.sessionItemId, itemId),
+          eq(scores.name, scoreName),
+          eq(scores.createdBy, authSession.user.id),
+          isNull(scores.deletedAt)
+        )
+      });
 
       if (existingScore) {
         // Update existing score
@@ -1467,26 +1555,34 @@ app.openapi(commentsPUTRoute, async (c) => {
           })
           .where(eq(scores.id, existingScore.id));
       } else {
+        // Create new empty comment for this score
+        const [newComment] = await tx.insert(commentMessages).values({
+          sessionItemId: itemId,
+          userId: authSession.user.id,
+          content: null, // empty comment as per requirements
+        }).returning();
+
         // Insert new score
         await tx.insert(scores).values({
           sessionItemId: itemId,
           name: scoreName,
           value: scoreValue,
-          commentId: commentMessage.id,
+          commentId: newComment.id,
           createdBy: authSession.user.id,
         });
       }
+      
+      scoresRecord[scoreName] = scoreValue;
     }
 
-    /** ADD EVENT **/
+    // add event for score update
     const [event] = await tx.insert(events).values({
-      type: 'comment_edited',
+      type: 'comment_created', // Using comment_created type since scores are part of comments
       authorId: authSession.user.id,
       payload: {
-        comment_id: commentId, // never gets deleted
-        has_comment: body.comment ? true : false,
-        user_mentions: newUserMentions,
-        scores: inputScores,
+        has_comment: false,
+        user_mentions: [],
+        scores: scoresRecord,
       }
     }).returning();
 
