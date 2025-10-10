@@ -556,7 +556,7 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
         Object.fromEntries(
             allScoreConfigs.map((scoreConfig) => [
                 scoreConfig.name,
-                scoreConfig.schema.optional()
+                scoreConfig.schema.optional().nullable()
             ])
         )
     )

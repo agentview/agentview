@@ -44,15 +44,15 @@ export const ToggleGroupControl = ({ value, onChange, options }: ControlComponen
 
     return (
         <ToggleGroup type="single" variant="outline" size="xs" value={toggleValue} onValueChange={(value) => {
-            if (options.some(option => option.value === value)) {
-                onChange(value);
-            }
+            // if (options.some(option => option.value === value)) {
+            //     onChange(value);
+            // }
             // )
-            //             if (value === "") {
-            //                 onChange(undefined);
-            //             } else {
-            //                 onChange(value);
-            //             }
+                        if (value === "") {
+                            onChange(null);
+                        } else {
+                            onChange(value);
+                        }
         }}>
             {options.map((option) => {
                 const icon = option.icon;
@@ -107,18 +107,18 @@ export const BooleanToggleGroupControl = ({ value, onChange, trueLabel, trueIcon
         }
     ];
 
-    const stringValue = value === true ? "true" : value === false ? "false" : undefined;
+    const stringValue = value === true ? "true" : value === false ? "false" : null;
 
     return (
         <ToggleGroupControl
             value={stringValue}
             onChange={(newValue) => {
-                onChange(newValue === "true");
-                // if (newValue === undefined) {
-                //     onChange(undefined);
-                // } else {
-                //     onChange(newValue === "true");
-                // }
+                // onChange(newValue === "true");
+                if (newValue === null) {
+                    onChange(null);
+                } else {
+                    onChange(newValue === "true");
+                }
             }}
             options={options}
         />
