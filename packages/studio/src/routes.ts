@@ -25,6 +25,7 @@ import { signupRoute } from "./routes/signup";
 import { rootRoute } from "./root";
 import { sessionRunRoute } from "./routes/sessionRun";
 import type { AgentViewConfig } from "./types";
+import { sessionItemScoresRoute } from "./routes/sessionItemScores";
 
 export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObject[] {
 
@@ -114,6 +115,10 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
                       path: "items/:itemId/comments/:commentId",
                       ...sessionItemCommentRoute,
                     },
+                    {
+                      path: "items/:itemId/scores",
+                      ...sessionItemScoresRoute,
+                    }
                   ],
                 },
               ],

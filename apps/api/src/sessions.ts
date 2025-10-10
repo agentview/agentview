@@ -44,7 +44,8 @@ export async function fetchSessions(session_id?: string, tx?: Transaction) {
                 with: {
                   scores: true
                 }
-              }
+              },
+              scores: true
             }
           }
         }

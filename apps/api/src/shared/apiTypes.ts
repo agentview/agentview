@@ -39,7 +39,7 @@ export const InvitationSchema = z.object({
 })
 
 export const InvitationCreateSchema = z.object({
-    email: z.string().email(),
+    email: z.email(),
     role: z.enum(['admin', 'user']),
 })
 
@@ -91,6 +91,7 @@ export const SessionItemSchema = z.object({
     role: z.string().nullable(),
     runId: z.string(),
     commentMessages: z.array(CommentMessageSchema),
+    scores: z.array(ScoreSchema),
 })
 
 export type SessionItem = z.infer<typeof SessionItemSchema>

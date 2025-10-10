@@ -23,7 +23,7 @@ import { getStudioURL } from './getStudioURL'
 
 // shared imports
 import { getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { ClientSchema, SessionSchema, SessionCreateSchema, SessionItemCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, ClientCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema } from './shared/apiTypes'
+import { ClientSchema, SessionSchema, SessionCreateSchema, SessionItemCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, ClientCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage } from './shared/apiTypes'
 import { getConfig } from './getConfig'
 import type { BaseConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
@@ -32,6 +32,7 @@ import { updateInboxes } from './updateInboxes'
 import { isInboxItemUnread } from './inboxItems'
 import { createClient, createClientAuthSession, getClientAuthSession, verifyJWT, findClientByExternalId } from './clientsAuth'
 import packageJson from '../package.json'
+import type { Transaction } from './types'
 
 
 export const app = new OpenAPIHono({
@@ -132,25 +133,25 @@ function requireItemConfig(agentConfig: ReturnType<typeof requireAgentConfig>, t
   let itemConfig: BaseSessionItemConfig<BaseScoreConfig> | undefined = undefined;
 
   for (const run of agentConfig.runs) {
-      if (!runItemType || runItemType === "input") {
-          if (checkItemConfigMatch(run.input, type, role)) {
-              itemConfig = run.input
-              break;
-          }
+    if (!runItemType || runItemType === "input") {
+      if (checkItemConfigMatch(run.input, type, role)) {
+        itemConfig = run.input
+        break;
       }
-      if (!runItemType || runItemType === "output") {
-          if (checkItemConfigMatch(run.output, type, role)) {
-              itemConfig = run.output
-              break;
-          }
+    }
+    if (!runItemType || runItemType === "output") {
+      if (checkItemConfigMatch(run.output, type, role)) {
+        itemConfig = run.output
+        break;
       }
-      if (!runItemType || runItemType === "step") {
-          const result = run.steps?.find((step) => checkItemConfigMatch(step, type, role))
-          if (result) {
-              itemConfig = result;
-              break;
-          }
+    }
+    if (!runItemType || runItemType === "step") {
+      const result = run.steps?.find((step) => checkItemConfigMatch(step, type, role))
+      if (result) {
+        itemConfig = result;
+        break;
       }
+    }
   }
 
   // const itemConfig = agentConfig.items?.find((item) => item.type === type && (!item.role || item.role === role))
@@ -161,6 +162,14 @@ function requireItemConfig(agentConfig: ReturnType<typeof requireAgentConfig>, t
   }
 
   return itemConfig
+}
+
+function requireScoreConfig(itemConfig: ReturnType<typeof requireItemConfig>, scoreName: string) {
+  const scoreConfig = itemConfig.scores?.find((scoreConfig) => scoreConfig.name === scoreName)
+  if (!scoreConfig) {
+    throw new HTTPException(400, { message: `Score name '${scoreName}' not found in configuration for item '${itemConfig.type}' / '${itemConfig.role}'` });
+  }
+  return scoreConfig
 }
 
 async function requireSession(sessionId: string, auth: Awaited<ReturnType<typeof requireAuthSessionForUserOrClient>>) {
@@ -191,7 +200,11 @@ async function requireSessionItem(session: Session, itemId: string) {
   return item
 }
 
-async function requireClient(clientId: string) {
+async function requireClient(clientId?: string) {
+  if (!clientId) {
+    throw new HTTPException(400, { message: `Client id is required` });
+  }
+
   if (!isUUID(clientId)) {
     throw new HTTPException(400, { message: `Invalid client id: ${clientId}` });
   }
@@ -217,6 +230,171 @@ async function requireCommentMessageFromUser(item: SessionItem, commentId: strin
   }
 
   return comment
+}
+
+/* --------- COMMENT OPERATIONS --------- */
+
+type CommentOperationResult = {
+  commentId: string;
+  userMentions: string[];
+}
+
+async function createComment(
+  tx: Transaction,
+  session: Session,
+  item: SessionItem,
+  user: BetterAuthUser,
+  content: string | null,
+) {
+
+  // Add comment
+  const [newMessage] = await tx.insert(commentMessages).values({
+    sessionItemId: item.id,
+    userId: user.id,
+    content,
+  }).returning();
+
+  let userMentions: string[] = [];
+
+  // Add comment mentions
+  if (content) {
+    const mentions = extractMentions(content);
+
+    userMentions = mentions.user_id || [];
+
+    if (userMentions.length > 0) {
+      await tx.insert(commentMentions).values(
+        userMentions.map((mentionedUserId: string) => ({
+          commentMessageId: newMessage.id,
+          mentionedUserId,
+        }))
+      );
+    }
+  }
+
+  // Emit event (default true, can be disabled for batch operations)
+  const [event] = await tx.insert(events).values({
+    type: 'comment_created',
+    authorId: user.id,
+    payload: {
+      comment_id: newMessage.id,
+      has_comment: content ? true : false,
+      user_mentions: userMentions,
+    }
+  }).returning();
+
+  await updateInboxes(tx, event, session, item);
+
+  return newMessage;
+}
+
+async function updateComment(
+  tx: Transaction,
+  session: Session,
+  item: SessionItem,
+  commentMessage: any,
+  newContent: string | null
+) {
+  // Extract mentions from new content
+  let newMentions, previousMentions;
+  let newUserMentions: string[] = [], previousUserMentions: string[] = [];
+
+  newMentions = extractMentions(newContent ?? "");
+  previousMentions = extractMentions(commentMessage.content ?? "");
+  newUserMentions = newMentions.user_id || [];
+  previousUserMentions = previousMentions.user_id || [];
+
+  // Store previous content in edit history
+  await tx.insert(commentMessageEdits).values({
+    commentMessageId: commentMessage.id,
+    previousContent: commentMessage.content,
+  });
+
+  // Update the comment message
+  await tx.update(commentMessages)
+    .set({ content: newContent, updatedAt: new Date().toISOString() })
+    .where(eq(commentMessages.id, commentMessage.id));
+
+  // Handle mentions for edits
+  if (newUserMentions.length > 0 || previousUserMentions.length > 0) {
+    // Get existing mentions for this message
+    const existingMentions = await tx
+      .select()
+      .from(commentMentions)
+      .where(eq(commentMentions.commentMessageId, commentMessage.id));
+
+    const existingMentionedUserIds = existingMentions.map((m: any) => m.mentionedUserId);
+
+    // Find new mentions to add
+    const newMentionsToAdd = newUserMentions.filter((mention: string) =>
+      !existingMentionedUserIds.includes(mention)
+    );
+
+    // Find mentions to remove (existed before but not in new content)
+    const mentionsToRemove = existingMentionedUserIds.filter((mention: string) =>
+      !newUserMentions.includes(mention)
+    );
+
+    // Remove mentions that are no longer present
+    if (mentionsToRemove.length > 0) {
+      await tx.delete(commentMentions)
+        .where(and(
+          eq(commentMentions.commentMessageId, commentMessage.id),
+          inArray(commentMentions.mentionedUserId, mentionsToRemove)
+        ));
+    }
+
+    // Add new mentions
+    if (newMentionsToAdd.length > 0) {
+      await tx.insert(commentMentions).values(
+        newMentionsToAdd.map((mentionedUserId: string) => ({
+          commentMessageId: commentMessage.id,
+          mentionedUserId,
+        }))
+      );
+    }
+  }
+
+  // Emit event
+  const [event] = await tx.insert(events).values({
+    type: 'comment_edited',
+    authorId: commentMessage.userId,
+    payload: {
+      comment_id: commentMessage.id,
+      has_comment: newContent ? true : false,
+      user_mentions: newUserMentions,
+    }
+  }).returning();
+
+  await updateInboxes(tx, event, session, item);
+
+  return commentMessage;
+}
+
+async function deleteComment(
+  tx: Transaction,
+  session: Session,
+  item: SessionItem,
+  commentId: any,
+  user: BetterAuthUser,
+): Promise<void> {
+  await tx.delete(commentMentions).where(eq(commentMentions.commentMessageId, commentId));
+  await tx.delete(scores).where(eq(scores.commentId, commentId));
+  await tx.update(commentMessages).set({
+    deletedAt: new Date().toISOString(),
+    deletedBy: user.id
+  }).where(eq(commentMessages.id, commentId));
+
+  // Emit event (default true, can be disabled for batch operations)
+  const [event] = await tx.insert(events).values({
+    type: 'comment_deleted',
+    authorId: user.id,
+    payload: {
+      comment_id: commentId
+    }
+  }).returning();
+
+  await updateInboxes(tx, event, session, item);
 }
 
 
@@ -254,7 +432,7 @@ app.openapi(clientAuthRoute, async (c) => {
   }
 
   const client = await (async () => {
-    const body = await c.req.json()
+    const body = await c.req.valid('json')
 
     if (body.id_token) {
       const jwtPayload = verifyJWT(body.id_token)
@@ -303,7 +481,7 @@ const apiClientsPOSTRoute = createRoute({
 app.openapi(apiClientsPOSTRoute, async (c) => {
   const authSession = await requireAuthSession(c.req.raw.headers)
 
-  const body = await c.req.json()
+  const body = await c.req.valid('json')
 
   const [newClient] = await db.insert(clients).values({
     simulatedBy: authSession.user.id,
@@ -358,7 +536,7 @@ const apiClientsPUTRoute = createRoute({
 app.openapi(apiClientsPUTRoute, async (c) => {
   const authSession = await requireAuthSession(c.req.raw.headers)
 
-  const body = await c.req.json()
+  const body = await c.req.valid('json')
   const { clientId } = c.req.param()
 
   const clientRow = await requireClient(clientId)
@@ -420,20 +598,20 @@ const sessionsGETRoute = createRoute({
 async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>, clientId: string) {
   const DEFAULT_LIMIT = 50
   const DEFAULT_PAGE = 1
-  
+
   const limit = Math.max(parseInt(params.limit ?? DEFAULT_LIMIT.toString()) || DEFAULT_LIMIT, 1);
   const page = Math.max(parseInt(params.page ?? DEFAULT_PAGE.toString()) || DEFAULT_PAGE, 1);
   const offset = (page - 1) * limit;
-  
+
   // Get total count for pagination metadata
   const totalCountResult = await db
     .select({ count: sql<number>`count(*)` })
     .from(sessions)
     .leftJoin(clients, eq(sessions.clientId, clients.id))
     .where(getSessionListFilter(params, clientId));
-  
+
   const totalCount = totalCountResult[0]?.count ?? 0;
-  
+
   // Get sessions with pagination
   const result = await db
     .select()
@@ -444,8 +622,8 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
     .limit(limit)
     .offset(offset);
 
-  
-  
+
+
   const sessionsResult = result.map((row) => ({
     id: row.sessions.id,
     handle: row.sessions.handleNumber.toString() + (row.sessions.handleSuffix ?? ""),
@@ -455,14 +633,14 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
     agent: row.sessions.agent,
     client: row.clients!,
   }));
-  
+
   // Calculate pagination metadata
   const totalPages = Math.ceil(totalCount / limit);
   const hasNextPage = page < totalPages;
   const hasPreviousPage = page > 1;
   const currentPageStart = offset + 1;
   const currentPageEnd = Math.min(offset + limit, totalCount);
-  
+
   return {
     sessions: sessionsResult,
     pagination: {
@@ -528,7 +706,7 @@ app.openapi(sessionsGETStatsRoute, async (c) => {
       )
     )
 
-  const response : StatsResponse = {
+  const response: StatsResponse = {
     unseenCount: result[0].unreadSessions ?? 0,
   }
 
@@ -560,7 +738,7 @@ app.openapi(sessionsGETStatsRoute, async (c) => {
         }
         return [];
       }
-      
+
       response.sessions![session.id] = {
         unseenEvents: getUnseenEvents(sessionInboxItem),
         items: {}
@@ -591,7 +769,7 @@ const sessionsPOSTRoute = createRoute({
 })
 
 app.openapi(sessionsPOSTRoute, async (c) => {
-  const { isShared = false, ...body } = await c.req.json()
+  const { isShared = false, ...body } = await c.req.valid('json')
 
   const config = await requireConfig()
   const agentConfig = await requireAgentConfig(config, body.agent)
@@ -606,11 +784,6 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     }
   })()
 
-
-  // await new Promise(resolve => setTimeout(resolve, 1000));
-  // return c.json({ message: `Some error` }, 400);
-
-  
   // Validate context against the schema
   if (agentConfig.context) {
     try {
@@ -633,12 +806,12 @@ app.openapi(sessionsPOSTRoute, async (c) => {
 
     const newHandleNumber = sessionWithHighestHandleNumber ? sessionWithHighestHandleNumber.handleNumber + 1 : 1;
 
-    const [newSessionRow] = await tx.insert(sessions).values({ 
+    const [newSessionRow] = await tx.insert(sessions).values({
       handleNumber: newHandleNumber,
       handleSuffix: handleSuffix,
       context: body.context,
       agent: body.agent,
-      clientId: client.id 
+      clientId: client.id
     }).returning();
 
     // add event (only for users, not clients)
@@ -750,7 +923,7 @@ app.openapi(runsPOSTRoute, async (c) => {
   const auth = await requireAuthSessionForUserOrClient(c.req.raw.headers);
 
   const { sessionId } = c.req.param()
-  const { input: { type, role, content } } = await c.req.json()
+  const { input: { type, role, content } } = await c.req.valid('json')
 
   const session = await requireSession(sessionId, auth)
   const config = await requireConfig()
@@ -1169,7 +1342,7 @@ function validateScore(config: BaseConfig, session: Session, item: SessionItem, 
   // Validate value against the schema
   const result = scoreConfig.schema.safeParse(scoreValue);
   if (!result) {
-    throw new HTTPException(400, { message: `Error parsing the score value for score "${scoreName}"`}); // todo: add result.error.issues and "parse.schema" error code.
+    throw new HTTPException(400, { message: `Error parsing the score value for score "${scoreName}"` }); // todo: add result.error.issues and "parse.schema" error code.
   }
 }
 
@@ -1199,56 +1372,14 @@ const commentsPOSTRoute = createRoute({
 app.openapi(commentsPOSTRoute, async (c) => {
   const authSession = await requireAuthSession(c.req.raw.headers);
 
-  const body = await c.req.json()
+  const body = await c.req.valid('json')
   const { sessionId, itemId } = c.req.param()
 
   const session = await requireSession(sessionId, { type: 'user', session: authSession })
   const item = await requireSessionItem(session, itemId);
 
   await db.transaction(async (tx) => {
-
-    // Add comment
-    const [newMessage] = await tx.insert(commentMessages).values({
-      sessionItemId: itemId,
-      userId: authSession.user.id,
-      content: body.comment ?? null,
-    }).returning();
-
-    let userMentions: string[] = [];
-
-    // Add comment mentions
-    if (body.comment) {
-      let mentions;
-
-      try {
-        mentions = extractMentions(body.comment);
-        userMentions = mentions.user_id || [];
-      } catch (error) {
-        return c.json({ message: `Invalid mention format: ${(error as Error).message}` }, 400)
-      }
-
-      if (userMentions.length > 0) {
-        await tx.insert(commentMentions).values(
-          userMentions.map((mentionedUserId: string) => ({
-            commentMessageId: newMessage.id,
-            mentionedUserId,
-          }))
-        );
-      }
-    }
-
-    // add event
-    const [event] = await tx.insert(events).values({
-      type: 'comment_created',
-      authorId: authSession.user.id,
-      payload: {
-        comment_id: newMessage.id, // never gets deleted
-        has_comment: body.comment ? true : false,
-        user_mentions: userMentions,
-      }
-    }).returning();
-
-    await updateInboxes(tx, event, session, item);
+    await createComment(tx, session, item, authSession.user, body.comment ?? null);
   })
 
   return c.json({}, 201);
@@ -1283,23 +1414,7 @@ app.openapi(commentsDELETERoute, async (c) => {
   const commentMessage = await requireCommentMessageFromUser(item, commentId, authSession.user);
 
   await db.transaction(async (tx) => {
-    await tx.delete(commentMentions).where(eq(commentMentions.commentMessageId, commentMessage.id));
-    await tx.delete(scores).where(eq(scores.commentId, commentMessage.id));
-    await tx.update(commentMessages).set({
-      deletedAt: new Date().toISOString(),
-      deletedBy: authSession.user.id
-    }).where(eq(commentMessages.id, commentMessage.id));
-
-    // add event
-    const [event] = await tx.insert(events).values({
-      type: 'comment_deleted',
-      authorId: authSession.user.id,
-      payload: {
-        comment_id: commentId
-      }
-    }).returning();
-
-    await updateInboxes(tx, event, session, item);
+    await deleteComment(tx, session, item, commentMessage.id, authSession.user);
   });
   return c.json({}, 200);
 })
@@ -1331,97 +1446,18 @@ app.openapi(commentsPUTRoute, async (c) => {
   const authSession = await requireAuthSession(c.req.raw.headers);
 
   const { sessionId, itemId, commentId } = c.req.param()
-  const body = await c.req.json()
+  const body = await c.req.valid('json')
 
   const session = await requireSession(sessionId, { type: 'user', session: authSession })
   const item = await requireSessionItem(session, itemId)
   const commentMessage = await requireCommentMessageFromUser(item, commentId, authSession.user);
 
   await db.transaction(async (tx) => {
-
-    /** EDIT COMMENT **/
-
-    // Extract mentions from new content
-    let newMentions, previousMentions;
-    let newUserMentions: string[] = [], previousUserMentions: string[] = [];
-
     try {
-      newMentions = extractMentions(body.comment ?? "");
-      previousMentions = extractMentions(commentMessage.content ?? "");
-      newUserMentions = newMentions.user_id || [];
-      previousUserMentions = previousMentions.user_id || [];
+      await updateComment(tx, session, item, commentMessage, body.comment ?? null);
     } catch (error) {
       return c.json({ message: `Invalid mention format: ${(error as Error).message}` }, 400);
     }
-
-    // Store previous content in edit history
-    await tx.insert(commentMessageEdits).values({
-      commentMessageId: commentMessage.id,
-      previousContent: commentMessage.content,
-    });
-
-    // Update the comment message
-    await tx.update(commentMessages)
-      .set({ content: body.comment ?? null, updatedAt: new Date().toISOString() })
-      .where(eq(commentMessages.id, commentMessage.id));
-
-    // Handle mentions for edits
-    if (newUserMentions.length > 0 || previousUserMentions.length > 0) {
-      // Get existing mentions for this message
-      const existingMentions = await db
-        .select()
-        .from(commentMentions)
-        .where(eq(commentMentions.commentMessageId, commentMessage.id));
-
-      const existingMentionedUserIds = existingMentions.map((m: any) => m.mentionedUserId);
-
-      // // Find mentions to keep (existed before and still exist)
-      // const mentionsToKeep = newUserMentions.filter((mention: string) =>
-      //   previousUserMentions.includes(mention) && existingMentionedUserIds.includes(mention)
-      // );
-
-      // Find new mentions to add
-      const newMentionsToAdd = newUserMentions.filter((mention: string) =>
-        !existingMentionedUserIds.includes(mention)
-      );
-
-      // Find mentions to remove (existed before but not in new content)
-      const mentionsToRemove = existingMentionedUserIds.filter((mention: string) =>
-        !newUserMentions.includes(mention)
-      );
-
-      // Remove mentions that are no longer present
-      if (mentionsToRemove.length > 0) {
-        await tx.delete(commentMentions)
-          .where(and(
-            eq(commentMentions.commentMessageId, commentMessage.id),
-            inArray(commentMentions.mentionedUserId, mentionsToRemove)
-          ));
-      }
-
-      // Add new mentions
-      if (newMentionsToAdd.length > 0) {
-        await tx.insert(commentMentions).values(
-          newMentionsToAdd.map((mentionedUserId: string) => ({
-            commentMessageId: commentMessage.id,
-            mentionedUserId,
-          }))
-        );
-      }
-    }
-
-    /** ADD EVENT **/
-    const [event] = await tx.insert(events).values({
-      type: 'comment_edited',
-      authorId: authSession.user.id,
-      payload: {
-        comment_id: commentId, // never gets deleted
-        has_comment: body.comment ? true : false,
-        user_mentions: newUserMentions,
-      }
-    }).returning();
-
-    await updateInboxes(tx, event, session, item);
   });
 
   return c.json({}, 200);
@@ -1489,7 +1525,7 @@ const scoresPUTRoute = createRoute({
     }),
     body: body(z.array(z.object({
       name: z.string(),
-      value: z.any()
+      value: z.any().nullable()
     })))
   },
   responses: {
@@ -1504,89 +1540,78 @@ app.openapi(scoresPUTRoute, async (c) => {
   const authSession = await requireAuthSession(c.req.raw.headers);
 
   const { sessionId, itemId } = c.req.param()
-  const inputScores = await c.req.json()
+  const inputScores = await c.req.valid('json');
 
   const config = await requireConfig()
   const session = await requireSession(sessionId, { type: 'user', session: authSession })
   const item = await requireSessionItem(session, itemId);
+
   const agentConfig = requireAgentConfig(config, session.agent);
   const itemConfig = requireItemConfig(agentConfig, item.type, item.role ?? undefined)
 
   await db.transaction(async (tx) => {
-    const scoresRecord: Record<string, any> = {};
-    
-    for (const scoreInput of inputScores) {
-      const { name: scoreName, value: scoreValue } = scoreInput;
-      
-      // Find the score config for this item
-      const scoreConfig = itemConfig.scores?.find((scoreConfig) => scoreConfig.name === scoreName);
-      
-      // If score key doesn't exist in config, ignore it (don't error)
-      if (!scoreConfig) {
-        continue;
-      }
+    for (const score of inputScores) {
+      const { name, value } = score;
 
-      // Validate value against the schema
-      const result = scoreConfig.schema.safeParse(scoreValue);
-      if (!result.success) {
-        return c.json({ 
-          message: `Error parsing the score value for score "${scoreName}"`, 
-          code: 'parse.schema', 
-          details: result.error.issues 
-        }, 400);
-      }
+      const scoreConfig = requireScoreConfig(itemConfig, name);
 
       // Check if score already exists for this user
       const existingScore = await tx.query.scores.findFirst({
         where: and(
           eq(scores.sessionItemId, itemId),
-          eq(scores.name, scoreName),
+          eq(scores.name, name),
           eq(scores.createdBy, authSession.user.id),
           isNull(scores.deletedAt)
         )
       });
 
-      if (existingScore) {
-        // Update existing score
-        await tx.update(scores)
-          .set({
-            value: scoreValue,
-            updatedAt: new Date().toISOString()
-          })
-          .where(eq(scores.id, existingScore.id));
-      } else {
-        // Create new empty comment for this score
-        const [newComment] = await tx.insert(commentMessages).values({
-          sessionItemId: itemId,
-          userId: authSession.user.id,
-          content: null, // empty comment as per requirements
-        }).returning();
-
-        // Insert new score
-        await tx.insert(scores).values({
-          sessionItemId: itemId,
-          name: scoreName,
-          value: scoreValue,
-          commentId: newComment.id,
-          createdBy: authSession.user.id,
-        });
+      // delete
+      if (value === null) {
+        if (existingScore) {
+          await deleteComment(tx, session, item, existingScore.commentId, authSession.user);
+          await tx.delete(scores)
+            // .set({
+            //   deletedAt: new Date().toISOString(),
+            //   deletedBy: authSession.user.id
+            // })
+            .where(eq(scores.id, existingScore.id));
+        }
+        else {
+          // null value + non-existing score -> noop
+        }
       }
-      
-      scoresRecord[scoreName] = scoreValue;
+      else if (value !== null) {
+        const result = scoreConfig.schema.safeParse(value);
+        if (!result.success) {
+          return c.json({
+            message: `Error parsing the score "${name}"`,
+            code: 'parse.schema',
+            details: result.error.issues
+          }, 400);
+        }
+
+        // edit
+        if (existingScore) {
+          await tx.update(scores)
+            .set({
+              value: value,
+              updatedAt: new Date().toISOString()
+            })
+            .where(eq(scores.id, existingScore.id));
+        }
+        // create
+        else {
+          const commentMessage = await createComment(tx, session, item, authSession.user, null);
+          await tx.insert(scores).values({
+            sessionItemId: itemId,
+            name,
+            value,
+            commentId: commentMessage.id,
+            createdBy: authSession.user.id,
+          });
+        }
+      }
     }
-
-    // add event for score update
-    const [event] = await tx.insert(events).values({
-      type: 'comment_created', // Using comment_created type since scores are part of comments
-      authorId: authSession.user.id,
-      payload: {
-        has_comment: false,
-        user_mentions: [],
-        scores: scoresRecord,
-      }
-    }).returning();
-
-    await updateInboxes(tx, event, session, item);
   });
 
   return c.json({}, 200);
@@ -1642,7 +1667,7 @@ app.openapi(userPOSTRoute, async (c) => {
   await requireAuthSession(c.req.raw.headers, { admin: true });
 
   const { userId } = c.req.param()
-  const body = await c.req.json()
+  const body = await c.req.valid('json')
 
   await auth.api.setRole({
     headers: c.req.raw.headers,
@@ -1701,7 +1726,7 @@ const invitationsPOSTRoute = createRoute({
 app.openapi(invitationsPOSTRoute, async (c) => {
   const session = await requireAuthSession(c.req.raw.headers, { admin: true });
 
-  const body = await c.req.json()
+  const body = await c.req.valid('json')
 
   await createInvitation(body.email, body.role, session.user.id);
 
@@ -1861,7 +1886,7 @@ const configsPOSTRoute = createRoute({
 
 app.openapi(configsPOSTRoute, async (c) => {
   const session = await requireAuthSession(c.req.raw.headers, { admin: true })
-  const body = await c.req.json()
+  const body = await c.req.valid('json')
 
   const [newSchema] = await db.insert(configs).values({
     config: body.config,

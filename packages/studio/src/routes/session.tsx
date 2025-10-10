@@ -552,40 +552,53 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
 
     const allScoreConfigs = getAllScoreConfigs(session, item);
 
-    // Get current user's existing scores from the item
-    const existingScores: Record<string, any> = {};
-    const visibleMessages = item.commentMessages.filter((m: any) => !m.deletedAt) ?? [];
-    for (const messageItem of visibleMessages) {
-        for (const score of messageItem.scores ?? []) {
-            if (score.deletedAt || score.createdBy !== user.id) {
-                continue;
-            }
-            existingScores[score.name] = score.value;
+    // // Get current user's existing scores from the item
+    // const existingScores: Record<string, any> = {};
+    // const visibleMessages = item.commentMessages.filter((m: any) => !m.deletedAt) ?? [];
+    // for (const messageItem of visibleMessages) {
+    //     for (const score of messageItem.scores ?? []) {
+    //         if (score.deletedAt || score.createdBy !== user.id) {
+    //             continue;
+    //         }
+    //         existingScores[score.name] = score.value;
+    //     }
+    // }
+
+    const schema = z.object(
+        Object.fromEntries(
+            allScoreConfigs.map((scoreConfig) => [
+                scoreConfig.name,
+                scoreConfig.schema.optional()
+            ])
+        )
+    )
+
+    const defaultValues : Record<string, any> = {};
+    for (const score of item.scores ?? []) {
+        if (score.deletedAt || score.createdBy !== user.id) {
+            continue;
         }
+        defaultValues[score.name] = score.value;
     }
 
-    const schema = z.object({
-        scores: z.object(
-            Object.fromEntries(
-                allScoreConfigs.map((scoreConfig) => [
-                    scoreConfig.name,
-                    scoreConfig.schema.optional()
-                ])
-            )
-        )
-    });
+    console.log('scores', item.scores);
+    console.log('defaultValues', defaultValues);
 
     const form = useForm({
-        resolver: zodResolver(schema),
-        defaultValues: {
-            scores: existingScores
-        }
+        resolver: zodResolver<any, any, any>(schema),
+        defaultValues
     });
 
+    console.log('form error', form.formState.errors);
+
     const submit = (data: z.infer<typeof schema>) => {
-        fetcher.submit(data as any, { 
-            method: 'post', 
-            action: `/sessions/${session.id}/items/${item.id}/comments`, 
+        console.log('data', data);
+        const payload = Object.entries(data).map(([name, value]) => ({ name, value }));
+        console.log('payload', payload);
+
+        fetcher.submit(payload, { 
+            method: 'put', 
+            action: `/sessions/${session.id}/items/${item.id}/scores`, 
             encType: 'application/json' 
         });
     }
@@ -618,7 +631,7 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
                                         variant="row"
                                         key={scoreConfig.name}
                                         label={scoreConfig.title ?? scoreConfig.name}
-                                        name={"scores." + scoreConfig.name}
+                                        name={scoreConfig.name}
                                         control={scoreConfig.inputComponent}
                                     />
                                 ))}
