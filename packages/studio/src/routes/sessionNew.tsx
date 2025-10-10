@@ -56,7 +56,7 @@ async function action({ request, params }: ActionFunctionArgs): Promise<ActionRe
     return { ok: false, error: sessionResponse.error };
   }
 
-  return redirect(`/sessions/${sessionResponse.data.id}?${toQueryParams(listParams)}`);
+  return redirect(`/sessions/${sessionResponse.data.handle}?${toQueryParams(listParams)}`);
 }
 
 function Component() {

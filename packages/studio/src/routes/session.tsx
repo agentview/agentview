@@ -664,7 +664,11 @@ function MessageFooter({ session, run, listParams }: { session: Session, run: Ru
             <div className="text-xs flex justify-between gap-2 items-start">
                 <div className="flex flex-row flex-wrap gap-1.5 items-center">
                     <LikeWidget />
-                    <Button variant="outline" size="xs"><MessageCirclePlus />Comment</Button>
+                    <Button variant="outline" size="xs" asChild>
+                        <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: lastItem.id })}`}>
+                            <MessageCirclePlus />Comment
+                        </Link>
+                    </Button>
 
                     {/* <Button variant="outline" size="xs"><ThumbsUp />Like</Button>
                     <Button variant="outline" size="xs"><ThumbsDown />One, Two, Three and 3 others...</Button>
@@ -690,7 +694,7 @@ function MessageFooter({ session, run, listParams }: { session: Session, run: Ru
                 <div className="flex flex-row  items-center text-sm">
                     {/* <Button variant="ghost" size="icon_xs" className="text-muted-foreground"><FilePenLineIcon /></Button> */}
                     <Button variant="ghost" size="xs" className="text-muted-foreground" asChild>
-                        <Link to={`/sessions/${session.id}/runs/${run.id}?${toQueryParams(listParams)}`}><WrenchIcon className="size-4" />Run</Link>
+                        <Link to={`/sessions/${session.handle}/runs/${run.id}?${toQueryParams(listParams)}`}><WrenchIcon className="size-4" />Run</Link>
                     </Button>
                 </div>
             </div>
