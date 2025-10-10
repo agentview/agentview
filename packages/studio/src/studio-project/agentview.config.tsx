@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormField, FormItem, FormLabel, FormMessage, Form } from "~/components/ui/form";
+import { TagPill } from "~/components/TagPill";
 
 export default defineConfig({
     apiBaseUrl: "http://localhost:8080",
@@ -38,14 +39,14 @@ export default defineConfig({
                             title: "Can it go to client?",
                             schema: z.boolean(),
                             inputComponent: (props) => <BooleanToggleGroupControl {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
-                            displayComponent: (props) => <BooleanToggleGroupDisplay {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} />,
+                            displayComponent: (props) => <BooleanToggleGroupDisplay {...props} trueIcon={<ThumbsUp />} falseIcon={<ThumbsDown />} trueLabel="Like" falseLabel="Don't Like" />,
                         },
                         {
                             name: "user_reaction2",
                             title: "Test",
                             schema: z.string(),
                             inputComponent: (props) => <SelectControl {...props} options={[{ value: "one", label: "One" }, { value: "two", label: "Two" }, { value: "three", label: "Three" }, { value: "four", label: "Four" }, { value: "five", label: "Five" }]} />,
-                            displayComponent: (props) => <div>{ props.value } </div>
+                            displayComponent: (props) => <TagPill>{ props.value } </TagPill>
                         },
                         // {
                         //     name: "user_reaction3",

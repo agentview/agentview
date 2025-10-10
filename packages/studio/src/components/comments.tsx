@@ -55,32 +55,15 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
     const fetcher = useFetcher();
 
     const visibleMessages = item.commentMessages.filter((m: any) => !m.deletedAt) ?? []
+
+
+
+
+
     const hasZeroVisisbleComments = visibleMessages.length === 0
 
-    const allScoreConfigs = getAllScoreConfigs(session, item);
-
-    const scores: Record<string, any> = {};
-    for (const messageItem of visibleMessages) {
-        for (const score of messageItem.scores ?? []) {
-            if (score.deletedAt || score.createdBy !== user.id) {
-                continue;
-            }
-            scores[score.name] = score.value;
-        }
-    }
-
-    const unassignedScoreConfigs = allScoreConfigs.filter((scoreConfig) => scores[scoreConfig.name] === undefined || scores[scoreConfig.name] === null);
-
     const schema = z.object({
-        comment: z.string(),
-        scores: z.object(
-            Object.fromEntries(
-                unassignedScoreConfigs.map((scoreConfig) => [
-                    scoreConfig.name,
-                    scoreConfig.schema.optional()
-                ])
-            )
-        )
+        comment: z.string()
     }).partial();
 
     const form = useForm({
@@ -100,7 +83,6 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
             form.reset();
         }
     }));
-
 
     return (<div ref={ref}>
         {visibleMessages.length > 0 && <div className={`flex flex-col gap-4 ${small ? "p-4" : "p-6"}`}>
@@ -160,18 +142,11 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
             <div className="flex flex-row gap-2">
 
 
-                <div className={`rounded-full bg-gray-300 flex-shrink-0 ${unassignedScoreConfigs.length === 0 ? "mt-[6px]" : ""}`}
+                <div className={`rounded-full bg-gray-300 flex-shrink-0`}
                     style={{ width: 24, height: 24 }}
                 />
 
                 <div className="flex-1">
-                    {unassignedScoreConfigs.length > 0 && <div className="text-sm font-medium mb-3">Your Scores & Comment</div>}
-                    {/* 
-                <div className="flex flex-row items-center gap-2 mb-10">
-                    <Button size="sm"><GaugeIcon />Add Score</Button>
-                    <Button variant="outline" size="sm"><ReplyIcon /> Just reply</Button>
-                </div> */}
-
                     {fetcher.state === 'idle' && fetcher.data?.ok === false && (
                         <Alert variant="destructive" className="mb-4">
                             <AlertCircleIcon className="h-4 w-4" />
@@ -181,25 +156,9 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
 
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(submit)} className="space-y-2">
-
-                            {unassignedScoreConfigs.length > 0 && <div className="mb-4 space-y-2">
-                                {unassignedScoreConfigs.map((scoreConfig) => (
-                                    <AVFormField
-                                        key={scoreConfig.name}
-                                        label={scoreConfig.title ?? scoreConfig.name}
-                                        name={"scores." + scoreConfig.name}
-                                        control={scoreConfig.inputComponent}
-                                        variant="row"
-                                    />
-                                ))}
-                            </div>}
-
                             <div>
-                                {/* {unassignedScoreConfigs.length > 0 && <div className="text-sm mb-1 text-gray-700">Comment</div>} */}
-
                                 <AVFormField
                                     key={"comment"}
-                                    label={unassignedScoreConfigs.length > 0 ? "Comment" : undefined}
                                     name={"comment"}
                                     control={(props) => <TextEditor
                                         mentionItems={members.filter((member) => member.id !== user.id).map(member => ({
@@ -289,7 +248,7 @@ export function CommentSessionFloatingBox({ session, item, selected = false, onS
     }, []);
 
     return (
-        <div className={`rounded-lg ${selected ? "bg-white border" : "bg-muted"}`} data-comment={true} onClick={(e) => {
+        <div className={`rounded-lg ${selected ? "bg-white border" : "bg-gray-50"}`} data-comment={true} onClick={(e) => {
             if (!selected) {
                 onSelect(item)
             }
@@ -312,7 +271,7 @@ export function CommentSessionFloatingBox({ session, item, selected = false, onS
 export function CommentMessageHeader({ title, subtitle, actions, singleLineMessageHeader = false }: { title: string, subtitle?: string, actions?: React.ReactNode, singleLineMessageHeader?: boolean }) {
 
     if (singleLineMessageHeader) {
-        return <div className="flex flex-row justify-between">
+        return <div className="flex flex-row justify-between mb-1">
 
             <div className="flex flex-row items-center gap-2">
                 <div className="rounded-full bg-gray-300 flex-shrink-0"
@@ -329,7 +288,7 @@ export function CommentMessageHeader({ title, subtitle, actions, singleLineMessa
         </div>
     }
 
-    return <div className="flex items-center gap-2">
+    return <div className="flex items-center gap-2 mb-1">
         {/* Thumbnail */}
         <div
             className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0"
@@ -374,40 +333,40 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
     const [isEditing, setIsEditing] = useState(false);
 
 
-    const allScoreConfigs = getAllScoreConfigs(session, item);
+    // const allScoreConfigs = getAllScoreConfigs(session, item);
 
-    const scores: Record<string, any> = {};
-    for (const score of message.scores ?? []) {
-        if (score.deletedAt !== null) {
-            continue;
-        }
-        scores[score.name] = score.value;
-    }
+    // const scores: Record<string, any> = {};
+    // for (const score of message.scores ?? []) {
+    //     if (score.deletedAt !== null) {
+    //         continue;
+    //     }
+    //     scores[score.name] = score.value;
+    // }
 
 
-    const messageScoreConfigs = allScoreConfigs.filter(
-        (scoreConfig) =>
-            message.scores &&
-            message.scores.some((score) => score.name === scoreConfig.name)
-    );
+    // const messageScoreConfigs = allScoreConfigs.filter(
+    //     (scoreConfig) =>
+    //         message.scores &&
+    //         message.scores.some((score) => score.name === scoreConfig.name)
+    // );
 
     const schema = z.object({
         comment: z.string(),
-        scores: z.object(
-            Object.fromEntries(
-                messageScoreConfigs.map((scoreConfig) => [
-                    scoreConfig.name,
-                    scoreConfig.schema.optional()
-                ])
-            )
-        )
+        // scores: z.object(
+        //     Object.fromEntries(
+        //         messageScoreConfigs.map((scoreConfig) => [
+        //             scoreConfig.name,
+        //             scoreConfig.schema.optional()
+        //         ])
+        //     )
+        // )
     }).partial();
 
     const form = useForm({
         resolver: zodResolver(schema),
         defaultValues: {
             comment: message.content ?? undefined,
-            scores: scores
+            // scores: scores
         }
     });
 
@@ -419,34 +378,38 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
         setIsEditing(false);
     });
 
+    const scoreConfig = getAllScoreConfigs(session, item).find((scoreConfig) => scoreConfig.name === message.score?.name);
+
     return (
         <div>
 
-            <CommentMessageHeader title={author.name ?? author.email} subtitle={subtitle} singleLineMessageHeader={singleLineMessageHeader} actions={
-                isOwn && (<DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button size="icon" variant="ghost">
-                            <EllipsisVerticalIcon className="w-4 h-4 text-gray-400" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-32" align="start">
-                        <DropdownMenuItem onClick={(e) => {
-                            setIsEditing(true);
-                        }}>
-                            Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                            e.preventDefault();
-                            if (confirm('Are you sure you want to delete this comment?')) {
-                                fetcher.submit(null, { method: 'delete', action: `/sessions/${session.id}/items/${item.id}/comments/${message.id}` }); // that could be fetcher.Form!
-                            }
-                        }}>
-                            Delete
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-                )
-            } />
+            <CommentMessageHeader title={author.name ?? author.email} subtitle={subtitle} singleLineMessageHeader={singleLineMessageHeader} 
+            // actions={
+            //     isOwn && (<DropdownMenu>
+            //         <DropdownMenuTrigger asChild>
+            //             <Button size="icon" variant="ghost">
+            //                 <EllipsisVerticalIcon className="w-4 h-4 text-gray-400" />
+            //             </Button>
+            //         </DropdownMenuTrigger>
+            //         <DropdownMenuContent className="w-32" align="start">
+            //             <DropdownMenuItem onClick={(e) => {
+            //                 setIsEditing(true);
+            //             }}>
+            //                 Edit
+            //             </DropdownMenuItem>
+            //             <DropdownMenuItem onClick={(e) => {
+            //                 e.preventDefault();
+            //                 if (confirm('Are you sure you want to delete this comment?')) {
+            //                     fetcher.submit(null, { method: 'delete', action: `/sessions/${session.id}/items/${item.id}/comments/${message.id}` }); // that could be fetcher.Form!
+            //                 }
+            //             }}>
+            //                 Delete
+            //             </DropdownMenuItem>
+            //         </DropdownMenuContent>
+            //     </DropdownMenu>
+            //     )
+            // }
+             />
 
             {/* Comment content */}
             <div className="text-sm ml-8">
@@ -461,7 +424,7 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
 
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(submit)} className="space-y-2">
-                            {messageScoreConfigs.length > 0 && <div className="mb-4 space-y-2">
+                            {/* {messageScoreConfigs.length > 0 && <div className="mb-4 space-y-2">
                                 {messageScoreConfigs.map((scoreConfig) => (
                                     <AVFormField
                                         key={scoreConfig.name}
@@ -470,7 +433,7 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
                                         control={scoreConfig.inputComponent}
                                     />
                                 ))}
-                            </div>}
+                            </div>} */}
 
                             <AVFormField
                                 key={"comment"}
@@ -508,42 +471,9 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
 
                 </div>) : <div>
 
-                    <div className="flex flex-row flex-wrap gap-1 mb-2">
-{/* 
-                    <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-white inline-flex flex-row gap-1 items-center">
-                        <PencilLineIcon className="w-4 h-4 opacity-60" /> <div className="opacity-60 text-sm">Concise</div> <div className="text-sm">0.65</div>
-                    </div>
-
-                    <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-green-700 text-white inline-flex flex-row gap-1 items-center">
-                        <PencilLineIcon className="w-4 h-4 opacity-80" /> <div className="opacity-80 text-sm">Some label</div> <div className="text-sm">0.65</div>
-                    </div>
-
-                    <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-green-700 text-white inline-flex flex-row gap-1 items-center">
-                        <div className="opacity-80 text-sm">Suggested Score:</div> <div className="text-sm">Neutral</div>
-                    </div>
-
-                    <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-white inline-flex flex-row gap-1 items-start">
-                        <div className="flex flex-row gap-1 items-center"><PencilLineIcon className="w-4 h-4 opacity-60" /> <div className="opacity-60 text-sm">Reasons</div> </div>
-                         <div className="text-sm truncate">Reason one, Reason two, Reason three, Reason four</div>
-                    </div> */}
-{/* 
-                    <div className="border rounded-md px-1.5 py-[1px] border-gray-200 bg-white inline-block">
-                        <span className="text-gray-600 text-sm -mb-1">Concise</span> <span className="text-sm">0.65</span>
-                    </div> */}
-
-                    </div>
-                    {/* { messageScoreConfigs.length > 0 && <Button size="xs" variant="outline" className="mb-1" >
-                       <PencilLineIcon /> <span className="text-gray-600">Conciseness</span> 0.65
-                    </Button> }
-
-                    { messageScoreConfigs.length > 0 && <Button size="xs" variant="outline" className="mb-1" >
-                        <div className="flex flex-col gap-1">
-                            <span className="text-gray-600">Suggested</span>
-                            <span className="text-gray-600 text-wrap">Neutral, Good, Evil, Bad, I don't understand, Blablabla</span>
-
-                        </div>
-                    </Button> } */}
-
+                    { message.score && scoreConfig && <div>
+                        {scoreConfig.displayComponent && <scoreConfig.displayComponent value={message.score.value} />}
+                    </div>}
 
                     {/* {messageScoreConfigs.length > 0 && <div className="">
                         <PropertyList className="mb-2">

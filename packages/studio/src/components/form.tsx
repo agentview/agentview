@@ -29,6 +29,7 @@ import type { BaseError } from "~/lib/errors";
 import { cn } from "~/lib/utils";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "./ui/input-group";
 import { Badge } from "./ui/badge";
+import { TagPill } from "./TagPill";
 
 
 
@@ -76,10 +77,10 @@ export function ToogleGroupDisplay({ value, options }: { value: string, options:
     }
 
     return (
-        <Badge variant="default" className="text-xs flex items-center gap-1">
+        <TagPill>
             {option.icon}
             {option.label}
-        </Badge>
+        </TagPill>
     );
 }
 

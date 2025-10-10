@@ -684,7 +684,7 @@ function MessageFooter({ session, run, listParams }: { session: Session, run: Ru
                         open={scoreDialogOpen} 
                         onOpenChange={setScoreDialogOpen}
                     />
-                    <MultiSelectWidget />
+                    {/* <MultiSelectWidget /> */}
                 </div>
 
                 <div className="flex flex-row  items-center text-sm">
