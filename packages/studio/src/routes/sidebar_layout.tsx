@@ -10,7 +10,7 @@ import {
   type RouteObject,
 } from "react-router";
 
-import { LogOut, ChevronUp, UserIcon, Edit, Lock, Users, Mail, MessageCircle, Database, Inbox } from "lucide-react"
+import { LogOut, ChevronUp, UserIcon, Edit, Lock, Users, Mail, MessageCircle, Database, Inbox, BotIcon } from "lucide-react"
 import {
   SidebarProvider,
   Sidebar,
@@ -28,7 +28,7 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
 } from "../components/ui/sidebar"
-
+import { TagPill } from "~/components/TagPill";
 
 // Removed Framework Mode type import
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "~/components/ui/dropdown-menu";
@@ -41,6 +41,7 @@ import { NotificationBadge } from "~/components/NotificationBadge";
 import { createOrUpdateConfig } from "~/lib/remoteConfig";
 import { config } from "~/config";
 import { type User, allowedSessionLists } from "~/lib/shared/apiTypes";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "~/components/ui/select";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await authClient.getSession()
@@ -56,7 +57,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       return redirect('/login');
     }
   }
-  
+
   await createOrUpdateConfig(); // update schema on every page load
 
   const membersResponse = await apiFetch<User[]>('/api/users');
@@ -91,14 +92,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
     throw data("User not found", { status: 404 });
   }
 
-  const user : User = {
+  const user: User = {
     id: session.data.user.id,
     email: session.data.user.email,
     name: session.data.user.name,
     role: session.data.user.role,
     createdAt: session.data.user.createdAt.toISOString(),
   }
-  
+
   return {
     user,
     members: membersResponse.data,
@@ -121,33 +122,76 @@ function Component() {
     <SidebarProvider>
       <div className="flex h-screen bg-background w-full">
         <Sidebar className="border-r">
-          <SidebarHeader className="px-3 py-3">
+          <SidebarHeader className="px-3 py-3 border-b">
             <Link to="/">
               <img src="/logo.svg" alt="AgentView Logo" className="max-w-[100px]" />
             </Link>
           </SidebarHeader>
 
           <SidebarContent>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Agent</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <div className="flex flex-row ml-2 gap-2 items-start">
+                  <BotIcon className="size-4 mt-0.5" />
+                  <div className="flex flex-row gap-0.5 items-start">
+                    <div className="font-medium">
+                      Simple Chat
+                    </div>
+                    <TagPill>1.0.5.dev</TagPill>
+
+                  </div>  
+
+
+
+                </div>
+
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* <SidebarGroup>
+              <SidebarGroupLabel>Agent</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <div className="flex flex-row ml-2 gap-2 items-start border rounded-md p-2 bg-white">
+                  <BotIcon className="size-4 mt-0.5" />
+                  <div className="flex flex-row gap-1 items-start">
+                  <div className="">
+                    Simple Chat
+                  </div>
+                  <TagPill>1.0.5.dev</TagPill>
+
+                  </div>
+
+                  
+
+                </div>
+               
+              </SidebarGroupContent>
+            </SidebarGroup> */}
+
             <SidebarGroup>
               <SidebarGroupLabel>Sessions</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
 
-                { (!config.agents || config.agents.length === 0) && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton className="text-muted-foreground">You don't have any agents yet</SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
+
+
+                  {(!config.agents || config.agents.length === 0) && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton className="text-muted-foreground">You don't have any agents yet</SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
 
                   {config.agents?.map((agent) => {
                     const realUnseenCount = getUnseenCount(agent.name, "real")
                     const simulatedPrivateUnseenCount = getUnseenCount(agent.name, "simulated_private")
                     const simulatedSharedUnseenCount = getUnseenCount(agent.name, "simulated_shared")
-                    
+
                     return (
                       <SidebarMenuItem key={agent.name}>
                         <SidebarMenuButton>                                <MessageCircle className="h-4 w-4" />
-                        {agent.name}</SidebarMenuButton>
+                          {agent.name}</SidebarMenuButton>
                         <SidebarMenuSub className="mr-0">
                           <SidebarMenuSubItem className={realUnseenCount > 0 ? "flex justify-between items-center" : ""}>
                             <SidebarMenuSubButton asChild>
@@ -155,7 +199,7 @@ function Component() {
                                 <span>Production</span>
                               </Link>
                             </SidebarMenuSubButton>
-                            { realUnseenCount > 0 && <NotificationBadge>{realUnseenCount}</NotificationBadge> }
+                            {realUnseenCount > 0 && <NotificationBadge>{realUnseenCount}</NotificationBadge>}
                           </SidebarMenuSubItem>
                           <SidebarMenuSubItem className={simulatedPrivateUnseenCount > 0 ? "flex justify-between items-center" : ""}>
                             <SidebarMenuSubButton asChild>
@@ -164,8 +208,8 @@ function Component() {
                                 <span>Simulated Private</span>
                               </Link>
                             </SidebarMenuSubButton>
-                            
-                            { simulatedPrivateUnseenCount > 0 && <NotificationBadge>{simulatedPrivateUnseenCount}</NotificationBadge> }
+
+                            {simulatedPrivateUnseenCount > 0 && <NotificationBadge>{simulatedPrivateUnseenCount}</NotificationBadge>}
                           </SidebarMenuSubItem>
                           <SidebarMenuSubItem className={simulatedSharedUnseenCount > 0 ? "flex justify-between items-center" : ""}>
                             <SidebarMenuSubButton asChild>
@@ -174,7 +218,7 @@ function Component() {
                                 <span>Simulated Shared</span>
                               </Link>
                             </SidebarMenuSubButton>
-                            { simulatedSharedUnseenCount > 0 && <NotificationBadge>{simulatedSharedUnseenCount}</NotificationBadge> }
+                            {simulatedSharedUnseenCount > 0 && <NotificationBadge>{simulatedSharedUnseenCount}</NotificationBadge>}
 
                           </SidebarMenuSubItem>
                         </SidebarMenuSub>
@@ -211,22 +255,22 @@ function Component() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
-                {config.customRoutes?.filter(route => route.scope === "loggedIn").map((route) => {
-                  if (!route.route.path) {
-                    throw new Error("Custom route path is required")
-                  }
-                  
-                  return (
-                    <SidebarMenuItem key={route.route.path}>
-                      <SidebarMenuButton asChild>
-                        <Link to={route.route.path}>
-                          { route.title }
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}               
-                 </SidebarMenu>
+                  {config.customRoutes?.filter(route => route.scope === "loggedIn").map((route) => {
+                    if (!route.route.path) {
+                      throw new Error("Custom route path is required")
+                    }
+
+                    return (
+                      <SidebarMenuItem key={route.route.path}>
+                        <SidebarMenuButton asChild>
+                          <Link to={route.route.path}>
+                            {route.title}
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  })}
+                </SidebarMenu>
 
               </SidebarGroupContent>
             </SidebarGroup>}
