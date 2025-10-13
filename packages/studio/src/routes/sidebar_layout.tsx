@@ -120,6 +120,7 @@ function Component() {
   }
 
   return (<SessionContext.Provider value={{ user, members, locale }}>
+
     <SidebarProvider>
       <div className="flex h-screen bg-background w-full">
         <Sidebar className="border-r">
@@ -135,7 +136,9 @@ function Component() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton className="font-medium">
-                      Simple Chat <TagPill>1.0.5.dev</TagPill>
+                      <img src="/logo_symbol.svg" className="size-4" alt="AgentView Logo" />
+                      Simple Chat
+                      {/* Simple Chat <TagPill>1.0.5.dev</TagPill> */}
                       <ChevronDown className="ml-auto" />
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
@@ -151,7 +154,7 @@ function Component() {
               </SidebarMenuItem>
             </SidebarMenu>
 
-            <Button variant="outline" size="xs" className="ml-2"> <PlusIcon className="h-4 w-4" />New Session</Button>
+            <Button variant="outline" size="sm" className="ml-2"> <PlusIcon className="h-4 w-4" />New Session</Button>
 
           </SidebarHeader>
 
@@ -230,10 +233,13 @@ function Component() {
                       {/* <SidebarMenuSubItem>
                         <SidebarMenuSubButton>Production</SidebarMenuSubButton>
                       </SidebarMenuSubItem> */}
+                      {/* <SidebarMenuSubItem>
+                        <SidebarMenuSubButton>Starred</SidebarMenuSubButton>
+                      </SidebarMenuSubItem> */}
+
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton>Mine</SidebarMenuSubButton>
                       </SidebarMenuSubItem>
-
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton>Shared</SidebarMenuSubButton>
                       </SidebarMenuSubItem>
