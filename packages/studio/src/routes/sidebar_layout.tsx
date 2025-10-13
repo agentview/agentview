@@ -10,7 +10,7 @@ import {
   type RouteObject,
 } from "react-router";
 
-import { LogOut, ChevronUp, UserIcon, Edit, Lock, Users, Mail, MessageCircle, Database, Inbox, BotIcon } from "lucide-react"
+import { LogOut, ChevronUp, UserIcon, Edit, Lock, Users, Mail, MessageCircle, Database, Inbox, BotIcon, ChevronsUpDown, ChevronDown, WrenchIcon, CircleGauge, PlusIcon } from "lucide-react"
 import {
   SidebarProvider,
   Sidebar,
@@ -42,6 +42,7 @@ import { createOrUpdateConfig } from "~/lib/remoteConfig";
 import { config } from "~/config";
 import { type User, allowedSessionLists } from "~/lib/shared/apiTypes";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "~/components/ui/select";
+import { Button } from "~/components/ui/button";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await authClient.getSession()
@@ -122,33 +123,65 @@ function Component() {
     <SidebarProvider>
       <div className="flex h-screen bg-background w-full">
         <Sidebar className="border-r">
-          <SidebarHeader className="px-3 py-3 border-b">
+          {/* <SidebarHeader className="px-3 py-3 border-b">
             <Link to="/">
               <img src="/logo.svg" alt="AgentView Logo" className="max-w-[100px]" />
             </Link>
+          </SidebarHeader> */}
+
+          <SidebarHeader >
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton className="font-medium">
+                      Simple Chat <TagPill>1.0.5.dev</TagPill>
+                      <ChevronDown className="ml-auto" />
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-[--radix-popper-anchor-width]">
+                    <DropdownMenuItem>
+                      <span>Acme Inc</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <span>Acme Corp.</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </SidebarMenuItem>
+            </SidebarMenu>
+
+            <Button variant="outline" size="xs" className="ml-2"> <PlusIcon className="h-4 w-4" />New Session</Button>
+
           </SidebarHeader>
 
           <SidebarContent>
 
+            {/* 
             <SidebarGroup>
-              <SidebarGroupLabel>Agent</SidebarGroupLabel>
               <SidebarGroupContent>
-                <div className="flex flex-row ml-2 gap-2 items-start">
-                  <BotIcon className="size-4 mt-0.5" />
-                  <div className="flex flex-row gap-0.5 items-start">
-                    <div className="font-medium">
-                      Simple Chat
-                    </div>
-                    <TagPill>1.0.5.dev</TagPill>
+                <div className="flex flex-row ml-2 gap-2 items-center mt-2 justify-between border-b">
+                  <div>
+                    <div className="flex flex-col items-start">
+                      <div className="font-medium">
+                        Simple Chat
+                      </div>
+                      <TagPill>1.0.5.dev</TagPill>
 
-                  </div>  
+                    </div>
+
+                  </div>
+
+                  <div className="">
+                    <ChevronsUpDown className="size-4 mt-0.5" />
+                  </div>
 
 
 
                 </div>
 
               </SidebarGroupContent>
-            </SidebarGroup>
+            </SidebarGroup> */}
 
             {/* <SidebarGroup>
               <SidebarGroupLabel>Agent</SidebarGroupLabel>
@@ -171,7 +204,54 @@ function Component() {
             </SidebarGroup> */}
 
             <SidebarGroup>
-              <SidebarGroupLabel>Sessions</SidebarGroupLabel>
+              {/* <SidebarGroupLabel>Sessions</SidebarGroupLabel> */}
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton><MessageCircle className="h-4 w-4" /> Production</SidebarMenuButton>
+                    {/* <SidebarMenuSub className="mr-0">
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton>Production</SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton>Tests</SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton>Shared Tests</SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub> */}
+                  </SidebarMenuItem>
+
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" /> Tests</SidebarMenuButton>
+                    <SidebarMenuSub className="mr-0">
+                      {/* <SidebarMenuSubItem>
+                        <SidebarMenuSubButton>Production</SidebarMenuSubButton>
+                      </SidebarMenuSubItem> */}
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton>Mine</SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton>Shared</SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </SidebarMenuItem>
+
+                  {/* <SidebarMenuItem>
+                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" /> Some evals</SidebarMenuButton>
+                  </SidebarMenuItem> */}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton><CircleGauge className="h-4 w-4" /> Dashboard</SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
 
@@ -183,7 +263,11 @@ function Component() {
                     </SidebarMenuItem>
                   )}
 
-                  {config.agents?.map((agent) => {
+                  {config.agents?.map((agent, index) => {
+                    if (index > 0) {
+                      return null
+                    }
+
                     const realUnseenCount = getUnseenCount(agent.name, "real")
                     const simulatedPrivateUnseenCount = getUnseenCount(agent.name, "simulated_private")
                     const simulatedSharedUnseenCount = getUnseenCount(agent.name, "simulated_shared")
@@ -191,7 +275,7 @@ function Component() {
                     return (
                       <SidebarMenuItem key={agent.name}>
                         <SidebarMenuButton>                                <MessageCircle className="h-4 w-4" />
-                          {agent.name}</SidebarMenuButton>
+                          Sessions</SidebarMenuButton>
                         <SidebarMenuSub className="mr-0">
                           <SidebarMenuSubItem className={realUnseenCount > 0 ? "flex justify-between items-center" : ""}>
                             <SidebarMenuSubButton asChild>
@@ -204,7 +288,6 @@ function Component() {
                           <SidebarMenuSubItem className={simulatedPrivateUnseenCount > 0 ? "flex justify-between items-center" : ""}>
                             <SidebarMenuSubButton asChild>
                               <Link to={`/sessions?agent=${agent.name}&list=simulated_private`}>
-                                {/* <UserIcon className="h-4 w-4" /> */}
                                 <span>Simulated Private</span>
                               </Link>
                             </SidebarMenuSubButton>
@@ -214,7 +297,6 @@ function Component() {
                           <SidebarMenuSubItem className={simulatedSharedUnseenCount > 0 ? "flex justify-between items-center" : ""}>
                             <SidebarMenuSubButton asChild>
                               <Link to={`/sessions?agent=${agent.name}&list=simulated_shared`}>
-                                {/* <Users className="h-4 w-4" /> */}
                                 <span>Simulated Shared</span>
                               </Link>
                             </SidebarMenuSubButton>
@@ -227,7 +309,7 @@ function Component() {
                   })}
                 </SidebarMenu>
               </SidebarGroupContent>
-            </SidebarGroup>
+            </SidebarGroup> */}
 
 
 
