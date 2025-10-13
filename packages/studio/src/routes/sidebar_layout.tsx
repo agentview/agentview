@@ -238,7 +238,10 @@ function Component() {
                       </SidebarMenuSubItem> */}
 
                       <SidebarMenuSubItem>
-                        <SidebarMenuSubButton>Mine</SidebarMenuSubButton>
+                        <SidebarMenuSubButton>Starred</SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton>Private</SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton>Shared</SidebarMenuSubButton>
