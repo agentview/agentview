@@ -124,7 +124,7 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
     }));
 
     return (<div ref={ref}>
-        {stackedMessages.length > 0 && <div className={`flex flex-col gap-4 ${small ? "p-4" : "p-6"}`}>
+        {stackedMessages.length > 0 && <div className={`flex flex-col gap-4 ${small ? "p-3" : "p-6"}`}>
 
             {/* Display comments */}
             {stackedMessages.map((message: any, index: number) => {
@@ -173,9 +173,9 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
 
         </div>}
 
-        {!collapsed && stackedMessages.length > 0 && <div className={`border-t ${small ? "px-3" : "px-4"} max-w-2xl`}></div>}
+        {!collapsed && stackedMessages.length > 0 && <div className={`${small ? "px-3" : "px-4"} max-w-2xl`}></div>}
 
-        {!collapsed && <div className={`max-w-2xl ${small ? "p-4" : "p-6"}`}>
+        {!collapsed && <div className={`max-w-xl ${small ? "p-3" : "p-6"}`}>
 
             <div className="flex flex-row gap-2">
 

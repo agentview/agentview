@@ -13,9 +13,13 @@ export type ItemsWithCommentsLayoutProps = {
         commentsComponent?: React.ReactNode;
     }[];
     selectedItemId?: string;
+    commentsContainer?: {
+        style?: React.CSSProperties;
+        className?: string;
+    }
 }
 
-export function ItemsWithCommentsLayout({ items, selectedItemId }: ItemsWithCommentsLayoutProps) {
+export function ItemsWithCommentsLayout({ items, selectedItemId, commentsContainer }: ItemsWithCommentsLayoutProps) {
     const selectedItem = items.find(item => item.id === selectedItemId);
 
     // Refs for items and comment boxes
@@ -164,7 +168,8 @@ export function ItemsWithCommentsLayout({ items, selectedItemId }: ItemsWithComm
                 <div ref={bottomSpacerRef}/>
             </div>
 
-            <div ref={containerRef} className="w-[400px] absolute left-[768px] top-0 overflow-hidden h-full pointer-events-none">
+            {/* <div ref={containerRef} className="w-[320px] absolute left-[740px] top-0 overflow-hidden h-full pointer-events-none"> */}
+            <div ref={containerRef} className={`absolute top-0 overflow-hidden h-full pointer-events-none ${commentsContainer?.className}`} style={commentsContainer?.style}>
                 {items.map((item) => {
                     if (!item.commentsComponent) {
                         return null;

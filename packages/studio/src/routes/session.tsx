@@ -47,6 +47,7 @@ async function loader({ request, params }: LoaderFunctionArgs) {
     };
 }
 
+const MAX_WIDTH = 720;
 
 function SessionPage() {
     const loaderData = useLoaderData<typeof loader>();
@@ -173,8 +174,7 @@ function SessionPage() {
     }, [lastRun?.state])
 
     return <>
-        {/* <div className="basis-[720px] flex-shrink-0 flex-grow-0 border-r  flex flex-col"> */}
-        <div className="flex-shrink-0 flex-grow-1 border-r  flex flex-col">
+        <div className="flex-grow-1 border-r  flex flex-col">
             <Header>
                 <HeaderTitle title={`Session ${session.handle}`} />
                 <ShareForm session={session} />
@@ -209,23 +209,16 @@ function SessionPage() {
                                 itemComponent: <div
                                     className={`relative group`}
                                 >
-                                    <div className="absolute pl-2 left-[720px] text-muted-foreground text-xs font-medium flex flex-row gap-1">
+                                    <div className={`absolute pl-2 text-muted-foreground text-xs font-medium flex flex-row gap-1`} style={{ left: `${MAX_WIDTH - 24}px` }}>
                                         {!hasComments && <Button className="group-hover:visible invisible" variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}><MessageCirclePlus className="size-3" /></Button>}
                                     </div>
-                                    <div className="relative max-w-[720px] pl-6">
+                                    <div className={`relative pl-6 pr-6`} style={{ maxWidth: `${MAX_WIDTH}px` }}>
 
                                         {content}
 
                                         {run.state === "in_progress" && <div className="text-muted-foreground mt-5">
                                             <Loader />
                                         </div>}
-
-                                        {/* {run.state === "failed" && <div className="text-xs flex justify-start my-3 gap-1">
-                                            <Alert variant="destructive">
-                                                <AlertCircleIcon />
-                                                {run.failReason?.message ?? "Unknown reason"}
-                                            </Alert>
-                                        </div>} */}
 
                                         {run.state === "failed" && <div className="border rounded-md flex items-center gap-2 px-3 py-2 bg-gray-50 text-gray-700 text-sm my-2">
                                             <AlertCircleIcon className="w-4 h-4 text-red-500" />
@@ -234,29 +227,23 @@ function SessionPage() {
 
                                         {run.state !== "in_progress" && isLastRunItem && <MessageFooter session={session} run={run} listParams={listParams} item={item} />}
                                     </div>
-                                    {/* { !hasComments && <div className="absolute top-[8px] right-[408px] opacity-0 group-hover:opacity-100">
-                                        <Button variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}><MessageSquareTextIcon /></Button>
-                                    </div>} */}
                                 </div>,
-                                // itemComponent: <div 
-                                //     className={`relative pl-6 py-2 pr-[444px] group ${params.itemId === item.id ? "bg-gray-50" : "hover:bg-gray-50"}`} 
-                                //     onClick={() => { navigate(`/sessions/${session.id}/items/${item?.id}?${toQueryParams(listParams)}`) }}>
-
-                                //     {content}
-                                //     {/* { !hasComments && <div className="absolute top-[8px] right-[408px] opacity-0 group-hover:opacity-100">
-                                //         <Button variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}><MessageSquareTextIcon /></Button>
-                                //     </div>} */}
-                                // </div>,
                                 commentsComponent: (hasComments || (selectedItemId === item.id)) ?
-                                    <div className="relative pr-4"><CommentSessionFloatingBox
+                                    <CommentSessionFloatingBox
                                         item={item}
                                         session={session}
                                         selected={selectedItemId === item.id}
                                         onSelect={(a) => { setselectedItemId(a?.id) }}
-                                    /></div> : undefined
+                                    /> : undefined
                             }
                         })
                     }).flat()} selectedItemId={selectedItemId}
+                        commentsContainer={{
+                            style: {
+                                width: "320px",
+                                left: `${MAX_WIDTH + 20}px`
+                            }
+                        }}
                     />
 
                 </div>
@@ -282,14 +269,6 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
 
     return (
         <div className="w-full">
-
-            {/* <div className="text-foreground">Lorem ipsum</div>
-            <div className="text-gray-400">Lorem ipsum</div>
-            <div className="text-muted-foreground">Lorem ipsum</div>
-            <div className="text-gray-600">Lorem ipsum</div> */}
-
-            {/* <div className="text-foreground-subtle">Lorem ipsum</div> */}
-
             <PropertyList>
                 <PropertyListItem>
                     <PropertyListTitle>Agent</PropertyListTitle>
@@ -392,7 +371,7 @@ function InputForm({ session, agentConfig }: { session: Session, agentConfig: Ag
     const FirstInputComponent = runConfigs[0]?.input.inputComponent;
 
     return <div className="border-t">
-        <div className="p-6 pr-0 max-w-[720px]">
+        <div className={`p-6`} style={{ maxWidth: `${MAX_WIDTH}px` }}>
             {runConfigs.length === 0 && <div className="text-sm text-muted-foreground">No runs</div>}
 
             {runConfigs.length === 1 ? (
@@ -455,22 +434,6 @@ function InputForm({ session, agentConfig }: { session: Session, agentConfig: Ag
                     })}
                 </Tabs>
             )}
-
-            {/* <Textarea name="message" placeholder="Reply here..." rows={1} className="mb-2" /> */}
-            {/* 
-                <div className="flex flex-row gap-2 items-center mt-2">
-
-                    {lastRun?.state !== 'in_progress' && <Button type="submit">Send <SendHorizonalIcon /></Button>}
-                    {lastRun?.state === 'in_progress' && <Button type="button" onClick={() => {
-                        handleCancel()
-                    }}>Cancel <SquareIcon /></Button>}
-
-                    <div className="gap-2 text-sm text-muted-foreground">
-                        {formError && <div className="text-red-500">{formError}</div>}
-                    </div>
-
-                </div>
-            </form> */}
 
         </div>
     </div>
@@ -566,7 +529,7 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
         )
     )
 
-    const defaultValues : Record<string, any> = {};
+    const defaultValues: Record<string, any> = {};
     for (const score of item.scores ?? []) {
         if (score.deletedAt || score.createdBy !== user.id) {
             continue;
@@ -583,10 +546,10 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
         const payload = Object.entries(data).map(([name, value]) => ({ name, value }));
 
         // @ts-ignore i don't know why but payload as array is not correct body but it's correct JSON.
-        fetcher.submit(payload, { 
-            method: 'put', 
-            action: `/sessions/${session.id}/items/${item.id}/scores`, 
-            encType: 'application/json' 
+        fetcher.submit(payload, {
+            method: 'put',
+            action: `/sessions/${session.id}/items/${item.id}/scores`,
+            encType: 'application/json'
         });
     }
 
@@ -654,7 +617,7 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
 function MessageFooter({ session, run, listParams, item }: { session: Session, run: Run, listParams: ReturnType<typeof getListParams>, item: SessionItem }) {
     const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
 
-    return <div className="mt-3  mb-8 ">
+    return <div className="mt-3 mb-8 ">
 
         {/* <div className="flex flex-col gap-2 text-sm flex-wrap items-start">
             <div className="flex flex-row gap-1 items-center text-sm">
@@ -688,10 +651,10 @@ function MessageFooter({ session, run, listParams, item }: { session: Session, r
                     <Button variant="outline" size="xs"><MessageSquareTextIcon />Note</Button>
                     <Button variant="outline" size="xs"><WrenchIcon />Tools</Button>
                     <Button variant="outline" size="xs"><CircleGauge />Metrics</Button> */}
-                    <ScoreDialog 
-                        session={session} 
-                        item={item} 
-                        open={scoreDialogOpen} 
+                    <ScoreDialog
+                        session={session}
+                        item={item}
+                        open={scoreDialogOpen}
                         onOpenChange={setScoreDialogOpen}
                     />
                     {/* <MultiSelectWidget /> */}
