@@ -34,7 +34,6 @@ import { TagPill } from "~/components/TagPill";
 
 // Removed Framework Mode type import
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "~/components/ui/dropdown-menu";
-import { EditProfileDialog } from "~/components/EditProfileDialog";
 import { ChangePasswordDialog } from "~/components/ChangePasswordDialog";
 import { authClient } from "~/lib/auth-client";
 import { SessionContext } from "~/lib/SessionContext";
@@ -117,7 +116,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 function Component() {
   const { user, members, locale, listStats, agent } = useLoaderData<typeof loader>()
-  const [editProfileOpen, setEditProfileOpen] = React.useState(false)
   const [changePasswordOpen, setChangePasswordOpen] = React.useState(false)
   const location = useLocation();
 
@@ -150,32 +148,6 @@ function Component() {
     <SidebarProvider>
       <div className="flex h-screen bg-background w-full">
         <Sidebar className="border-r">
-
-          {isSettings && <>
-            <SidebarHeader>
-              <Button variant="ghost" size="sm" className="justify-start" asChild>
-                <Link to="/">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to app
-                </Link>
-              </Button>
-            </SidebarHeader>
-            <SidebarContent>
-              <SidebarGroup>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroup>
-            </SidebarContent>
-          </>}
 
           {!isSettings && <><SidebarHeader >
             <SidebarMenu>
@@ -411,6 +383,61 @@ function Component() {
 
           </>}
 
+
+          {isSettings && <>
+            <SidebarHeader>
+              <Button variant="ghost" size="sm" className="justify-start" asChild>
+                <Link to="/">
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to app
+                </Link>
+              </Button>
+            </SidebarHeader>
+            <SidebarContent>
+              <SidebarGroup>
+                <SidebarGroupLabel>Account</SidebarGroupLabel>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isMenuLinkActive("/settings/profile")}>
+                      <Link to="/settings/profile">
+                        <UserIcon className="h-4 w-4" />
+                        <span>Profile</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {/* <SidebarMenuItem>
+                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
+                  </SidebarMenuItem> */}
+                </SidebarMenu>
+              </SidebarGroup>
+
+              <SidebarGroup>
+                <SidebarGroupLabel>Organisation</SidebarGroupLabel>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isMenuLinkActive("/settings/members")}>
+                      <Link to="/settings/members">
+                        <UsersIcon className="h-4 w-4" />
+                        <span>Members</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {/* <SidebarMenuItem>
+                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
+                  </SidebarMenuItem> */}
+                </SidebarMenu>
+              </SidebarGroup>
+
+            </SidebarContent>
+          </>}
+
+
           <SidebarFooter className="border-t p-3">
             <SidebarMenu>
               <SidebarMenuItem>
@@ -426,12 +453,14 @@ function Component() {
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent side="top" className="min-w-[200px]">
-                    <DropdownMenuItem onClick={() => { setEditProfileOpen(true) }}>
-                      <Edit className="h-4 w-4" />
-                      Account
+                    <DropdownMenuItem asChild>
+                      <Link to="/settings/profile">
+                        <UserIcon className="h-4 w-4" />
+                        <span>Profile</span>
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/settings">
+                      <Link to="/settings/profile">
                         <Settings className="h-4 w-4" />
                         <span>Settings</span>
                       </Link>
@@ -450,12 +479,6 @@ function Component() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-
-                <EditProfileDialog
-                  open={editProfileOpen}
-                  onOpenChange={setEditProfileOpen}
-                  user={user}
-                />
 
                 <ChangePasswordDialog
                   open={changePasswordOpen}

@@ -25,6 +25,7 @@ import { signupRoute } from "./routes/signup";
 import { rootRoute } from "./root";
 import { sessionRunRoute } from "./routes/sessionRun";
 import { settingsRoute } from "./routes/settings";
+import { settingsProfileRoute } from "./routes/settingsProfile";
 import type { AgentViewConfig } from "./types";
 import { sessionItemScoresRoute } from "./routes/sessionItemScores";
 
@@ -52,30 +53,37 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
             },
             {
               path: "settings",
-              ...settingsRoute
-            },
-            {
-              path: "members",
-              ...membersRoute,
+              ...settingsRoute,
               children: [
                 {
-                  path: "invitations/new",
-                  ...membersInviteRoute,
+                  path: "profile",
+                  ...settingsProfileRoute,
                 },
                 {
-                  path: "invitations/:invitationId/cancel",
-                  ...membersInviteCancelRoute,
+                  path: "members",
+                  ...membersRoute,
+                  children: [
+                    {
+                      path: "invitations/new",
+                      ...membersInviteRoute,
+                    },
+                    {
+                      path: "invitations/:invitationId/cancel",
+                      ...membersInviteCancelRoute,
+                    },
+                    {
+                      path: ":userId/edit",
+                      ...membersEditRoute,
+                    },
+                    {
+                      path: ":userId/delete",
+                      ...membersDeleteRoute,
+                    },
+                  ],
                 },
-                {
-                  path: ":userId/edit",
-                  ...membersEditRoute,
-                },
-                {
-                  path: ":userId/delete",
-                  ...membersDeleteRoute,
-                },
-              ],
+              ]
             },
+            
             {
               path: "emails",
               ...emailsRoute,
