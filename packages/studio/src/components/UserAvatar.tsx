@@ -27,9 +27,18 @@ const colorMap : Record<string, string> = {
 
 const defaultBgColor = "bg-gray-100";
 
-export function UserAvatar({ image, className }: { image: string | undefined | null, className?: string }) {
-    console.log("image", image);
+const sizeMap = {
+    sm: {
+        containerSize: "size-[20px]",
+        fontSize: "10px"
+    },
+    md: {
+        containerSize: "size-[24px]",
+        fontSize: "12px"
+    }
+}
 
+export function UserAvatar({ image, className, size = "md" }: { image: string | undefined | null, className?: string, size?: "sm" | "md" }) {
     let bgColor = defaultBgColor;
     let letter: string = "";
 
@@ -41,8 +50,10 @@ export function UserAvatar({ image, className }: { image: string | undefined | n
         }
     }
 
-    return <div className={cn(`relative size-[24px] ${bgColor} rounded-full flex justify-center items-center text-black`, className)}>
-        <span style={{ fontSize: "12px", lineHeight: 1, opacity: 0.66, marginTop: "1px" }}>
+    const sizeConfig = sizeMap[size];
+
+    return <div className={cn(`relative ${sizeConfig.containerSize} ${bgColor} rounded-full flex justify-center items-center text-black`, className)}>
+        <span style={{ fontSize: sizeConfig.fontSize, lineHeight: 1, opacity: 0.66, marginTop: "1px" }}>
             {letter?.charAt(0).toUpperCase()}
         </span>
     </div>

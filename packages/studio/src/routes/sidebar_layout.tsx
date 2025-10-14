@@ -31,6 +31,7 @@ import {
   SidebarMenuSubButton,
 } from "../components/ui/sidebar"
 import { TagPill } from "~/components/TagPill";
+import { NotificationBadge } from "~/components/NotificationBadge";
 
 // Removed Framework Mode type import
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "~/components/ui/dropdown-menu";
