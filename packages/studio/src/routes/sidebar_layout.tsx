@@ -1,16 +1,18 @@
 import React from "react";
 import {
   data,
+  Form,
   Link,
   Outlet,
   redirect,
   useFetcher,
   useLoaderData,
+  useLocation,
   type LoaderFunctionArgs,
   type RouteObject,
 } from "react-router";
 
-import { LogOut, ChevronUp, UserIcon, Edit, Lock, Users, Mail, MessageCircle, Database, Inbox, BotIcon, ChevronsUpDown, ChevronDown, WrenchIcon, CircleGauge, PlusIcon } from "lucide-react"
+import { LogOut, ChevronUp, UserIcon, Edit, Lock, Users, Mail, MessageCircle, Database, Inbox, BotIcon, ChevronsUpDown, ChevronDown, WrenchIcon, CircleGauge, PlusIcon, UsersIcon, StarIcon } from "lucide-react"
 import {
   SidebarProvider,
   Sidebar,
@@ -37,12 +39,13 @@ import { ChangePasswordDialog } from "~/components/ChangePasswordDialog";
 import { authClient } from "~/lib/auth-client";
 import { SessionContext } from "~/lib/SessionContext";
 import { apiFetch } from "~/lib/apiFetch";
-import { NotificationBadge } from "~/components/NotificationBadge";
 import { createOrUpdateConfig } from "~/lib/remoteConfig";
 import { config } from "~/config";
 import { type User, allowedSessionLists } from "~/lib/shared/apiTypes";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Button } from "~/components/ui/button";
+import { getAgentParamAndCheckForRedirect } from "~/lib/listParams";
+import { getCurrentAgent } from "~/lib/currentAgent";
+import { matchPath } from "react-router";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await authClient.getSession()
@@ -58,6 +61,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
       return redirect('/login');
     }
   }
+
+  const agent = getCurrentAgent(request);
 
   await createOrUpdateConfig(); // update schema on every page load
 
@@ -105,18 +110,37 @@ export async function loader({ request }: LoaderFunctionArgs) {
     user,
     members: membersResponse.data,
     locale,
-    listStats
+    listStats,
+    agent
   };
 }
 
 function Component() {
-  const { user, members, locale, listStats } = useLoaderData<typeof loader>()
+  const { user, members, locale, listStats, agent } = useLoaderData<typeof loader>()
   const [editProfileOpen, setEditProfileOpen] = React.useState(false)
   const [changePasswordOpen, setChangePasswordOpen] = React.useState(false)
+  const location = useLocation();
 
   // Helper function to get unseen count for a specific session type and list name
   const getUnseenCount = (sessionType: string, listName: string) => {
     return listStats[sessionType]?.[listName]?.unseenCount ?? 0
+  }
+
+  const isMenuLinkActive = (linkPath: string) => {
+    const linkUrl = new URL(linkPath, window.location.origin)
+    const pathMatches = matchPath({ path: linkUrl.pathname, end: false }, location.pathname)
+
+    if (!pathMatches) return false
+
+    if (linkPath.startsWith("/sessions")) {
+      const pathParams = new URLSearchParams(linkUrl.search)
+      const currentParams = new URLSearchParams(location.search)
+      const listMatch = pathParams.get('list') === currentParams.get('list')
+      const agentMatch = pathParams.get('agent') === currentParams.get('agent')
+      return listMatch && agentMatch
+    }
+    
+    return true
   }
 
   return (<SessionContext.Provider value={{ user, members, locale }}>
@@ -137,24 +161,36 @@ function Component() {
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton className="font-medium">
                       <img src="/logo_symbol.svg" className="size-4" alt="AgentView Logo" />
-                      Simple Chat
+                      {agent}
                       {/* Simple Chat <TagPill>1.0.5.dev</TagPill> */}
                       <ChevronDown className="ml-auto" />
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-[--radix-popper-anchor-width]">
-                    <DropdownMenuItem>
-                      <span>Acme Inc</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <span>Acme Corp.</span>
-                    </DropdownMenuItem>
+
+                    {config.agents?.map((agent) => {
+                      return <DropdownMenuItem asChild key={agent.name}>
+                        <Link to={`/sessions?agent=${agent.name}`}>
+                          <span>{agent.name}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    })}
+
                   </DropdownMenuContent>
                 </DropdownMenu>
               </SidebarMenuItem>
+
+              <SidebarMenuItem>
+
+                <Form action={`/sessions/new?agent=${agent}&list=simulated_private`} method="post" className="flex flex-col items-stretch relative mt-1 px-1">
+                  <Button variant="outline" size="sm"  type="submit">
+                    <PlusIcon className="h-4 w-4" />
+                    New Session
+                  </Button>
+                </Form>
+              </SidebarMenuItem>
             </SidebarMenu>
 
-            <Button variant="outline" size="sm" className="ml-2"> <PlusIcon className="h-4 w-4" />New Session</Button>
 
           </SidebarHeader>
 
@@ -207,55 +243,72 @@ function Component() {
             </SidebarGroup> */}
 
             <SidebarGroup>
-              {/* <SidebarGroupLabel>Sessions</SidebarGroupLabel> */}
+              <SidebarGroupLabel>Sessions</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton><MessageCircle className="h-4 w-4" /> Production</SidebarMenuButton>
-                    {/* <SidebarMenuSub className="mr-0">
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton>Production</SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton>Tests</SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton>Shared Tests</SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    </SidebarMenuSub> */}
+                    <SidebarMenuButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=real`)}>
+                      <Link to={`/sessions?agent=${agent}&list=real`}>
+                        <MessageCircle className="h-4 w-4" /> Production
+                      </Link>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
+
+
+                  {/* const membersIsActive = matchPath("/members", location.pathname);
+  const sessionsIsActive = matchPath({ path: "/sessions", end: false }, location.pathname)
+
+  console.log('pathname', location.pathname)
+  console.log('members is active', !!membersIsActive)
+  console.log('sessions is active', !!sessionsIsActive) */}
 
 
                   <SidebarMenuItem>
-                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" /> Tests</SidebarMenuButton>
+                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
                     <SidebarMenuSub className="mr-0">
-                      {/* <SidebarMenuSubItem>
-                        <SidebarMenuSubButton>Production</SidebarMenuSubButton>
-                      </SidebarMenuSubItem> */}
-                      {/* <SidebarMenuSubItem>
-                        <SidebarMenuSubButton>Starred</SidebarMenuSubButton>
-                      </SidebarMenuSubItem> */}
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=simulated_private`)}>
+                          <Link to={`/sessions?agent=${agent}&list=simulated_private`}>
+                            <span>Private</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem >
+                        <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=simulated_shared`)}>
+                          <Link to={`/sessions?agent=${agent}&list=simulated_shared`}>
+                            <span>Shared</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
 
-                      <SidebarMenuSubItem>
+                      {/* <SidebarMenuSubItem>
                         <SidebarMenuSubButton>Starred</SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton>Private</SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton>Shared</SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
+                      </SidebarMenuSubItem> */}
                     </SidebarMenuSub>
                   </SidebarMenuItem>
+                  
+                  {/* <SidebarMenuItem>
+                    <SidebarMenuButton><StarIcon className="h-4 w-4" /> Starred</SidebarMenuButton>
+                  </SidebarMenuItem> */}
 
                   {/* <SidebarMenuItem>
                     <SidebarMenuButton><WrenchIcon className="h-4 w-4" /> Some evals</SidebarMenuButton>
                   </SidebarMenuItem> */}
+                  {/* <SidebarMenuItem>
+                    <SidebarMenuButton><CircleGauge className="h-4 w-4" /> Dashboard</SidebarMenuButton>
+                  </SidebarMenuItem> */}
+
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Pages</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton><CircleGauge className="h-4 w-4" /> Dashboard</SidebarMenuButton>
                   </SidebarMenuItem>
-
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -328,7 +381,7 @@ function Component() {
                 <SidebarMenu>
                   <SidebarMenuItem>
 
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton asChild isActive={isMenuLinkActive("/members")}>
                       <Link to="/members">
                         <Users className="h-4 w-4" />
                         <span>Members</span>
@@ -338,7 +391,7 @@ function Component() {
 
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton asChild isActive={isMenuLinkActive("/config")}>
                       <Link to="/config">
                         <Database className="h-4 w-4" />
                         <span>Config</span>
@@ -353,7 +406,7 @@ function Component() {
 
                     return (
                       <SidebarMenuItem key={route.route.path}>
-                        <SidebarMenuButton asChild>
+                        <SidebarMenuButton asChild isActive={isMenuLinkActive(route.route.path)}>
                           <Link to={route.route.path}>
                             {route.title}
                           </Link>
@@ -371,7 +424,7 @@ function Component() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton asChild isActive={isMenuLinkActive("/emails")}>
                       <Link to="/emails">
                         <Mail className="h-4 w-4" />
                         <span>Emails</span>

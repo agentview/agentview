@@ -1,6 +1,25 @@
 import { allowedSessionLists } from "./shared/apiTypes";
 import { config } from "~/config";
 
+export function getAgentParamAndCheckForRedirect(request: Request) {
+    const url = new URL(request.url);
+    let agent = url.searchParams.get('agent');
+    let needsRedirect = false;
+    if (!agent) {
+        const defaultAgent = config.agents?.[0];
+        if (!defaultAgent) {
+            throw new Error(`[session list] no agents found`);
+        }
+        agent = defaultAgent.name;
+        needsRedirect = true;
+    }
+    return { 
+        agent, 
+        needsRedirect,
+        redirectUrl: needsRedirect ? applyParamsToUrl(url, { agent }) : undefined
+    };
+}
+
 export function getListParamsAndCheckForRedirect(request: Request) {
     const url = new URL(request.url);
     let list = url.searchParams.get('list')
@@ -30,9 +49,12 @@ export function getListParamsAndCheckForRedirect(request: Request) {
     const page = url.searchParams.get('page') ?? undefined
     const limit = url.searchParams.get('limit') ?? undefined
 
+    const listParams = { list, agent, page, limit };
+
     return {
-        listParams: { list, agent, page, limit },
-        needsRedirect
+        listParams,
+        needsRedirect,
+        redirectUrl: needsRedirect ? applyParamsToUrl(url, listParams) : undefined
     }
 }
 
@@ -49,4 +71,16 @@ export function toQueryParams(obj: Record<string, any>) {
     }
 
     return new URLSearchParams(definedValues).toString();
+}
+
+export function applyParamsToUrl(url: URL, params: Record<string, any>) {
+    for (const [key, value] of Object.entries(params)) {
+        if (value === undefined) {
+            url.searchParams.delete(key);
+        }
+        else {
+            url.searchParams.set(key, value)
+        }
+    }
+    return url;
 }
