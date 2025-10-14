@@ -10,7 +10,7 @@ import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/li
 import { type Run, type Session, type SessionItem } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
-import { AlertCircleIcon, ChevronDown, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, ThumbsDown, ThumbsUp, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
+import { AlertCircleIcon, ChevronDown, ChevronsDownUp, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, ThumbsDown, ThumbsUp, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig } from "~/types";
@@ -47,7 +47,10 @@ async function loader({ request, params }: LoaderFunctionArgs) {
     };
 }
 
-const MAX_WIDTH = 720;
+// const MAX_WIDTH = 720; // 1640px+
+// const MAX_WIDTH = 660; // 1568px+
+const MAX_WIDTH = 620;
+
 
 function SessionPage() {
     const loaderData = useLoaderData<typeof loader>();
@@ -175,7 +178,14 @@ function SessionPage() {
 
     return <>
         <div className="flex-grow-1 border-r  flex flex-col">
-            <Header>
+            <Header className="py-1">
+                {/* <div className="flex flex-col gap-1 items-start">
+                    <div className="text-md">Super Session</div>
+                    <div className="flex flex-row gap-1 items-center text-sm">
+                        <div>simple_chat</div>
+                        <div>1.0.0</div>
+                    </div>
+                </div> */}
                 <HeaderTitle title={`Session ${session.handle}`} />
                 <ShareForm session={session} />
             </Header>
@@ -209,8 +219,10 @@ function SessionPage() {
                                 itemComponent: <div
                                     className={`relative group`}
                                 >
-                                    <div className={`absolute pl-2 text-muted-foreground text-xs font-medium flex flex-row gap-1`} style={{ left: `${MAX_WIDTH - 24}px` }}>
-                                        {!hasComments && <Button className="group-hover:visible invisible" variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}><MessageCirclePlus className="size-3" /></Button>}
+                                    <div className={`absolute pl-2 text-muted-foreground text-xs font-medium flex flex-row gap-1 z-10`} style={{ left: `${MAX_WIDTH-24}px` }}>
+                                        {!hasComments && <Button className="group-hover:visible invisible" variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}>
+                                            <MessageCirclePlus className="size-3" />
+                                        </Button>}
                                     </div>
                                     <div className={`relative pl-6 pr-6`} style={{ maxWidth: `${MAX_WIDTH}px` }}>
 
@@ -225,23 +237,23 @@ function SessionPage() {
                                             <span>{run.failReason?.message ?? "Unknown reason"}</span>
                                         </div>}
 
-                                        {run.state !== "in_progress" && isLastRunItem && <MessageFooter session={session} run={run} listParams={listParams} item={item} />}
+                                        {run.state !== "in_progress" && isLastRunItem && <MessageFooter session={session} run={run} listParams={listParams} item={item} onSelect={() => { setselectedItemId(item.id) }} isSelected={selectedItemId === item.id} onUnselect={() => { setselectedItemId(undefined) }} />}
                                     </div>
                                 </div>,
-                                commentsComponent: (hasComments || (selectedItemId === item.id)) ?
-                                    <CommentSessionFloatingBox
-                                        item={item}
-                                        session={session}
-                                        selected={selectedItemId === item.id}
-                                        onSelect={(a) => { setselectedItemId(a?.id) }}
-                                    /> : undefined
+                                // commentsComponent: (hasComments || (selectedItemId === item.id)) ?
+                                //     <CommentSessionFloatingBox
+                                //         item={item}
+                                //         session={session}
+                                //         selected={selectedItemId === item.id}
+                                //         onSelect={(a) => { setselectedItemId(a?.id) }}
+                                //     /> : undefined
                             }
                         })
                     }).flat()} selectedItemId={selectedItemId}
                         commentsContainer={{
                             style: {
                                 width: "320px",
-                                left: `${MAX_WIDTH + 20}px`
+                                left: `${MAX_WIDTH+24}px`
                             }
                         }}
                     />
@@ -614,7 +626,7 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
     );
 }
 
-function MessageFooter({ session, run, listParams, item }: { session: Session, run: Run, listParams: ReturnType<typeof getListParams>, item: SessionItem }) {
+function MessageFooter({ session, run, listParams, item, onSelect, isSelected, onUnselect }: { session: Session, run: Run, listParams: ReturnType<typeof getListParams>, item: SessionItem, onSelect: () => void, isSelected: boolean, onUnselect: () => void }) {
     const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
 
     return <div className="mt-3 mb-8 ">
@@ -669,15 +681,16 @@ function MessageFooter({ session, run, listParams, item }: { session: Session, r
             </div>
         </div>
 
-        {/* <div className="border mt-3 mb-2 rounded-md">
+        <div className={`relative mt-4 mb-2 rounded-md  ${isSelected ? "border" : "bg-gray-50"}`} onClick={() => { if (!isSelected) { onSelect() } }}>
+            {/* { isSelected && <Button variant="ghost" size="icon_xs" className="text-muted-foreground absolute top-2 right-2" onClick={onUnselect}><ChevronsDownUp /></Button>} */}
             <CommentThread
                 session={session}
                 item={run.sessionItems[run.sessionItems.length - 1]}
-                collapsed={true}
+                collapsed={!isSelected}
                 small={true}
                 singleLineMessageHeader={true}
             />
-        </div> */}
+        </div>
 
         {/* <Button asChild variant="outline" size="xs">
         <Link to={`/sessions/${session.id}/runs/${run.id}?${toQueryParams(listParams)}`}>Run <WrenchIcon className="size-4" /></Link>
