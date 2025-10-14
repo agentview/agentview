@@ -72,7 +72,6 @@ export async function createInvitation(email: string, role: string, invitedById:
     throw new Error("An invitation with this email already exists.");
   }
 
-
   const [newInvitation] = await db.insert(invitations).values({
     email,
     role,

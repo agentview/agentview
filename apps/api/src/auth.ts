@@ -46,6 +46,8 @@ export const auth = betterAuth({
             }
             else if (ctx.path === "/sign-up/email") {
 
+                
+
                 // first admin
                 if (await getUsersCount() === 0) {
                     return;
