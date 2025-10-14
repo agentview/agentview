@@ -24,6 +24,7 @@ import { loginRoute } from "./routes/login";
 import { signupRoute } from "./routes/signup";
 import { rootRoute } from "./root";
 import { sessionRunRoute } from "./routes/sessionRun";
+import { settingsRoute } from "./routes/settings";
 import type { AgentViewConfig } from "./types";
 import { sessionItemScoresRoute } from "./routes/sessionItemScores";
 
@@ -48,6 +49,10 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
             {
               path: "user",
               ...userRoute,
+            },
+            {
+              path: "settings",
+              ...settingsRoute
             },
             {
               path: "members",

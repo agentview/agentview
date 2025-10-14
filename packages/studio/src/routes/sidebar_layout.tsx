@@ -12,7 +12,7 @@ import {
   type RouteObject,
 } from "react-router";
 
-import { LogOut, ChevronUp, UserIcon, Edit, Lock, Users, Mail, MessageCircle, Database, Inbox, BotIcon, ChevronsUpDown, ChevronDown, WrenchIcon, CircleGauge, PlusIcon, UsersIcon, StarIcon } from "lucide-react"
+import { LogOut, ChevronUp, UserIcon, Edit, Lock, Users, Mail, MessageCircle, Database, Inbox, BotIcon, ChevronsUpDown, ChevronDown, WrenchIcon, CircleGauge, PlusIcon, UsersIcon, StarIcon, Settings, ArrowLeft } from "lucide-react"
 import {
   SidebarProvider,
   Sidebar,
@@ -33,7 +33,7 @@ import {
 import { TagPill } from "~/components/TagPill";
 
 // Removed Framework Mode type import
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "~/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "~/components/ui/dropdown-menu";
 import { EditProfileDialog } from "~/components/EditProfileDialog";
 import { ChangePasswordDialog } from "~/components/ChangePasswordDialog";
 import { authClient } from "~/lib/auth-client";
@@ -139,22 +139,45 @@ function Component() {
       const agentMatch = pathParams.get('agent') === currentParams.get('agent')
       return listMatch && agentMatch
     }
-    
+
     return true
   }
+
+  const isSettings = isMenuLinkActive("/settings")
 
   return (<SessionContext.Provider value={{ user, members, locale }}>
 
     <SidebarProvider>
       <div className="flex h-screen bg-background w-full">
         <Sidebar className="border-r">
-          {/* <SidebarHeader className="px-3 py-3 border-b">
-            <Link to="/">
-              <img src="/logo.svg" alt="AgentView Logo" className="max-w-[100px]" />
-            </Link>
-          </SidebarHeader> */}
 
-          <SidebarHeader >
+          {isSettings && <>
+            <SidebarHeader>
+              <Button variant="ghost" size="sm" className="justify-start" asChild>
+                <Link to="/">
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to app
+                </Link>
+              </Button>
+            </SidebarHeader>
+            <SidebarContent>
+              <SidebarGroup>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroup>
+            </SidebarContent>
+          </>}
+
+          {!isSettings && <><SidebarHeader >
             <SidebarMenu>
               <SidebarMenuItem>
                 <DropdownMenu>
@@ -183,7 +206,7 @@ function Component() {
               <SidebarMenuItem>
 
                 <Form action={`/sessions/new?agent=${agent}&list=simulated_private`} method="post" className="flex flex-col items-stretch relative mt-1 px-1">
-                  <Button variant="outline" size="sm"  type="submit">
+                  <Button variant="outline" size="sm" type="submit">
                     <PlusIcon className="h-4 w-4" />
                     New Session
                   </Button>
@@ -191,71 +214,23 @@ function Component() {
               </SidebarMenuItem>
             </SidebarMenu>
 
-
           </SidebarHeader>
 
-          <SidebarContent>
-
-            {/* 
-            <SidebarGroup>
-              <SidebarGroupContent>
-                <div className="flex flex-row ml-2 gap-2 items-center mt-2 justify-between border-b">
-                  <div>
-                    <div className="flex flex-col items-start">
-                      <div className="font-medium">
-                        Simple Chat
-                      </div>
-                      <TagPill>1.0.5.dev</TagPill>
-
-                    </div>
-
-                  </div>
-
-                  <div className="">
-                    <ChevronsUpDown className="size-4 mt-0.5" />
-                  </div>
+            <SidebarContent>
+              <SidebarGroup>
+                <SidebarGroupLabel>Sessions</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=real`)}>
+                        <Link to={`/sessions?agent=${agent}&list=real`}>
+                          <MessageCircle className="h-4 w-4" /> Production
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
 
 
-
-                </div>
-
-              </SidebarGroupContent>
-            </SidebarGroup> */}
-
-            {/* <SidebarGroup>
-              <SidebarGroupLabel>Agent</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <div className="flex flex-row ml-2 gap-2 items-start border rounded-md p-2 bg-white">
-                  <BotIcon className="size-4 mt-0.5" />
-                  <div className="flex flex-row gap-1 items-start">
-                  <div className="">
-                    Simple Chat
-                  </div>
-                  <TagPill>1.0.5.dev</TagPill>
-
-                  </div>
-
-                  
-
-                </div>
-               
-              </SidebarGroupContent>
-            </SidebarGroup> */}
-
-            <SidebarGroup>
-              <SidebarGroupLabel>Sessions</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=real`)}>
-                      <Link to={`/sessions?agent=${agent}&list=real`}>
-                        <MessageCircle className="h-4 w-4" /> Production
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-
-
-                  {/* const membersIsActive = matchPath("/members", location.pathname);
+                    {/* const membersIsActive = matchPath("/members", location.pathname);
   const sessionsIsActive = matchPath({ path: "/sessions", end: false }, location.pathname)
 
   console.log('pathname', location.pathname)
@@ -263,62 +238,59 @@ function Component() {
   console.log('sessions is active', !!sessionsIsActive) */}
 
 
-                  <SidebarMenuItem>
-                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
-                    <SidebarMenuSub className="mr-0">
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=simulated_private`)}>
-                          <Link to={`/sessions?agent=${agent}&list=simulated_private`}>
-                            <span>Private</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem >
-                        <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=simulated_shared`)}>
-                          <Link to={`/sessions?agent=${agent}&list=simulated_shared`}>
-                            <span>Shared</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
+                      <SidebarMenuSub className="mr-0">
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=simulated_private`)}>
+                            <Link to={`/sessions?agent=${agent}&list=simulated_private`}>
+                              <span>Private</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem >
+                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=simulated_shared`)}>
+                            <Link to={`/sessions?agent=${agent}&list=simulated_shared`}>
+                              <span>Shared</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
 
-                      {/* <SidebarMenuSubItem>
+                        {/* <SidebarMenuSubItem>
                         <SidebarMenuSubButton>Starred</SidebarMenuSubButton>
                       </SidebarMenuSubItem> */}
-                    </SidebarMenuSub>
-                  </SidebarMenuItem>
-                  
-                  {/* <SidebarMenuItem>
+                      </SidebarMenuSub>
+                    </SidebarMenuItem>
+
+                    {/* <SidebarMenuItem>
                     <SidebarMenuButton><StarIcon className="h-4 w-4" /> Starred</SidebarMenuButton>
                   </SidebarMenuItem> */}
 
-                  {/* <SidebarMenuItem>
+                    {/* <SidebarMenuItem>
                     <SidebarMenuButton><WrenchIcon className="h-4 w-4" /> Some evals</SidebarMenuButton>
                   </SidebarMenuItem> */}
-                  {/* <SidebarMenuItem>
+                    {/* <SidebarMenuItem>
                     <SidebarMenuButton><CircleGauge className="h-4 w-4" /> Dashboard</SidebarMenuButton>
                   </SidebarMenuItem> */}
 
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
 
-            <SidebarGroup>
-              <SidebarGroupLabel>Pages</SidebarGroupLabel>
+              <SidebarGroup>
+                <SidebarGroupLabel>Pages</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton><CircleGauge className="h-4 w-4" /> Dashboard</SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+
+              {/* <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton><CircleGauge className="h-4 w-4" /> Dashboard</SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            {/* <SidebarGroup>
-              <SidebarGroupContent>
-                <SidebarMenu>
-
-
-
                   {(!config.agents || config.agents.length === 0) && (
                     <SidebarMenuItem>
                       <SidebarMenuButton className="text-muted-foreground">You don't have any agents yet</SidebarMenuButton>
@@ -375,67 +347,69 @@ function Component() {
 
 
 
-            {user.role === "admin" && <SidebarGroup>
-              <SidebarGroupLabel>Organisation</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
+              {user.role === "admin" && <SidebarGroup>
+                <SidebarGroupLabel>Organisation</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
 
-                    <SidebarMenuButton asChild isActive={isMenuLinkActive("/members")}>
-                      <Link to="/members">
-                        <Users className="h-4 w-4" />
-                        <span>Members</span>
-                      </Link>
+                      <SidebarMenuButton asChild isActive={isMenuLinkActive("/members")}>
+                        <Link to="/members">
+                          <Users className="h-4 w-4" />
+                          <span>Members</span>
+                        </Link>
 
-                    </SidebarMenuButton>
+                      </SidebarMenuButton>
 
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isMenuLinkActive("/config")}>
-                      <Link to="/config">
-                        <Database className="h-4 w-4" />
-                        <span>Config</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isMenuLinkActive("/config")}>
+                        <Link to="/config">
+                          <Database className="h-4 w-4" />
+                          <span>Config</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
 
-                  {config.customRoutes?.filter(route => route.scope === "loggedIn").map((route) => {
-                    if (!route.route.path) {
-                      throw new Error("Custom route path is required")
-                    }
+                    {config.customRoutes?.filter(route => route.scope === "loggedIn").map((route) => {
+                      if (!route.route.path) {
+                        throw new Error("Custom route path is required")
+                      }
 
-                    return (
-                      <SidebarMenuItem key={route.route.path}>
-                        <SidebarMenuButton asChild isActive={isMenuLinkActive(route.route.path)}>
-                          <Link to={route.route.path}>
-                            {route.title}
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    )
-                  })}
-                </SidebarMenu>
+                      return (
+                        <SidebarMenuItem key={route.route.path}>
+                          <SidebarMenuButton asChild isActive={isMenuLinkActive(route.route.path)}>
+                            <Link to={route.route.path}>
+                              {route.title}
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      )
+                    })}
+                  </SidebarMenu>
 
-              </SidebarGroupContent>
-            </SidebarGroup>}
+                </SidebarGroupContent>
+              </SidebarGroup>}
 
-            {import.meta.env.DEV && <SidebarGroup>
-              <SidebarGroupLabel>Development</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isMenuLinkActive("/emails")}>
-                      <Link to="/emails">
-                        <Mail className="h-4 w-4" />
-                        <span>Emails</span>
-                      </Link>
-                    </SidebarMenuButton>
+              {import.meta.env.DEV && <SidebarGroup>
+                <SidebarGroupLabel>Development</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isMenuLinkActive("/emails")}>
+                        <Link to="/emails">
+                          <Mail className="h-4 w-4" />
+                          <span>Emails</span>
+                        </Link>
+                      </SidebarMenuButton>
 
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>}
-          </SidebarContent>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>}
+            </SidebarContent>
+
+          </>}
 
           <SidebarFooter className="border-t p-3">
             <SidebarMenu>
@@ -451,15 +425,23 @@ function Component() {
                       <ChevronUp className="ml-auto" />
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent side="top" className="w-[--radix-popper-anchor-width]">
+                  <DropdownMenuContent side="top" className="min-w-[200px]">
                     <DropdownMenuItem onClick={() => { setEditProfileOpen(true) }}>
                       <Edit className="h-4 w-4" />
-                      Edit Account
+                      Account
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setChangePasswordOpen(true) }}>
+                    <DropdownMenuItem asChild>
+                      <Link to="/settings">
+                        <Settings className="h-4 w-4" />
+                        <span>Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    {/* <DropdownMenuItem onClick={() => { setChangePasswordOpen(true) }}>
                       <Lock className="h-4 w-4" />
                       Change Password
-                    </DropdownMenuItem>
+                    </DropdownMenuItem> */}
+                    <DropdownMenuSeparator />
+
                     <DropdownMenuItem asChild>
                       <Link to="/logout">
                         <LogOut className="h-4 w-4" />
@@ -484,6 +466,8 @@ function Component() {
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarFooter>
+
+
 
         </Sidebar>
 
