@@ -43,7 +43,7 @@ async function action({ request }: ActionFunctionArgs): Promise<ActionResponse |
     }
   }
 
-  return redirect("/members");
+  return redirect("/settings/members");
 }
 
 function Component() {

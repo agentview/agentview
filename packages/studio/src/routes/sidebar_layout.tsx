@@ -12,7 +12,7 @@ import {
   type RouteObject,
 } from "react-router";
 
-import { LogOut, ChevronUp, UserIcon, Edit, Lock, Users, Mail, MessageCircle, Database, Inbox, BotIcon, ChevronsUpDown, ChevronDown, WrenchIcon, CircleGauge, PlusIcon, UsersIcon, StarIcon, Settings, ArrowLeft } from "lucide-react"
+import { LogOut, ChevronUp, UserIcon, Edit, Lock, Users, Mail, MessageCircle, Database, Inbox, BotIcon, ChevronsUpDown, ChevronDown, WrenchIcon, CircleGauge, PlusIcon, UsersIcon, StarIcon, Settings, ArrowLeft, LockKeyhole } from "lucide-react"
 import {
   SidebarProvider,
   Sidebar,
@@ -34,7 +34,6 @@ import { TagPill } from "~/components/TagPill";
 
 // Removed Framework Mode type import
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "~/components/ui/dropdown-menu";
-import { ChangePasswordDialog } from "~/components/ChangePasswordDialog";
 import { authClient } from "~/lib/auth-client";
 import { SessionContext } from "~/lib/SessionContext";
 import { apiFetch } from "~/lib/apiFetch";
@@ -116,7 +115,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 function Component() {
   const { user, members, locale, listStats, agent } = useLoaderData<typeof loader>()
-  const [changePasswordOpen, setChangePasswordOpen] = React.useState(false)
   const location = useLocation();
 
   // Helper function to get unseen count for a specific session type and list name
@@ -404,6 +402,12 @@ function Component() {
                         <span>Profile</span>
                       </Link>
                     </SidebarMenuButton>
+                    <SidebarMenuButton asChild isActive={isMenuLinkActive("/settings/password")}>
+                      <Link to="/settings/password">
+                        <LockKeyhole className="h-4 w-4" />
+                        <span>Password</span>
+                      </Link>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                   {/* <SidebarMenuItem>
                     <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
@@ -465,10 +469,6 @@ function Component() {
                         <span>Settings</span>
                       </Link>
                     </DropdownMenuItem>
-                    {/* <DropdownMenuItem onClick={() => { setChangePasswordOpen(true) }}>
-                      <Lock className="h-4 w-4" />
-                      Change Password
-                    </DropdownMenuItem> */}
                     <DropdownMenuSeparator />
 
                     <DropdownMenuItem asChild>
@@ -479,11 +479,6 @@ function Component() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-
-                <ChangePasswordDialog
-                  open={changePasswordOpen}
-                  onOpenChange={setChangePasswordOpen}
-                />
 
 
               </SidebarMenuItem>

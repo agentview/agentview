@@ -102,7 +102,7 @@ function Component() {
 
                 </TableCell>
                 <TableCell>
-                    <fetcher.Form method="delete" action={`/members/invitations/${invitation.id}/cancel`}>
+                    <fetcher.Form method="delete" action={`/settings/members/invitations/${invitation.id}/cancel`}>
                       <Button 
                         type="submit" 
                         variant="outline" 
@@ -128,12 +128,12 @@ function Component() {
                   <div className="flex gap-2">
 
                   <Button asChild variant="outline" size="xs">
-                      <Link to={`/members/${row.id}/delete`}>
+                      <Link to={`/settings/members/${row.id}/delete`}>
                         Remove
                       </Link>
                     </Button>
                     <Button asChild variant="outline" size="xs">
-                      <Link to={`/members/${row.id}/edit`}>
+                      <Link to={`/settings/members/${row.id}/edit`}>
                         Edit
                       </Link>
                     </Button>

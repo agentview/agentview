@@ -27,7 +27,7 @@ async function action({ request }: ActionFunctionArgs) {
     }
   }
 
-  return redirect('/members');
+  return redirect('/settings/members');
 }
 
 

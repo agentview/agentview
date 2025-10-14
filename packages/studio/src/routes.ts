@@ -28,6 +28,7 @@ import { settingsRoute } from "./routes/settings";
 import { settingsProfileRoute } from "./routes/settingsProfile";
 import type { AgentViewConfig } from "./types";
 import { sessionItemScoresRoute } from "./routes/sessionItemScores";
+import { settingsPasswordRoute } from "./routes/settingsPassword";
 
 export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObject[] {
 
@@ -58,6 +59,10 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
                 {
                   path: "profile",
                   ...settingsProfileRoute,
+                },
+                {
+                  path: "password",
+                  ...settingsPasswordRoute,
                 },
                 {
                   path: "members",
