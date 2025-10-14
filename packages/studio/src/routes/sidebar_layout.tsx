@@ -44,7 +44,7 @@ import { Button } from "~/components/ui/button";
 import { getAgentParamAndCheckForRedirect } from "~/lib/listParams";
 import { getCurrentAgent } from "~/lib/currentAgent";
 import { matchPath } from "react-router";
-import { ColorAvatar } from "~/components/ColorAvatar";
+import { UserAvatar } from "~/components/UserAvatar";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await authClient.getSession()
@@ -102,6 +102,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     email: session.data.user.email,
     name: session.data.user.name,
     role: session.data.user.role,
+    image: session.data.user.image ?? null,
     createdAt: session.data.user.createdAt.toISOString(),
   }
 
@@ -416,7 +417,7 @@ function Component() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton>
-                      <ColorAvatar letter={user.name?.charAt(0)} color="teal" />
+                      <UserAvatar image={user.image} />
                       {/* <UserIcon /> */}
                       <div className="flex flex-col items-start text-left">
                         <span className="text-sm font-medium truncate">{user.name}</span>

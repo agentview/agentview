@@ -169,6 +169,7 @@ export const UserSchema = z.object({
     email: z.string(),
     name: z.string(),
     role: z.string(),
+    image: z.string().nullable(),
     createdAt: z.iso.date(),
 })
 

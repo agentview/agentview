@@ -1,11 +1,5 @@
 import { Header, HeaderTitle } from "~/components/header"
 
-function ColorAvatar({ letter, color }: { letter: string, color: string }) {
-  return <div className={`relative size-[24px] ${color} rounded-full flex justify-center items-center text-black `}>
-    <span style={{fontSize: "12px", lineHeight: 1, opacity: 0.8, marginTop: "1px"}}>{letter}</span>
-  </div>
-}
-
 
 export function CustomPage() {
   return <div className="flex-1">
@@ -14,65 +8,6 @@ export function CustomPage() {
     </Header>
     <div className="p-6">
       
-      <div className="flex flex-row gap-2">
-        {[
-          { letter: "R", color: "bg-red-100" },
-          { letter: "O", color: "bg-orange-100" },
-          { letter: "A", color: "bg-amber-100" },
-          { letter: "Y", color: "bg-yellow-100" },
-          { letter: "L", color: "bg-lime-100" },
-          { letter: "G", color: "bg-green-100" },
-          { letter: "E", color: "bg-emerald-100" },
-          { letter: "T", color: "bg-teal-100" },
-          { letter: "C", color: "bg-cyan-100" },
-          { letter: "S", color: "bg-sky-100" },
-          { letter: "B", color: "bg-blue-100" },
-          { letter: "I", color: "bg-indigo-100" },
-          { letter: "V", color: "bg-violet-100" },
-          { letter: "P", color: "bg-purple-100" },
-          { letter: "F", color: "bg-fuchsia-100" },
-          { letter: "K", color: "bg-pink-100" },
-          { letter: "R", color: "bg-rose-100" },
-          { letter: "S", color: "bg-slate-100" },
-          { letter: "G", color: "bg-gray-100" },
-          { letter: "Z", color: "bg-zinc-100" },
-          { letter: "N", color: "bg-neutral-100" },
-          { letter: "S", color: "bg-stone-100" },
-        ].map((item, idx) => (
-          <ColorAvatar key={idx} letter={item.letter} color={item.color} />
-        ))}
-      </div>
-
-{/* 
-      <div className="flex flex-row gap-2">
-        {[
-          { letter: "R", color: "bg-red-800" },
-          { letter: "O", color: "bg-orange-800" },
-          { letter: "A", color: "bg-amber-800" },
-          { letter: "Y", color: "bg-yellow-800" },
-          { letter: "L", color: "bg-lime-800" },
-          { letter: "G", color: "bg-green-800" },
-          { letter: "E", color: "bg-emerald-800" },
-          { letter: "T", color: "bg-teal-800" },
-          { letter: "C", color: "bg-cyan-800" },
-          { letter: "S", color: "bg-sky-800" },
-          { letter: "B", color: "bg-blue-800" },
-          { letter: "I", color: "bg-indigo-800" },
-          { letter: "V", color: "bg-violet-800" },
-          { letter: "P", color: "bg-purple-800" },
-          { letter: "F", color: "bg-fuchsia-800" },
-          { letter: "K", color: "bg-pink-800" },
-          { letter: "R", color: "bg-rose-800" },
-          { letter: "S", color: "bg-slate-800" },
-          { letter: "G", color: "bg-gray-800" },
-          { letter: "Z", color: "bg-zinc-800" },
-          { letter: "N", color: "bg-neutral-800" },
-          { letter: "S", color: "bg-stone-800" },
-        ].map((item, idx) => (
-          <ColorAvatar key={idx} letter={item.letter} color={item.color} />
-        ))}
-      </div> */}
-
 
       <div className="pt-10 prose">
         <h1>Header 1</h1>

@@ -18,6 +18,7 @@ import z from "zod";
 import { Form } from "./ui/form";
 import React from "react";
 import type { ScoreConfig } from "~/types";
+import { UserAvatar } from "./UserAvatar";
 
 export type CommentSessionProps = {
     session: Session,
@@ -178,9 +179,7 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
 
             <div className="flex flex-row gap-2">
 
-                <div className={`rounded-full bg-gray-300 flex-shrink-0 mt-[6px]`}
-                    style={{ width: 24, height: 24 }}
-                />
+                <UserAvatar image={user.image} className="flex-shrink-0 mt-[6px]"/>
 
                 <div className="flex-1">
                     {fetcher.state === 'idle' && fetcher.data?.ok === false && (
@@ -299,15 +298,13 @@ export function CommentSessionFloatingBox({ session, item, selected = false, onS
 
 
 
-export function CommentMessageHeader({ title, subtitle, actions, singleLineMessageHeader = false }: { title: string, subtitle?: string, actions?: React.ReactNode, singleLineMessageHeader?: boolean }) {
+export function CommentMessageHeader({ title, subtitle, actions, singleLineMessageHeader = false, user }: { title: string, subtitle?: string, actions?: React.ReactNode, singleLineMessageHeader?: boolean, user: User }) {
 
     if (singleLineMessageHeader) {
         return <div className="flex flex-row justify-between mb-1">
 
             <div className="flex flex-row items-center gap-2">
-                <div className="rounded-full bg-gray-300 flex-shrink-0"
-                    style={{ width: 24, height: 24 }}
-                />
+                <UserAvatar image={user.image} className="flex-shrink-0"/>
                 <div className="text-sm font-medium">
                     {title}
                 </div>
@@ -422,7 +419,7 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
     return (
         <div>
 
-            <CommentMessageHeader title={author.name ?? author.email} subtitle={subtitle} singleLineMessageHeader={singleLineMessageHeader}
+            <CommentMessageHeader title={author.name ?? author.email} subtitle={subtitle} singleLineMessageHeader={singleLineMessageHeader} user={author}
             // actions={
             //     isOwn && (<DropdownMenu>
             //         <DropdownMenuTrigger asChild>

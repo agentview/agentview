@@ -8,7 +8,8 @@ import { getValidInvitation, acceptInvitation, getInvitation } from "./invitatio
 import { eq } from "drizzle-orm";
 import { areThereRemainingAdmins } from "./areThereRemainingAdmins";
 import { getUsersCount } from "./users";
-import { getStudioURL } from "./getStudioURL";  
+import { getStudioURL } from "./getStudioURL";
+import { avatarColors } from "./shared/avatarColors";  
 
 export const auth = betterAuth({
     trustedOrigins: [getStudioURL()],
@@ -79,6 +80,11 @@ export const auth = betterAuth({
             if (ctx.path === "/sign-up/email") {
                 const usersCount = await getUsersCount()
 
+                // Generate image property: ${color}:${firstLetterFromName}
+                const randomColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
+                const firstLetter = ctx.body.name ? ctx.body.name.charAt(0).toUpperCase() : "A";
+                const image = `color:${randomColor}:${firstLetter}`;
+
                 if (usersCount === 0) {
                     throw new APIError("BAD_REQUEST", {
                         message: "Unreachable.",
@@ -86,7 +92,8 @@ export const auth = betterAuth({
                 }
                 else if (usersCount === 1) {
                     await db.update(users).set({
-                        role: "admin"
+                        role: "admin",
+                        image: image
                     }).where(eq(users.email, ctx.body.email))
                 }
                 else {
@@ -97,7 +104,8 @@ export const auth = betterAuth({
                     const invitation = await getInvitation(ctx.body?.invitationId)
 
                     await db.update(users).set({
-                        role: invitation.role
+                        role: invitation.role,
+                        image: image
                     }).where(eq(users.email, ctx.body.email))
 
                 }

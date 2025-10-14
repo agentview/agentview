@@ -1641,6 +1641,7 @@ app.openapi(usersGETRoute, async (c) => {
     email: user.email,
     name: user.name,
     role: user.role ?? "user",
+    image: user.image ?? null,
     createdAt: user.createdAt,
   })), 200);
 })

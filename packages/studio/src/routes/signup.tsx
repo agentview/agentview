@@ -92,7 +92,6 @@ export async function action({
     email,
     password,
     name: name.trim(),
-    image: `${name.trim().charAt(0)}`,
       // @ts-ignore
     invitationId
   })
