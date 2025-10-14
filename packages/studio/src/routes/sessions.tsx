@@ -54,9 +54,9 @@ function Component() {
 
       <Header className="px-3">
         <HeaderTitle title={`${listParams.list === "real" ? "Sessions" : listParams.list === "simulated_private" ? "Private Sessions" : "Shared Sessions"}`} />
-        {listParams.list !== "real" && <Form method="post" action={`/sessions/new?${toQueryParams(listParams)}`}>
+        {/* {listParams.list !== "real" && <Form method="post" action={`/sessions/new?${toQueryParams(listParams)}`}>
           <Button type="submit" variant="outline" size="sm"><PlusIcon /> New Session</Button>
-        </Form>}
+        </Form>} */}
       </Header>
 
       <div className="flex-1 overflow-y-auto pb-12">

@@ -200,16 +200,6 @@ function Component() {
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-
-
-                    {/* const membersIsActive = matchPath("/members", location.pathname);
-  const sessionsIsActive = matchPath({ path: "/sessions", end: false }, location.pathname)
-
-  console.log('pathname', location.pathname)
-  console.log('members is active', !!membersIsActive)
-  console.log('sessions is active', !!sessionsIsActive) */}
-
-
                     <SidebarMenuItem>
                       <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
                       <SidebarMenuSub className="mr-0">
