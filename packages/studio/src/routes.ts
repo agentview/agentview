@@ -1,7 +1,6 @@
 import { createBrowserRouter, type NonIndexRouteObject, type RouteObject } from "react-router";
 import { sidebarLayoutRoute } from "./routes/sidebar_layout";
 import { homeRoute } from "./routes/home";
-import { userRoute } from "./routes/user";
 import { membersRoute } from "./routes/members";
 import { membersInviteRoute } from "./routes/membersInvite";
 import { membersInviteCancelRoute } from "./routes/membersInviteCancel";
@@ -19,7 +18,6 @@ import { sessionItemCommentsRoute } from "./routes/sessionItemComments";
 import { sessionItemCommentRoute } from "./routes/sessionItemComment";
 import { configsRoute } from "./routes/configs";
 import { logoutRoute } from "./routes/logout";
-import { changePasswordRoute } from "./routes/change-password";
 import { loginRoute } from "./routes/login";
 import { signupRoute } from "./routes/signup";
 import { rootRoute } from "./root";
@@ -47,10 +45,6 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
             {
               ...homeRoute,
               index: true,
-            },
-            {
-              path: "user",
-              ...userRoute,
             },
             {
               path: "settings",
@@ -86,16 +80,19 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
                     },
                   ],
                 },
+                {
+                  path: "config",
+                  ...configsRoute,
+                },
+                {
+                  path: "emails",
+                  ...emailsRoute,
+                },
+                {
+                  path: "emails/:id",
+                  ...emailDetailRoute,
+                },
               ]
-            },
-            
-            {
-              path: "emails",
-              ...emailsRoute,
-            },
-            {
-              path: "emails/:id",
-              ...emailDetailRoute,
             },
             {
               path: "clients/:clientId/share",
@@ -140,14 +137,6 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
                   ],
                 },
               ],
-            },
-            {
-              path: "config",
-              ...configsRoute,
-            },
-            {
-              path: "change-password",
-              ...changePasswordRoute,
             },
             ...loggedInRoutes
           ],

@@ -141,6 +141,8 @@ function Component() {
 
   const isSettings = isMenuLinkActive("/settings")
 
+  const customRoutes = config.customRoutes?.filter(route => route.scope === "loggedIn");
+
   return (<SessionContext.Provider value={{ user, members, locale }}>
 
     <SidebarProvider>
@@ -235,28 +237,30 @@ function Component() {
                     {/* <SidebarMenuItem>
                     <SidebarMenuButton><StarIcon className="h-4 w-4" /> Starred</SidebarMenuButton>
                   </SidebarMenuItem> */}
-
-                    {/* <SidebarMenuItem>
-                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" /> Some evals</SidebarMenuButton>
-                  </SidebarMenuItem> */}
-                    {/* <SidebarMenuItem>
-                    <SidebarMenuButton><CircleGauge className="h-4 w-4" /> Dashboard</SidebarMenuButton>
-                  </SidebarMenuItem> */}
-
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
 
-              <SidebarGroup>
+              { customRoutes && <SidebarGroup>
                 <SidebarGroupLabel>Pages</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton><CircleGauge className="h-4 w-4" /> Dashboard</SidebarMenuButton>
-                    </SidebarMenuItem>
+                    {customRoutes.map((route) => {
+                      if (!route.route.path) {
+                        throw new Error("Custom route path is required")
+                      }
+
+                      return <SidebarMenuItem key={route.route.path}>
+                        <SidebarMenuButton asChild isActive={isMenuLinkActive(route.route.path)}>
+                          <Link to={route.route.path}>
+                            {route.title}
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    })}
                   </SidebarMenu>
                 </SidebarGroupContent>
-              </SidebarGroup>
+              </SidebarGroup>}
 
               {/* <SidebarGroup>
               <SidebarGroupContent>
@@ -316,67 +320,6 @@ function Component() {
             </SidebarGroup> */}
 
 
-
-              {user.role === "admin" && <SidebarGroup>
-                <SidebarGroupLabel>Organisation</SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-
-                      <SidebarMenuButton asChild isActive={isMenuLinkActive("/members")}>
-                        <Link to="/members">
-                          <Users className="h-4 w-4" />
-                          <span>Members</span>
-                        </Link>
-
-                      </SidebarMenuButton>
-
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={isMenuLinkActive("/config")}>
-                        <Link to="/config">
-                          <Database className="h-4 w-4" />
-                          <span>Config</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-
-                    {config.customRoutes?.filter(route => route.scope === "loggedIn").map((route) => {
-                      if (!route.route.path) {
-                        throw new Error("Custom route path is required")
-                      }
-
-                      return (
-                        <SidebarMenuItem key={route.route.path}>
-                          <SidebarMenuButton asChild isActive={isMenuLinkActive(route.route.path)}>
-                            <Link to={route.route.path}>
-                              {route.title}
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      )
-                    })}
-                  </SidebarMenu>
-
-                </SidebarGroupContent>
-              </SidebarGroup>}
-
-              {import.meta.env.DEV && <SidebarGroup>
-                <SidebarGroupLabel>Development</SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={isMenuLinkActive("/emails")}>
-                        <Link to="/emails">
-                          <Mail className="h-4 w-4" />
-                          <span>Emails</span>
-                        </Link>
-                      </SidebarMenuButton>
-
-                    </SidebarMenuItem>
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>}
             </SidebarContent>
 
           </>}
@@ -418,7 +361,7 @@ function Component() {
                 </SidebarMenu>
               </SidebarGroup>
 
-              <SidebarGroup>
+              { user.role === "admin" && <SidebarGroup>
                 <SidebarGroupLabel>Organisation</SidebarGroupLabel>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -436,7 +379,41 @@ function Component() {
                     <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
                   </SidebarMenuItem> */}
                 </SidebarMenu>
-              </SidebarGroup>
+              </SidebarGroup>}
+
+              { user.role === "admin" && <SidebarGroup>
+                <SidebarGroupLabel>Dev</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isMenuLinkActive("/settings/config")}>
+                        <Link to="/settings/config">
+                          <Database className="h-4 w-4" />
+                          <span>Config</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>}
+
+
+              {import.meta.env.DEV && <SidebarGroup>
+                <SidebarGroupLabel>Internal</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isMenuLinkActive("/settings/emails")}>
+                        <Link to="/settings/emails">
+                          <Mail className="h-4 w-4" />
+                          <span>Emails</span>
+                        </Link>
+                      </SidebarMenuButton>
+
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>}
 
             </SidebarContent>
           </>}
