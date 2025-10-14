@@ -42,7 +42,7 @@ export function UserAvatar({ image, className }: { image: string | undefined | n
     }
 
     return <div className={cn(`relative size-[24px] ${bgColor} rounded-full flex justify-center items-center text-black`, className)}>
-        <span style={{ fontSize: "12px", lineHeight: 1, opacity: 0.8, marginTop: "1px" }}>
+        <span style={{ fontSize: "12px", lineHeight: 1, opacity: 0.66, marginTop: "1px" }}>
             {letter?.charAt(0).toUpperCase()}
         </span>
     </div>
