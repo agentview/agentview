@@ -73,9 +73,7 @@ export async function createInvitation(email: string, role: string, invitedById:
   }
 
 
-  const newId = crypto.randomUUID();
-
-  await db.insert(invitations).values({
+  const [newInvitation] = await db.insert(invitations).values({
     email,
     role,
     invitedBy: invitedById,
@@ -92,7 +90,7 @@ export async function createInvitation(email: string, role: string, invitedById:
 You've been invited to join the AgentView project as a ${role}.
 
 To accept your invitation and create your account, please click the link below:
-${process.env.APP_URL}/signup?invitationId=${newId}
+${process.env.AGENTVIEW_STUDIO_URL}/signup?invitationId=${newInvitation.id}
 
 If you did not expect this invitation, you can safely ignore this email.
 
@@ -102,7 +100,7 @@ The AgentView Team
     html: `<p>Hello,</p>
 <p>You've been invited to join the <strong>AgentView</strong> project as a <strong>${role}</strong>.</p>
 <p>To accept your invitation and create your account, please click the link below:</p>
-<p><a href="${process.env.APP_URL}/signup?invitationId=${newId}">Accept Invitation</a></p>
+<p><a href="${process.env.AGENTVIEW_STUDIO_URL}/signup?invitationId=${newInvitation.id}">Accept Invitation</a></p>
 <p>If you did not expect this invitation, you can safely ignore this email.</p>
 <p>Best regards,<br/>The AgentView Team</p>`
   }, invitedById);

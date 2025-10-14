@@ -27,7 +27,7 @@ async function action({ request }: ActionFunctionArgs): Promise<Response | Actio
   const formData = await request.formData();
   const userId = formData.get("userId") as string;
 
-  const response = await apiFetch(`/api/members/${userId}`, {
+  const response = await apiFetch(`/api/users/${userId}`, {
     method: 'DELETE',
   });
 
@@ -38,7 +38,7 @@ async function action({ request }: ActionFunctionArgs): Promise<Response | Actio
     }
   }
 
-  return redirect("/members");
+  return redirect("/settings/members");
 }
 
 function Component() {

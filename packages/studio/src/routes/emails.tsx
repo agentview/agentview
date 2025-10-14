@@ -46,7 +46,7 @@ function Component() {
                 <TableRow key={email.id}>
                   <TableCell>
                     <Link 
-                      to={`/emails/${email.id}`}
+                      to={`/settings/emails/${email.id}`}
                       className="hover:underline"
                     >
                       <span className="font-medium">{email.to}</span>
@@ -54,7 +54,7 @@ function Component() {
                   </TableCell>
                   <TableCell>
                     <Link
-                      to={`/emails/${email.id}`}
+                      to={`/settings/emails/${email.id}`}
                       className="hover:underline"
                     >
                       {email.subject || '(No subject)'}
