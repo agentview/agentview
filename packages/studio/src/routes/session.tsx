@@ -442,7 +442,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
     const FirstInputComponent = runConfigs[0]?.input.inputComponent;
 
     return <div className="border-t">
-        <div className={`p-6 pr-6`} style={{ maxWidth: `${styles.textWidth + styles.padding}px` }}>
+        <div className={`p-6 pr-0`} style={{ maxWidth: `${styles.textWidth + styles.padding}px` }}>
             {runConfigs.length === 0 && <div className="text-sm text-muted-foreground">No runs</div>}
 
             {runConfigs.length === 1 ? (
