@@ -56,7 +56,6 @@ export function ItemsWithCommentsLayoutTest() {
         ...item,
         itemComponent: <div className={`border p-3 rounded-lg ${selectedItem?.id === item.id ? 'border-ring ring-ring/50 ring-[3px]' : ''}`}
             style={{ height: `${item.height}px` }}
-            data-item={true}
             onClick={() => { setSelectedItem(item) }}
         >
             <div className="flex flex-col h-full justify-between">
@@ -98,18 +97,6 @@ export function ItemsWithCommentsLayoutTest() {
                 </div>
             </div> : undefined,
     }));
-
-    useEffect(() => {
-        const handlePointerDownOutside = (e: PointerEvent) => {
-            console.log('pointerdown', e)
-            if (!(e.target instanceof Element) || (!e.target.closest('[data-item]') && !e.target.closest('[data-comment]'))) {
-                setSelectedItem(null); // Deselect
-            }
-        };
-
-        document.addEventListener('pointerdown', handlePointerDownOutside);
-        return () => document.removeEventListener('pointerdown', handlePointerDownOutside);
-    }, []);
 
 
     return <ItemsWithCommentsLayout items={layoutItems} selectedItemId={selectedItem?.id} />

@@ -67,39 +67,44 @@ async function loader({ request, params }: LoaderFunctionArgs) {
 function SessionPage() {
     const loaderData = useLoaderData<typeof loader>();
     const revalidator = useRevalidator();
+    const navigate = useNavigate();
     const { user } = useSessionContext();
     const listParams = loaderData.listParams;
 
     const [session, setSession] = useState(loaderData.session)
     const [isStreaming, setStreaming] = useState(false)
 
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams, ] = useSearchParams();
     const activeItems = getAllSessionItems(session, { activeOnly: true })
     const lastRun = getLastRun(session)
 
     const agentConfig = requireAgentConfig(config, session.agent);
-
     const selectedItemId = activeItems.find((a: any) => a.id === searchParams.get('itemId'))?.id ?? undefined;
 
     const setselectedItemId = (id: string | undefined) => {
-        if (id === selectedItemId) {
-            return // prevents unnecessary revalidation of the page
+        /**
+         * We're not using setSearchParams here from useSearchParams.
+         * It's because:
+         * - we must not touch the route if new id is the same as current one, it's bad for performance
+         * - searchParams from the hook is not up-to-date when setSelectedItemId runs (closure)
+         * - setSearchParams does take fresh searchParams as an argument, but it always runs `navigate`, you can't prevent that.
+         * - the code in this function is almost like setSearchParams from RR7 (I checked the source code), we're not losing anything
+         */
+        const currentSearchParams = new URLSearchParams(window.location.search);
+        const currentItemId = currentSearchParams.get('itemId') ?? undefined;
+
+        if (currentItemId === id) {
+            return;
         }
 
-        setSearchParams((searchParams) => {
-            const currentItemId = searchParams.get('itemId') ?? undefined;
+        if (id) {
+            currentSearchParams.set("itemId", id);
+        }
+        else {
+            currentSearchParams.delete("itemId");
+        }
 
-            if (currentItemId === id) {
-                return searchParams;
-            }
-
-            if (id) {
-                searchParams.set("itemId", id);
-            } else {
-                searchParams.delete("itemId");
-            }
-            return searchParams;
-        }, { replace: true });
+        navigate(`?${currentSearchParams.toString()}`, { replace: true });
     }
 
     useEffect(() => {
@@ -271,6 +276,7 @@ function SessionPage() {
                             const isLastRunItem = index === run.sessionItems.length - 1;
 
                             const hasComments = item.commentMessages.filter((m: any) => !m.deletedAt).length > 0
+                            const isSelected = selectedItemId === item.id;
 
                             let content: React.ReactNode = null;
 
@@ -288,7 +294,7 @@ function SessionPage() {
                                     className={`relative group`}
                                 >
                                     { !styles.isSmallSize && <div className={`absolute text-muted-foreground text-xs font-medium flex flex-row gap-1 z-10`} style={{ left: `${styles.padding + styles.textWidth + styles.commentButtonPadding}px` }}>
-                                        {!hasComments && <Button className="group-hover:visible invisible" variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}>
+                                        {!isSelected && <Button className="group-hover:visible invisible" variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}>
                                             <MessageCirclePlus className="size-3" />
                                         </Button>}
                                     </div> }
@@ -312,18 +318,18 @@ function SessionPage() {
                                             listParams={listParams}
                                             item={item}
                                             onSelect={() => { setselectedItemId(item.id) }}
-                                            isSelected={selectedItemId === item.id}
+                                            isSelected={isSelected}
                                             onUnselect={() => { setselectedItemId(undefined) }}
                                             isSmallSize={styles.isSmallSize}
                                         />}
 
                                     </div>
                                 </div>,
-                                commentsComponent: !styles.isSmallSize && (hasComments || (selectedItemId === item.id)) ?
+                                commentsComponent: !styles.isSmallSize && (hasComments || (isSelected)) ?
                                     <CommentSessionFloatingBox
                                         item={item}
                                         session={session}
-                                        selected={selectedItemId === item.id}
+                                        selected={isSelected}
                                         onSelect={(a) => { setselectedItemId(a?.id) }}
                                     /> : undefined
                             }
@@ -332,7 +338,7 @@ function SessionPage() {
                         commentsContainer={{
                             style: {
                                 width: `${styles.commentsWidth}px`,
-                                left: `${styles.padding + styles.textWidth + styles.commentButtonWidth + styles.commentButtonPadding * 2}px`
+                                left: `${styles.padding + styles.textWidth + styles.commentButtonWidth + styles.commentButtonPadding * 2 }px`
                             }
                         }}
                     />
