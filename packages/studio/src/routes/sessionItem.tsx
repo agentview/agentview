@@ -3,7 +3,7 @@ import type { RouteObject } from "react-router";
 import { Header, HeaderTitle } from "~/components/header";
 import type { Session } from "~/lib/shared/apiTypes";
 import { getAllSessionItems } from "~/lib/shared/sessionUtils";
-import { CommentThread } from "~/components/comments";
+import { CommentsThreadRaw } from "~/components/comments";
 import { apiFetch } from "~/lib/apiFetch";
 import { useEffect } from "react";
 
@@ -37,7 +37,7 @@ function Component() {
             <HeaderTitle title={`Session Item`} />
         </Header>
         <div className="flex-1 overflow-y-auto">
-            <CommentThread
+            <CommentsThreadRaw
                 item={item}
                 session={session}
                 collapsed={false}

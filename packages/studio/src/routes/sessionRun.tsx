@@ -3,7 +3,6 @@ import type { LoaderFunctionArgs, RouteObject } from "react-router";
 import { Header, HeaderTitle } from "~/components/header";
 import type { Session } from "~/lib/shared/apiTypes";
 import { getAllSessionItems } from "~/lib/shared/sessionUtils";
-import { CommentThread } from "~/components/comments";
 import { apiFetch } from "~/lib/apiFetch";
 import { useEffect } from "react";
 import { Button } from "~/components/ui/button";

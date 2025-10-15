@@ -17,7 +17,7 @@ import type { SessionItemConfig, AgentConfig } from "~/types";
 import { AVFormError, AVFormField } from "~/components/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/ItemsWithCommentsLayout";
-import { CommentSessionFloatingBox, CommentThread } from "~/components/comments";
+import { CommentsThread } from "~/components/comments";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "~/components/ui/dialog";
 import { Popover, PopoverTrigger, PopoverContent } from "~/components/ui/popover";
 import { config } from "~/config";
@@ -326,7 +326,7 @@ function SessionPage() {
                                     </div>
                                 </div>,
                                 commentsComponent: !styles.isSmallSize && (hasComments || (isSelected)) ?
-                                    <CommentSessionFloatingBox
+                                    <CommentsThread
                                         item={item}
                                         session={session}
                                         selected={isSelected}

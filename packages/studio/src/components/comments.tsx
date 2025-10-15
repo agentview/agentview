@@ -20,7 +20,7 @@ import React from "react";
 import type { ScoreConfig } from "~/types";
 import { UserAvatar } from "./UserAvatar";
 
-export type CommentSessionProps = {
+export type CommentsThreadRawProps = {
     session: Session,
     item: SessionItem,
     collapsed?: boolean,
@@ -28,12 +28,12 @@ export type CommentSessionProps = {
     small?: boolean,
 }
 
-export type CommentSessionFloatingBoxProps = CommentSessionProps & {
+export type CommentsThreadProps = CommentsThreadRawProps & {
     selected: boolean,
     onSelect: (item: any) => void,
 }
 
-export type CommentSessionFloatingButtonProps = CommentSessionFloatingBoxProps & {
+export type CommentSessionFloatingButtonProps = CommentsThreadProps & {
     session: Session,
     item: SessionItem,
     onSelect: (item: any) => void,
@@ -90,7 +90,7 @@ function getStackedCommentMessages(messages: CommentMessage[]): StackedCommentMe
     return result;
 }
 
-export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, item, collapsed = false, singleLineMessageHeader = false, small = false }, ref) => {
+export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ session, item, collapsed = false, singleLineMessageHeader = false, small = false }, ref) => {
     const { members, user } = useSessionContext();
     const fetcher = useFetcher();
 
@@ -100,14 +100,6 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
     const hasZeroVisisbleComments = stackedMessages.length === 0
 
     const [comment, setComment] = useState("");
-
-    // const schema = z.object({
-    //     comment: z.string()
-    // }).partial();
-
-    // const form = useForm({
-    //     resolver: zodResolver(schema),
-    // });
 
     const submit = () => {
         fetcher.submit({ comment }, { method: 'post', action: `/sessions/${session.id}/items/${item.id}/comments`, encType: 'application/json' })
@@ -234,7 +226,7 @@ export const CommentThread = forwardRef<any, CommentSessionProps>(({ session, it
     );
 });
 
-export function CommentSessionFloatingBox({ session, item, selected = false, onSelect }: CommentSessionFloatingBoxProps) {
+export function CommentsThread({ session, item, selected = false, onSelect }: CommentsThreadProps) {
     const commentThreadRef = useRef<any>(null);
     const revalidator = useRevalidator();
 
@@ -291,7 +283,7 @@ export function CommentSessionFloatingBox({ session, item, selected = false, onS
                 onSelect(item)
             }
         }}>
-            <CommentThread
+            <CommentsThreadRaw
                 session={session}
                 item={item}
                 collapsed={!selected}
@@ -366,34 +358,8 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
 
     const [isEditing, setIsEditing] = useState(false);
 
-
-    // const allScoreConfigs = getAllScoreConfigs(session, item);
-
-    // const scores: Record<string, any> = {};
-    // for (const score of message.scores ?? []) {
-    //     if (score.deletedAt !== null) {
-    //         continue;
-    //     }
-    //     scores[score.name] = score.value;
-    // }
-
-
-    // const messageScoreConfigs = allScoreConfigs.filter(
-    //     (scoreConfig) =>
-    //         message.scores &&
-    //         message.scores.some((score) => score.name === scoreConfig.name)
-    // );
-
     const schema = z.object({
-        comment: z.string(),
-        // scores: z.object(
-        //     Object.fromEntries(
-        //         messageScoreConfigs.map((scoreConfig) => [
-        //             scoreConfig.name,
-        //             scoreConfig.schema.optional()
-        //         ])
-        //     )
-        // )
+        comment: z.string()
     }).partial();
 
     const form = useForm({
@@ -466,17 +432,6 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
 
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(submit)} className="space-y-2">
-                            {/* {messageScoreConfigs.length > 0 && <div className="mb-4 space-y-2">
-                                {messageScoreConfigs.map((scoreConfig) => (
-                                    <AVFormField
-                                        key={scoreConfig.name}
-                                        label={scoreConfig.title ?? scoreConfig.name}
-                                        name={"scores." + scoreConfig.name}
-                                        control={scoreConfig.inputComponent}
-                                    />
-                                ))}
-                            </div>} */}
-
                             <AVFormField
                                 key={"comment"}
                                 label={"Comment"}
@@ -526,27 +481,6 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
                             )
                         })}
                     </div>
-
-
-                    {/* { message.score && scoreConfig && <div>
-                        {scoreConfig.displayComponent && <scoreConfig.displayComponent value={message.score.value} />}
-                    </div>} */}
-
-                    {/* {messageScoreConfigs.length > 0 && <div className="">
-                        <PropertyList className="mb-2">
-                            {messageScoreConfigs.map((scoreConfig) => {
-                                const DisplayComponent = scoreConfig.displayComponent;
-                                return (
-                                    <PropertyListItem key={scoreConfig.name}>
-                                        <PropertyListTitle>{scoreConfig.title ?? scoreConfig.name}</PropertyListTitle>
-                                        <PropertyListTextValue>
-                                            {DisplayComponent && <DisplayComponent value={scores[scoreConfig.name]} />}
-                                        </PropertyListTextValue>
-                                    </PropertyListItem>
-                                );
-                            })}
-                        </PropertyList>
-                    </div>} */}
 
                     {message.content && <div className={`${compressionLevel === "high" ? "line-clamp-6" : compressionLevel === "medium" ? "line-clamp-3" : ""}`}>
                         {textToElements(message.content, members.map((member) => ({
