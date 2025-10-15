@@ -7,3 +7,10 @@ export function NotificationBadge({ children, className = "" }: { children: Reac
     </div>
   );
 }
+
+export function NotificationDot({ className = "" }: {className?: string }) {
+  return (
+    <div className={cn("flex items-center justify-center rounded-full bg-cyan-600 text-white text-xs font-semibold size-2", className)}>
+    </div>
+  );
+}

@@ -144,6 +144,11 @@ function Component() {
 
   const isSettings = isMenuLinkActive("/settings")
 
+  // Get unseen counts for badges
+  const realUnseenCount = getUnseenCount(agent, "real")
+  const simulatedPrivateUnseenCount = getUnseenCount(agent, "simulated_private")
+  const simulatedSharedUnseenCount = getUnseenCount(agent, "simulated_shared")
+  
   const customRoutes = config.customRoutes?.filter(route => route.scope === "loggedIn");
 
   return (<SessionContext.Provider value={{ user, members, locale }}>
@@ -197,26 +202,30 @@ function Component() {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=real`)}>
+                      <SidebarMenuButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=real`)} className={"justify-between"}>
                         <Link to={`/sessions?agent=${agent}&list=real`}>
-                          <MessageCircle className="h-4 w-4" /> Production
+                          <div className="flex flex-row items-center gap-2"><MessageCircle className="h-4 w-4" /> Production</div>
+                          {realUnseenCount > 0 && <NotificationBadge>{realUnseenCount}</NotificationBadge>}
                         </Link>
                       </SidebarMenuButton>
+                      {/* {realUnseenCount > 0 && <NotificationBadge>{realUnseenCount}</NotificationBadge>} */}
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
-                      <SidebarMenuSub className="mr-0">
+                      <SidebarMenuSub className="mr-0 pr-0">
                         <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=simulated_private`)}>
+                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=simulated_private`)} className={"justify-between"}>
                             <Link to={`/sessions?agent=${agent}&list=simulated_private`}>
-                              <span>Private</span>
+                              <div>Private</div>
+                              {simulatedPrivateUnseenCount > 0 && <NotificationBadge>{simulatedPrivateUnseenCount}</NotificationBadge>}
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                         <SidebarMenuSubItem >
-                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=simulated_shared`)}>
+                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=simulated_shared`)}  className={"justify-between"}>
                             <Link to={`/sessions?agent=${agent}&list=simulated_shared`}>
-                              <span>Shared</span>
+                              <div>Shared</div>
+                              {simulatedSharedUnseenCount > 0 && <NotificationBadge>{simulatedSharedUnseenCount}</NotificationBadge>}
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>

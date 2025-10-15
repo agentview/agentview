@@ -9,7 +9,7 @@ import { apiFetch } from "~/lib/apiFetch";
 import type { Pagination, SessionBase, SessionsPaginatedResponse } from "~/lib/shared/apiTypes";
 import { timeAgoShort } from "~/lib/timeAgo";
 import { useSessionContext } from "~/lib/SessionContext";
-import { NotificationBadge } from "~/components/NotificationBadge";
+import { NotificationBadge, NotificationDot } from "~/components/NotificationBadge";
 import { UserAvatar } from "~/components/UserAvatar";
 
 async function loader({ request }: LoaderFunctionArgs) {
@@ -147,8 +147,9 @@ export function SessionCard({ session, listParams, sessionStats }: { session: Se
 
               <div className="flex flex-row gap-1 items-center">
                 <div className="text-xs text-gray-500">{timeAgoShort(date)}</div>
-                {itemsEventsCount > 0 && <NotificationBadge>{itemsEventsCount}</NotificationBadge>}
                 {itemsMentionsCount > 0 && <NotificationBadge>@</NotificationBadge>}
+                {itemsMentionsCount === 0 && itemsEventsCount > 0 && <NotificationDot />}
+
               </div>
 
             </div>
