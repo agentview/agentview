@@ -149,7 +149,6 @@ export function SessionCard({ session, listParams, sessionStats }: { session: Se
                 <div className="text-xs text-gray-500">{timeAgoShort(date)}</div>
                 {itemsMentionsCount > 0 && <NotificationBadge>@</NotificationBadge>}
                 {itemsMentionsCount === 0 && itemsEventsCount > 0 && <NotificationDot />}
-
               </div>
 
             </div>

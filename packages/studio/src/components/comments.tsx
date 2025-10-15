@@ -228,26 +228,45 @@ export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ sess
 
 export function CommentsThread({ session, item, selected = false, onSelect }: CommentsThreadProps) {
     const commentThreadRef = useRef<any>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const revalidator = useRevalidator();
 
     useEffect(() => {
         if (!selected) {
             commentThreadRef.current?.reset();
         }
-
-        if (selected) {
-            apiFetch(`/api/sessions/${session.id}/items/${item.id}/seen`, {
-                method: 'POST',
-            }).then((data) => {
-                if (data.ok) {
-                    revalidator.revalidate();
-                }
-                else {
-                    console.error(data.error)
-                }
-            })
-        }
     }, [selected])
+
+    useEffect(() => {
+        const element = containerRef.current;
+        if (!element) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        console.log('is intersecting')
+                        apiFetch(`/api/sessions/${session.id}/items/${item.id}/seen`, {
+                            method: 'POST',
+                        }).then((data) => {
+                            if (!data.ok) {
+                                console.error(data.error)
+                            }
+                            else {
+                                revalidator.revalidate();
+                            }
+                        })
+                        observer.disconnect();
+                    }
+                });
+            },
+            { threshold: 0.1 }
+        );
+
+        observer.observe(element);
+
+        return () => observer.disconnect();
+    }, [])
 
     useEffect(() => {
         const handlePointerDownOutside = (e: PointerEvent) => {
@@ -270,7 +289,7 @@ export function CommentsThread({ session, item, selected = false, onSelect }: Co
     }, []);
 
     return (
-        <div className={`rounded-lg ${selected ? "bg-white border" : "bg-gray-50"}`} data-comment={true} onClick={(e) => {
+        <div ref={containerRef} className={`rounded-lg ${selected ? "bg-white border" : "bg-gray-50"}`} data-comment={true} onClick={(e) => {
             if (!selected) {
                 onSelect(item)
             }
