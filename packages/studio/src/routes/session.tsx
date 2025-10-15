@@ -34,6 +34,7 @@ import z from "zod";
 import { Form as HookForm } from "~/components/ui/form";
 import { TagPill } from "~/components/TagPill";
 import { useMediaQuery } from "~/hooks/useMediaQuery";
+import { useRerender } from "~/hooks/useRerender";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<Session>(`/api/sessions/${params.id}`);
@@ -199,77 +200,50 @@ function SessionPage() {
     const COMMENT_BUTTON_PADDING = 8;
     const TEXT_MAX_WIDTH = 720;
 
-    const [styles, setStyles] = useState<Record<string, any>>({
-        padding: PADDING,
-        commentsWidth: COMMENTS_WIDTH,
-        commentButtonWidth: COMMENT_BUTTON_WIDTH,
-        commentButtonPadding: COMMENT_BUTTON_PADDING,
-        textWidth: TEXT_MAX_WIDTH,
-        isSmallSize: false
-    })
+    let styles: Record<string, any> = {}
+
+    if (!bodyRef.current) { // just first render for the purpose of the layout. useLayoutEffect makes sure that the component will be rerendered before paint with bodyRef.current set.
+        styles = {
+            padding: PADDING,
+            commentsWidth: COMMENTS_WIDTH,
+            commentButtonWidth: COMMENT_BUTTON_WIDTH,
+            commentButtonPadding: COMMENT_BUTTON_PADDING,
+            textWidth: TEXT_MAX_WIDTH,
+            isSmallSize: false
+        }
+    }
+    else {
+        const isSmallSize = !window.matchMedia("(min-width: 1440px)").matches
+
+        const textWidth = isSmallSize ?
+            Math.min(bodyRef.current.offsetWidth - PADDING * 2, TEXT_MAX_WIDTH) :
+            Math.min(bodyRef.current.offsetWidth - PADDING * 2 - COMMENT_BUTTON_WIDTH - COMMENT_BUTTON_PADDING * 2 - COMMENTS_WIDTH, TEXT_MAX_WIDTH)
+
+        styles = {
+            padding: PADDING,
+            commentsWidth: COMMENTS_WIDTH,
+            commentButtonWidth: COMMENT_BUTTON_WIDTH,
+            commentButtonPadding: COMMENT_BUTTON_PADDING,
+            textWidth,
+            isSmallSize
+        };
+    }
+
+    const rerender = useRerender();
 
     useLayoutEffect(() => {
-        function recomputeStyles() {
-            if (bodyRef.current) {
-                const isSmallSize = !window.matchMedia("(min-width: 1440px)").matches
-    
-                const textWidth = isSmallSize ?
-                    TEXT_MAX_WIDTH :
-                    Math.min(bodyRef.current.offsetWidth - PADDING * 2 - COMMENT_BUTTON_WIDTH - COMMENT_BUTTON_PADDING * 2 - COMMENTS_WIDTH, TEXT_MAX_WIDTH)
-    
-                setStyles({
-                    padding: PADDING,
-                    commentsWidth: COMMENTS_WIDTH,
-                    commentButtonWidth: COMMENT_BUTTON_WIDTH,
-                    commentButtonPadding: COMMENT_BUTTON_PADDING,
-                    textWidth,
-                    isSmallSize
-                });
-            }
+        rerender();
+    }, [])
+
+    useEffect(() => {
+        function handleResize() {
+            rerender();
         }
-
-        recomputeStyles();
-
-        window.addEventListener('resize', recomputeStyles);
-        return () => window.removeEventListener('resize', recomputeStyles);
-    }, []);
-
-    // useEffect(() => {
-    //     function handleResize() {
-    //         setStyles((prev) => ({ ...prev }));
-    //     }
-    //     window.addEventListener('resize', handleResize);
-    //     return () => window.removeEventListener('resize', handleResize);
-    // }, []);
-
-
-
-    // const styles : Record<string, number> = {
-    //     padding: 24,
-    //     commentsWidth: 310,
-    //     commentButtonWidth: 28,
-    //     commentButtonPadding: 8
-    // }
-
-
-
-    // const maxWidth = 720;
-    // const commentsWidth = 310;
-    // useLayoutEffect(() => {
-    //     if (isLargeSize) {
-    //         styles.textMaxWidth = 720;
-    //     }
-    //     else if (isMediumSize) {
-    //         styles.textMaxWidth = 660;
-    // }, [isLargeSize, isMediumSize]);
-
-    // const MAX_WIDTH = 588; // 600 good for 1512
-    // const MAX_WIDTH = 520;
-    // // const BREAKPOINT = 1512;
-    // const BREAKPOINT = 1440;
-
-
-    // const isCompactScreen = useMediaQuery(`(max-width: ${BREAKPOINT - 1}px)`);
+        window.addEventListener('resize', handleResize);
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, [])
 
     return <>
         <div className="flex-grow-1 border-r  flex flex-col">
@@ -313,11 +287,12 @@ function SessionPage() {
                                 itemComponent: <div
                                     className={`relative group`}
                                 >
-                                    <div className={`absolute text-muted-foreground text-xs font-medium flex flex-row gap-1 z-10`} style={{ left: `${styles.padding + styles.textWidth + styles.commentButtonPadding}px` }}>
+                                    { !styles.isSmallSize && <div className={`absolute text-muted-foreground text-xs font-medium flex flex-row gap-1 z-10`} style={{ left: `${styles.padding + styles.textWidth + styles.commentButtonPadding}px` }}>
                                         {!hasComments && <Button className="group-hover:visible invisible" variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}>
                                             <MessageCirclePlus className="size-3" />
                                         </Button>}
-                                    </div>
+                                    </div> }
+
                                     <div className={`relative`} style={{ marginLeft: `${styles.padding}px`, width: `${styles.textWidth}px` }}>
 
                                         {content}
@@ -336,7 +311,7 @@ function SessionPage() {
                                             run={run}
                                             listParams={listParams}
                                             item={item}
-                                            onSelect={() => { setselectedItemId(item.id) }} 
+                                            onSelect={() => { setselectedItemId(item.id) }}
                                             isSelected={selectedItemId === item.id}
                                             onUnselect={() => { setselectedItemId(undefined) }}
                                             isSmallSize={styles.isSmallSize}
