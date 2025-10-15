@@ -296,8 +296,6 @@ export function CommentSessionFloatingBox({ session, item, selected = false, onS
 }
 
 
-
-
 export function CommentMessageHeader({ title, subtitle, actions, singleLineMessageHeader = false, user }: { title: string, subtitle?: string, actions?: React.ReactNode, singleLineMessageHeader?: boolean, user: User }) {
 
     if (singleLineMessageHeader) {

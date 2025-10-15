@@ -33,6 +33,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { Form as HookForm } from "~/components/ui/form";
 import { TagPill } from "~/components/TagPill";
+import { useMediaQuery } from "~/hooks/useMediaQuery";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<Session>(`/api/sessions/${params.id}`);
@@ -47,9 +48,19 @@ async function loader({ request, params }: LoaderFunctionArgs) {
     };
 }
 
+// There should be 3 breakpoints:
+// - large: fixed max width + comments -> we get white space on the right
+// - medium: comments on the right, but width adaptive, (potentially compact layout?)
+// - flip
+
 // const MAX_WIDTH = 720; // 1640px+
 // const MAX_WIDTH = 660; // 1568px+
-const MAX_WIDTH = 620;
+// const MAX_WIDTH = 588; // 600 good for 1512
+const MAX_WIDTH = 520;
+// const BREAKPOINT = 1512;
+const BREAKPOINT = 1440;
+
+// 720 - normally
 
 
 function SessionPage() {
@@ -176,6 +187,8 @@ function SessionPage() {
 
     }, [lastRun?.state])
 
+    const isCompactScreen = useMediaQuery(`(max-width: ${BREAKPOINT - 1}px)`);
+
     return <>
         <div className="flex-grow-1 border-r  flex flex-col">
             <Header className="py-1">
@@ -219,7 +232,7 @@ function SessionPage() {
                                 itemComponent: <div
                                     className={`relative group`}
                                 >
-                                    <div className={`absolute pl-2 text-muted-foreground text-xs font-medium flex flex-row gap-1 z-10`} style={{ left: `${MAX_WIDTH-24}px` }}>
+                                    <div className={`absolute pl-2 text-muted-foreground text-xs font-medium flex flex-row gap-1 z-10`} style={{ left: `${MAX_WIDTH - 24}px` }}>
                                         {!hasComments && <Button className="group-hover:visible invisible" variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}>
                                             <MessageCirclePlus className="size-3" />
                                         </Button>}
@@ -237,23 +250,33 @@ function SessionPage() {
                                             <span>{run.failReason?.message ?? "Unknown reason"}</span>
                                         </div>}
 
-                                        {run.state !== "in_progress" && isLastRunItem && <MessageFooter session={session} run={run} listParams={listParams} item={item} onSelect={() => { setselectedItemId(item.id) }} isSelected={selectedItemId === item.id} onUnselect={() => { setselectedItemId(undefined) }} />}
+                                        {run.state !== "in_progress" && isLastRunItem && <MessageFooter
+                                            session={session}
+                                            run={run}
+                                            listParams={listParams}
+                                            item={item}
+                                            onSelect={() => { setselectedItemId(item.id) }} 
+                                            isSelected={selectedItemId === item.id}
+                                            onUnselect={() => { setselectedItemId(undefined) }}
+                                            isCompactScreen={isCompactScreen}
+                                        />}
+
                                     </div>
                                 </div>,
-                                // commentsComponent: (hasComments || (selectedItemId === item.id)) ?
-                                //     <CommentSessionFloatingBox
-                                //         item={item}
-                                //         session={session}
-                                //         selected={selectedItemId === item.id}
-                                //         onSelect={(a) => { setselectedItemId(a?.id) }}
-                                //     /> : undefined
+                                commentsComponent: !isCompactScreen && (hasComments || (selectedItemId === item.id)) ?
+                                    <CommentSessionFloatingBox
+                                        item={item}
+                                        session={session}
+                                        selected={selectedItemId === item.id}
+                                        onSelect={(a) => { setselectedItemId(a?.id) }}
+                                    /> : undefined
                             }
                         })
                     }).flat()} selectedItemId={selectedItemId}
                         commentsContainer={{
                             style: {
-                                width: "320px",
-                                left: `${MAX_WIDTH+24}px`
+                                width: "300px",
+                                left: `${MAX_WIDTH + 24}px`
                             }
                         }}
                     />
@@ -626,7 +649,19 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
     );
 }
 
-function MessageFooter({ session, run, listParams, item, onSelect, isSelected, onUnselect }: { session: Session, run: Run, listParams: ReturnType<typeof getListParams>, item: SessionItem, onSelect: () => void, isSelected: boolean, onUnselect: () => void }) {
+type MessageFooterProps = {
+    session: Session,
+    run: Run,
+    listParams: ReturnType<typeof getListParams>,
+    item: SessionItem,
+    onSelect: () => void,
+    isSelected: boolean,
+    onUnselect: () => void,
+    isCompactScreen: boolean
+}
+
+function MessageFooter(props: MessageFooterProps) {
+    const { session, run, listParams, item, onSelect, isSelected, onUnselect, isCompactScreen } = props;
     const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
 
     return <div className="mt-3 mb-8 ">
@@ -681,7 +716,7 @@ function MessageFooter({ session, run, listParams, item, onSelect, isSelected, o
             </div>
         </div>
 
-        <div className={`relative mt-4 mb-2 rounded-md  ${isSelected ? "border" : "bg-gray-50"}`} onClick={() => { if (!isSelected) { onSelect() } }}>
+        {isCompactScreen && <div className={`relative mt-4 mb-2 rounded-md  ${isSelected ? "border" : "bg-gray-50"}`} onClick={() => { if (!isSelected) { onSelect() } }}>
             {/* { isSelected && <Button variant="ghost" size="icon_xs" className="text-muted-foreground absolute top-2 right-2" onClick={onUnselect}><ChevronsDownUp /></Button>} */}
             <CommentThread
                 session={session}
@@ -690,10 +725,7 @@ function MessageFooter({ session, run, listParams, item, onSelect, isSelected, o
                 small={true}
                 singleLineMessageHeader={true}
             />
-        </div>
+        </div>}
 
-        {/* <Button asChild variant="outline" size="xs">
-        <Link to={`/sessions/${session.id}/runs/${run.id}?${toQueryParams(listParams)}`}>Run <WrenchIcon className="size-4" /></Link>
-    </Button> */}
     </div>
 }
