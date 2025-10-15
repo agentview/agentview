@@ -74,7 +74,7 @@ function SessionPage() {
     const [session, setSession] = useState(loaderData.session)
     const [isStreaming, setStreaming] = useState(false)
 
-    const [searchParams, ] = useSearchParams();
+    const [searchParams,] = useSearchParams();
     const activeItems = getAllSessionItems(session, { activeOnly: true })
     const lastRun = getLastRun(session)
 
@@ -293,11 +293,11 @@ function SessionPage() {
                                 itemComponent: <div
                                     className={`relative group`}
                                 >
-                                    { !styles.isSmallSize && <div className={`absolute text-muted-foreground text-xs font-medium flex flex-row gap-1 z-10`} style={{ left: `${styles.padding + styles.textWidth + styles.commentButtonPadding}px` }}>
+                                    {!styles.isSmallSize && <div className={`absolute text-muted-foreground text-xs font-medium flex flex-row gap-1 z-10`} style={{ left: `${styles.padding + styles.textWidth + styles.commentButtonPadding}px` }}>
                                         {!isSelected && <Button className="group-hover:visible invisible" variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}>
                                             <MessageCirclePlus className="size-3" />
                                         </Button>}
-                                    </div> }
+                                    </div>}
 
                                     <div className={`relative`} style={{ marginLeft: `${styles.padding}px`, width: `${styles.textWidth}px` }} data-item onClick={() => { setselectedItemId(item.id) }}>
 
@@ -338,7 +338,7 @@ function SessionPage() {
                         commentsContainer={{
                             style: {
                                 width: `${styles.commentsWidth}px`,
-                                left: `${styles.padding + styles.textWidth + styles.commentButtonWidth + styles.commentButtonPadding * 2 }px`
+                                left: `${styles.padding + styles.textWidth + styles.commentButtonWidth + styles.commentButtonPadding * 2}px`
                             }
                         }}
                     />
@@ -777,14 +777,22 @@ function MessageFooter(props: MessageFooterProps) {
             </div>
         </div>
 
-        {isSmallSize && <div className={`relative mt-4 mb-2 rounded-md  ${isSelected ? "border" : "bg-gray-50"}`} onClick={() => { if (!isSelected) { onSelect() } }}>
+        {isSmallSize && <div className={`relative mt-4 mb-2`}>
             {/* { isSelected && <Button variant="ghost" size="icon_xs" className="text-muted-foreground absolute top-2 right-2" onClick={onUnselect}><ChevronsDownUp /></Button>} */}
-            <CommentThread
+            {/* <CommentsThread
                 session={session}
                 item={run.sessionItems[run.sessionItems.length - 1]}
                 collapsed={!isSelected}
                 small={true}
                 singleLineMessageHeader={true}
+            /> */}
+            <CommentsThread
+                item={item}
+                session={session}
+                selected={isSelected}
+                small={true}
+                singleLineMessageHeader={true}
+                onSelect={onSelect}
             />
         </div>}
 
