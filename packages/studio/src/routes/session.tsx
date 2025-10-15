@@ -18,14 +18,12 @@ import { AVFormError, AVFormField } from "~/components/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/ItemsWithCommentsLayout";
 import { CommentsThread } from "~/components/comments";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "~/components/ui/dialog";
 import { Popover, PopoverTrigger, PopoverContent } from "~/components/ui/popover";
 import { config } from "~/config";
 import { findItemConfig, requireAgentConfig, requireItemConfig } from "~/lib/config";
 import { Loader } from "~/components/Loader";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Alert, AlertDescription } from "~/components/ui/alert";
 import type { BaseError } from "~/lib/errors";
-import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { DisplayProperties } from "~/components/DisplayProperties";
 import { cn } from "~/lib/utils";
 import { useForm } from "react-hook-form";
@@ -33,7 +31,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { Form as HookForm } from "~/components/ui/form";
 import { TagPill } from "~/components/TagPill";
-import { useMediaQuery } from "~/hooks/useMediaQuery";
 import { useRerender } from "~/hooks/useRerender";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
@@ -49,19 +46,13 @@ async function loader({ request, params }: LoaderFunctionArgs) {
     };
 }
 
-// There should be 3 breakpoints:
-// - large: fixed max width + comments -> we get white space on the right
-// - medium: comments on the right, but width adaptive, (potentially compact layout?)
-// - flip
+function Component() {
+    const loaderData = useLoaderData<typeof loader>();
+    return <SessionPage key={loaderData.session.id} />
+}
 
-// const MAX_WIDTH = 720; // 1640px+
-// const MAX_WIDTH = 660; // 1568px+
-// const MAX_WIDTH = 588; // 600 good for 1512
-// const MAX_WIDTH = 520;
-// // const BREAKPOINT = 1512;
-// const BREAKPOINT = 1440;
 
-// 720 - normally
+
 
 
 function SessionPage() {
@@ -195,10 +186,6 @@ function SessionPage() {
 
     const bodyRef = useRef<HTMLDivElement>(null);
 
-    // const isLargeSize = useMediaQuery(`(min-width: 1640px)`);
-    // const isMediumSize = useMediaQuery(`(min-width: 1440px)`) && !isLargeSize;
-    // const isSmallSize = false;//!isLargeSize && !isMediumSize;
-
     const PADDING = 24;
     const COMMENTS_WIDTH = 310;
     const COMMENT_BUTTON_WIDTH = 28;
@@ -253,13 +240,6 @@ function SessionPage() {
     return <>
         <div className="flex-grow-1 border-r  flex flex-col">
             <Header className="py-1">
-                {/* <div className="flex flex-col gap-1 items-start">
-                    <div className="text-md">Super Session</div>
-                    <div className="flex flex-row gap-1 items-center text-sm">
-                        <div>simple_chat</div>
-                        <div>1.0.0</div>
-                    </div>
-                </div> */}
                 <HeaderTitle title={`Session ${session.handle}`} />
                 <ShareForm session={session} />
             </Header>
@@ -422,11 +402,6 @@ function ShareForm({ session }: { session: Session }) {
     </fetcher.Form>
 }
 
-function Component() {
-    const loaderData = useLoaderData<typeof loader>();
-    return <SessionPage key={loaderData.session.id} />
-}
-
 function InputForm({ session, agentConfig, styles }: { session: Session, agentConfig: AgentConfig, styles: Record<string, number> }) {
     const [error, setError] = useState<BaseError | undefined>(undefined)
 
@@ -543,66 +518,11 @@ export const sessionRoute: RouteObject = {
 }
 
 
-function NotionPill({ children }: { children: React.ReactNode }) {
-    return <div className="flex flex-row gap-1 items-center h-[20px] rounded-xs bg-gray-100 px-1 text-xs [&>*]:size-3 text-gray-700">
-        {children}
-    </div>
-}
-
-function NotionPillMedium({ children, className }: { children: React.ReactNode, className?: string }) {
-    return <div className={cn("flex flex-row gap-1 items-center h-[28px] rounded-md bg-gray-100 px-2 text-sm [&>*]:size-4 text-gray-700", className)}>
-        {children}
-    </div>
-}
-
-function NotionPillMediumBold({ children, className }: { children: React.ReactNode, className?: string }) {
-    return <div className={cn("flex flex-row gap-1 items-center h-[28px] rounded-md bg-gray-100 px-2 text-sm [&>*]:size-4 text-gray-600 font-medium ", className)}>
-        {children}
-    </div>
-}
-
-function LargePillOutline({ children }: { children: React.ReactNode }) {
-    return <div className=" h-[27px] bg-gray-100 px-2 rounded-md text-sm flex items-center justify-center flex-row gap-1 [&>*]:size-4 text-gray-700">
-        {children}
-    </div>
-}
-
-
-function AlertBox({ children }: { children: React.ReactNode }) {
-    return <div className=" rounded-md flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 text-sm">
-        <AlertCircleIcon className="size-4 text-yellow-500" />
-        {children}
-    </div>
-}
-
 function LikeWidget() {
     return <div className="flex flex-row border rounded-md px-1.5 h-[28px] items-center">
         <ThumbsUp className="size-4" />
         <div className="border-l h-full mx-1.5" />
         <ThumbsDown className="size-4" />
-    </div>
-}
-
-// function MultiSelectWidget() {
-//     return <div className="flex flex-col border rounded-md h-[40px] items-center gap-1 px-1.5">
-//         <div className="text-sm font-medium">Tags</div>
-//         <div className="flex flex-row gap-1">
-//             <NotionPill>Tag 1</NotionPill>
-//             <NotionPill>Tag 2</NotionPill>
-//             <NotionPill>Tag 3</NotionPill>
-//         </div>
-//     </div>
-// }
-
-function MultiSelectWidget() {
-    return <div className="flex flex-row border rounded-md h-[28px] items-center gap-1 px-1.5">
-        <div className="text-sm font-medium flex flex-row gap-1 items-center"><TagsIcon className="size-4" /> Tags</div>
-        <div className="text-muted-foreground">· 3 choices</div>
-        {/* <div className="flex flex-row gap-1">
-            <NotionPill>First Tag</NotionPill>
-            <NotionPill>Inconsequential</NotionPill>
-            <NotionPill>Tag 3</NotionPill>
-        </div> */}
     </div>
 }
 
@@ -728,17 +648,6 @@ function MessageFooter(props: MessageFooterProps) {
     const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
 
     return <div className="mt-3 mb-8 ">
-
-        {/* <div className="flex flex-col gap-2 text-sm flex-wrap items-start">
-            <div className="flex flex-row gap-1 items-center text-sm">
-                <NotionPill><TimerIcon /> 4s</NotionPill>
-                <NotionPill>$1.25</NotionPill>
-                <NotionPill>Neutral</NotionPill>
-            </div>
-            <AlertBox>This is a textual alert about something important.</AlertBox>
-        </div>
-
-        <div className="border-t mt-3 mb-2" /> */}
         <div>
             <div className="text-xs flex justify-between gap-2 items-start">
                 <div className="flex flex-row flex-wrap gap-1.5 items-center">
@@ -748,30 +657,15 @@ function MessageFooter(props: MessageFooterProps) {
                             <MessageCirclePlus />Comment
                         </Link>
                     </Button>
-
-                    {/* <Button variant="outline" size="xs"><ThumbsUp />Like</Button>
-                    <Button variant="outline" size="xs"><ThumbsDown />One, Two, Three and 3 others...</Button>
-                    <Button variant="outline" size="xs"><CircleGauge />Score</Button>
-                    <Button variant="outline" size="xs"><FilePenLineIcon />Edit</Button>
-                    <Button variant="outline" size="xs"><WorkflowIcon />Dog, Cattle, Hipopotamus and 2 others...</Button>
-                    <Button variant="outline" size="xs"><ChevronDown />More</Button>
-                    <Button variant="outline" size="xs"><AlertCircleIcon />Alert</Button>
-                    <Button variant="outline" size="xs"><TimerIcon />Time</Button>
-                    <Button variant="outline" size="xs"><MessageCirclePlus />Comment</Button>
-                    <Button variant="outline" size="xs"><MessageSquareTextIcon />Note</Button>
-                    <Button variant="outline" size="xs"><WrenchIcon />Tools</Button>
-                    <Button variant="outline" size="xs"><CircleGauge />Metrics</Button> */}
                     <ScoreDialog
                         session={session}
                         item={item}
                         open={scoreDialogOpen}
                         onOpenChange={setScoreDialogOpen}
                     />
-                    {/* <MultiSelectWidget /> */}
                 </div>
 
                 <div className="flex flex-row  items-center text-sm">
-                    {/* <Button variant="ghost" size="icon_xs" className="text-muted-foreground"><FilePenLineIcon /></Button> */}
                     <Button variant="ghost" size="xs" className="text-muted-foreground" asChild>
                         <Link to={`/sessions/${session.handle}/runs/${run.id}?${toQueryParams(listParams)}`}><WrenchIcon className="size-4" />Run</Link>
                     </Button>
@@ -780,14 +674,6 @@ function MessageFooter(props: MessageFooterProps) {
         </div>
 
         {isSmallSize && <div className={`relative mt-4 mb-2`}>
-            {/* { isSelected && <Button variant="ghost" size="icon_xs" className="text-muted-foreground absolute top-2 right-2" onClick={onUnselect}><ChevronsDownUp /></Button>} */}
-            {/* <CommentsThread
-                session={session}
-                item={run.sessionItems[run.sessionItems.length - 1]}
-                collapsed={!isSelected}
-                small={true}
-                singleLineMessageHeader={true}
-            /> */}
             <CommentsThread
                 item={item}
                 session={session}
