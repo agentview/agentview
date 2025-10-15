@@ -69,8 +69,6 @@ function SessionPage() {
         })
     }
 
-    console.log('session', session)
-
     const listParams = loaderData.listParams;
     const activeItems = getAllSessionItems(session, { activeOnly: true })
     const lastRun =  getLastRun(session)
@@ -106,27 +104,18 @@ function SessionPage() {
         navigate(`?${currentSearchParams.toString()}`, { replace: true });
     }
 
-    console.log('SESSIONS render');
-
-    // useEffect(() => {
-    //     apiFetch(`/api/sessions/${session.id}/seen`, {
-    //         method: 'POST',
-    //     }).then((data) => {
-    //         if (data.ok) {
-    //             revalidator.revalidate();
-    //         }
-    //         else {
-    //             console.error(data.error)
-    //         }
-    //     })
-    // }, [])
-
-    // temporary 
-    // useEffect(() => {
-    //     if (!isStreaming) {
-    //         setSession(loaderData.session)
-    //     }
-    // }, [loaderData.session])
+    useEffect(() => {
+        apiFetch(`/api/sessions/${session.id}/seen`, {
+            method: 'POST',
+        }).then((data) => {
+            if (data.ok) {
+                revalidator.revalidate();
+            }
+            else {
+                console.error(data.error)
+            }
+        })
+    }, [])
 
     useEffect(() => {
         if (lastRun?.state === 'in_progress') {
@@ -144,77 +133,34 @@ function SessionPage() {
 
                     for await (const event of parseSSE(response)) {
 
-                        if (event.event === 'run.snapshot') {
-                            setWatchedRun(event.data)
-                        }
-                        else {
-                            setWatchedRun((prevWatchedRun) => {
-                                if (!prevWatchedRun) {
-                                    console.warn("This is probably error state.")
-                                    return prevWatchedRun
+                        setWatchedRun((prevWatchedRun) => {
+                            if (event.event === 'run.snapshot') {
+                                return event.data;
+                            }
+
+                            if (!prevWatchedRun) {
+                                console.warn("This is probably error state.")
+                                return prevWatchedRun
+                            }
+
+                            if (event.event === 'run.state') {
+                                return {
+                                    ...prevWatchedRun,
+                                    ...event.data
                                 }
-
-                                if (event.event === 'run.state') {
-                                    console.log('run.state', event.data)
-
-                                    return {
-                                        ...prevWatchedRun,
-                                        ...event.data
-                                    }
+                            }
+                            else if (event.event === 'item.created') {
+                                console.log('item.created', event.data)
+                                return {
+                                    ...prevWatchedRun,
+                                    sessionItems: [...prevWatchedRun.sessionItems, event.data]
                                 }
-                                else if (event.event === 'item.created') {
-                                    console.log('item.created', event.data)
-                                    return {
-                                        ...prevWatchedRun,
-                                        sessionItems: [...prevWatchedRun.sessionItems, event.data]
-                                    }
-                                }
-                                else {
-                                    console.warn('Unknown event type', event.event)
-                                    throw new Error('Unknown event type')
-                                }
-                            })
-                        }
-                        
-
-                        // setSession((currentSession) => {
-                        //     const lastRun = getLastRun(currentSession);
-                        //     if (!lastRun) { throw new Error("Unreachable: Last run not found") };
-
-                        //     let newRun: typeof lastRun;
-
-                        //     if (event.event === 'item') {
-                        //         const newItem = event.data;
-                        //         const newItemIndex = lastRun.sessionItems.findIndex((a: any) => a.id === newItem.id);
-
-                        //         newRun = {
-                        //             ...lastRun,
-                        //             sessionItems: newItemIndex === -1 ?
-                        //                 [...lastRun.sessionItems, newItem] : [
-                        //                     ...lastRun.sessionItems.slice(0, newItemIndex),
-                        //                     newItem
-                        //                 ]
-                        //         }
-                        //     }
-                        //     else if (event.event === 'state') {
-                        //         newRun = {
-                        //             ...lastRun,
-                        //             ...event.data
-                        //         }
-                        //     }
-                        //     else {
-                        //         throw new Error(`Unknown event type: ${event.event}`)
-                        //     }
-
-                        //     return {
-                        //         ...currentSession,
-                        //         runs: currentSession.runs.map((run: any) =>
-                        //             run.id === lastRun.id ? newRun : run
-                        //         )
-                        //     }
-
-                        // })
-
+                            }
+                            else {
+                                console.warn('Unknown event type', event.event)
+                                throw new Error('Unknown event type')
+                            }
+                        })
                     }
 
                 } catch (error) {
@@ -222,7 +168,6 @@ function SessionPage() {
                 } finally {
                     setWatchedRun(undefined)
                     revalidator.revalidate();
-                    // setStreaming(false)
                 }
             })()
         }

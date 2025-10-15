@@ -1242,7 +1242,7 @@ app.openapi(runWatchRoute, async (c) => {
       }
 
       // check for new items
-      const items = getAllSessionItems(session)
+      const items = lastRun.sessionItems
       const freshItems = items.filter(i => !previousRun.sessionItems.find(i2 => i2.id === i.id))
 
       for (const item of freshItems) {
