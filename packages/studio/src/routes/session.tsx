@@ -2,7 +2,7 @@ import { useLoaderData, useFetcher, Outlet, Link, Form, data, useParams, useSear
 import type { LoaderFunctionArgs, RouteObject } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Header, HeaderTitle } from "~/components/header";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { parseSSE } from "~/lib/parseSSE";
 import { apiFetch } from "~/lib/apiFetch";
 import { getAPIBaseUrl } from "~/lib/getAPIBaseUrl";
@@ -56,9 +56,9 @@ async function loader({ request, params }: LoaderFunctionArgs) {
 // const MAX_WIDTH = 720; // 1640px+
 // const MAX_WIDTH = 660; // 1568px+
 // const MAX_WIDTH = 588; // 600 good for 1512
-const MAX_WIDTH = 520;
-// const BREAKPOINT = 1512;
-const BREAKPOINT = 1440;
+// const MAX_WIDTH = 520;
+// // const BREAKPOINT = 1512;
+// const BREAKPOINT = 1440;
 
 // 720 - normally
 
@@ -187,7 +187,89 @@ function SessionPage() {
 
     }, [lastRun?.state])
 
-    const isCompactScreen = useMediaQuery(`(max-width: ${BREAKPOINT - 1}px)`);
+    const bodyRef = useRef<HTMLDivElement>(null);
+
+    // const isLargeSize = useMediaQuery(`(min-width: 1640px)`);
+    // const isMediumSize = useMediaQuery(`(min-width: 1440px)`) && !isLargeSize;
+    // const isSmallSize = false;//!isLargeSize && !isMediumSize;
+
+    const PADDING = 24;
+    const COMMENTS_WIDTH = 310;
+    const COMMENT_BUTTON_WIDTH = 28;
+    const COMMENT_BUTTON_PADDING = 8;
+    const TEXT_MAX_WIDTH = 720;
+
+    const [styles, setStyles] = useState<Record<string, any>>({
+        padding: PADDING,
+        commentsWidth: COMMENTS_WIDTH,
+        commentButtonWidth: COMMENT_BUTTON_WIDTH,
+        commentButtonPadding: COMMENT_BUTTON_PADDING,
+        textWidth: TEXT_MAX_WIDTH,
+        isSmallSize: false
+    })
+
+    useLayoutEffect(() => {
+        function recomputeStyles() {
+            if (bodyRef.current) {
+                const isSmallSize = !window.matchMedia("(min-width: 1440px)").matches
+    
+                const textWidth = isSmallSize ?
+                    TEXT_MAX_WIDTH :
+                    Math.min(bodyRef.current.offsetWidth - PADDING * 2 - COMMENT_BUTTON_WIDTH - COMMENT_BUTTON_PADDING * 2 - COMMENTS_WIDTH, TEXT_MAX_WIDTH)
+    
+                setStyles({
+                    padding: PADDING,
+                    commentsWidth: COMMENTS_WIDTH,
+                    commentButtonWidth: COMMENT_BUTTON_WIDTH,
+                    commentButtonPadding: COMMENT_BUTTON_PADDING,
+                    textWidth,
+                    isSmallSize
+                });
+            }
+        }
+
+        recomputeStyles();
+
+        window.addEventListener('resize', recomputeStyles);
+        return () => window.removeEventListener('resize', recomputeStyles);
+    }, []);
+
+    // useEffect(() => {
+    //     function handleResize() {
+    //         setStyles((prev) => ({ ...prev }));
+    //     }
+    //     window.addEventListener('resize', handleResize);
+    //     return () => window.removeEventListener('resize', handleResize);
+    // }, []);
+
+
+
+    // const styles : Record<string, number> = {
+    //     padding: 24,
+    //     commentsWidth: 310,
+    //     commentButtonWidth: 28,
+    //     commentButtonPadding: 8
+    // }
+
+
+
+    // const maxWidth = 720;
+    // const commentsWidth = 310;
+    // useLayoutEffect(() => {
+    //     if (isLargeSize) {
+    //         styles.textMaxWidth = 720;
+    //     }
+    //     else if (isMediumSize) {
+    //         styles.textMaxWidth = 660;
+    // }, [isLargeSize, isMediumSize]);
+
+    // const MAX_WIDTH = 588; // 600 good for 1512
+    // const MAX_WIDTH = 520;
+    // // const BREAKPOINT = 1512;
+    // const BREAKPOINT = 1440;
+
+
+    // const isCompactScreen = useMediaQuery(`(max-width: ${BREAKPOINT - 1}px)`);
 
     return <>
         <div className="flex-grow-1 border-r  flex flex-col">
@@ -208,8 +290,7 @@ function SessionPage() {
                     <SessionDetails session={session} agentConfig={agentConfig} />
                 </div>
 
-                <div>
-
+                <div ref={bodyRef}>
                     <ItemsWithCommentsLayout items={getActiveRuns(session).map((run) => {
                         return run.sessionItems.map((item, index) => {
 
@@ -232,12 +313,12 @@ function SessionPage() {
                                 itemComponent: <div
                                     className={`relative group`}
                                 >
-                                    <div className={`absolute pl-2 text-muted-foreground text-xs font-medium flex flex-row gap-1 z-10`} style={{ left: `${MAX_WIDTH - 24}px` }}>
+                                    <div className={`absolute text-muted-foreground text-xs font-medium flex flex-row gap-1 z-10`} style={{ left: `${styles.padding + styles.textWidth + styles.commentButtonPadding}px` }}>
                                         {!hasComments && <Button className="group-hover:visible invisible" variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}>
                                             <MessageCirclePlus className="size-3" />
                                         </Button>}
                                     </div>
-                                    <div className={`relative pl-6 pr-6`} style={{ maxWidth: `${MAX_WIDTH}px` }}>
+                                    <div className={`relative`} style={{ marginLeft: `${styles.padding}px`, width: `${styles.textWidth}px` }}>
 
                                         {content}
 
@@ -258,12 +339,12 @@ function SessionPage() {
                                             onSelect={() => { setselectedItemId(item.id) }} 
                                             isSelected={selectedItemId === item.id}
                                             onUnselect={() => { setselectedItemId(undefined) }}
-                                            isCompactScreen={isCompactScreen}
+                                            isSmallSize={styles.isSmallSize}
                                         />}
 
                                     </div>
                                 </div>,
-                                commentsComponent: !isCompactScreen && (hasComments || (selectedItemId === item.id)) ?
+                                commentsComponent: !styles.isSmallSize && (hasComments || (selectedItemId === item.id)) ?
                                     <CommentSessionFloatingBox
                                         item={item}
                                         session={session}
@@ -275,8 +356,8 @@ function SessionPage() {
                     }).flat()} selectedItemId={selectedItemId}
                         commentsContainer={{
                             style: {
-                                width: "300px",
-                                left: `${MAX_WIDTH + 24}px`
+                                width: `${styles.commentsWidth}px`,
+                                left: `${styles.padding + styles.textWidth + styles.commentButtonWidth + styles.commentButtonPadding * 2}px`
                             }
                         }}
                     />
@@ -286,14 +367,13 @@ function SessionPage() {
             </div>
 
 
-            {session.client.simulatedBy === user.id && <InputForm session={session} agentConfig={agentConfig} />}
+            {session.client.simulatedBy === user.id && <InputForm session={session} agentConfig={agentConfig} styles={styles} />}
 
         </div>
 
         <Outlet context={{ session }} />
     </>
 }
-
 
 
 function SessionDetails({ session, agentConfig }: { session: Session, agentConfig: AgentConfig }) {
@@ -364,7 +444,7 @@ function Component() {
     return <SessionPage key={loaderData.session.id} />
 }
 
-function InputForm({ session, agentConfig }: { session: Session, agentConfig: AgentConfig }) {
+function InputForm({ session, agentConfig, styles }: { session: Session, agentConfig: AgentConfig, styles: Record<string, number> }) {
     const [error, setError] = useState<BaseError | undefined>(undefined)
 
     const lastRun = getLastRun(session)
@@ -406,7 +486,7 @@ function InputForm({ session, agentConfig }: { session: Session, agentConfig: Ag
     const FirstInputComponent = runConfigs[0]?.input.inputComponent;
 
     return <div className="border-t">
-        <div className={`p-6`} style={{ maxWidth: `${MAX_WIDTH}px` }}>
+        <div className={`p-6 pr-6`} style={{ maxWidth: `${styles.textWidth + styles.padding}px` }}>
             {runConfigs.length === 0 && <div className="text-sm text-muted-foreground">No runs</div>}
 
             {runConfigs.length === 1 ? (
@@ -657,11 +737,11 @@ type MessageFooterProps = {
     onSelect: () => void,
     isSelected: boolean,
     onUnselect: () => void,
-    isCompactScreen: boolean
+    isSmallSize: boolean
 }
 
 function MessageFooter(props: MessageFooterProps) {
-    const { session, run, listParams, item, onSelect, isSelected, onUnselect, isCompactScreen } = props;
+    const { session, run, listParams, item, onSelect, isSelected, onUnselect, isSmallSize } = props;
     const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
 
     return <div className="mt-3 mb-8 ">
@@ -716,7 +796,7 @@ function MessageFooter(props: MessageFooterProps) {
             </div>
         </div>
 
-        {isCompactScreen && <div className={`relative mt-4 mb-2 rounded-md  ${isSelected ? "border" : "bg-gray-50"}`} onClick={() => { if (!isSelected) { onSelect() } }}>
+        {isSmallSize && <div className={`relative mt-4 mb-2 rounded-md  ${isSelected ? "border" : "bg-gray-50"}`} onClick={() => { if (!isSelected) { onSelect() } }}>
             {/* { isSelected && <Button variant="ghost" size="icon_xs" className="text-muted-foreground absolute top-2 right-2" onClick={onUnselect}><ChevronsDownUp /></Button>} */}
             <CommentThread
                 session={session}
