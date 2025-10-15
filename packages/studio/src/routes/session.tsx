@@ -299,7 +299,7 @@ function SessionPage() {
                                         </Button>}
                                     </div> }
 
-                                    <div className={`relative`} style={{ marginLeft: `${styles.padding}px`, width: `${styles.textWidth}px` }}>
+                                    <div className={`relative`} style={{ marginLeft: `${styles.padding}px`, width: `${styles.textWidth}px` }} data-item onClick={() => { setselectedItemId(item.id) }}>
 
                                         {content}
 
