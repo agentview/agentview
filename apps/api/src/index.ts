@@ -1207,7 +1207,6 @@ app.openapi(runWatchRoute, async (c) => {
   const { sessionId } = c.req.param()
 
   const session = await requireSession(sessionId, auth)
-
   const lastRun = getLastRun(session)
 
   return streamSSE(c, async (stream) => {
@@ -1216,20 +1215,23 @@ app.openapi(runWatchRoute, async (c) => {
       running = false;
     });
 
-    // Always start with session.state in_progress
+    // let's start with sending full run snapshot
     await stream.writeSSE({
-      data: JSON.stringify({ state: lastRun?.state }),
-      event: 'state',
+      data: JSON.stringify(lastRun ?? null),
+      event: 'run.snapshot',
     });
 
-    let sentItemIds: string[] = [];
+    // close stream for runs that are not in_progress
+    if (lastRun?.state !== 'in_progress') {
+      return;
+    }
+
+    // let sentItemIds: string[] = lastRun.sessionItems.map((item) => item.id) ?? [];
+    let previousRun = lastRun;
 
     /**
-     * 
      * POLLING HERE
-     * 
      * Soon we'll need to create a proper messaging, when some LLM API will be streaming characters then even NOTIFY/LISTEN won't make it performance-wise.
-     * 
      */
     while (running) {
       const session = await requireSession(sessionId, auth)
@@ -1239,31 +1241,47 @@ app.openapi(runWatchRoute, async (c) => {
         throw new Error('unreachable');
       }
 
+      // check for new items
       const items = getAllSessionItems(session)
+      const freshItems = items.filter(i => !previousRun.sessionItems.find(i2 => i2.id === i.id))
 
-      for (const item of items) {
-        if (sentItemIds.includes(item.id)) {
-          continue;
-        }
-        sentItemIds.push(item.id)
+      for (const item of freshItems) {
         await stream.writeSSE({
           data: JSON.stringify(item),
-          event: 'item',
+          event: 'item.created',
         });
       }
 
+      previousRun = {
+        ...previousRun,
+        sessionItems: [...previousRun.sessionItems, ...freshItems],
+      }
+
+      // check for state change
+      const runFieldsToCompare = ['id', 'createdAt', 'finishedAt', 'sessionId', 'versionId', 'state', 'failReason', 'version', 'metadata'] as const;
+      const changedFields: Partial<typeof lastRun> = {};
+      
+      for (const field of runFieldsToCompare) {
+        if (JSON.stringify(previousRun[field]) !== JSON.stringify(lastRun[field])) {
+          changedFields[field] = lastRun[field];
+        }
+      }
+
+      if (Object.keys(changedFields).length > 0) {
+        await stream.writeSSE({
+          data: JSON.stringify(changedFields),
+          event: 'run.state',
+        });
+
+        // Update previousRun with the new values (excluding sessionItems)
+        previousRun = {
+          ...previousRun,
+          ...changedFields,
+        };
+      }
+      
       // End if run is no longer in_progress
       if (lastRun?.state !== 'in_progress') {
-        const data: { state: string, failReason?: any } = { state: lastRun?.state }
-
-        if (lastRun?.state === 'failed') {
-          data.failReason = lastRun.failReason
-        }
-
-        await stream.writeSSE({
-          data: JSON.stringify(data),
-          event: 'state',
-        });
         break;
       }
 

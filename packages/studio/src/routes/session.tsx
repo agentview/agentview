@@ -25,7 +25,6 @@ import { Loader } from "~/components/Loader";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import type { BaseError } from "~/lib/errors";
 import { DisplayProperties } from "~/components/DisplayProperties";
-import { cn } from "~/lib/utils";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
@@ -51,25 +50,34 @@ function Component() {
     return <SessionPage key={loaderData.session.id} />
 }
 
-
-
-
-
 function SessionPage() {
     const loaderData = useLoaderData<typeof loader>();
     const revalidator = useRevalidator();
     const navigate = useNavigate();
     const { user } = useSessionContext();
+
+    const [watchedRun, setWatchedRun] = useState<Run | undefined>(undefined)
+
+    // Session with applied local watched run
+    const session = {
+        ...loaderData.session,
+        runs: loaderData.session.runs.map((run: Run) => {
+            if (run.id === watchedRun?.id) {
+                return watchedRun
+            }
+            return run;
+        })
+    }
+
+    console.log('session', session)
+
     const listParams = loaderData.listParams;
-
-    const [session, setSession] = useState(loaderData.session)
-    const [isStreaming, setStreaming] = useState(false)
-
-    const [searchParams,] = useSearchParams();
     const activeItems = getAllSessionItems(session, { activeOnly: true })
-    const lastRun = getLastRun(session)
+    const lastRun =  getLastRun(session)
 
     const agentConfig = requireAgentConfig(config, session.agent);
+
+    const searchParams = new URLSearchParams(window.location.search);
     const selectedItemId = activeItems.find((a: any) => a.id === searchParams.get('itemId'))?.id ?? undefined;
 
     const setselectedItemId = (id: string | undefined) => {
@@ -98,25 +106,27 @@ function SessionPage() {
         navigate(`?${currentSearchParams.toString()}`, { replace: true });
     }
 
-    useEffect(() => {
-        apiFetch(`/api/sessions/${session.id}/seen`, {
-            method: 'POST',
-        }).then((data) => {
-            if (data.ok) {
-                revalidator.revalidate();
-            }
-            else {
-                console.error(data.error)
-            }
-        })
-    }, [])
+    console.log('SESSIONS render');
+
+    // useEffect(() => {
+    //     apiFetch(`/api/sessions/${session.id}/seen`, {
+    //         method: 'POST',
+    //     }).then((data) => {
+    //         if (data.ok) {
+    //             revalidator.revalidate();
+    //         }
+    //         else {
+    //             console.error(data.error)
+    //         }
+    //     })
+    // }, [])
 
     // temporary 
-    useEffect(() => {
-        if (!isStreaming) {
-            setSession(loaderData.session)
-        }
-    }, [loaderData.session])
+    // useEffect(() => {
+    //     if (!isStreaming) {
+    //         setSession(loaderData.session)
+    //     }
+    // }, [loaderData.session])
 
     useEffect(() => {
         if (lastRun?.state === 'in_progress') {
@@ -130,54 +140,89 @@ function SessionPage() {
                         credentials: 'include', // ensure cookies are sent
                     });
 
-                    setStreaming(true)
+                    // setStreaming(true)
 
                     for await (const event of parseSSE(response)) {
 
-                        setSession((currentSession) => {
-                            const lastRun = getLastRun(currentSession);
-                            if (!lastRun) { throw new Error("Unreachable: Last run not found") };
-
-                            let newRun: typeof lastRun;
-
-                            if (event.event === 'item') {
-                                const newItem = event.data;
-                                const newItemIndex = lastRun.sessionItems.findIndex((a: any) => a.id === newItem.id);
-
-                                newRun = {
-                                    ...lastRun,
-                                    sessionItems: newItemIndex === -1 ?
-                                        [...lastRun.sessionItems, newItem] : [
-                                            ...lastRun.sessionItems.slice(0, newItemIndex),
-                                            newItem
-                                        ]
+                        if (event.event === 'run.snapshot') {
+                            setWatchedRun(event.data)
+                        }
+                        else {
+                            setWatchedRun((prevWatchedRun) => {
+                                if (!prevWatchedRun) {
+                                    console.warn("This is probably error state.")
+                                    return prevWatchedRun
                                 }
-                            }
-                            else if (event.event === 'state') {
-                                newRun = {
-                                    ...lastRun,
-                                    ...event.data
+
+                                if (event.event === 'run.state') {
+                                    console.log('run.state', event.data)
+
+                                    return {
+                                        ...prevWatchedRun,
+                                        ...event.data
+                                    }
                                 }
-                            }
-                            else {
-                                throw new Error(`Unknown event type: ${event.event}`)
-                            }
+                                else if (event.event === 'item.created') {
+                                    console.log('item.created', event.data)
+                                    return {
+                                        ...prevWatchedRun,
+                                        sessionItems: [...prevWatchedRun.sessionItems, event.data]
+                                    }
+                                }
+                                else {
+                                    console.warn('Unknown event type', event.event)
+                                    throw new Error('Unknown event type')
+                                }
+                            })
+                        }
+                        
 
-                            return {
-                                ...currentSession,
-                                runs: currentSession.runs.map((run: any) =>
-                                    run.id === lastRun.id ? newRun : run
-                                )
-                            }
+                        // setSession((currentSession) => {
+                        //     const lastRun = getLastRun(currentSession);
+                        //     if (!lastRun) { throw new Error("Unreachable: Last run not found") };
 
-                        })
+                        //     let newRun: typeof lastRun;
+
+                        //     if (event.event === 'item') {
+                        //         const newItem = event.data;
+                        //         const newItemIndex = lastRun.sessionItems.findIndex((a: any) => a.id === newItem.id);
+
+                        //         newRun = {
+                        //             ...lastRun,
+                        //             sessionItems: newItemIndex === -1 ?
+                        //                 [...lastRun.sessionItems, newItem] : [
+                        //                     ...lastRun.sessionItems.slice(0, newItemIndex),
+                        //                     newItem
+                        //                 ]
+                        //         }
+                        //     }
+                        //     else if (event.event === 'state') {
+                        //         newRun = {
+                        //             ...lastRun,
+                        //             ...event.data
+                        //         }
+                        //     }
+                        //     else {
+                        //         throw new Error(`Unknown event type: ${event.event}`)
+                        //     }
+
+                        //     return {
+                        //         ...currentSession,
+                        //         runs: currentSession.runs.map((run: any) =>
+                        //             run.id === lastRun.id ? newRun : run
+                        //         )
+                        //     }
+
+                        // })
 
                     }
 
                 } catch (error) {
                     console.error(error)
                 } finally {
-                    setStreaming(false)
+                    setWatchedRun(undefined)
+                    revalidator.revalidate();
+                    // setStreaming(false)
                 }
             })()
         }
@@ -285,16 +330,7 @@ function SessionPage() {
                                             {content}
                                         </div>
 
-                                        {run.state === "in_progress" && <div className="text-muted-foreground mt-5">
-                                            <Loader />
-                                        </div>}
-
-                                        {run.state === "failed" && <div className="border rounded-md flex items-center gap-2 px-3 py-2 bg-gray-50 text-gray-700 text-sm my-2">
-                                            <AlertCircleIcon className="w-4 h-4 text-red-500" />
-                                            <span>{run.failReason?.message ?? "Unknown reason"}</span>
-                                        </div>}
-
-                                        {run.state !== "in_progress" && isLastRunItem && <MessageFooter
+                                        {isLastRunItem && run.state !== "in_progress" && <MessageFooter
                                             session={session}
                                             run={run}
                                             listParams={listParams}
@@ -304,6 +340,16 @@ function SessionPage() {
                                             onUnselect={() => { setselectedItemId(undefined) }}
                                             isSmallSize={styles.isSmallSize}
                                         />}
+
+
+                                        {isLastRunItem && run.state === "in_progress" && <div className="text-muted-foreground mt-5">
+                                            <Loader />
+                                        </div>}
+
+                                        {isLastRunItem && run.state === "failed" && <div className="border rounded-md flex items-center gap-2 px-3 py-2 bg-gray-50 text-gray-700 text-sm my-2">
+                                            <AlertCircleIcon className="w-4 h-4 text-red-500" />
+                                            <span>{run.failReason?.message ?? "Unknown reason"}</span>
+                                        </div>}
 
                                     </div>
                                 </div>,

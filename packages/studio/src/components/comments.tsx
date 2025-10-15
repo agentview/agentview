@@ -245,7 +245,6 @@ export function CommentsThread({ session, item, selected = false, onSelect }: Co
             (entries) => {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
-                        console.log('is intersecting')
                         apiFetch(`/api/sessions/${session.id}/items/${item.id}/seen`, {
                             method: 'POST',
                         }).then((data) => {
