@@ -10,7 +10,7 @@ import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/li
 import { type Run, type Session, type SessionItem } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
-import { AlertCircleIcon, ChevronDown, ChevronsDownUp, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, ThumbsDown, ThumbsUp, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
+import { AlertCircleIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, ThumbsDown, ThumbsUp, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig } from "~/types";
@@ -31,6 +31,8 @@ import z from "zod";
 import { Form as HookForm } from "~/components/ui/form";
 import { TagPill } from "~/components/TagPill";
 import { useRerender } from "~/hooks/useRerender";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from "~/components/ui/dropdown-menu";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<Session>(`/api/sessions/${params.id}`);
@@ -71,7 +73,7 @@ function SessionPage() {
 
     const listParams = loaderData.listParams;
     const activeItems = getAllSessionItems(session, { activeOnly: true })
-    const lastRun =  getLastRun(session)
+    const lastRun = getLastRun(session)
 
     const agentConfig = requireAgentConfig(config, session.agent);
 
@@ -231,7 +233,7 @@ function SessionPage() {
         <div className="flex-grow-1 border-r  flex flex-col">
             <Header className="py-1">
                 <HeaderTitle title={`Session ${session.handle}`} />
-                <ShareForm session={session} />
+                {session.client.simulatedBy === user.id && <ShareForm session={session} />}
             </Header>
             <div className="flex-1 overflow-y-auto">
 
@@ -382,14 +384,19 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
 
 function ShareForm({ session }: { session: Session }) {
     const fetcher = useFetcher();
-    if (session.client.isShared) {
-        return <div className="flex flex-row gap-1 items-center text-xs text-white bg-cyan-700 px-2 py-1 rounded-md font-medium"><UsersIcon className="size-3" />Shared</div>
-        // return <Badge>Public</Badge>
-    }
-
     return <fetcher.Form method="put" action={`/clients/${session.client.id}/share`}>
-        <input type="hidden" name="isShared" value="true" />
-        <Button variant="outline" size="sm" type="submit"><Share /> {fetcher.state === "submitting" ? "Making public..." : "Make public"}</Button>
+        <input type="hidden" name="isShared" value={session.client.isShared ? "false" : "true"} />
+        {/* <Button variant={session.client.isShared ? "default" : "outline"} className="bg-cyan-700" size="xs" type="submit">
+            <UsersIcon  /> {session.client.isShared ? "Shared" : "Share"}
+        </Button> */}
+        <Button variant={"outline"} size="xs" type="submit">
+            <UsersIcon fill={session.client.isShared ? "black" : "none"} stroke={session.client.isShared ? "none" : "black"} /> {session.client.isShared ? "Shared" : "Share"}
+        </Button>
+
+        {/* <Button variant={"outline"} size="xs" type="submit">
+            <UsersIcon />
+            {session.client.isShared ? "Shared" : "Share"}
+        </Button> */}
     </fetcher.Form>
 }
 
