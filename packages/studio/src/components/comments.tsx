@@ -251,24 +251,16 @@ export function CommentsThread({ session, item, selected = false, onSelect }: Co
 
     useEffect(() => {
         const handlePointerDownOutside = (e: PointerEvent) => {
-            // console.log('############# pointerdown outside')
             const target = e.target as Element | null;
 
             if (!target) return;
-
-            // console.log('target', target)
 
             const isClickingItem = target.closest('[data-item]');
             const isClickingComment = target.closest('[data-comment]');
             const isClickingPortal = target.closest('[data-radix-popper-content-wrapper]')
 
-            // console.log("isClickingItem", isClickingItem)
-            // console.log("isClickingComment", isClickingComment)
-            // console.log("isClickingPortal", isClickingPortal)
-
             // Deselect if clicking outside both item and comment areas
             if (!isClickingItem && !isClickingComment && !isClickingPortal) {
-                console.log('on select null')
                 onSelect(null);
             }
         };

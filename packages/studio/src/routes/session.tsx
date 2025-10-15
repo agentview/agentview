@@ -299,9 +299,11 @@ function SessionPage() {
                                         </Button>}
                                     </div>}
 
-                                    <div className={`relative`} style={{ marginLeft: `${styles.padding}px`, width: `${styles.textWidth}px` }} data-item onClick={() => { setselectedItemId(item.id) }}>
+                                    <div className={`relative`} style={{ marginLeft: `${styles.padding}px`, width: `${styles.textWidth}px` }}>
 
-                                        {content}
+                                        <div data-item onClick={() => { setselectedItemId(item.id) }}>
+                                            {content}
+                                        </div>
 
                                         {run.state === "in_progress" && <div className="text-muted-foreground mt-5">
                                             <Loader />
