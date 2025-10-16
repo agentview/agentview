@@ -10,7 +10,7 @@ import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/li
 import { type Run, type Session, type SessionItem } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
-import { AlertCircleIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
+import { AlertCircleIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, ThumbsDown, ThumbsUp, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig, ScoreConfig } from "~/types";
@@ -557,8 +557,12 @@ function MessageFooter(props: MessageFooterProps) {
                         open={scoreDialogOpen}
                         onOpenChange={setScoreDialogOpen}
                     />
-                    {/* <div className="bg-[#E9DDF3] text-black/65 h-[28px] border rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><WrenchIcon className="size-4" /><div>Test score</div> <ChevronDown className="size-4" /></div> */}
-                    <div className="bg-[#E9DDF3] text-black/65 h-[20px] rounded-md flex items-center justify-center px-2 text-xs font-medium gap-1"><div>Good, not Great</div> <ChevronDown className="size-3" /></div>
+                    <div className="bg-[#E9DDF3] text-black/65 h-[28px] border rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><div>Test score</div> <ChevronDown className="size-4" /></div>
+                    <div className="bg-[#DBE6DD] text-black/65 h-[28px] border rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><ThumbsUp className="size-4" /><div>Like</div></div>
+                    <div className="bg-white text-[#68776B] h-[28px] border rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><ThumbsUp className="size-4" /><div>Like</div></div>
+
+
+                    {/* <div className="bg-[#E9DDF3] text-black/65 h-[20px] rounded-md flex items-center justify-center px-2 text-xs font-medium gap-1"><div>Good, not Great</div> <ChevronDown className="size-3" /></div> */}
                     {/* <div className="bg-[#E9DDF3] text-black/65 h-[28px] border rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1">
                         <div>Good, not Great</div> <ChevronDown className="size-4" />
                     </div> */}
