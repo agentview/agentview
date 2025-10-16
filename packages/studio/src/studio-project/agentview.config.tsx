@@ -42,7 +42,7 @@ export default defineConfig({
                             schema: z.boolean(),
                             inputComponent: (props) => <ToggleGroupControl {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} collapseOnSelect />,
                             displayComponent: (props) => <OptionDisplay {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} />,
-                            actionBarComponent: singleControlForm((props) => <ToggleGroupControl {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} collapseOnSelect />)
+                            actionBarComponent: (props) => <ToggleGroupControl {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} collapseOnSelect />
                         },
                         {
                             name: "user_reaction2",

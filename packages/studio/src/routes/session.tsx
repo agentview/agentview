@@ -694,14 +694,20 @@ function ActionBarScoreForm({ session, item, scoreConfig }: { session: Session, 
     const { user } = useSessionContext();
     const fetcher = useFetcher();
     const revalidator = useRevalidator();
-    const [error, setError] = useState<BaseError | undefined>(undefined);
 
     // Get the current score value for this user
-    const currentScore = item.scores?.find(
+    const score = item.scores?.find(
         score => score.name === scoreConfig.name && 
                  score.createdBy === user.id && 
                  !score.deletedAt
     );
+
+    const [value, setValue] = useState<any>(score?.value ?? null);
+
+    // external data sync
+    useEffect(() => {
+        setValue(score?.value ?? null);
+    }, [score?.value]);
 
     const ActionBarComponent = scoreConfig.actionBarComponent;
 
@@ -709,11 +715,9 @@ function ActionBarScoreForm({ session, item, scoreConfig }: { session: Session, 
         return null;
     }
 
-    const isRunning = fetcher.state !== 'idle';
+    // const isRunning = fetcher.state !== 'idle';
 
-    const submit = async (value: any) => {
-        setError(undefined);
-        
+    const submit = async (value: any) => {        
         const payload = [{ name: scoreConfig.name, value }];
 
         // @ts-ignore - fetcher.submit accepts JSON payload
@@ -724,30 +728,23 @@ function ActionBarScoreForm({ session, item, scoreConfig }: { session: Session, 
         });
     };
 
-    const cancel = () => {
-        // Cancel functionality if needed
-        setError(undefined);
-    };
-
     // Handle fetcher errors
     useEffect(() => {
         if (fetcher.state === 'idle' && fetcher.data?.ok === false) {
-            setError(fetcher.data.error);
+            console.error(fetcher.data.error);
+            alert(fetcher.data.error.message);
         } else if (fetcher.state === 'idle' && fetcher.data?.ok === true) {
-            setError(undefined);
             revalidator.revalidate();
         }
     }, [fetcher.state, fetcher.data]);
 
-    return (
+    return (<form method="post" onSubmit={(e) => { e.preventDefault(); submit(value); }}>
         <ActionBarComponent
-            value={currentScore?.value}
-            submit={submit}
-            cancel={cancel}
-            isRunning={isRunning}
-            error={error}
-            schema={scoreConfig.schema}
+            value={value}
+            onChange={submit}
+            name={scoreConfig.name}
         />
+    </form>
     );
 }
 
