@@ -36,7 +36,7 @@ function Component() {
     const agentConfig = requireAgentConfig(config, session.agent);
     const runConfig = requireRunConfig(agentConfig, run.sessionItems[0].type, run.sessionItems[0].role);
 
-    const close = () => {                
+    const close = () => {
         navigate(`../?${toQueryParams(listParams)}`);
     }
 
@@ -100,12 +100,12 @@ function Component() {
                                 : "-"}
                         </PropertyListTextValue>
                     </PropertyListItem>
-                    { runConfig.displayProperties && <DisplayProperties displayProperties={runConfig.displayProperties} inputArgs={{ session, run }} /> }
+                    {runConfig.displayProperties && <DisplayProperties displayProperties={runConfig.displayProperties} inputArgs={{ session, run }} />}
 
 
                 </PropertyList>
 
-                <div className="mt-8 border p-4 rounded-lg flex flex-row gap-4 items-center">  
+                <div className="mt-8 border p-4 rounded-lg flex flex-row gap-4 items-center">
 
                     <div>
                         <div className="text-sm font-medium">Debug in console</div>
@@ -113,19 +113,19 @@ function Component() {
                             See request / response of your Agent API call, full error details or metadata.
                         </div>
                     </div>
-                        <Button variant="default" onClick={() => {
-                    console.log({
-                        id: run.id,
-                        createdAt: run.createdAt,
-                        finishedAt: run.finishedAt,
-                        status: run.status,
-                        version: run.version,
-                        request: run.responseData?.request,
-                        response: run.responseData?.response,
-                        metadata: run.metadata,
-                        error: run.failReason,
-                    })
-                }}>Print to console</Button>
+                    <Button variant="default" onClick={() => {
+                        console.log({
+                            id: run.id,
+                            createdAt: run.createdAt,
+                            finishedAt: run.finishedAt,
+                            status: run.status,
+                            version: run.version,
+                            request: run.responseData?.request,
+                            response: run.responseData?.response,
+                            metadata: run.metadata,
+                            error: run.failReason,
+                        })
+                    }}>Print to console</Button>
 
                 </div>
 
@@ -146,7 +146,7 @@ function Component() {
                 <p className="text-sm text-muted-foreground">See request / response of your Agent API call, full error details or metadata click the button below.</p>
 
                 </div> */}
-                
+
             </DialogBody>
             {/* <DialogFooter>
                 <Button variant="default" onClick={close}>Close</Button>
