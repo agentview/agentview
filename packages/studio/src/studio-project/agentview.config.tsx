@@ -48,7 +48,7 @@ export default defineConfig({
                             name: "user_reaction2",
                             title: "Test",
                             schema: z.string(),
-                            inputComponent: (props) => <SelectControl {...props} options={[{ value: "one", label: "One" }, { value: "two", label: "Two" }, { value: "three", label: "Three" }, { value: "four", label: "Four" }, { value: "five", label: "Five" }]} />,
+                            inputComponent: (props) => <SelectControl {...props} options={[{ value: "one", label: "One", icon: <ThumbsUp /> }, { value: "two", label: "Two", icon: <ThumbsUp /> }, { value: "three", label: "Three", icon: <ThumbsUp /> }, { value: "four", label: "Four", icon: <ThumbsUp /> }, { value: "five", label: "Five", icon: <ThumbsUp /> }]} />,
                             displayComponent: (props) => <OptionDisplay {...props} options={[{ value: "one", label: "One" }, { value: "two", label: "Two" }, { value: "three", label: "Three" }, { value: "four", label: "Four" }, { value: "five", label: "Five" }]} />,
                         }
                     ]

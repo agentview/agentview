@@ -557,6 +557,12 @@ function MessageFooter(props: MessageFooterProps) {
                         open={scoreDialogOpen}
                         onOpenChange={setScoreDialogOpen}
                     />
+                    {/* <div className="bg-[#E9DDF3] text-black/65 h-[28px] border rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><WrenchIcon className="size-4" /><div>Test score</div> <ChevronDown className="size-4" /></div> */}
+                    <div className="bg-[#E9DDF3] text-black/65 h-[20px] rounded-md flex items-center justify-center px-2 text-xs font-medium gap-1"><div>Good, not Great</div> <ChevronDown className="size-3" /></div>
+                    {/* <div className="bg-[#E9DDF3] text-black/65 h-[28px] border rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1">
+                        <div>Good, not Great</div> <ChevronDown className="size-4" />
+                    </div> */}
+
                 </div>
 
                 <div className="flex flex-row  items-center text-sm">
@@ -697,9 +703,9 @@ function ActionBarScoreForm({ session, item, scoreConfig }: { session: Session, 
 
     // Get the current score value for this user
     const score = item.scores?.find(
-        score => score.name === scoreConfig.name && 
-                 score.createdBy === user.id && 
-                 !score.deletedAt
+        score => score.name === scoreConfig.name &&
+            score.createdBy === user.id &&
+            !score.deletedAt
     );
 
     const [value, setValue] = useState<any>(score?.value ?? null);
@@ -717,7 +723,7 @@ function ActionBarScoreForm({ session, item, scoreConfig }: { session: Session, 
 
     // const isRunning = fetcher.state !== 'idle';
 
-    const submit = async (value: any) => {        
+    const submit = async (value: any) => {
         const payload = [{ name: scoreConfig.name, value }];
 
         // @ts-ignore - fetcher.submit accepts JSON payload

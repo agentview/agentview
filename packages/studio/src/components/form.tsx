@@ -22,7 +22,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "./ui/form";
 import { Alert } from "./ui/alert";
-import { AlertCircleIcon, ArrowUpIcon, PauseIcon } from "lucide-react";
+import { AlertCircleIcon, ArrowUpIcon, ChevronDownIcon, PauseIcon } from "lucide-react";
 import { AlertDescription } from "./ui/alert";
 import { z } from "zod";
 import type { BaseError } from "~/lib/errors";
@@ -108,7 +108,7 @@ export const SelectControl = (props: ControlComponentProps<string> & { options: 
         <Select value={value ?? ""} onValueChange={(newValue) => {
             onChange(newValue === "" ? null : newValue);
         }}>
-            <SelectTrigger size="sm">
+            <SelectTrigger size="xs">
                 <SelectValue placeholder={placeholder} />
             </SelectTrigger>
             <SelectContent>
