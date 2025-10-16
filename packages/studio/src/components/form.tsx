@@ -31,7 +31,6 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } fro
 import { Badge } from "./ui/badge";
 import { TagPill } from "./TagPill";
 
-
 export type Option<T extends string | number | boolean> = {
     value: T;
     icon?: React.ReactNode;
@@ -102,78 +101,12 @@ export function OptionDisplay<T extends string | number | boolean = string>({ va
     );
 }
 
-// export type BooleanToggleGroupOptions = {
-//     trueLabel?: string;
-//     trueIcon?: React.ReactNode;
-//     falseLabel?: string;
-//     falseIcon?: React.ReactNode;
-// }
+export const SelectControl = (props: ControlComponentProps<string> & { options: Option<string>[], placeholder?: string }) => {
+    const { value, onChange, options, placeholder = "Select an option..." } = props;
 
-// export type BooleanToggleGroupControlProps = ControlComponentProps<boolean> & BooleanToggleGroupOptions
-
-// export const BooleanToggleGroupControl = ({ value, onChange, trueLabel, trueIcon, falseLabel, falseIcon }: BooleanToggleGroupControlProps) => {
-//     const options: ToggleGroupControlOption[] = [
-//         {
-//             value: "true",
-//             label: trueLabel,
-//             icon: trueIcon
-//         },
-//         {
-//             value: "false",
-//             label: falseLabel,
-//             icon: falseIcon
-//         }
-//     ];
-
-//     const stringValue = value === true ? "true" : value === false ? "false" : null;
-
-//     return (
-//         <ToggleGroupControl
-//             value={stringValue}
-//             onChange={(newValue) => {
-//                 // onChange(newValue === "true");
-//                 if (newValue === null) {
-//                     onChange(null);
-//                 } else {
-//                     onChange(newValue === "true");
-//                 }
-//             }}
-//             options={options}
-//         />
-//     );
-// }
-
-// export function BooleanToggleGroupDisplay({ value, trueLabel, trueIcon, falseLabel, falseIcon }: { value: boolean } & BooleanToggleGroupOptions) {
-//     const options: ToggleGroupControlOption[] = [
-//         {
-//             value: "true",
-//             label: trueLabel,
-//             icon: trueIcon
-//         },
-//         {
-//             value: "false",
-//             label: falseLabel,
-//             icon: falseIcon
-//         }
-//     ];
-//     return <ToogleGroupDisplay value={value ? "true" : "false"} options={options} />
-// }
-
-export type SelectControlOption = {
-    value: string;
-    label?: string;
-    icon?: React.ReactNode;
-}
-
-export type SelectControlProps = ControlComponentProps<string | undefined> & {
-    options: SelectControlOption[];
-    placeholder?: string;
-}
-
-export const SelectControl = ({ value, onChange, options, placeholder = "Select an option..." }: SelectControlProps) => {
     return (
         <Select value={value ?? ""} onValueChange={(newValue) => {
-            onChange(newValue === "" ? undefined : newValue);
+            onChange(newValue === "" ? null : newValue);
         }}>
             <SelectTrigger size="sm">
                 <SelectValue placeholder={placeholder} />
@@ -189,38 +122,6 @@ export const SelectControl = ({ value, onChange, options, placeholder = "Select 
         </Select>
     );
 }
-
-export function SelectDisplay({ value, options }: { value: string | undefined, options: SelectControlOption[] }) {
-    const option = options.find(opt => opt.value === value);
-
-    if (!option || value === undefined) {
-        return <div className="text-sm text-muted-foreground">Not selected</div>;
-    }
-
-    return (
-        <Badge variant="default" className="text-xs flex items-center gap-1">
-            {option.icon}
-            {option.label ?? option.value}
-        </Badge>
-    );
-}
-
-
-// export const SelectInput: React.ComponentType<FormInputProps<string | undefined>> = ({ value, onChange, name, id, options }) => {
-//     return <Select onValueChange={(value) => onChange(value === "" ? undefined : value)} defaultValue={value}>
-//         <SelectTrigger>
-//             <SelectValue placeholder="Pick option" />
-//         </SelectTrigger>
-//         <SelectContent>
-//             {options.items.map((item: any) => {
-//                 const value = typeof item === 'string' ? item : item.value;
-//                 const label = typeof item === 'string' ? item : (item.label ?? item.value)
-
-//                 return <SelectItem value={item.value}>{item.label}</SelectItem>
-//             })}
-//         </SelectContent>
-//     </Select>
-// }
 
 
 
