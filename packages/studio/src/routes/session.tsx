@@ -516,6 +516,62 @@ export const sessionRoute: RouteObject = {
 }
 
 
+type MessageFooterProps = {
+    session: Session,
+    run: Run,
+    listParams: ReturnType<typeof getListParams>,
+    item: SessionItem,
+    onSelect: () => void,
+    isSelected: boolean,
+    onUnselect: () => void,
+    isSmallSize: boolean
+}
+
+function MessageFooter(props: MessageFooterProps) {
+    const { session, run, listParams, item, onSelect, isSelected, onUnselect, isSmallSize } = props;
+    const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
+
+    return <div className="mt-3 mb-8 ">
+        <div>
+            <div className="text-xs flex justify-between gap-2 items-start">
+                <div className="flex flex-row flex-wrap gap-1.5 items-center">
+                    <LikeWidget />
+                    <Button variant="outline" size="xs" asChild>
+                        <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: item.id })}`}>
+                            <MessageCirclePlus />Comment
+                        </Link>
+                    </Button>
+                    <ScoreDialog
+                        session={session}
+                        item={item}
+                        open={scoreDialogOpen}
+                        onOpenChange={setScoreDialogOpen}
+                    />
+                </div>
+
+                <div className="flex flex-row  items-center text-sm">
+                    <Button variant="ghost" size="xs" className="text-muted-foreground" asChild>
+                        <Link to={`/sessions/${session.handle}/runs/${run.id}?${toQueryParams(listParams)}`}><WrenchIcon className="size-4" />Run</Link>
+                    </Button>
+                </div>
+            </div>
+        </div>
+
+        {isSmallSize && <div className={`relative mt-4 mb-2`}>
+            <CommentsThread
+                item={item}
+                session={session}
+                selected={isSelected}
+                small={true}
+                singleLineMessageHeader={true}
+                onSelect={onSelect}
+            />
+        </div>}
+
+    </div>
+}
+
+
 function LikeWidget() {
     return <div className="flex flex-row border rounded-md px-1.5 h-[28px] items-center">
         <ThumbsUp className="size-4" />
@@ -630,57 +686,8 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
     );
 }
 
-type MessageFooterProps = {
-    session: Session,
-    run: Run,
-    listParams: ReturnType<typeof getListParams>,
-    item: SessionItem,
-    onSelect: () => void,
-    isSelected: boolean,
-    onUnselect: () => void,
-    isSmallSize: boolean
+
+function ActionBarScoreForm({ session, item, scoreConfig }: { session: Session, item: SessionItem, scoreConfig: ScoreConfig }) {
+    return <div className="w-[100px] h-[28px] bg-red-950 text-white flex items-center justify-center">Test</div>
 }
 
-function MessageFooter(props: MessageFooterProps) {
-    const { session, run, listParams, item, onSelect, isSelected, onUnselect, isSmallSize } = props;
-    const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
-
-    return <div className="mt-3 mb-8 ">
-        <div>
-            <div className="text-xs flex justify-between gap-2 items-start">
-                <div className="flex flex-row flex-wrap gap-1.5 items-center">
-                    <LikeWidget />
-                    <Button variant="outline" size="xs" asChild>
-                        <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: item.id })}`}>
-                            <MessageCirclePlus />Comment
-                        </Link>
-                    </Button>
-                    <ScoreDialog
-                        session={session}
-                        item={item}
-                        open={scoreDialogOpen}
-                        onOpenChange={setScoreDialogOpen}
-                    />
-                </div>
-
-                <div className="flex flex-row  items-center text-sm">
-                    <Button variant="ghost" size="xs" className="text-muted-foreground" asChild>
-                        <Link to={`/sessions/${session.handle}/runs/${run.id}?${toQueryParams(listParams)}`}><WrenchIcon className="size-4" />Run</Link>
-                    </Button>
-                </div>
-            </div>
-        </div>
-
-        {isSmallSize && <div className={`relative mt-4 mb-2`}>
-            <CommentsThread
-                item={item}
-                session={session}
-                selected={isSelected}
-                small={true}
-                singleLineMessageHeader={true}
-                onSelect={onSelect}
-            />
-        </div>}
-
-    </div>
-}

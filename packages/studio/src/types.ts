@@ -1,20 +1,9 @@
 import type { RouteObject } from "react-router";
 import type { BaseScoreConfig, BaseSessionItemConfig, BaseAgentConfig, BaseConfig, BaseRunConfig } from "./lib/shared/configTypes";
 import type { Run, Session } from "./lib/shared/apiTypes";
-import type { z } from "zod";
+import { z, type ZodType } from "zod";
 import type { BaseError } from "./lib/errors";
 
-export type FormInputProps<T=any> = {
-  id: string,
-  name: string,
-  value: T,
-  onChange: (value: T) => void,
-  options?: any
-}
-
-export type DisplayComponentProps<T=any> = {
-  value: T,
-}
 
 export type CustomRoute = {
   route: RouteObject;
@@ -22,17 +11,28 @@ export type CustomRoute = {
   title: React.ReactNode,
 }
 
-export type DisplayProperty<InputArgsT=any> = {
-  title: string;
-  value: (args: InputArgsT) => React.ReactNode;
+
+export type DisplayComponentProps<T = any> = {
+  value: T,
 }
 
-export type FormComponentProps = {
-  submit: (value: any) => void,
+export type DisplayProperty<TInputArgs = any> = {
+  title: string;
+  value: (args: TInputArgs) => React.ReactNode;
+}
+
+/**
+ * This is generic type:
+ * - for "new item" / "new session" form after successful submit, AgentView already takes action (redirect or form reset). In that case submit success callback won't be called and value will be always undefined.
+ * - for scores it's a bit different, value can be defined, it can come from external source (e.g. from API response), submit success callback might be also necessary.
+ */
+export type FormComponentProps<TSchema extends z.ZodTypeAny> = {
+  value: z.infer<TSchema> | undefined, 
+  submit: (value: z.infer<TSchema> | undefined) => Promise<void>,
   cancel: () => void,
   isRunning: boolean,
   error?: BaseError,
-  schema: z.ZodTypeAny,
+  schema: TSchema,
 }
 
 export type FormComponent = React.ComponentType<FormComponentProps>;
@@ -47,11 +47,11 @@ export type ControlComponentProps<TValue> = {
 
 export type ControlComponent<TValue> = React.ComponentType<ControlComponentProps<TValue>>;
 
-export type ScoreConfig<TValue=any> = BaseScoreConfig & {
+export type ScoreConfig<TValue = any> = BaseScoreConfig & {
   title?: string;
   inputComponent: ControlComponent<TValue>;
   displayComponent?: React.ComponentType<{ value: TValue }>;
-  actionBarComponent?: ControlComponent<TValue>;
+  actionBarComponent?: FormComponent;
 }
 
 export type SessionItemConfig = BaseSessionItemConfig<ScoreConfig> & {
