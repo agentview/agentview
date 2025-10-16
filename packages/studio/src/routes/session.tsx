@@ -10,10 +10,10 @@ import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/li
 import { type Run, type Session, type SessionItem } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
-import { AlertCircleIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, ThumbsDown, ThumbsUp, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
+import { AlertCircleIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
-import type { SessionItemConfig, AgentConfig } from "~/types";
+import type { SessionItemConfig, AgentConfig, ScoreConfig } from "~/types";
 import { AVFormError, AVFormField } from "~/components/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/ItemsWithCommentsLayout";
@@ -531,11 +531,21 @@ function MessageFooter(props: MessageFooterProps) {
     const { session, run, listParams, item, onSelect, isSelected, onUnselect, isSmallSize } = props;
     const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
 
+    const allScoreConfigs = getAllScoreConfigs(session, item);
+    const actionBarScores = allScoreConfigs.filter(scoreConfig => scoreConfig.actionBarComponent);
+
     return <div className="mt-3 mb-8 ">
         <div>
             <div className="text-xs flex justify-between gap-2 items-start">
                 <div className="flex flex-row flex-wrap gap-1.5 items-center">
-                    <LikeWidget />
+                    {actionBarScores.map((scoreConfig) => (
+                        <ActionBarScoreForm
+                            key={scoreConfig.name}
+                            session={session}
+                            item={item}
+                            scoreConfig={scoreConfig}
+                        />
+                    ))}
                     <Button variant="outline" size="xs" asChild>
                         <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: item.id })}`}>
                             <MessageCirclePlus />Comment
@@ -572,13 +582,6 @@ function MessageFooter(props: MessageFooterProps) {
 }
 
 
-function LikeWidget() {
-    return <div className="flex flex-row border rounded-md px-1.5 h-[28px] items-center">
-        <ThumbsUp className="size-4" />
-        <div className="border-l h-full mx-1.5" />
-        <ThumbsDown className="size-4" />
-    </div>
-}
 
 function getAllScoreConfigs(session: Session, item: SessionItem) {
     const agentConfig = requireAgentConfig(config, session.agent);
@@ -688,6 +691,63 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
 
 
 function ActionBarScoreForm({ session, item, scoreConfig }: { session: Session, item: SessionItem, scoreConfig: ScoreConfig }) {
-    return <div className="w-[100px] h-[28px] bg-red-950 text-white flex items-center justify-center">Test</div>
+    const { user } = useSessionContext();
+    const fetcher = useFetcher();
+    const revalidator = useRevalidator();
+    const [error, setError] = useState<BaseError | undefined>(undefined);
+
+    // Get the current score value for this user
+    const currentScore = item.scores?.find(
+        score => score.name === scoreConfig.name && 
+                 score.createdBy === user.id && 
+                 !score.deletedAt
+    );
+
+    const ActionBarComponent = scoreConfig.actionBarComponent;
+
+    if (!ActionBarComponent) {
+        return null;
+    }
+
+    const isRunning = fetcher.state !== 'idle';
+
+    const submit = async (value: any) => {
+        setError(undefined);
+        
+        const payload = [{ name: scoreConfig.name, value }];
+
+        // @ts-ignore - fetcher.submit accepts JSON payload
+        fetcher.submit(payload, {
+            method: 'put',
+            action: `/sessions/${session.id}/items/${item.id}/scores`,
+            encType: 'application/json'
+        });
+    };
+
+    const cancel = () => {
+        // Cancel functionality if needed
+        setError(undefined);
+    };
+
+    // Handle fetcher errors
+    useEffect(() => {
+        if (fetcher.state === 'idle' && fetcher.data?.ok === false) {
+            setError(fetcher.data.error);
+        } else if (fetcher.state === 'idle' && fetcher.data?.ok === true) {
+            setError(undefined);
+            revalidator.revalidate();
+        }
+    }, [fetcher.state, fetcher.data]);
+
+    return (
+        <ActionBarComponent
+            value={currentScore?.value}
+            submit={submit}
+            cancel={cancel}
+            isRunning={isRunning}
+            error={error}
+            schema={scoreConfig.schema}
+        />
+    );
 }
 

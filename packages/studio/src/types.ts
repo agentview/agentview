@@ -27,7 +27,7 @@ export type DisplayProperty<TInputArgs = any> = {
  * - for scores it's a bit different, value can be defined, it can come from external source (e.g. from API response), submit success callback might be also necessary.
  */
 export type FormComponentProps<TSchema extends z.ZodTypeAny> = {
-  value: z.infer<TSchema> | undefined, 
+  value?: z.infer<TSchema> | undefined, 
   submit: (value: z.infer<TSchema> | undefined) => Promise<void>,
   cancel: () => void,
   isRunning: boolean,
