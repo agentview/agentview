@@ -5,7 +5,7 @@ export function getLastRun(session: Session) {
 }
 
 export function getActiveRuns(session: Session) {
-  return session.runs.filter((run, index) => run.state !== 'failed' || index === session.runs.length - 1)
+  return session.runs.filter((run, index) => run.status !== 'failed' || index === session.runs.length - 1)
 }
 
 export function getAllSessionItems(session: Session, options?: { activeOnly?: boolean }) {

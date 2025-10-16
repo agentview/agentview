@@ -120,7 +120,7 @@ function SessionPage() {
     }, [])
 
     useEffect(() => {
-        if (lastRun?.state === 'in_progress') {
+        if (lastRun?.status === 'in_progress') {
 
             (async () => {
                 try {
@@ -174,7 +174,7 @@ function SessionPage() {
             })()
         }
 
-    }, [lastRun?.state])
+    }, [lastRun?.status])
 
     const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -277,7 +277,7 @@ function SessionPage() {
                                             {content}
                                         </div>
 
-                                        {isLastRunItem && run.state !== "in_progress" && <MessageFooter
+                                        {isLastRunItem && run.status !== "in_progress" && <MessageFooter
                                             session={session}
                                             run={run}
                                             listParams={listParams}
@@ -289,11 +289,11 @@ function SessionPage() {
                                         />}
 
 
-                                        {isLastRunItem && run.state === "in_progress" && <div className="text-muted-foreground mt-5">
+                                        {isLastRunItem && run.status === "in_progress" && <div className="text-muted-foreground mt-5">
                                             <Loader />
                                         </div>}
 
-                                        {isLastRunItem && run.state === "failed" && <div className="border rounded-md flex items-center gap-2 px-3 py-2 bg-gray-50 text-gray-700 text-sm my-2">
+                                        {isLastRunItem && run.status === "failed" && <div className="border rounded-md flex items-center gap-2 px-3 py-2 bg-gray-50 text-gray-700 text-sm my-2">
                                             <AlertCircleIcon className="w-4 h-4 text-red-500" />
                                             <span>{run.failReason?.message ?? "Unknown reason"}</span>
                                         </div>}
@@ -456,7 +456,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
                             submit={(values) => { submit(values, runConfigs[0].input) }}
                             schema={runConfigs[0].input.content}
                             error={error}
-                            isRunning={lastRun?.state === 'in_progress'}
+                            isRunning={lastRun?.status === 'in_progress'}
                         /></div>}
                 </div>
             ) : (
@@ -496,7 +496,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
                                     submit={(values) => { submit(values, inputConfig) }}
                                     schema={inputConfig.content}
                                     error={error}
-                                    isRunning={lastRun?.state === 'in_progress'}
+                                    isRunning={lastRun?.status === 'in_progress'}
                                 />}
 
                                 {!InputComponent && <div className="text-muted-foreground">No input component for session item: <code className="text-sm">{"{"} type: "{inputConfig.type}"{inputConfig.role ? `, role: "${inputConfig.role}"` : ""} {"}"}</code></div>}

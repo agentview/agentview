@@ -942,8 +942,8 @@ app.openapi(runsPOSTRoute, async (c) => {
 
   const lastRun = getLastRun(session)
 
-  if (lastRun?.state === 'in_progress') {
-    return c.json({ message: `Cannot add user item when session is in 'in_progress' state.` }, 400);
+  if (lastRun?.status === 'in_progress') {
+    return c.json({ message: `Cannot add user item when session is in 'in_progress' status.` }, 400);
   }
 
   const state = await fetchSessionState(sessionId);
@@ -953,7 +953,7 @@ app.openapi(runsPOSTRoute, async (c) => {
 
     const [newRun] = await tx.insert(runs).values({
       sessionId: sessionId,
-      state: 'in_progress',
+      status: 'in_progress',
     }).returning();
 
     const [userItem] = await tx.insert(sessionItems).values({
@@ -975,7 +975,7 @@ app.openapi(runsPOSTRoute, async (c) => {
    * This should go to the queue but for now is scheduled in HTTP Server process
    * 
    * Caveats:
-   * - when server goes down then state is not recovered (dangling `in_progress` run)
+   * - when server goes down then status is not recovered (dangling `in_progress` run)
    * 
    ***/
 
@@ -997,7 +997,7 @@ app.openapi(runsPOSTRoute, async (c) => {
 
     async function isStillRunning() {
       const currentRun = await db.query.runs.findFirst({ where: eq(runs.id, userItem.runId) });
-      if (currentRun && currentRun.state === 'in_progress') {
+      if (currentRun && currentRun.status === 'in_progress') {
         return true
       }
       return false
@@ -1104,7 +1104,7 @@ app.openapi(runsPOSTRoute, async (c) => {
 
       await db.update(runs)
         .set({
-          state: 'completed',
+          status: 'completed',
           finishedAt: new Date().toISOString(),
         })
         .where(eq(runs.id, userItem.runId));
@@ -1128,7 +1128,7 @@ app.openapi(runsPOSTRoute, async (c) => {
 
       await db.update(runs)
         .set({
-          state: 'failed',
+          status: 'failed',
           finishedAt: new Date().toISOString(),
           failReason
         })
@@ -1169,13 +1169,13 @@ app.openapi(runCancelRoute, async (c) => {
 
   const lastRun = getLastRun(session)
 
-  if (lastRun?.state !== 'in_progress') {
+  if (lastRun?.status !== 'in_progress') {
     return c.json({ message: 'Run is not in progress' }, 400);
   }
   // Set the run as failed
   await db.update(runs)
     .set({
-      state: 'failed',
+      status: 'failed',
       finishedAt: new Date().toISOString(),
       failReason: { message: 'Run was cancelled by user' }
     })
@@ -1222,7 +1222,7 @@ app.openapi(runWatchRoute, async (c) => {
     });
 
     // close stream for runs that are not in_progress
-    if (lastRun?.state !== 'in_progress') {
+    if (lastRun?.status !== 'in_progress') {
       return;
     }
 
@@ -1258,7 +1258,7 @@ app.openapi(runWatchRoute, async (c) => {
       }
 
       // check for state change
-      const runFieldsToCompare = ['id', 'createdAt', 'finishedAt', 'sessionId', 'versionId', 'state', 'failReason', 'version', 'metadata'] as const;
+      const runFieldsToCompare = ['id', 'createdAt', 'finishedAt', 'sessionId', 'versionId', 'status', 'failReason', 'version', 'metadata'] as const;
       const changedFields: Partial<typeof lastRun> = {};
       
       for (const field of runFieldsToCompare) {
@@ -1281,7 +1281,7 @@ app.openapi(runWatchRoute, async (c) => {
       }
       
       // End if run is no longer in_progress
-      if (lastRun?.state !== 'in_progress') {
+      if (lastRun?.status !== 'in_progress') {
         break;
       }
 

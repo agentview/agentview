@@ -79,7 +79,7 @@ export const runs = pgTable("runs", {
   finishedAt: timestamp("finished_at", { withTimezone: true, mode: "string" }),
   sessionId: uuid("session_id").notNull().references(() => sessions.id, { onDelete: 'cascade' }),
   versionId: uuid("version_id").references(() => versions.id), // version is nullable because when run is created, version is not yet created yet (no `run` was made)
-  state: varchar("state", { length: 255 }).notNull(),
+  status: varchar("status", { length: 255 }).notNull(),
   failReason: jsonb("fail_reason"),
   responseData: jsonb("response_data"),
   metadata: jsonb("metadata")

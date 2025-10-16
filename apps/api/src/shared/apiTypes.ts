@@ -108,7 +108,7 @@ export const RunSchema = z.object({
     finishedAt: z.iso.date().nullable(),
     sessionId: z.string(),
     versionId: z.string().nullable(),
-    state: z.string(),
+    status: z.string(),
     failReason: z.any().nullable(),
     responseData: z.any().nullable(),
     sessionItems: z.array(SessionItemSchema),

@@ -57,7 +57,7 @@ function Component() {
                     <PropertyListItem>
                         <PropertyListTitle>Status</PropertyListTitle>
                         <PropertyListTextValue>
-                            {run.state}
+                            {run.status}
                         </PropertyListTextValue>
                     </PropertyListItem>
 
@@ -118,7 +118,7 @@ function Component() {
                         id: run.id,
                         createdAt: run.createdAt,
                         finishedAt: run.finishedAt,
-                        state: run.state,
+                        status: run.status,
                         version: run.version,
                         request: run.responseData?.request,
                         response: run.responseData?.response,
