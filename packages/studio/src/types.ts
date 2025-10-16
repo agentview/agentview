@@ -28,7 +28,7 @@ export type DisplayProperty<TInputArgs = any> = {
  */
 export type FormComponentProps<TSchema extends z.ZodTypeAny> = {
   value?: z.infer<TSchema> | undefined, 
-  submit: (value: z.infer<TSchema> | undefined) => Promise<void>,
+  submit: (value: z.infer<TSchema> | null) => Promise<void>,
   cancel: () => void,
   isRunning: boolean,
   error?: BaseError,

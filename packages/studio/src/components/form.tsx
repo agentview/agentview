@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import type { ControlComponentProps } from "~/types";
+import type { ControlComponent, ControlComponentProps, FormComponentProps } from "~/types";
 import { Input } from "./ui/input";
 import {
     ToggleGroup,
@@ -422,4 +422,33 @@ export function UserMessageInputComponent(props: InputComponentProps & { placeho
         </InputGroup>
 
     </form>
+}
+
+
+
+export function SingleControlForm<TSchema extends z.ZodTypeAny>(props: FormComponentProps<TSchema> & { controlComponent: ControlComponent<z.infer<TSchema>> }) {
+    const [value, setValue] = useState<z.infer<TSchema> | null>(props.value ?? null);
+
+    useEffect(() => {
+        setValue(props.value ?? null);
+    }, [props.value]);
+
+    const Control = props.controlComponent;
+
+    return <form>
+        <Control
+            name="value"
+            value={value}
+            onChange={(newValue) => {
+                setValue(newValue);
+                props.submit(newValue);
+            }}
+        />
+    </form>
+}
+
+export function singleControlForm<TSchema extends z.ZodTypeAny>(controlComponent: ControlComponent<z.infer<TSchema>>) {
+    return (props: FormComponentProps<TSchema>) => {
+        return <SingleControlForm {...props} controlComponent={controlComponent} />
+    }
 }

@@ -9,6 +9,8 @@ async function action({ request, params }: ActionFunctionArgs): Promise<ActionRe
 
     const scores = await request.json();
 
+    console.log('scores', scores);
+
     const response = await apiFetch(`/api/sessions/${params.id}/items/${params.itemId}/scores`, {
         method: 'PUT',
         body: scores

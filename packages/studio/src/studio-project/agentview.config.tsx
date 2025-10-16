@@ -1,18 +1,20 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
-import { AVInput, ToggleGroupControl, UserMessageInputComponent, SelectControl, OptionDisplay } from "~/components/form";
+import { AVInput, ToggleGroupControl, UserMessageInputComponent, SelectControl, OptionDisplay, SingleControlForm, singleControlForm } from "~/components/form";
 import { ItemAssistantMessageComponent, ItemUserMessageComponent } from "~/components/display";
 import { ProductDisplay } from "./ProductDisplay";
 import { ProductSelect } from "./ProductSelect";
 import { ScoreBadge } from "./ScoreBadge";
 import { CustomPage } from "./CustomPage";
 import { Button } from "~/components/ui/button";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormField, FormItem, FormLabel, FormMessage, Form } from "~/components/ui/form";
 import { TagPill } from "~/components/TagPill";
+import type { FormComponent, FormComponentProps, ControlComponent } from "~/types";
+
 
 export default defineConfig({
     apiBaseUrl: "http://localhost:8080",
@@ -40,7 +42,7 @@ export default defineConfig({
                             schema: z.boolean(),
                             inputComponent: (props) => <ToggleGroupControl {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} collapseOnSelect />,
                             displayComponent: (props) => <OptionDisplay {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} />,
-                            actionBarComponent: (props) => <div className="w-[100px] h-[28px] bg-red-950 text-white flex items-center justify-center">Test</div>
+                            actionBarComponent: singleControlForm((props) => <ToggleGroupControl {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} collapseOnSelect />)
                         },
                         {
                             name: "user_reaction2",
