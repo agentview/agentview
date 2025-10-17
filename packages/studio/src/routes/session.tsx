@@ -29,7 +29,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { Form as HookForm } from "~/components/ui/form";
-import { TagPill } from "~/components/TagPill";
+import { Pill, PillButton } from "~/components/Pill";
 import { useRerender } from "~/hooks/useRerender";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from "~/components/ui/dropdown-menu";
@@ -371,7 +371,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
                         {versions.length === 0 && <span className="text-muted-foreground">-</span>}
                         {versions.length > 0 && <div className="flex flex-row gap-1">{versions.map(version => {
                             const versionString = (version?.version ?? "") + "." + (version?.env ?? "")
-                            return <TagPill key={versionString} size="sm">{versionString}</TagPill>
+                            return <Pill key={versionString} size="xs">{versionString}</Pill>
                         })}</div>}
                     </PropertyListTextValue>
                 </PropertyListItem>
@@ -560,15 +560,15 @@ function MessageFooter(props: MessageFooterProps) {
                     </div>
 
                     <div className="h-[32px] px-[6px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <TagPill size="xs" className="bg-gray-200 text-[13px] text-black">Third Option<ChevronDown /></TagPill>
+                        <Pill size="xs" className="bg-gray-200 text-[13px] text-black">Third Option<ChevronDown /></Pill>
                     </div>
 
                     <div className="h-[32px] px-[6px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <TagPill size="xs" className="bg-[#DBE6DD] text-[13px] text-black"><WrenchIcon />Third Option</TagPill>
+                        <Pill size="xs" className="bg-[#DBE6DD] text-[13px] text-black"><WrenchIcon />Third Option</Pill>
                     </div>
 
                     <div className="h-[32px] px-[6px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <TagPill size="xs" className="bg-[#E9DDF3] text-[13px] text-black">Third Option<ChevronDown /></TagPill>
+                        <Pill size="xs" className="bg-[#E9DDF3] text-[13px] text-black">Third Option<ChevronDown /></Pill>
                     </div>
 
                     <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
@@ -584,26 +584,48 @@ function MessageFooter(props: MessageFooterProps) {
 
 
                     <div className="flex flex-row items-center h-[32px]">
-                        <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsUpIcon className="size-4"/></div>
-                        <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsDownIcon className="size-4"/></div>
+                        <Button variant="ghost" size="sm"><ThumbsUpIcon className="size-4" /></Button>
+                        <Button variant="ghost" size="sm"><ThumbsDownIcon className="size-4" /></Button>
+                        {/* <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsUpIcon className="size-4"/></div>
+                        <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsDownIcon className="size-4"/></div> */}
                     </div>
+{/* 
+                    <Button variant="ghost" size="sm"><ThumbsUpIcon className="size-4" /></Button>
+                    <Button variant="ghost" size="sm"><ThumbsDownIcon className="size-4" /></Button> */}
 
                     {/* <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-md">
-                        <TagPill size="xs" className="bg-gray-200 text-[14px] px-1.5 text-black rounded-md h-[22px]"><ThumbsUpIcon className="size-4"/>Like</TagPill>
+                        <Pill size="xs" className="bg-gray-200 text-[14px] px-1.5 text-black rounded-md h-[22px]"><ThumbsUpIcon className="size-4"/>Like</Pill>
                     </div> */}
                     {/* <Button variant="ghost" size="sm" className=""><ThumbsDownIcon fill="currentColor" stroke="none" />Don't Like</Button> */}
 
+                    <PillButton>
+                        <Pill className="bg-red-100">Third Option<ChevronDown /></Pill>
+                    </PillButton>
+
+                    {/* <PillButton>
+                        <Pill className="bg-red-100" size="xs">Third Option<ChevronDown /></Pill>
+                    </PillButton> */}
+
                     <Button variant="ghost" size="sm"><MessageCirclePlusIcon className="size-4" />Comment</Button>
                     <Button variant="ghost" size="sm"><CircleGauge />Score<ChevronDown /></Button>
+                    <Button variant="ghost" size="sm"><Pill>Third Option<ChevronDown /></Pill></Button>
+
                     <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <TagPill size="xs" className="bg-gray-200 text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Some Value</TagPill>
+                        <Pill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></Pill>
                     </div>
                     <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <TagPill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></TagPill>
+                        <Pill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></Pill>
                     </div>
                     <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <TagPill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></TagPill>
+                        <Pill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></Pill>
                     </div>
+
+                    <Pill>Third Option</Pill>
+
+                    <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
+                        <Pill size="xs" className="bg-gray-200 text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option</Pill>
+                    </div>
+                    
 {/* 
                     <Button variant="ghost" size="sm" className="text-cyan-700 font-medium">
                         <ThumbsUpIcon fill="currentColor" stroke="none" />Empty
@@ -615,17 +637,17 @@ function MessageFooter(props: MessageFooterProps) {
                     </div>
 
                     <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <TagPill size="xs" className="bg-gray-200 text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Some Value</TagPill>
+                        <Pill size="xs" className="bg-gray-200 text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Some Value</Pill>
                     </div>
 
                     <Button variant="ghost" size="sm"><WrenchIcon />Test</Button>
 
 
                     <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <TagPill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></TagPill>
+                        <Pill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></Pill>
                     </div>
                     <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <TagPill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></TagPill>
+                        <Pill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></Pill>
                     </div>
 
                     <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
@@ -692,15 +714,15 @@ function MessageFooter(props: MessageFooterProps) {
                     {/* <div className="bg-[#DBE6DD] text-black/65 h-[24px] rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><ThumbsUp className="size-4" /></div> */}
 
                     {/* <div className="flex flex-row justify-center items-center h-[28px] px-[3px] hover:bg-gray-100 rounded-sm cursor-pointer">
-                        <TagPill size="sm" className="bg-gray-200 font-medium"><ThumbsUp />Like</TagPill>
+                        <Pill size="sm" className="bg-gray-200 font-medium"><ThumbsUp />Like</Pill>
                     </div> */}
 
                     {/* <LikeWidgetTest /> */}
 
-                    {/* <TagPill size="sm" className="bg-[#DBE6DD] hover:brightness-95 font-normal"><ThumbsUp />Like</TagPill> */}
+                    {/* <Pill size="sm" className="bg-[#DBE6DD] hover:brightness-95 font-normal"><ThumbsUp />Like</Pill> */}
 
                     {/* <div className="flex flex-row justify-center items-center h-[28px] px-1 hover:bg-gray-100 rounded-sm cursor-pointer">
-                        <TagPill size="sm" className="bg-[#DBE6DD] font-medium"><ThumbsUp />Like</TagPill>
+                        <Pill size="sm" className="bg-[#DBE6DD] font-medium"><ThumbsUp />Like</Pill>
                     </div> */}
                     {/* 
                     {actionBarScores.map((scoreConfig) => (
@@ -730,7 +752,7 @@ function MessageFooter(props: MessageFooterProps) {
                 </div>
 
                 <div className="flex flex-row  items-center text-sm">
-                    <Button variant="ghost" size="xs" className="text-muted-foreground" asChild>
+                    <Button variant="ghost" size="sm" className="text-muted-foreground" asChild>
                         <Link to={`/sessions/${session.handle}/runs/${run.id}?${toQueryParams(listParams)}`}><WrenchIcon className="size-4" />Run</Link>
                     </Button>
                 </div>

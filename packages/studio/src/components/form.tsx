@@ -29,16 +29,9 @@ import type { BaseError } from "~/lib/errors";
 import { cn } from "~/lib/utils";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "./ui/input-group";
 import { Badge } from "./ui/badge";
-import { TagPill } from "./TagPill";
+import { Pill } from "./Pill";
 import { Button } from "./ui/button";
 
-
-
-// export const TagPillButton = (props: any) => {
-//     return <div className="flex flex-row gap-1 items-center bg-gray-100 text-gray-700 [&>svg]:shrink-0" {...props}>
-//         {props.children}
-//     </div>
-// }
 
 export const LikeWidgetTest = () => {
     const [value, setValue] = useState<boolean | null>(null);
@@ -46,16 +39,13 @@ export const LikeWidgetTest = () => {
     return <div className="flex flex-row items-center h-[32px]">
         { value === null && <Button variant="ghost" size="xs" className="brightness-95" onClick={() => setValue(true)}><ThumbsUp /></Button>}
         { value === null && <Button variant="ghost" size="xs" className="brightness-95" onClick={() => setValue(false)}><ThumbsDown /></Button>}
-        {/* {value !== null && <div className="hover:bg-gray-100 rounded-sm h-[32px] px-1 flex items-center justify-center">
-            <TagPill size="md" className="bg-gray-200  font-medium cursor-default" onClick={() => setValue(null)}>{ value === true ? <><ThumbsUp />Like</> : <><ThumbsDown />Don't Like</>} </TagPill>
-            </div>} */}
-            {value !== null && <TagPill size="md" className="bg-gray-100  font-medium cursor-default" onClick={() => setValue(null)}>{ value === true ? <><ThumbsUp />Like</> : <><ThumbsDown />Don't Like</>} </TagPill>}
+
+            {value !== null && <Pill size="md" className="bg-gray-100  font-medium cursor-default" onClick={() => setValue(null)}>{ value === true ? <><ThumbsUp />Like</> : <><ThumbsDown />Don't Like</>} </Pill>}
     </div>
 
 
 
 
-    return <TagPill size="sm" className="bg-gray-100 hover:brightness-95 font-normal"><ThumbsUp />Like</TagPill>
 }
 
 
@@ -148,10 +138,10 @@ export function OptionDisplay<T extends string | number | boolean = string>({ va
     }
 
     return (
-        <TagPill>
+        <Pill size="xs">
             {option.icon}
             {option.label}
-        </TagPill>
+        </Pill>
     );
 }
 

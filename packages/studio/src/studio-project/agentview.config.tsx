@@ -12,8 +12,6 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormField, FormItem, FormLabel, FormMessage, Form } from "~/components/ui/form";
-import { TagPill } from "~/components/TagPill";
-import type { FormComponent, FormComponentProps, ControlComponent } from "~/types";
 
 
 export default defineConfig({

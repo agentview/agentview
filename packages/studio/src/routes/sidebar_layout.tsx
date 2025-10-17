@@ -30,7 +30,6 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
 } from "../components/ui/sidebar"
-import { TagPill } from "~/components/TagPill";
 import { NotificationBadge } from "~/components/NotificationBadge";
 
 // Removed Framework Mode type import
@@ -165,7 +164,6 @@ function Component() {
                     <SidebarMenuButton className="font-medium">
                       <img src="/logo_symbol.svg" className="size-4" alt="AgentView Logo" />
                       {agent}
-                      {/* Simple Chat <TagPill>1.0.5.dev</TagPill> */}
                       <ChevronDown className="ml-auto" />
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
