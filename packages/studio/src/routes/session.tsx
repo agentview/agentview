@@ -549,60 +549,15 @@ function MessageFooter(props: MessageFooterProps) {
      * - this in turn makes it look good with buttons from shadcn. Ghost, sm.
      * - clickable height 32px
      * - outline buttons should be avoided, but if you want to use them, use outline xs. Look fine.
+     * 
+     * Problem?
+     * - pills in comments must be "xs", otherwise are too large. It'd be good to have 1 type of pill. But either we keep it Notion-like *or* look good with off-the-shelf shadcn.
      */
-
-    const [bool, setBool] = useState<boolean | null>(null);
 
     return <div className="mt-3 mb-8 ">
         <div>
             <div className="text-xs flex justify-between gap-2 items-start">
                 <div className="flex flex-row flex-wrap gap-1 items-center">
-
-                    <Pill color="var(--color-red-100)">Red</Pill>
-
-
-                    {/* <div className="flex flex-row items-center h-[32px]">
-                        <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsUpIcon className="size-4"/></div>
-                        <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsDownIcon className="size-4"/></div>
-                    </div>
-
-
-                    <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
-                        <MessageCirclePlusIcon className="size-4" />
-                        <div className="text-[13px] font-normal">Comment</div>
-                    </div>
-
-                    <div className="h-[32px] px-[6px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <Pill size="xs" className="bg-gray-200 text-[13px] text-black">Third Option<ChevronDown /></Pill>
-                    </div>
-
-                    <div className="h-[32px] px-[6px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <Pill size="xs" className="bg-[#DBE6DD] text-[13px] text-black"><WrenchIcon />Third Option</Pill>
-                    </div>
-
-                    <div className="h-[32px] px-[6px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <Pill size="xs" className="bg-[#E9DDF3] text-[13px] text-black">Third Option<ChevronDown /></Pill>
-                    </div>
-
-                    <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
-                        <CircleGauge className="size-4" />
-                        <div className="text-[13px] font-normal">Score</div>
-                        <ChevronDown className="size-4" />
-                    </div>
-
-                    <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
-                        <div className="text-[13px] font-normal">Style</div>
-                        <ChevronDown className="size-4" />
-                    </div> */}
-
-                    {/* <ToggleGroupControl
-                        options={[{ value: true, icon: <ThumbsUpIcon className="size-4" />, label: "Like" }, { value: false, icon: <ThumbsDownIcon className="size-4" />, label: "Dislike" }]}
-                        value={bool}
-                        onChange={(value) => { console.log('set', value); setBool(value) }}
-                        showLabels="never"
-                        hideOptionsOnSelect
-                    /> */}
-
                                         
                     {actionBarScores.map((scoreConfig) => (
                         <ActionBarScoreForm
@@ -613,47 +568,11 @@ function MessageFooter(props: MessageFooterProps) {
                         />
                     ))}
 
-
-                    {/* <div className="flex flex-row items-center h-[32px]">
-                        <Button variant="ghost" size="sm"><ThumbsUpIcon className="size-4" /></Button>
-                        <Button variant="ghost" size="sm"><ThumbsDownIcon className="size-4" /></Button>
-                    </div> */}
-                    {/* 
-                    <Button variant="ghost" size="sm"><ThumbsUpIcon className="size-4" /></Button>
-                    <Button variant="ghost" size="sm"><ThumbsDownIcon className="size-4" /></Button> */}
-
-                    {/* <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-md">
-                        <Pill size="xs" className="bg-gray-200 text-[14px] px-1.5 text-black rounded-md h-[22px]"><ThumbsUpIcon className="size-4"/>Like</Pill>
-                    </div> */}
-                    {/* <Button variant="ghost" size="sm" className=""><ThumbsDownIcon fill="currentColor" stroke="none" />Don't Like</Button> */}
-
-                    {/* <PillButton>
-                        <Pill className="bg-red-100" size="xs">Third Option<ChevronDown /></Pill>
-                    </PillButton> */}
-
-                    {/* <PillButton>
-                        <Pill className="bg-red-100" size="xs">Third Option<ChevronDown /></Pill>
-                    </PillButton> */}
-
-                    {/* <Button variant="ghost" size="sm"><MessageCirclePlusIcon className="size-4" />Comment</Button>
-                    <Button variant="ghost" size="sm"><CircleGauge />Score<ChevronDown /></Button>
-                    <Button variant="ghost" size="sm"><Pill>Third Option<ChevronDown /></Pill></Button> */}
-
-
-                    {/* <PillButton>
-                        <Pill className="bg-red-100" size="xs">Third Option</Pill>
-                    </PillButton>
-                    <PillButton>
-                        <Pill className="bg-orange-100" size="xs">Some option<ChevronDown /></Pill>
-                    </PillButton> */}
-
                     <Button variant="ghost" size="sm" asChild>
                         <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: item.id })}`}>
                             <MessageCirclePlus />Comment
                         </Link>
                     </Button>
-
-                    {/* <Button variant="ghost" size="sm"><CircleGauge />Score<ChevronDown /></Button> */}
 
                     <ScoreDialog
                         session={session}
@@ -661,146 +580,6 @@ function MessageFooter(props: MessageFooterProps) {
                         open={scoreDialogOpen}
                         onOpenChange={setScoreDialogOpen}
                     /> 
-
-                    {/* 
-                    <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <Pill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></Pill>
-                    </div>
-                    <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <Pill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></Pill>
-                    </div>
-                    <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <Pill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></Pill>
-                    </div>
-
-                    <Pill>Third Option</Pill>
-
-                    <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <Pill size="xs" className="bg-gray-200 text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option</Pill>
-                    </div> */}
-
-                    {/* 
-                    <Button variant="ghost" size="sm" className="text-cyan-700 font-medium">
-                        <ThumbsUpIcon fill="currentColor" stroke="none" />Empty
-                    </Button>
-
-                    <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
-                        <MessageCirclePlusIcon className="size-4" />
-                        <div className="text-[14px] font-medium">Comment</div>
-                    </div>
-
-                    <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <Pill size="xs" className="bg-gray-200 text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Some Value</Pill>
-                    </div>
-
-                    <Button variant="ghost" size="sm"><WrenchIcon />Test</Button>
-
-
-                    <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <Pill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></Pill>
-                    </div>
-                    <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
-                        <Pill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></Pill>
-                    </div>
-
-                    <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
-                        <CircleGauge className="size-4" />
-                        <div className="text-[14px] font-medium">Score</div>
-                        <ChevronDown className="size-4" />
-                    </div>
-
-                    <Button variant="ghost" size="sm"><CircleGauge />Score<ChevronDown /></Button>
-
-
-                    <Button variant="outline" size="default"><WrenchIcon />Test</Button>
-                    <Button variant="outline" size="sm"><WrenchIcon />Test</Button>
-                    <Button variant="outline" size="xs"><WrenchIcon />Test</Button> */}
-                    {/* 
-                    <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
-                        <div className="text-[14px] font-normal">Style</div>
-                        <ChevronDown className="size-4" />
-                    </div> */}
-
-
-
-
-
-                    {/* <div className="flex flex-row">
-                        <Button variant="ghost" size="xs" className="">
-                            <ThumbsUpIcon />
-                        </Button>
-                        <Button variant="ghost" size="xs" className="">
-                            <ThumbsDownIcon />
-                        </Button>
-                    </div>
-                    <Button variant="ghost" size="xs" className="">Style<ChevronDown /></Button> */}
-                    {/* <div className="bg-[#E9DDF3] text-black/80 h-[24px] rounded-md flex items-center justify-center px-2 text-sm font-medium gap-1"><div>Too Long</div><ChevronDown className="size-4" /></div> */}
-                    {/* <div className="bg-[#E9DDF3] text-black/80 h-[20px] rounded-md flex items-center justify-center px-2 text-xs font-medium gap-1"><div>Too Long</div><ChevronDown className="size-3" /></div> */}
-
-                    {/* <div className="flex items-center justify-center px-2 text-sm font-medium gap-1"><div>Style</div></div> */}
-
-
-                    {/* <div className="flex flex-row">
-                        <Button variant="ghost" size="xs">
-                            <ThumbsUpIcon />
-                        </Button>
-                        <Button variant="ghost" size="xs">
-                            <ThumbsDownIcon />
-                        </Button>
-                    </div> */}
-                    {/* 
-                    <Button variant="ghost" size="xs">
-                        <MessageCirclePlus />Comment
-                    </Button>
-
-                    <Button variant="ghost" size="xs">
-                        <CircleGauge />Score <ChevronDown />
-                    </Button> */}
-
-                    {/* <div className="bg-[#E9DDF3] text-black/65 h-[24px] rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><div>Test score</div> <ChevronDown className="size-4" /></div> */}
-                    {/* <div className="bg-[#E9DDF3] text-black/65 h-[24px] rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><div>Test score</div></div> */}
-                    {/* <div className="bg-gray-100 text-black/65 h-[24px] rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><div>Test score</div></div> */}
-
-                    {/* <div className="flex items-center justify-center px-2 text-sm font-semibold gap-1"><div>Style</div><ChevronDown className="size-4" /></div> */}
-
-
-                    {/* <div className="bg-[#DBE6DD] text-black/65 h-[24px] rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><ThumbsUp className="size-4" /></div> */}
-
-                    {/* <div className="flex flex-row justify-center items-center h-[28px] px-[3px] hover:bg-gray-100 rounded-sm cursor-pointer">
-                        <Pill size="sm" className="bg-gray-200 font-medium"><ThumbsUp />Like</Pill>
-                    </div> */}
-
-                    {/* <LikeWidgetTest /> */}
-
-                    {/* <Pill size="sm" className="bg-[#DBE6DD] hover:brightness-95 font-normal"><ThumbsUp />Like</Pill> */}
-
-                    {/* <div className="flex flex-row justify-center items-center h-[28px] px-1 hover:bg-gray-100 rounded-sm cursor-pointer">
-                        <Pill size="sm" className="bg-[#DBE6DD] font-medium"><ThumbsUp />Like</Pill>
-                    </div> */}
-                    {/* 
-                    {actionBarScores.map((scoreConfig) => (
-                        <ActionBarScoreForm
-                            key={scoreConfig.name}
-                            session={session}
-                            item={item}
-                            scoreConfig={scoreConfig}
-                        />
-                    ))} */}
-                    {/* <Button variant="outline" size="xs" asChild>
-                        <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: item.id })}`}>
-                            <MessageCirclePlus />Comment
-                        </Link>
-                    </Button>
-                    <ScoreDialog
-                        session={session}
-                        item={item}
-                        open={scoreDialogOpen}
-                        onOpenChange={setScoreDialogOpen}
-                    /> */}
-                    {/* <div className="bg-[#E9DDF3] text-black/65 h-[28px] border rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><div>Test score</div> <ChevronDown className="size-4" /></div>
-                    <div className="bg-[#DBE6DD] text-black/65 h-[28px] border rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><ThumbsUp className="size-4" /><div>Like</div></div>
-                    <div className="bg-white text-[#68776B] h-[28px] border rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><ThumbsUp className="size-4" /><div>Like</div></div> */}
-
 
                 </div>
 

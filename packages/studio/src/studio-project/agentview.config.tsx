@@ -18,7 +18,6 @@ import { AVInput } from "~/components/form";
 import { UserMessageInputComponent } from "~/components/form";
 import { Colors } from "~/lib/shared/colors";
 
-
 export default defineConfig({
     apiBaseUrl: "http://localhost:8080",
     agents: [
@@ -43,28 +42,16 @@ export default defineConfig({
                             name: "user_reaction",
                             title: "Can it go to client?",
                             schema: z.boolean(),
-                            inputComponent: (props) => <ToggleGroupControl {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} hideOptionsOnSelect showLabels="on-select" />,
-                            displayComponent: (props) => <OptionDisplay {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} />,
-                            actionBarComponent: (props) => <ToggleGroupControl {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} hideOptionsOnSelect showLabels="on-select" />
+                            inputComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />,
+                            displayComponent: (props) => <OptionDisplay {...props} options={likeOptions} />,
+                            actionBarComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />
                         },
                         {
                             name: "user_reaction2",
                             title: "Test",
                             schema: z.string(),
-                            inputComponent: (props) => <PillSelect {...props} options={[
-                                { value: "one", label: "Five", icon: <ThumbsDown />, color: Colors.red },
-                                { value: "two", label: "Two", icon: <Book />, color: Colors.blue },
-                                { value: "three", label: "Four", icon: <ThumbsUp />, color: Colors.green },
-                                { value: "four", label: "One", icon: <Link />, color: Colors.purple },
-                                { value: "five", label: "Three", icon: <ExternalLink />, color: Colors.yellow },
-                            ]} />,
-                            displayComponent: (props) => <OptionDisplay {...props} options={[
-                                { value: "one", label: "Five" },
-                                { value: "two", label: "Two" },
-                                { value: "three", label: "Four" },
-                                { value: "four", label: "One" },
-                                { value: "five", label: "Three" },
-                            ]} />,
+                            inputComponent: (props) => <PillSelect {...props} options={selectOptions} />,
+                            displayComponent: (props) => <OptionDisplay {...props} options={selectOptions} />,
                         }
                     ]
                 },
@@ -253,3 +240,12 @@ export default defineConfig({
         }
     ]
 })
+
+const likeOptions = [{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]
+const selectOptions = [
+    { value: "one", label: "Five", icon: <ThumbsDown />, color: Colors.red },
+    { value: "two", label: "Two", icon: <Book />, color: Colors.blue },
+    { value: "three", label: "Four", icon: <ThumbsUp />, color: Colors.green },
+    { value: "four", label: "One", icon: <Link />, color: Colors.purple },
+    { value: "five", label: "Three", icon: <ExternalLink />, color: Colors.yellow },
+]

@@ -33,7 +33,7 @@ export function OptionDisplay<T extends string | number | boolean = string>({ va
     }
 
     return (
-        <Pill size="xs">
+        <Pill size="xs" color={option.color}>
             {option.icon}
             {option.label}
         </Pill>
