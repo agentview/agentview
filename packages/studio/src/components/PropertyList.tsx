@@ -26,7 +26,7 @@ interface PropertyListTextValueProps {
 
 const PropertyList: React.FC<PropertyListProps> = ({ children, className }) => {
   return (
-    <div className={cn("grid grid-cols-1 gap-2", className)}>
+    <div className={cn("grid grid-cols-1 gap-2.5", className)}>
       {children}
     </div>
   );

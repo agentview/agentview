@@ -33,20 +33,6 @@ import { Pill } from "./Pill";
 import { Button } from "./ui/button";
 
 
-export const LikeWidgetTest = () => {
-    const [value, setValue] = useState<boolean | null>(null);
-
-    return <div className="flex flex-row items-center h-[32px]">
-        { value === null && <Button variant="ghost" size="xs" className="brightness-95" onClick={() => setValue(true)}><ThumbsUp /></Button>}
-        { value === null && <Button variant="ghost" size="xs" className="brightness-95" onClick={() => setValue(false)}><ThumbsDown /></Button>}
-
-            {value !== null && <Pill size="md" className="bg-gray-100  font-medium cursor-default" onClick={() => setValue(null)}>{ value === true ? <><ThumbsUp />Like</> : <><ThumbsDown />Don't Like</>} </Pill>}
-    </div>
-
-
-
-
-}
 
 
 export type Option<T extends string | number | boolean> = {

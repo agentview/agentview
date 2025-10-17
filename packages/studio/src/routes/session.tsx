@@ -14,7 +14,7 @@ import { AlertCircleIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, C
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig, ScoreConfig } from "~/types";
-import { AVFormError, AVFormField, LikeWidgetTest } from "~/components/form";
+import { AVFormError, AVFormField } from "~/components/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/ItemsWithCommentsLayout";
 import { CommentsThread } from "~/components/comments";
@@ -371,7 +371,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
                         {versions.length === 0 && <span className="text-muted-foreground">-</span>}
                         {versions.length > 0 && <div className="flex flex-row gap-1">{versions.map(version => {
                             const versionString = (version?.version ?? "") + "." + (version?.env ?? "")
-                            return <Pill key={versionString} size="xs">{versionString}</Pill>
+                            return <Pill key={versionString}>{versionString}</Pill>
                         })}</div>}
                     </PropertyListTextValue>
                 </PropertyListItem>
@@ -542,6 +542,15 @@ function MessageFooter(props: MessageFooterProps) {
     const allScoreConfigs = getAllScoreConfigs(session, item);
     const actionBarScores = allScoreConfigs.filter(scoreConfig => scoreConfig.actionBarComponent);
 
+    /**
+     * ACTION BAR DESIGN GUIDELINES:
+     * - we must start with the "Pill", that must be quite minimalistic, otherwise everything is too heavy.
+     * - the pill with "md" size looks good, it's almost like in Notion, just 2px higher and this allows font 14px to be set (the same as in the button)
+     * - this in turn makes it look good with buttons from shadcn. Ghost, sm.
+     * - clickable height 32px
+     * - outline buttons should be avoided, but if you want to use them, use outline xs. Look fine.
+     */
+
     return <div className="mt-3 mb-8 ">
         <div>
             <div className="text-xs flex justify-between gap-2 items-start">
@@ -598,18 +607,35 @@ function MessageFooter(props: MessageFooterProps) {
                     </div> */}
                     {/* <Button variant="ghost" size="sm" className=""><ThumbsDownIcon fill="currentColor" stroke="none" />Don't Like</Button> */}
 
-                    <PillButton>
-                        <Pill className="bg-red-100">Third Option<ChevronDown /></Pill>
-                    </PillButton>
+                    {/* <PillButton>
+                        <Pill className="bg-red-100" size="xs">Third Option<ChevronDown /></Pill>
+                    </PillButton> */}
 
                     {/* <PillButton>
                         <Pill className="bg-red-100" size="xs">Third Option<ChevronDown /></Pill>
                     </PillButton> */}
 
-                    <Button variant="ghost" size="sm"><MessageCirclePlusIcon className="size-4" />Comment</Button>
+                    {/* <Button variant="ghost" size="sm"><MessageCirclePlusIcon className="size-4" />Comment</Button>
                     <Button variant="ghost" size="sm"><CircleGauge />Score<ChevronDown /></Button>
-                    <Button variant="ghost" size="sm"><Pill>Third Option<ChevronDown /></Pill></Button>
+                    <Button variant="ghost" size="sm"><Pill>Third Option<ChevronDown /></Pill></Button> */}
+                    
 
+                    <PillButton>
+                        <Pill className="bg-red-100" size="xs">Third Option</Pill>
+                    </PillButton>
+                    <PillButton>
+                        <Pill className="bg-orange-100" size="xs">Some option<ChevronDown /></Pill>
+                    </PillButton>
+
+                    <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
+                        <MessageCirclePlusIcon className="size-4" />
+                        <div className="text-[14px] font-medium">Comment</div>
+                    </div>
+
+                    <Button variant="ghost" size="sm"><CircleGauge />Score<ChevronDown /></Button>
+
+
+{/* 
                     <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
                         <Pill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></Pill>
                     </div>
@@ -624,7 +650,7 @@ function MessageFooter(props: MessageFooterProps) {
 
                     <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
                         <Pill size="xs" className="bg-gray-200 text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option</Pill>
-                    </div>
+                    </div> */}
                     
 {/* 
                     <Button variant="ghost" size="sm" className="text-cyan-700 font-medium">
