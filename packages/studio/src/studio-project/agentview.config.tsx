@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormField, FormItem, FormLabel, FormMessage, Form } from "~/components/ui/form";
+import { PillSelect } from "~/components/controls/PillSelect";
 
 
 export default defineConfig({
@@ -46,8 +47,20 @@ export default defineConfig({
                             name: "user_reaction2",
                             title: "Test",
                             schema: z.string(),
-                            inputComponent: (props) => <SelectControl {...props} options={[{ value: "one", label: "One", icon: <ThumbsUp /> }, { value: "two", label: "Two", icon: <ThumbsUp /> }, { value: "three", label: "Three", icon: <ThumbsUp /> }, { value: "four", label: "Four", icon: <ThumbsUp /> }, { value: "five", label: "Five", icon: <ThumbsUp /> }]} />,
-                            displayComponent: (props) => <OptionDisplay {...props} options={[{ value: "one", label: "One" }, { value: "two", label: "Two" }, { value: "three", label: "Three" }, { value: "four", label: "Four" }, { value: "five", label: "Five" }]} />,
+                            inputComponent: (props) => <PillSelect {...props} options={[
+                                { value: "one", label: "Five", icon: <ThumbsDown /> },
+                                { value: "two", label: "Two", icon: <Book /> },
+                                { value: "three", label: "Four", icon: <ThumbsUp /> },
+                                { value: "four", label: "One", icon: <Link /> },
+                                { value: "five", label: "Three", icon: <ExternalLink /> },
+                            ]} />,
+                            displayComponent: (props) => <OptionDisplay {...props} options={[
+                                { value: "one", label: "Five" },
+                                { value: "two", label: "Two" },
+                                { value: "three", label: "Four" },
+                                { value: "four", label: "One" },
+                                { value: "five", label: "Three" },
+                            ]} />,
                         }
                     ]
                 },

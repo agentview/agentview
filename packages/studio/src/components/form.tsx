@@ -29,7 +29,7 @@ import type { BaseError } from "~/lib/errors";
 import { cn } from "~/lib/utils";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "./ui/input-group";
 import { Badge } from "./ui/badge";
-import { Pill, PillButton } from "./Pill";
+import { Pill } from "./Pill";
 import { Button } from "./ui/button";
 
 export type Option<T extends string | number | boolean> = {

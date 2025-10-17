@@ -5,7 +5,7 @@ import { Button } from "./ui/button"
 
 
 const pillVariants = cva(
-  "inline-flex flex-row gap-1 items-center bg-gray-200 text-black/90 [&>svg]:shrink-0 font-normal",
+  "flex flex-row gap-1 items-center bg-gray-200 text-black/90 [&>svg]:shrink-0 font-normal",
   {
     variants: {
       size: {
@@ -32,32 +32,32 @@ function Pill({
   )
 }
 
-const pillButtonVariants = cva(
-  "inline-flex items-center justify-start gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-  {
-    variants: {
-      size: {
-        default: "h-8 rounded-md px-1.5",
-        // sm: "h-8 rounded-md px-1.5",
-      },
-    },
-    defaultVariants: {
-      size: "default",
-    },
-  }
-)
+// const pillButtonVariants = cva(
+//   "inline-flex items-center justify-start gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+//   {
+//     variants: {
+//       size: {
+//         default: "h-8 rounded-md px-1.5",
+//         // sm: "h-8 rounded-md px-1.5",
+//       },
+//     },
+//     defaultVariants: {
+//       size: "default",
+//     },
+//   }
+// )
 
-function PillButton({
-  className,
-  size,
-  ...props
-}: React.ComponentProps<"button"> & VariantProps<typeof pillButtonVariants>) {
-  return (
-    <button
-      className={cn(pillButtonVariants({ size, className }))}
-      {...props}
-    />
-  )
-}
+// function PillButton({
+//   className,
+//   size,
+//   ...props
+// }: React.ComponentProps<"button"> & VariantProps<typeof pillButtonVariants>) {
+//   return (
+//     <button
+//       className={cn(pillButtonVariants({ size, className }))}
+//       {...props}
+//     />
+//   )
+// }
 
-export { Pill, pillVariants, PillButton, pillButtonVariants }
+export { Pill, pillVariants }
