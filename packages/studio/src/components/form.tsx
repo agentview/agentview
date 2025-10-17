@@ -2,21 +2,12 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { ControlComponent, ControlComponentProps, FormComponentProps } from "~/types";
 import { Input } from "./ui/input";
-import {
-    ToggleGroup,
-    ToggleGroupItem,
-} from "./controls/toggle-group"
+
 import { Textarea } from "./ui/textarea";
 import { FormDescription, FormItem, FormLabel, FormMessage, FormField, FormControl } from "./ui/form";
 import React from "react";
 import type { ControllerRenderProps, FieldValues } from "react-hook-form";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "./controls/PillSelect";
+
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,55 +22,8 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } fro
 import { Badge } from "./ui/badge";
 import { Pill } from "./Pill";
 import { Button } from "./ui/button";
+import { type Option, optionValueToString, optionStringToValue } from "./controls/Option";
 
-export type Option<T extends string | number | boolean> = {
-    value: T;
-    icon?: React.ReactNode;
-    label?: string;
-}
-
-// fixme: totally not accessible
-export const ToggleGroupControl = <T extends string | number | boolean = string>(props: ControlComponentProps<T> & { options: Option<T>[], hideOptionsOnSelect?: boolean, showLabels?: "always" | "on-select" | "never" }) => {
-    const { value, onChange, options, hideOptionsOnSelect, showLabels = "always" } = props;
-
-    return <div className="flex flex-row">
-        {options.map((option) => {
-            const isSelected = value === option.value;
-
-            if (hideOptionsOnSelect && value !== null && value !== undefined && !isSelected) {
-                return null;
-            }
-
-            const body = <>
-                {option.icon}
-                {showLabels === "always" && option.label}
-                {showLabels === "on-select" && isSelected && option.label}
-            </>
-
-            const onClick = () => {
-                console.log('click', option.value);
-                if (isSelected) {
-                    onChange(null);
-                } else {
-                    onChange(option.value);
-                }
-            }
-
-            return <Button
-                key={String(option.value)}
-                type="button"
-                variant="ghost"
-                size="sm"
-                value={String(option.value)}
-                className={`${isSelected ? "[&>svg]:fill-current [&>svg]:stroke-none" : ""}`}
-                onClick={onClick}
-
-            >
-                {body}
-            </Button>
-        })}
-    </div>
-}
 
 export function OptionDisplay<T extends string | number | boolean = string>({ value, options }: { value: T, options: Option<T>[] }) {
     const option = options.find(opt => opt.value === value);
@@ -95,29 +39,6 @@ export function OptionDisplay<T extends string | number | boolean = string>({ va
         </Pill>
     );
 }
-
-export const SelectControl = (props: ControlComponentProps<string> & { options: Option<string>[], placeholder?: string }) => {
-    const { value, onChange, options, placeholder = "Select an option..." } = props;
-
-    return (
-        <Select value={value ?? ""} onValueChange={(newValue) => {
-            onChange(newValue === "" ? null : newValue);
-        }}>
-            <SelectTrigger />
-            <SelectContent>
-                {options.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                        {option.icon && <span className="mr-2">{option.icon}</span>}
-                        {option.label ?? option.value}
-                    </SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
-    );
-}
-
-
-
 
 /** NEW VERSION **/
 
@@ -151,7 +72,7 @@ export function AVFormField<TInput = any, TOutput = TInput>(props: AVFormFieldPr
             if (variant === "row") {
                 return <FormItem className="flex flex-row gap-4 items-start space-y-0">
                     {props.label && (
-                        <FormLabel className="text-sm text-gray-600 w-[160px] flex-shrink-0 pt-1 truncate">
+                        <FormLabel className="text-sm text-gray-600 w-[160px] flex-shrink-0 pt-1.5 truncate">
                             {props.label}
                         </FormLabel>
                     )}
@@ -200,30 +121,30 @@ export const AVTextarea = ({ value, onChange, name, ...textareaProps }: React.Co
     </FormControl>
 }
 
-export type AVSelectProps = AVFormControlProps<string | undefined> & {
-    options: SelectControlOption[];
-    placeholder?: string;
-}
+// export type AVSelectProps = AVFormControlProps<string | undefined> & {
+//     options: SelectControlOption[];
+//     placeholder?: string;
+// }
 
-export const AVSelect = ({ value, onChange, options, placeholder = "Select an option..." }: AVSelectProps) => {
-    return <FormControl>
-        <Select value={value ?? ""} onValueChange={(newValue) => {
-            onChange(newValue === "" ? undefined : newValue);
-        }}>
-            <SelectTrigger>
-                <SelectValue placeholder={placeholder} />
-            </SelectTrigger>
-            <SelectContent>
-                {options.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                        {option.icon && <span className="mr-2">{option.icon}</span>}
-                        {option.label ?? option.value}
-                    </SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
-    </FormControl>
-}
+// export const AVSelect = ({ value, onChange, options, placeholder = "Select an option..." }: AVSelectProps) => {
+//     return <FormControl>
+//         <Select value={value ?? ""} onValueChange={(newValue) => {
+//             onChange(newValue === "" ? undefined : newValue);
+//         }}>
+//             <SelectTrigger>
+//                 <SelectValue placeholder={placeholder} />
+//             </SelectTrigger>
+//             <SelectContent>
+//                 {options.map((option) => (
+//                     <SelectItem key={option.value} value={option.value}>
+//                         {option.icon && <span className="mr-2">{option.icon}</span>}
+//                         {option.label ?? option.value}
+//                     </SelectItem>
+//                 ))}
+//             </SelectContent>
+//         </Select>
+//     </FormControl>
+// }
 
 export type AVFormHelperField<TValue extends z.ZodTypeAny = any, TInput = any, TOutput = TInput> = AVFormFieldProps<TInput, TOutput> & {
     defaultValue?: z.infer<TValue>

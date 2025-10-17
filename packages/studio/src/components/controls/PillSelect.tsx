@@ -5,37 +5,12 @@ import { cn } from "~/lib/utils"
 import { Button } from "../ui/button"
 import { Pill } from "../Pill"
 import type { ControlComponentProps } from "~/types"
+import { optionStringToValue, optionValueToString, type Option } from "./Option"
 
 function Select({
     ...props
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {
     return <SelectPrimitive.Root data-slot="select" {...props} />
-}
-
-function SelectGroup({
-    ...props
-}: React.ComponentProps<typeof SelectPrimitive.Group>) {
-    return <SelectPrimitive.Group data-slot="select-group" {...props} />
-}
-
-function SelectValue({
-    ...props
-}: React.ComponentProps<typeof SelectPrimitive.Value>) {
-    return <SelectPrimitive.Value data-slot="select-value" {...props} />
-}
-
-function SelectTrigger({
-    className,
-    children,
-    ...props
-}: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
-    return (
-        <SelectPrimitive.Trigger asChild {...props}>
-            <Button variant="ghost" size="sm" className={cn(className)}>
-                {children}
-            </Button>
-        </SelectPrimitive.Trigger>
-    )
 }
 
 function SelectContent({
@@ -70,60 +45,6 @@ function SelectContent({
                 <SelectScrollDownButton />
             </SelectPrimitive.Content>
         </SelectPrimitive.Portal>
-    )
-}
-
-function SelectLabel({
-    className,
-    ...props
-}: React.ComponentProps<typeof SelectPrimitive.Label>) {
-    return (
-        <SelectPrimitive.Label
-            data-slot="select-label"
-            className={cn("text-muted-foreground px-2 py-1.5 text-xs", className)}
-            {...props}
-        />
-    )
-}
-
-function SelectItem({
-    className,
-    children,
-    ...props
-}: React.ComponentProps<typeof SelectPrimitive.Item>) {
-    return (
-        <SelectPrimitive.Item
-            data-slot="select-item"
-            className={cn(
-                "focus:bg-accent hover:bg-accent cursor-pointer outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 py-1 px-1",
-                className
-            )}
-            {...props}
-        >
-            <div className="flex items-center w-full">
-                <Pill size="xs" className="flex-1">
-                    <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
-                </Pill>
-                <span className="ml-2 flex size-3.5 items-center justify-center">
-                    <SelectPrimitive.ItemIndicator>
-                        <CheckIcon className="size-4" />
-                    </SelectPrimitive.ItemIndicator>
-                </span>
-            </div>
-        </SelectPrimitive.Item>
-    )
-}
-
-function SelectSeparator({
-    className,
-    ...props
-}: React.ComponentProps<typeof SelectPrimitive.Separator>) {
-    return (
-        <SelectPrimitive.Separator
-            data-slot="select-separator"
-            className={cn("bg-border pointer-events-none -mx-1 my-1 h-px", className)}
-            {...props}
-        />
     )
 }
 
@@ -169,19 +90,25 @@ export type PillSelectOption<T extends string | number | boolean> = {
     label?: string;
 }
 
-export const PillSelect = (props: ControlComponentProps<string> & { options: PillSelectOption<string>[], placeholder?: string }) => {
-    const { value, onChange, options, placeholder = "Select an option..." } = props;
-
+export function PillSelect<T extends string | number | boolean>(props: ControlComponentProps<T> & { options: Option<T>[], placeholder?: string }) {
+    const { value, onChange, options, placeholder = "Empty" } = props;
     const selectedOption = options.find(opt => opt.value === value);
 
+    const stringValue = (value === null || value === undefined) ? "" : optionValueToString(value);
+
     return (
-        <Select value={value ?? ""} onValueChange={(newValue) => {
-            onChange(newValue === "" ? null : newValue);
+        <Select value={stringValue} onValueChange={(newValue) => {
+            if (newValue === "") {
+                onChange(null);
+            }
+            else {
+                onChange(optionStringToValue(newValue, options));
+            }
         }}>
             <SelectPrimitive.Trigger asChild>
                 <Button variant="ghost" size="sm" className="justify-start px-1.5">
                     {selectedOption ? (
-                        <Pill>
+                        <Pill color={selectedOption.color}>
                             {selectedOption.icon}
                             {selectedOption.label ?? selectedOption.value}
                         </Pill>
@@ -196,40 +123,15 @@ export const PillSelect = (props: ControlComponentProps<string> & { options: Pil
                     <SelectPrimitive.Item
                         data-slot="select-item"
                         className={"focus:bg-accent hover:bg-accent cursor-pointer outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 py-1 px-1 rounded-md flex w-full"}
-                        value={option.value}
+                        value={optionValueToString(option.value)}
                     >
-                        {/* <div className="flex w-full"> */}
-                            <Pill>
-                                {option.icon}
-                                <SelectPrimitive.ItemText>{option.label} gówno</SelectPrimitive.ItemText>
-                            </Pill>
-                            {/* <span className="ml-2 flex size-3.5 items-center justify-center">
-                                <SelectPrimitive.ItemIndicator>
-                                    <CheckIcon className="size-4" />
-                                </SelectPrimitive.ItemIndicator>
-                            </span> */}
-                        {/* </div> */}
+                        <Pill color={option.color}>
+                            {option.icon}
+                            <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+                        </Pill>
                     </SelectPrimitive.Item>
-
-                    // <SelectItem key={option.value} value={option.value}>
-                    //     {option.icon && <span className="mr-1.5">{option.icon}</span>}
-                    //     {option.label ?? option.value}
-                    // </SelectItem>
                 ))}
             </SelectContent>
         </Select>
     );
-}
-
-export {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectScrollDownButton,
-    SelectScrollUpButton,
-    SelectSeparator,
-    SelectTrigger,
-    SelectValue,
 }

@@ -14,7 +14,7 @@ import { AlertCircleIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, C
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig, ScoreConfig } from "~/types";
-import { AVFormError, AVFormField, ToggleGroupControl } from "~/components/form";
+import { AVFormError, AVFormField } from "~/components/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/ItemsWithCommentsLayout";
 import { CommentsThread } from "~/components/comments";
@@ -557,6 +557,8 @@ function MessageFooter(props: MessageFooterProps) {
         <div>
             <div className="text-xs flex justify-between gap-2 items-start">
                 <div className="flex flex-row flex-wrap gap-1 items-center">
+
+                    <Pill color="var(--color-red-100)">Red</Pill>
 
 
                     {/* <div className="flex flex-row items-center h-[32px]">

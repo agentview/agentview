@@ -9,7 +9,7 @@ import { eq } from "drizzle-orm";
 import { areThereRemainingAdmins } from "./areThereRemainingAdmins";
 import { getUsersCount } from "./users";
 import { getStudioURL } from "./getStudioURL";
-import { avatarColors } from "./shared/avatarColors";  
+import { colorValues } from "./shared/colors";  
 
 export const auth = betterAuth({
     trustedOrigins: [getStudioURL()],
@@ -81,7 +81,7 @@ export const auth = betterAuth({
                 const usersCount = await getUsersCount()
 
                 // Generate image property: ${color}:${firstLetterFromName}
-                const randomColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
+                const randomColor = colorValues[Math.floor(Math.random() * colorValues.length)];
                 const firstLetter = ctx.body.name ? ctx.body.name.charAt(0).toUpperCase() : "A";
                 const image = `color:${randomColor}:${firstLetter}`;
 

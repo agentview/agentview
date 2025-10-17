@@ -1,7 +1,6 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
-import { AVInput, ToggleGroupControl, UserMessageInputComponent, SelectControl, OptionDisplay, SingleControlForm, singleControlForm } from "~/components/form";
 import { ItemAssistantMessageComponent, ItemUserMessageComponent } from "~/components/display";
 import { ProductDisplay } from "./ProductDisplay";
 import { ProductSelect } from "./ProductSelect";
@@ -13,6 +12,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormField, FormItem, FormLabel, FormMessage, Form } from "~/components/ui/form";
 import { PillSelect } from "~/components/controls/PillSelect";
+import { ToggleGroupControl } from "~/components/controls/ToggleGroup";
+import { OptionDisplay } from "~/components/form";
+import { AVInput } from "~/components/form";
+import { UserMessageInputComponent } from "~/components/form";
 
 
 export default defineConfig({
@@ -48,11 +51,11 @@ export default defineConfig({
                             title: "Test",
                             schema: z.string(),
                             inputComponent: (props) => <PillSelect {...props} options={[
-                                { value: "one", label: "Five", icon: <ThumbsDown /> },
-                                { value: "two", label: "Two", icon: <Book /> },
-                                { value: "three", label: "Four", icon: <ThumbsUp /> },
-                                { value: "four", label: "One", icon: <Link /> },
-                                { value: "five", label: "Three", icon: <ExternalLink /> },
+                                { value: "one", label: "Five", icon: <ThumbsDown />, color: "var(--color-red-100)" },
+                                { value: "two", label: "Two", icon: <Book />, color: "var(--color-blue-100)" },
+                                { value: "three", label: "Four", icon: <ThumbsUp />, color: "var(--color-green-100)" },
+                                { value: "four", label: "One", icon: <Link />, color: "var(--color-purple-100)" },
+                                { value: "five", label: "Three", icon: <ExternalLink />, color: "var(--color-yellow-100)" },
                             ]} />,
                             displayComponent: (props) => <OptionDisplay {...props} options={[
                                 { value: "one", label: "Five" },
