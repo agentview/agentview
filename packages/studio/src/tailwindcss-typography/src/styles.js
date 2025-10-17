@@ -255,24 +255,24 @@ let defaultModifiers = {
         h1: {
           fontSize: em(24,16),//em(36, 16),
           marginTop: '0',
-          marginBottom: em(8, 36),
-          lineHeight: round(40 / 36),
+          marginBottom: em(8,24),//em(8, 36),
+          lineHeight: round(28 / 24),//round(40 / 36),
         },
         h2: {
           fontSize: em(20,16),//em(24, 16),
-          marginTop: em(16, 24), //em(48, 24),
-          marginBottom: em(8, 24), //em(24, 24),
-          lineHeight: round(32 / 24),
+          marginTop: em(16, 20), //em(48, 24),
+          marginBottom: em(8, 20), //em(24, 24),
+          lineHeight: round(28 / 20),//round(32 / 24),
         },
         h3: {
           fontSize: em(18,16),//em(20, 16),
-          marginTop: em(16, 20),
-          marginBottom: em(8, 20), //em(12, 20),
-          lineHeight: round(32 / 20),
+          marginTop: em(16, 18),
+          marginBottom: em(8, 18), //em(12, 18),
+          lineHeight: round(28 / 18),
         },
         h4: {
           marginTop: em(16, 16),
-          marginBottom: em(8, 16),
+          marginBottom: em(0, 16), // em(8, 16),
           lineHeight: round(24 / 16),
         },
         img: {
@@ -320,18 +320,21 @@ let defaultModifiers = {
           paddingInlineStart: em(16, 14),
         },
         ol: {
-          marginTop: em(20, 16),
+          marginTop: em(8,16),//em(20, 16),
           marginBottom: em(20, 16),
           paddingInlineStart: em(26, 16),
         },
+        'p:has(+ ul), p:has(+ ol)': { // new
+          marginBottom: '0'
+        },
         ul: {
-          marginTop: em(20, 16),
+          marginTop: em(8,16),//em(20, 16),
           marginBottom: em(20, 16),
           paddingInlineStart: em(26, 16),
         },
         li: {
-          marginTop: em(4, 16), //em(8, 16),
-          marginBottom: em(4, 16), //em(8, 16),
+          marginTop: em(0, 16), //em(8, 16),
+          marginBottom: em(0, 16), //em(8, 16),
         },
         'ol > li': {
           paddingInlineStart: em(6, 16),
@@ -356,8 +359,8 @@ let defaultModifiers = {
           marginBottom: em(16, 16), //em(20, 16),
         },
         'ul ul, ul ol, ol ul, ol ol': {
-          marginTop: em(8, 16), //em(12, 16),
-          marginBottom: em(8, 16), //em(12, 16),
+          marginTop: em(0, 16), //em(12, 16),
+          marginBottom: em(0, 16), //em(12, 16),
         },
         dl: {
           marginTop: em(20, 16),
