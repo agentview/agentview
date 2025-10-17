@@ -593,9 +593,17 @@ function MessageFooter(props: MessageFooterProps) {
                     </div> */}
                     {/* <Button variant="ghost" size="sm" className=""><ThumbsDownIcon fill="currentColor" stroke="none" />Don't Like</Button> */}
 
-                    <Button variant="outline" size="xs"><MessageCirclePlusIcon className="size-4" />Comment</Button>
-                    <Button variant="outline" size="xs"><CircleGauge />Score<ChevronDown /></Button>
-
+                    <Button variant="ghost" size="sm"><MessageCirclePlusIcon className="size-4" />Comment</Button>
+                    <Button variant="ghost" size="sm"><CircleGauge />Score<ChevronDown /></Button>
+                    <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
+                        <TagPill size="xs" className="bg-gray-200 text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Some Value</TagPill>
+                    </div>
+                    <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
+                        <TagPill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></TagPill>
+                    </div>
+                    <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
+                        <TagPill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></TagPill>
+                    </div>
 {/* 
                     <Button variant="ghost" size="sm" className="text-cyan-700 font-medium">
                         <ThumbsUpIcon fill="currentColor" stroke="none" />Empty
