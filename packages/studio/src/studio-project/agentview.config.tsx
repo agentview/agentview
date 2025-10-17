@@ -38,9 +38,9 @@ export default defineConfig({
                             name: "user_reaction",
                             title: "Can it go to client?",
                             schema: z.boolean(),
-                            inputComponent: (props) => <ToggleGroupControl {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} collapseOnSelect />,
+                            inputComponent: (props) => <ToggleGroupControl {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} hideOptionsOnSelect showLabels="on-select" />,
                             displayComponent: (props) => <OptionDisplay {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} />,
-                            actionBarComponent: (props) => <ToggleGroupControl {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} collapseOnSelect />
+                            actionBarComponent: (props) => <ToggleGroupControl {...props} options={[{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]} hideOptionsOnSelect showLabels="on-select" />
                         },
                         {
                             name: "user_reaction2",

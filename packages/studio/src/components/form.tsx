@@ -29,11 +29,8 @@ import type { BaseError } from "~/lib/errors";
 import { cn } from "~/lib/utils";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "./ui/input-group";
 import { Badge } from "./ui/badge";
-import { Pill } from "./Pill";
+import { Pill, PillButton } from "./Pill";
 import { Button } from "./ui/button";
-
-
-
 
 export type Option<T extends string | number | boolean> = {
     value: T;
@@ -41,79 +38,47 @@ export type Option<T extends string | number | boolean> = {
     label?: string;
 }
 
-export const ToggleGroupControl = <T extends string | number | boolean = string>(props: ControlComponentProps<T> & { options: Option<T>[], collapseOnSelect?: boolean, showLabelOnlyOnSelect?: boolean }) => {
-    const { value, onChange, options, collapseOnSelect, showLabelOnlyOnSelect } = props;
+// fixme: totally not accessible
+export const ToggleGroupControl = <T extends string | number | boolean = string>(props: ControlComponentProps<T> & { options: Option<T>[], hideOptionsOnSelect?: boolean, showLabels?: "always" | "on-select" | "never" }) => {
+    const { value, onChange, options, hideOptionsOnSelect, showLabels = "always" } = props;
 
-    const stringValue = value === null || value === undefined ? "" : String(value);
-    const type = typeof options[0].value;
+    return <div className="flex flex-row">
+        {options.map((option) => {
+            const isSelected = value === option.value;
 
-    // return <div className="flex flex-row">
-    //     {options.map((option) => {
-    //         const icon = option.icon;
-    //         let label = option.label;
-    //         if (!icon && !label) {
-    //             label = String(option.value);
-    //         }
+            if (hideOptionsOnSelect && value !== null && value !== undefined && !isSelected) {
+                return null;
+            }
 
-    //         // if not selected
-    //         if (collapseOnSelect && stringValue !== '' && stringValue !== String(option.value)) {
-    //             return null;
-    //         }
+            const body = <>
+                {option.icon}
+                {showLabels === "always" && option.label}
+                {showLabels === "on-select" && isSelected && option.label}
+            </>
 
-    //         if (stringValue === '' && showLabelOnlyOnSelect) {
-    //             label = undefined;
-    //         }
-
-    //         return (
-    //             <div key={String(option.value)} value={String(option.value)} aria-label={`Toggle ${option.value}`}>
-    //                 {icon}
-    //                 {label}
-    //             </div>
-    //         );
-    //     })}
-    // </div>
-
-    return (
-        <ToggleGroup type="single" variant="default" size="xs" value={stringValue} onValueChange={(value) => {
-            if (value === "") {
-                onChange(null);
-            } else {
-                if (type === "string") {
-                    onChange(value as T);
-                } else if (type === "number") {
-                    onChange(Number(value) as T);
-                } else if (type === "boolean") {
-                    onChange((value === "true" ? true : false) as T);
+            const onClick = () => {
+                console.log('click', option.value);
+                if (isSelected) {
+                    onChange(null);
                 } else {
-                    throw new Error(`[ToggleGroupControl] Invalid type`);
+                    onChange(option.value);
                 }
             }
-        }}>
-            {options.map((option) => {
-                const icon = option.icon;
-                let label = option.label;
-                if (!icon && !label) {
-                    label = String(option.value);
-                }
 
-                // if not selected
-                if (collapseOnSelect && stringValue !== '' && stringValue !== String(option.value)) {
-                    return null;
-                }
+            return <Button
+                key={String(option.value)}
+                type="button"
+                variant="ghost"
+                size="sm"
+                value={String(option.value)}
+                className={`${isSelected ? "[&>svg]:fill-current [&>svg]:stroke-none" : ""}`}
+                onClick={onClick}
 
-                if (stringValue === '' && showLabelOnlyOnSelect) {
-                    label = undefined;
-                }
-
-                return (
-                    <ToggleGroupItem key={String(option.value)} value={String(option.value)} aria-label={`Toggle ${option.value}`}>
-                        {icon}
-                        {label}
-                    </ToggleGroupItem>
-                );
-            })}
-        </ToggleGroup>
-    )
+            >
+                {body}
+            </Button>
+        })}
+    </div>
 }
 
 export function OptionDisplay<T extends string | number | boolean = string>({ value, options }: { value: T, options: Option<T>[] }) {

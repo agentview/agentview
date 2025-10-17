@@ -14,7 +14,7 @@ import { AlertCircleIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, C
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig, ScoreConfig } from "~/types";
-import { AVFormError, AVFormField } from "~/components/form";
+import { AVFormError, AVFormField, ToggleGroupControl } from "~/components/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/ItemsWithCommentsLayout";
 import { CommentsThread } from "~/components/comments";
@@ -551,6 +551,8 @@ function MessageFooter(props: MessageFooterProps) {
      * - outline buttons should be avoided, but if you want to use them, use outline xs. Look fine.
      */
 
+    const [bool, setBool] = useState<boolean | null>(null);
+
     return <div className="mt-3 mb-8 ">
         <div>
             <div className="text-xs flex justify-between gap-2 items-start">
@@ -591,14 +593,30 @@ function MessageFooter(props: MessageFooterProps) {
                         <ChevronDown className="size-4" />
                     </div> */}
 
+                    {/* <ToggleGroupControl
+                        options={[{ value: true, icon: <ThumbsUpIcon className="size-4" />, label: "Like" }, { value: false, icon: <ThumbsDownIcon className="size-4" />, label: "Dislike" }]}
+                        value={bool}
+                        onChange={(value) => { console.log('set', value); setBool(value) }}
+                        showLabels="never"
+                        hideOptionsOnSelect
+                    /> */}
 
-                    <div className="flex flex-row items-center h-[32px]">
+                                        
+                    {actionBarScores.map((scoreConfig) => (
+                        <ActionBarScoreForm
+                            key={scoreConfig.name}
+                            session={session}
+                            item={item}
+                            scoreConfig={scoreConfig}
+                        />
+                    ))}
+
+
+                    {/* <div className="flex flex-row items-center h-[32px]">
                         <Button variant="ghost" size="sm"><ThumbsUpIcon className="size-4" /></Button>
                         <Button variant="ghost" size="sm"><ThumbsDownIcon className="size-4" /></Button>
-                        {/* <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsUpIcon className="size-4"/></div>
-                        <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsDownIcon className="size-4"/></div> */}
-                    </div>
-{/* 
+                    </div> */}
+                    {/* 
                     <Button variant="ghost" size="sm"><ThumbsUpIcon className="size-4" /></Button>
                     <Button variant="ghost" size="sm"><ThumbsDownIcon className="size-4" /></Button> */}
 
@@ -618,24 +636,31 @@ function MessageFooter(props: MessageFooterProps) {
                     {/* <Button variant="ghost" size="sm"><MessageCirclePlusIcon className="size-4" />Comment</Button>
                     <Button variant="ghost" size="sm"><CircleGauge />Score<ChevronDown /></Button>
                     <Button variant="ghost" size="sm"><Pill>Third Option<ChevronDown /></Pill></Button> */}
-                    
 
-                    <PillButton>
+
+                    {/* <PillButton>
                         <Pill className="bg-red-100" size="xs">Third Option</Pill>
                     </PillButton>
                     <PillButton>
                         <Pill className="bg-orange-100" size="xs">Some option<ChevronDown /></Pill>
-                    </PillButton>
+                    </PillButton> */}
 
-                    <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
-                        <MessageCirclePlusIcon className="size-4" />
-                        <div className="text-[14px] font-medium">Comment</div>
-                    </div>
+                    <Button variant="ghost" size="sm" asChild>
+                        <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: item.id })}`}>
+                            <MessageCirclePlus />Comment
+                        </Link>
+                    </Button>
 
-                    <Button variant="ghost" size="sm"><CircleGauge />Score<ChevronDown /></Button>
+                    {/* <Button variant="ghost" size="sm"><CircleGauge />Score<ChevronDown /></Button> */}
 
+                    <ScoreDialog
+                        session={session}
+                        item={item}
+                        open={scoreDialogOpen}
+                        onOpenChange={setScoreDialogOpen}
+                    /> 
 
-{/* 
+                    {/* 
                     <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
                         <Pill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></Pill>
                     </div>
@@ -651,8 +676,8 @@ function MessageFooter(props: MessageFooterProps) {
                     <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
                         <Pill size="xs" className="bg-gray-200 text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option</Pill>
                     </div> */}
-                    
-{/* 
+
+                    {/* 
                     <Button variant="ghost" size="sm" className="text-cyan-700 font-medium">
                         <ThumbsUpIcon fill="currentColor" stroke="none" />Empty
                     </Button>
@@ -853,7 +878,7 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
     return (
         <Popover open={open} onOpenChange={onOpenChange}>
             <PopoverTrigger asChild>
-                <Button variant="outline" size="xs">
+                <Button variant="ghost" size="sm">
                     <CircleGauge />Score <ChevronDown />
                 </Button>
             </PopoverTrigger>
