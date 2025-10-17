@@ -24,21 +24,10 @@ function Pill({
   ...props
 }: React.ComponentProps<"div"> & VariantProps<typeof pillVariants>) {
 
-  // let bgColor = "bg-gray-200";
-  
-  // if (color) {
-  //   if (colorsMap[color as Color]) {
-  //     bgColor = colorsMap[color as Color]
-  //   } else {
-  //     bgColor = `bg-[${color}]`;
-  //   }
-  // }
-
-  const bgColor = "bg-[var(--color-red-400)]"
-  
   return (
     <div
-      className={cn(bgColor, pillVariants({ size, className }))}
+      className={cn(pillVariants({ size, className }))}
+      style={{ backgroundColor: color ?? "var(--color-gray-200)" }}
       {...props}
     />
   )

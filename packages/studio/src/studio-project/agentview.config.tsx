@@ -16,6 +16,7 @@ import { ToggleGroupControl } from "~/components/controls/ToggleGroup";
 import { OptionDisplay } from "~/components/form";
 import { AVInput } from "~/components/form";
 import { UserMessageInputComponent } from "~/components/form";
+import { Colors } from "~/lib/shared/colors";
 
 
 export default defineConfig({
@@ -51,11 +52,11 @@ export default defineConfig({
                             title: "Test",
                             schema: z.string(),
                             inputComponent: (props) => <PillSelect {...props} options={[
-                                { value: "one", label: "Five", icon: <ThumbsDown />, color: "var(--color-red-100)" },
-                                { value: "two", label: "Two", icon: <Book />, color: "var(--color-blue-100)" },
-                                { value: "three", label: "Four", icon: <ThumbsUp />, color: "var(--color-green-100)" },
-                                { value: "four", label: "One", icon: <Link />, color: "var(--color-purple-100)" },
-                                { value: "five", label: "Three", icon: <ExternalLink />, color: "var(--color-yellow-100)" },
+                                { value: "one", label: "Five", icon: <ThumbsDown />, color: Colors.red },
+                                { value: "two", label: "Two", icon: <Book />, color: Colors.blue },
+                                { value: "three", label: "Four", icon: <ThumbsUp />, color: Colors.green },
+                                { value: "four", label: "One", icon: <Link />, color: Colors.purple },
+                                { value: "five", label: "Three", icon: <ExternalLink />, color: Colors.yellow },
                             ]} />,
                             displayComponent: (props) => <OptionDisplay {...props} options={[
                                 { value: "one", label: "Five" },

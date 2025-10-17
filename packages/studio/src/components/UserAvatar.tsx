@@ -28,7 +28,10 @@ export function UserAvatar({ image, className, size = "md" }: { image: string | 
 
     const sizeConfig = sizeMap[size];
 
-    return <div className={cn(`relative ${sizeConfig.containerSize} bg-[${color}] rounded-full flex justify-center items-center text-black`, className)}>
+    return <div 
+        className={cn(`relative ${sizeConfig.containerSize} rounded-full flex justify-center items-center text-black`, className)}
+        style={{ backgroundColor: color }}
+    >
         <span style={{ fontSize: sizeConfig.fontSize, lineHeight: 1, opacity: 0.66, marginTop: "1px" }}>
             {letter?.charAt(0).toUpperCase()}
         </span>
