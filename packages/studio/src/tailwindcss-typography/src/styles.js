@@ -240,7 +240,6 @@ let defaultModifiers = {
         p: {
           marginTop: em(16,16), //em(20, 16),
           marginBottom: em(16, 16), //em(20, 16),
-          
         },
         '[class~="lead"]': {
           fontSize: em(20, 16),
@@ -249,48 +248,48 @@ let defaultModifiers = {
           marginBottom: em(24, 20),
         },
         blockquote: {
-          marginTop: em(32, 20),
-          marginBottom: em(32, 20),
+          marginTop: em(20, 20), //em(32, 20),
+          marginBottom: em(20, 20), //em(32, 20),
           paddingInlineStart: em(20, 20),
         },
         h1: {
-          fontSize: em(36, 16),
+          fontSize: em(24,16),//em(36, 16),
           marginTop: '0',
-          marginBottom: em(32, 36),
+          marginBottom: em(8, 36),
           lineHeight: round(40 / 36),
         },
         h2: {
-          fontSize: em(24, 16),
-          marginTop: em(48, 24),
-          marginBottom: em(24, 24),
+          fontSize: em(20,16),//em(24, 16),
+          marginTop: em(16, 24), //em(48, 24),
+          marginBottom: em(8, 24), //em(24, 24),
           lineHeight: round(32 / 24),
         },
         h3: {
-          fontSize: em(20, 16),
-          marginTop: em(32, 20),
-          marginBottom: em(12, 20),
+          fontSize: em(18,16),//em(20, 16),
+          marginTop: em(16, 20),
+          marginBottom: em(8, 20), //em(12, 20),
           lineHeight: round(32 / 20),
         },
         h4: {
-          marginTop: em(24, 16),
+          marginTop: em(16, 16),
           marginBottom: em(8, 16),
           lineHeight: round(24 / 16),
         },
         img: {
-          marginTop: em(32, 16),
-          marginBottom: em(32, 16),
+          marginTop: em(24, 16), //em(32, 16),
+          marginBottom: em(24, 16), //em(32, 16),
         },
         picture: {
-          marginTop: em(32, 16),
-          marginBottom: em(32, 16),
+          marginTop: em(24, 16), //em(32, 16),
+          marginBottom: em(24, 16), //em(32, 16),
         },
         'picture > img': {
           marginTop: '0',
           marginBottom: '0',
         },
         video: {
-          marginTop: em(32, 16),
-          marginBottom: em(32, 16),
+          marginTop: em(24, 16), //em(32, 16),
+          marginBottom: em(24, 16), //em(32, 16),
         },
         kbd: {
           fontSize: em(14, 16),
@@ -312,8 +311,8 @@ let defaultModifiers = {
         pre: {
           fontSize: em(14, 16),
           lineHeight: round(24 / 14),
-          marginTop: em(24, 14),
-          marginBottom: em(24, 14),
+          marginTop: em(20, 14), //em(24, 14),
+          marginBottom: em(20, 14), //em(24, 14),
           borderRadius: rem(6),
           paddingTop: em(12, 14),
           paddingInlineEnd: em(16, 14),
@@ -331,8 +330,8 @@ let defaultModifiers = {
           paddingInlineStart: em(26, 16),
         },
         li: {
-          marginTop: em(8, 16),
-          marginBottom: em(8, 16),
+          marginTop: em(4, 16), //em(8, 16),
+          marginBottom: em(4, 16), //em(8, 16),
         },
         'ol > li': {
           paddingInlineStart: em(6, 16),
@@ -341,24 +340,24 @@ let defaultModifiers = {
           paddingInlineStart: em(6, 16),
         },
         '> ul > li p': {
-          marginTop: em(12, 16),
-          marginBottom: em(12, 16),
+          marginTop: em(8, 16), //em(12, 16),
+          marginBottom: em(8, 16), //em(12, 16),
         },
         '> ul > li > p:first-child': {
-          marginTop: em(20, 16),
+          marginTop: em(16, 16), //em(20, 16),
         },
         '> ul > li > p:last-child': {
-          marginBottom: em(20, 16),
+          marginBottom: em(16, 16), //em(20, 16),
         },
         '> ol > li > p:first-child': {
-          marginTop: em(20, 16),
+          marginTop: em(16, 16), //em(20, 16),
         },
         '> ol > li > p:last-child': {
-          marginBottom: em(20, 16),
+          marginBottom: em(16, 16), //em(20, 16),
         },
         'ul ul, ul ol, ol ul, ol ol': {
-          marginTop: em(12, 16),
-          marginBottom: em(12, 16),
+          marginTop: em(8, 16), //em(12, 16),
+          marginBottom: em(8, 16), //em(12, 16),
         },
         dl: {
           marginTop: em(20, 16),
@@ -372,8 +371,8 @@ let defaultModifiers = {
           paddingInlineStart: em(26, 16),
         },
         hr: {
-          marginTop: em(48, 16),
-          marginBottom: em(48, 16),
+          marginTop: em(40, 16), //em(48, 16),
+          marginBottom: em(40, 16), //em(48, 16),
         },
         'hr + *': {
           marginTop: '0',
@@ -415,8 +414,8 @@ let defaultModifiers = {
           paddingInlineEnd: '0',
         },
         figure: {
-          marginTop: em(32, 16),
-          marginBottom: em(32, 16),
+          marginTop: em(24, 16), //em(32, 16),
+          marginBottom: em(24, 16), //em(32, 16),
         },
         'figure > *': {
           marginTop: '0',
@@ -1499,18 +1498,18 @@ module.exports = {
         },
         h1: {
           color: 'var(--tw-prose-headings)',
-          fontWeight: '800',
+          fontWeight: '600'//'800',
         },
         'h1 strong': {
-          fontWeight: '900',
+          fontWeight: '700',//900',
           color: 'inherit',
         },
         h2: {
           color: 'var(--tw-prose-headings)',
-          fontWeight: '700',
+          fontWeight: '600',//'700',
         },
         'h2 strong': {
-          fontWeight: '800',
+          fontWeight: '700',
           color: 'inherit',
         },
         h3: {

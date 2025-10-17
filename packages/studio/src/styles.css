@@ -5,6 +5,7 @@
 @plugin "./tailwindcss-typography/src/index.js";
 
 
+
 /* 
 ---break--- */
 @custom-variant dark (&:is(.dark *));
