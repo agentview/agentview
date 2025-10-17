@@ -16,7 +16,7 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "./ui/select";
+} from "./controls/PillSelect";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -103,9 +103,7 @@ export const SelectControl = (props: ControlComponentProps<string> & { options: 
         <Select value={value ?? ""} onValueChange={(newValue) => {
             onChange(newValue === "" ? null : newValue);
         }}>
-            <SelectTrigger size="xs">
-                <SelectValue placeholder={placeholder} />
-            </SelectTrigger>
+            <SelectTrigger />
             <SelectContent>
                 {options.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
