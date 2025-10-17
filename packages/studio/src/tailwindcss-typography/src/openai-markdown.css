@@ -1,0 +1,386 @@
+
+.markdown {
+    max-width: unset
+}
+
+.markdown.streaming-animation.block-entry-animation pre,
+.markdown.streaming-animation.block-entry-animation table {
+    overflow: clip !important;
+    position: relative
+}
+
+:is(.markdown.streaming-animation.block-entry-animation pre, .markdown.streaming-animation.block-entry-animation table):after {
+    --overlap-distance: 10px;
+    --overlap-negative-distance: -10px;
+    content: "";
+    display: flex;
+    height: calc(100% + var(--overlap-distance)*2);
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    position: absolute;
+    translate: 0 var(--streaming-reveal-amount, var(--overlap-negative-distance))
+}
+
+[dir=ltr] :is(.markdown.streaming-animation.block-entry-animation pre, .markdown.streaming-animation.block-entry-animation table):after {
+    background-image: linear-gradient(180deg, transparent, var(--main-surface-primary)var(--overlap-distance))
+}
+
+[dir=rtl] :is(.markdown.streaming-animation.block-entry-animation pre, .markdown.streaming-animation.block-entry-animation table):after {
+    background-image: linear-gradient(-180deg, transparent, var(--main-surface-primary)var(--overlap-distance))
+}
+
+@media (prefers-reduced-motion:no-preference) {
+    :is(.markdown.streaming-animation.block-entry-animation pre, .markdown.streaming-animation.block-entry-animation table):after {
+        transition: .5s translate var(--spring-standard)
+    }
+}
+
+.markdown.streaming-animation h1,
+.markdown.streaming-animation h2,
+.markdown.streaming-animation h3,
+.markdown.streaming-animation h4,
+.markdown.streaming-animation h5,
+.markdown.streaming-animation h6,
+.markdown.streaming-animation li:not(:has(pre)) {
+    width: fit-content
+}
+
+.markdown pre {
+    margin-top: calc(var(--spacing)*2)
+}
+
+.markdown pre:first-child {
+    margin-top: calc(var(--spacing)*0)
+}
+
+.markdown h1 {
+    --tw-font-weight: var(--font-weight-semibold);
+    --tw-tracking: -.04rem;
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: -.04rem
+}
+
+.markdown-new-styling :is(.markdown h1) {
+    --tw-tracking: var(--tracking-normal);
+    font-size: var(--text-2xl);
+    letter-spacing: var(--tracking-normal);
+    line-height: var(--tw-leading, var(--text-2xl--line-height));
+    margin-bottom: calc(var(--spacing)*2)
+}
+
+.markdown h1:first-child {
+    margin-top: calc(var(--spacing)*0)
+}
+
+.markdown h2 {
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: calc(var(--spacing)*3);
+    margin-top: calc(var(--spacing)*8)
+}
+
+.markdown-new-styling :is(.markdown h2) {
+    font-size: var(--text-xl);
+    line-height: var(--tw-leading, var(--text-xl--line-height));
+    margin-bottom: calc(var(--spacing)*1);
+    margin-top: calc(var(--spacing)*4)
+}
+
+.markdown h2:first-child {
+    margin-top: calc(var(--spacing)*0)
+}
+
+.markdown h3 {
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: calc(var(--spacing)*2);
+    margin-top: calc(var(--spacing)*6)
+}
+
+.markdown-new-styling :is(.markdown h3) {
+    font-size: var(--text-lg);
+    line-height: var(--tw-leading, var(--text-lg--line-height));
+    margin-bottom: calc(var(--spacing)*1);
+    margin-top: calc(var(--spacing)*4)
+}
+
+.markdown h3:first-child {
+    margin-top: calc(var(--spacing)*0)
+}
+
+.markdown h4 {
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: calc(var(--spacing)*2);
+    margin-top: calc(var(--spacing)*4)
+}
+
+.markdown-new-styling :is(.markdown h4) {
+    margin-bottom: calc(var(--spacing)*0)
+}
+
+.markdown h4:first-child,
+.markdown-new-styling :is(.markdown h4+p) {
+    margin-top: calc(var(--spacing)*0)
+}
+
+.markdown h5 {
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold)
+}
+
+.markdown h5:first-child {
+    margin-top: calc(var(--spacing)*0)
+}
+
+.markdown blockquote {
+    --tw-leading: calc(var(--spacing)*6);
+    border-style: var(--tw-border-style);
+    border-width: 0;
+    line-height: calc(var(--spacing)*6);
+    margin: calc(var(--spacing)*0);
+    padding-block: calc(var(--spacing)*2);
+    position: relative
+}
+
+[dir=ltr] .markdown blockquote {
+    padding-left: calc(var(--spacing)*6)
+}
+
+[dir=rtl] .markdown blockquote {
+    padding-right: calc(var(--spacing)*6)
+}
+
+.markdown-new-styling :is(.markdown blockquote) {
+    margin-bottom: calc(var(--spacing)*2);
+    margin-top: calc(var(--spacing)*0)
+}
+
+.markdown blockquote>p {
+    --tw-font-weight: var(--font-weight-normal);
+    font-weight: var(--font-weight-normal);
+    margin: calc(var(--spacing)*0)
+}
+
+.markdown blockquote>p:after,
+.markdown blockquote>p:before {
+    display: none
+}
+
+.markdown blockquote:after {
+    background-color: var(--border-medium);
+    border-radius: 2px;
+    bottom: .5rem;
+    content: "";
+    position: absolute;
+    top: .5rem;
+    width: 4px
+}
+
+[dir=ltr] .markdown blockquote:after {
+    left: 0
+}
+
+[dir=rtl] .markdown blockquote:after {
+    right: 0
+}
+
+.markdown p {
+    margin-bottom: .5rem
+}
+
+.markdown-new-styling :is(.markdown p) {
+    margin-block: calc(var(--spacing)*1)
+}
+
+.markdown-new-styling :is(.markdown p):first-child {
+    margin-top: calc(var(--spacing)*0)
+}
+
+.markdown p:not(:first-child) {
+    margin-top: .5rem
+}
+
+.markdown-new-styling :is(.markdown p+p) {
+    margin-block: calc(var(--spacing)*4)
+}
+
+.markdown p+:where(ol, ul) {
+    margin-top: 0
+}
+
+.markdown :where(ol, ul)>li>:last-child {
+    margin-bottom: 0
+}
+
+.markdown :where(ol, ul)>li>:first-child {
+    margin-bottom: 0;
+    margin-top: 0
+}
+
+.markdown table {
+    --tw-border-spacing-x: calc(var(--spacing)*0);
+    --tw-border-spacing-y: calc(var(--spacing)*0);
+    border-collapse: separate;
+    border-spacing: var(--tw-border-spacing-x)var(--tw-border-spacing-y);
+    margin: calc(var(--spacing)*0)
+}
+
+.markdown table [data-col-size=sm] {
+    max-width: calc(var(--thread-content-max-width)*6/24);
+    min-width: calc(var(--thread-content-max-width)*4/24)
+}
+
+.markdown table [data-col-size=md] {
+    max-width: calc(var(--thread-content-max-width)*8/24);
+    min-width: calc(var(--thread-content-max-width)*6/24)
+}
+
+.markdown table [data-col-size=lg] {
+    max-width: calc(var(--thread-content-max-width)*12/24);
+    min-width: calc(var(--thread-content-max-width)*8/24)
+}
+
+.markdown table [data-col-size=xl] {
+    max-width: calc(var(--thread-content-max-width)*18/24);
+    min-width: calc(var(--thread-content-max-width)*14/24)
+}
+
+.markdown th {
+    --tw-leading: calc(var(--spacing)*4);
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 1px;
+    border-color: var(--border-medium);
+    line-height: calc(var(--spacing)*4);
+    padding-block: calc(var(--spacing)*2)
+}
+
+.markdown th:not(:last-child) {
+    padding-inline-end: calc(var(--spacing)*6)
+}
+
+.markdown tr:not(:last-child) td {
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 1px;
+    border-color: var(--border-light)
+}
+
+.markdown tr:last-child td {
+    padding-bottom: calc(var(--spacing)*6)
+}
+
+.markdown td {
+    padding-block: calc(var(--spacing)*2.5)
+}
+
+.markdown td:not(:last-child) {
+    padding-inline-end: calc(var(--spacing)*6)
+}
+
+.markdown ol,
+.markdown ul {
+    margin-bottom: calc(var(--spacing)*4)
+}
+
+.markdown-new-styling :is(.markdown ul, .markdown ol) {
+    margin: calc(var(--spacing)*0)
+}
+
+.markdown-new-styling :is(.markdown ul+h1, .markdown ul+h2, .markdown ul+h3, .markdown ul+h4, .markdown ul+h5, .markdown ul+h6, .markdown ol+h1, .markdown ol+h2, .markdown ol+h3, .markdown ol+h4, .markdown ol+h5, .markdown ol+h6) {
+    margin-top: calc(var(--spacing)*4)
+}
+
+.markdown-new-styling :is(.markdown ul li, .markdown ol li) {
+    margin-block: calc(var(--spacing)*0)
+}
+
+.markdown li::marker {
+    --tw-font-weight: var(--font-weight-bold);
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-bold)
+}
+
+.markdown-new-styling :is() {
+    --tw-font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold)
+}
+
+.markdown a {
+    --tw-font-weight: var(--font-weight-normal);
+    color: var(--link);
+    font-weight: var(--font-weight-normal);
+    -webkit-text-decoration-line: none;
+    text-decoration-line: none
+}
+
+@media (hover:hover) {
+    .markdown a:hover {
+        color: var(--link-hover)
+    }
+}
+
+.markdown a.decorated-link {
+    display: inline;
+    -webkit-text-decoration-color: var(--text-tertiary);
+    text-decoration-color: var(--text-tertiary);
+    -webkit-text-decoration-line: underline;
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    vertical-align: baseline
+}
+
+@media (hover:hover) {
+    .markdown a.decorated-link:hover {
+        -webkit-text-decoration-color: inherit;
+        text-decoration-color: inherit
+    }
+}
+
+.markdown a.decorated-link {
+    color: inherit;
+    cursor: pointer;
+    -webkit-text-decoration-skip-ink: auto;
+    text-decoration-skip-ink: auto;
+    text-underline-position: from-font
+}
+
+@media (hover:hover) {
+    .markdown a.decorated-link:hover {
+        color: var(--theme-entity-accent)
+    }
+}
+
+.markdown-new-styling :is(.markdown strong) {
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold)
+}
+
+.gizmo .markdown>:not(pre),
+.gizmo .markdown>:not(pre)>:not(a) {
+    color: var(--text-primary)
+}
+
+.markdown .float-image+p,
+.markdown-new-styling :is(.markdown hr+*) {
+    margin-top: calc(var(--spacing)*0)
+}
+
+.markdown hr {
+    border-color: var(--border-light);
+    clear: both;
+    margin-block: calc(var(--spacing)*10)
+}
+
+.markdown-new-styling :is(.markdown hr) {
+    border-color: var(--border-medium);
+    margin-block: calc(var(--spacing)*7)
+}
+
+[data-writing-block=true] .markdown p {
+    margin: 0 !important
+}

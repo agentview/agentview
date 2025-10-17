@@ -2,7 +2,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@plugin "@tailwindcss/typography";
+@plugin "./tailwindcss-typography/src/index.js";
 
 
 /* 
