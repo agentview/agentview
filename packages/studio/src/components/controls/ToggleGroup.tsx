@@ -5,12 +5,7 @@ import { type Option, optionValueToString } from "./Option";
 
 // fixme: totally not accessible
 export const ToggleGroupControl = <T extends string | number | boolean = string>(props: ControlComponentProps<T> & { options: Option<T>[], hideOptionsOnSelect?: boolean, showLabels?: "always" | "on-select" | "never" }) => {
-    const { onChange, options, hideOptionsOnSelect, showLabels = "always" } = props;
-
-    const [value, setValue] = useState<T | null>(props.value ?? null);
-    useEffect(() => {
-        setValue(props.value ?? null);
-    }, [props.value]);
+    const { value, onChange, options, hideOptionsOnSelect, showLabels = "always" } = props;
 
     return <div className="flex flex-row">
         {options.map((option) => {
@@ -31,10 +26,8 @@ export const ToggleGroupControl = <T extends string | number | boolean = string>
 
             const onClick = () => {
                 if (isSelected) {
-                    setValue(null);
                     onChange(null);
                 } else {
-                    setValue(option.value);
                     onChange(option.value);
                 }
             }

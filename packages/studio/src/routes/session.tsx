@@ -31,8 +31,6 @@ import z from "zod";
 import { Form as HookForm } from "~/components/ui/form";
 import { Pill } from "~/components/Pill";
 import { useRerender } from "~/hooks/useRerender";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from "~/components/ui/dropdown-menu";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<Session>(`/api/sessions/${params.id}`);
@@ -638,7 +636,7 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
 
     const form = useForm({
         resolver: zodResolver<any, any, any>(schema),
-        defaultValues
+        values: defaultValues
     });
 
     const submit = (data: z.infer<typeof schema>) => {
@@ -676,7 +674,7 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
 
                     <HookForm {...form}>
                         <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 {allScoreConfigs.map((scoreConfig) => (
                                     <AVFormField
                                         variant="row"
