@@ -596,7 +596,7 @@ const sessionsGETRoute = createRoute({
 })
 
 async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>, clientId: string) {
-  const DEFAULT_LIMIT = 50
+  const DEFAULT_LIMIT = 10
   const DEFAULT_PAGE = 1
 
   const limit = Math.max(parseInt(params.limit ?? DEFAULT_LIMIT.toString()) || DEFAULT_LIMIT, 1);

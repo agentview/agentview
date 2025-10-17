@@ -5,7 +5,7 @@ import { Input } from "./ui/input";
 import {
     ToggleGroup,
     ToggleGroupItem,
-} from "./ui/toggle-group"
+} from "./controls/toggle-group"
 import { Textarea } from "./ui/textarea";
 import { FormDescription, FormItem, FormLabel, FormMessage, FormField, FormControl } from "./ui/form";
 import React from "react";
@@ -22,7 +22,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "./ui/form";
 import { Alert } from "./ui/alert";
-import { AlertCircleIcon, ArrowUpIcon, ChevronDownIcon, PauseIcon } from "lucide-react";
+import { AlertCircleIcon, ArrowUpIcon, ChevronDownIcon, PauseIcon, ThumbsDown, ThumbsUp } from "lucide-react";
 import { AlertDescription } from "./ui/alert";
 import { z } from "zod";
 import type { BaseError } from "~/lib/errors";
@@ -30,6 +30,34 @@ import { cn } from "~/lib/utils";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "./ui/input-group";
 import { Badge } from "./ui/badge";
 import { TagPill } from "./TagPill";
+import { Button } from "./ui/button";
+
+
+
+// export const TagPillButton = (props: any) => {
+//     return <div className="flex flex-row gap-1 items-center bg-gray-100 text-gray-700 [&>svg]:shrink-0" {...props}>
+//         {props.children}
+//     </div>
+// }
+
+export const LikeWidgetTest = () => {
+    const [value, setValue] = useState<boolean | null>(null);
+
+    return <div className="flex flex-row items-center h-[32px]">
+        { value === null && <Button variant="ghost" size="xs" className="brightness-95" onClick={() => setValue(true)}><ThumbsUp /></Button>}
+        { value === null && <Button variant="ghost" size="xs" className="brightness-95" onClick={() => setValue(false)}><ThumbsDown /></Button>}
+        {/* {value !== null && <div className="hover:bg-gray-100 rounded-sm h-[32px] px-1 flex items-center justify-center">
+            <TagPill size="md" className="bg-gray-200  font-medium cursor-default" onClick={() => setValue(null)}>{ value === true ? <><ThumbsUp />Like</> : <><ThumbsDown />Don't Like</>} </TagPill>
+            </div>} */}
+            {value !== null && <TagPill size="md" className="bg-gray-100  font-medium cursor-default" onClick={() => setValue(null)}>{ value === true ? <><ThumbsUp />Like</> : <><ThumbsDown />Don't Like</>} </TagPill>}
+    </div>
+
+
+
+
+    return <TagPill size="sm" className="bg-gray-100 hover:brightness-95 font-normal"><ThumbsUp />Like</TagPill>
+}
+
 
 export type Option<T extends string | number | boolean> = {
     value: T;
@@ -43,8 +71,34 @@ export const ToggleGroupControl = <T extends string | number | boolean = string>
     const stringValue = value === null || value === undefined ? "" : String(value);
     const type = typeof options[0].value;
 
+    // return <div className="flex flex-row">
+    //     {options.map((option) => {
+    //         const icon = option.icon;
+    //         let label = option.label;
+    //         if (!icon && !label) {
+    //             label = String(option.value);
+    //         }
+
+    //         // if not selected
+    //         if (collapseOnSelect && stringValue !== '' && stringValue !== String(option.value)) {
+    //             return null;
+    //         }
+
+    //         if (stringValue === '' && showLabelOnlyOnSelect) {
+    //             label = undefined;
+    //         }
+
+    //         return (
+    //             <div key={String(option.value)} value={String(option.value)} aria-label={`Toggle ${option.value}`}>
+    //                 {icon}
+    //                 {label}
+    //             </div>
+    //         );
+    //     })}
+    // </div>
+
     return (
-        <ToggleGroup type="single" variant="outline" size="xs" value={stringValue} onValueChange={(value) => {
+        <ToggleGroup type="single" variant="default" size="xs" value={stringValue} onValueChange={(value) => {
             if (value === "") {
                 onChange(null);
             } else {

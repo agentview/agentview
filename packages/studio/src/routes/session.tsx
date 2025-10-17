@@ -10,11 +10,11 @@ import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/li
 import { type Run, type Session, type SessionItem } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
-import { AlertCircleIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, ThumbsDown, ThumbsDownIcon, ThumbsUp, ThumbsUpIcon, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
+import { AlertCircleIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageCirclePlusIcon, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, ThumbsDown, ThumbsDownIcon, ThumbsUp, ThumbsUpIcon, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig, ScoreConfig } from "~/types";
-import { AVFormError, AVFormField } from "~/components/form";
+import { AVFormError, AVFormField, LikeWidgetTest } from "~/components/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/ItemsWithCommentsLayout";
 import { CommentsThread } from "~/components/comments";
@@ -386,17 +386,9 @@ function ShareForm({ session }: { session: Session }) {
     const fetcher = useFetcher();
     return <fetcher.Form method="put" action={`/clients/${session.client.id}/share`}>
         <input type="hidden" name="isShared" value={session.client.isShared ? "false" : "true"} />
-        {/* <Button variant={session.client.isShared ? "default" : "outline"} className="bg-cyan-700" size="xs" type="submit">
-            <UsersIcon  /> {session.client.isShared ? "Shared" : "Share"}
-        </Button> */}
-        <Button variant={"outline"} size="xs" type="submit">
+        <Button variant={"outline"} size="sm" type="submit">
             <UsersIcon fill={session.client.isShared ? "black" : "none"} stroke={session.client.isShared ? "none" : "black"} /> {session.client.isShared ? "Shared" : "Share"}
         </Button>
-
-        {/* <Button variant={"outline"} size="xs" type="submit">
-            <UsersIcon />
-            {session.client.isShared ? "Shared" : "Share"}
-        </Button> */}
     </fetcher.Form>
 }
 
@@ -527,6 +519,22 @@ type MessageFooterProps = {
     isSmallSize: boolean
 }
 
+
+
+
+function LikeWidget() {
+    return <div className="flex flex-row items-center h-[32px]">
+        <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsUpIcon className="size-4" /></div>
+        <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsDownIcon className="size-4" /></div>
+
+        {/* <Button variant="ghost" size="xs" className="brightness-95"><ThumbsUp /></Button> */}
+        {/* <Button variant="ghost" size="xs" className="brightness-95"><ThumbsDown /></Button> */}
+    </div>
+}
+
+
+
+
 function MessageFooter(props: MessageFooterProps) {
     const { session, run, listParams, item, onSelect, isSelected, onUnselect, isSmallSize } = props;
     const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
@@ -537,9 +545,101 @@ function MessageFooter(props: MessageFooterProps) {
     return <div className="mt-3 mb-8 ">
         <div>
             <div className="text-xs flex justify-between gap-2 items-start">
-                <div className="flex flex-row flex-wrap gap-1.5 items-center">
+                <div className="flex flex-row flex-wrap gap-1 items-center">
 
-                    {/* <div className="bg-gray-100 text-black/65 h-[24px] rounded-md flex items-center justify-center px-2 text-sm font-medium gap-1"><ThumbsUp className="size-4" />Like</div> */}
+
+                    {/* <div className="flex flex-row items-center h-[32px]">
+                        <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsUpIcon className="size-4"/></div>
+                        <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsDownIcon className="size-4"/></div>
+                    </div>
+
+
+                    <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
+                        <MessageCirclePlusIcon className="size-4" />
+                        <div className="text-[13px] font-normal">Comment</div>
+                    </div>
+
+                    <div className="h-[32px] px-[6px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
+                        <TagPill size="xs" className="bg-gray-200 text-[13px] text-black">Third Option<ChevronDown /></TagPill>
+                    </div>
+
+                    <div className="h-[32px] px-[6px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
+                        <TagPill size="xs" className="bg-[#DBE6DD] text-[13px] text-black"><WrenchIcon />Third Option</TagPill>
+                    </div>
+
+                    <div className="h-[32px] px-[6px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
+                        <TagPill size="xs" className="bg-[#E9DDF3] text-[13px] text-black">Third Option<ChevronDown /></TagPill>
+                    </div>
+
+                    <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
+                        <CircleGauge className="size-4" />
+                        <div className="text-[13px] font-normal">Score</div>
+                        <ChevronDown className="size-4" />
+                    </div>
+
+                    <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
+                        <div className="text-[13px] font-normal">Style</div>
+                        <ChevronDown className="size-4" />
+                    </div> */}
+
+
+                    <div className="flex flex-row items-center h-[32px]">
+                        <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsUpIcon className="size-4"/></div>
+                        <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsDownIcon className="size-4"/></div>
+                    </div>
+
+                    {/* <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-md">
+                        <TagPill size="xs" className="bg-gray-200 text-[14px] px-1.5 text-black rounded-md h-[22px]"><ThumbsUpIcon className="size-4"/>Like</TagPill>
+                    </div> */}
+                    {/* <Button variant="ghost" size="sm" className=""><ThumbsDownIcon fill="currentColor" stroke="none" />Don't Like</Button> */}
+
+                    <Button variant="outline" size="xs"><MessageCirclePlusIcon className="size-4" />Comment</Button>
+                    <Button variant="outline" size="xs"><CircleGauge />Score<ChevronDown /></Button>
+
+{/* 
+                    <Button variant="ghost" size="sm" className="text-cyan-700 font-medium">
+                        <ThumbsUpIcon fill="currentColor" stroke="none" />Empty
+                    </Button>
+
+                    <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
+                        <MessageCirclePlusIcon className="size-4" />
+                        <div className="text-[14px] font-medium">Comment</div>
+                    </div>
+
+                    <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
+                        <TagPill size="xs" className="bg-gray-200 text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Some Value</TagPill>
+                    </div>
+
+                    <Button variant="ghost" size="sm"><WrenchIcon />Test</Button>
+
+
+                    <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
+                        <TagPill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></TagPill>
+                    </div>
+                    <div className="h-[32px] px-[5px] flex items-center justify-center hover:bg-gray-100 rounded-sm">
+                        <TagPill size="xs" className="bg-[#E9DDF3] text-[14px] px-1.5 text-black rounded-sm h-[22px] font-normal">Third Option<ChevronDown /></TagPill>
+                    </div>
+
+                    <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
+                        <CircleGauge className="size-4" />
+                        <div className="text-[14px] font-medium">Score</div>
+                        <ChevronDown className="size-4" />
+                    </div>
+
+                    <Button variant="ghost" size="sm"><CircleGauge />Score<ChevronDown /></Button>
+
+
+                    <Button variant="outline" size="default"><WrenchIcon />Test</Button>
+                    <Button variant="outline" size="sm"><WrenchIcon />Test</Button>
+                    <Button variant="outline" size="xs"><WrenchIcon />Test</Button> */}
+                    {/* 
+                    <div className="flex flex-row items-center h-[32px] px-[6px] hover:bg-gray-100 rounded-sm gap-1">
+                        <div className="text-[14px] font-normal">Style</div>
+                        <ChevronDown className="size-4" />
+                    </div> */}
+
+
+
 
 
                     {/* <div className="flex flex-row">
@@ -551,8 +651,8 @@ function MessageFooter(props: MessageFooterProps) {
                         </Button>
                     </div>
                     <Button variant="ghost" size="xs" className="">Style<ChevronDown /></Button> */}
-                     {/* <div className="bg-[#E9DDF3] text-black/80 h-[24px] rounded-md flex items-center justify-center px-2 text-sm font-medium gap-1"><div>Too Long</div><ChevronDown className="size-4" /></div> */}
-                     {/* <div className="bg-[#E9DDF3] text-black/80 h-[20px] rounded-md flex items-center justify-center px-2 text-xs font-medium gap-1"><div>Too Long</div><ChevronDown className="size-3" /></div> */}
+                    {/* <div className="bg-[#E9DDF3] text-black/80 h-[24px] rounded-md flex items-center justify-center px-2 text-sm font-medium gap-1"><div>Too Long</div><ChevronDown className="size-4" /></div> */}
+                    {/* <div className="bg-[#E9DDF3] text-black/80 h-[20px] rounded-md flex items-center justify-center px-2 text-xs font-medium gap-1"><div>Too Long</div><ChevronDown className="size-3" /></div> */}
 
                     {/* <div className="flex items-center justify-center px-2 text-sm font-medium gap-1"><div>Style</div></div> */}
 
@@ -565,7 +665,7 @@ function MessageFooter(props: MessageFooterProps) {
                             <ThumbsDownIcon />
                         </Button>
                     </div> */}
-{/* 
+                    {/* 
                     <Button variant="ghost" size="xs">
                         <MessageCirclePlus />Comment
                     </Button>
@@ -583,7 +683,18 @@ function MessageFooter(props: MessageFooterProps) {
 
                     {/* <div className="bg-[#DBE6DD] text-black/65 h-[24px] rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><ThumbsUp className="size-4" /></div> */}
 
+                    {/* <div className="flex flex-row justify-center items-center h-[28px] px-[3px] hover:bg-gray-100 rounded-sm cursor-pointer">
+                        <TagPill size="sm" className="bg-gray-200 font-medium"><ThumbsUp />Like</TagPill>
+                    </div> */}
 
+                    {/* <LikeWidgetTest /> */}
+
+                    {/* <TagPill size="sm" className="bg-[#DBE6DD] hover:brightness-95 font-normal"><ThumbsUp />Like</TagPill> */}
+
+                    {/* <div className="flex flex-row justify-center items-center h-[28px] px-1 hover:bg-gray-100 rounded-sm cursor-pointer">
+                        <TagPill size="sm" className="bg-[#DBE6DD] font-medium"><ThumbsUp />Like</TagPill>
+                    </div> */}
+                    {/* 
                     {actionBarScores.map((scoreConfig) => (
                         <ActionBarScoreForm
                             key={scoreConfig.name}
@@ -591,8 +702,8 @@ function MessageFooter(props: MessageFooterProps) {
                             item={item}
                             scoreConfig={scoreConfig}
                         />
-                    ))}
-                    <Button variant="outline" size="xs" asChild>
+                    ))} */}
+                    {/* <Button variant="outline" size="xs" asChild>
                         <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: item.id })}`}>
                             <MessageCirclePlus />Comment
                         </Link>
@@ -602,7 +713,7 @@ function MessageFooter(props: MessageFooterProps) {
                         item={item}
                         open={scoreDialogOpen}
                         onOpenChange={setScoreDialogOpen}
-                    />
+                    /> */}
                     {/* <div className="bg-[#E9DDF3] text-black/65 h-[28px] border rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><div>Test score</div> <ChevronDown className="size-4" /></div>
                     <div className="bg-[#DBE6DD] text-black/65 h-[28px] border rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><ThumbsUp className="size-4" /><div>Like</div></div>
                     <div className="bg-white text-[#68776B] h-[28px] border rounded-md flex items-center justify-center px-2 text-sm font-semibold gap-1"><ThumbsUp className="size-4" /><div>Like</div></div> */}
