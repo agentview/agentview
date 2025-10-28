@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { db, pool } from "../src/db";
+import { db } from "../src/db";
 
 console.log("Running 'select 1' test SQL query");
 
@@ -9,7 +9,7 @@ try {
     
     console.log("Closing database connection...");
     
-    await pool.end();
+    await db.$client.end();
     
     console.log("Database connection closed");
     
