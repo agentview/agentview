@@ -7,7 +7,8 @@
     "build": "",
     "start": "node dist/src/index.js",
     "start-ts": "tsx src/index.ts",
-    "reset": "tsx scripts/reset.ts"
+    "clear-db": "tsx scripts/clear-db.ts",
+    "test-db": "tsx scripts/test-db.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.0",

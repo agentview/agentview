@@ -20,8 +20,7 @@ import { createInvitation, cancelInvitation, getPendingInvitations, getValidInvi
 import { fetchSession, fetchSessionState } from './sessions'
 import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
-
-// shared imports
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getAllSessionItems, getLastRun } from './shared/sessionUtils'
 import { ClientSchema, SessionSchema, SessionCreateSchema, SessionItemCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, ClientCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage } from './shared/apiTypes'
 import { getConfig } from './getConfig'
@@ -33,6 +32,10 @@ import { isInboxItemUnread } from './inboxItems'
 import { createClient, createClientAuthSession, getClientAuthSession, verifyJWT, findClientByExternalId } from './clientsAuth'
 import packageJson from '../package.json'
 import type { Transaction } from './types'
+
+console.log("Migrating database...");
+await migrate(db, { migrationsFolder: './drizzle' });
+console.log("✅ Database migrated successfully");
 
 
 export const app = new OpenAPIHono({
