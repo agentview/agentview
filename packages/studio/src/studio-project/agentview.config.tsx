@@ -108,24 +108,6 @@ export default defineConfig({
                     </form>
                 </Form>
             },
-            // inputComponent: (props) => <AVForm {...props}>
-            //     <AVFormField
-            //         name="product_id"
-            //         label="Product"
-            //         control={ProductSelect}
-            //     />
-
-            //     <AVFormField
-            //         name="test"
-            //         label="Test"
-            //         // disabled={true}
-            //         defaultValue="dupa"
-            //         control={(props) => <AVInput {...props} placeholder="Enter your test" />}
-            //     />
-            //     <Button type="submit" disabled={props.isRunning}>Submit</Button>
-            // </AVForm>,
-
-
             displayProperties: [
                 {
                     title: "Product",
