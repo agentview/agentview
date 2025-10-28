@@ -4,9 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "",
-    "start": "node dist/src/index.js",
-    "start-ts": "tsx src/index.ts",
+    "start": "tsx src/index.ts",
+    "build": "tsc --noEmit && tsc",
     "clear-db": "tsx scripts/clear-db.ts",
     "test-db": "tsx scripts/test-db.ts"
   },

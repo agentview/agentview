@@ -19,6 +19,7 @@ COPY tsconfig.json ./
 COPY src ./src
 COPY drizzle.config.ts ./drizzle.config.ts
 COPY scripts ./scripts
+COPY drizzle ./drizzle
 
 # no build for now, we'll just run start-ts
 RUN npm run build
@@ -46,7 +47,5 @@ USER nodeuser
 
 # EXPOSE 80
 ENTRYPOINT ["/usr/bin/tini", "--"]
-# CMD ["npx", "drizzle-kit", "push"]
-# CMD ["npm", "run", "start-ts"]
 
-CMD ["sh", "-c", "npx drizzle-kit push && npm run start-ts"]
+CMD ["sh", "-c", "npm run start"]
