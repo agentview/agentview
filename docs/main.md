@@ -12,6 +12,14 @@ Core ideas around AgentView:
 - it helps with everything around, provides storage, manages sessions, storage, provides extremely customisable and powerful data viewer with collaboration features.
 
 
+## Philosophy
+
+I believe we're very early and that developers should have full freedom of how they build AI.
+
+Another aspect is looking at data, having agent blended with view layer were multiple stakeholders and domain experts can test, view and annotate data (collaboration!).
+Observability tools are not up to the task, as they're very developer-centric and have too much detail.
+
+
 ### Explanation
 
 Imagine you want to build a customer support bot for Acme company. You'll probably start with the following steps:
@@ -28,7 +36,7 @@ Even you'll very quickly realise there's a big list of things that you also need
 
 
 It has 2 parts:
-- frontend: ultra-customisable Data Viewer 
+- frontend: ultra-customisable Data Viewer
 - backend: middleware that handles session storage, 
 
 
