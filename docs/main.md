@@ -94,3 +94,15 @@ I'm product engineer turned AI engineer and built conversational agents for a co
 
 # Getting Started
 
+Start by creating new AgentView app:
+
+```bash
+npm create agentview@latest my-agentview-app
+```
+
+Enter newly made directory:
+
+```
+cd my-agentview-app
+```
+
