@@ -65,3 +65,49 @@ export function ItemUserMessageComponent({ value }: DisplayComponentProps<string
 export function ItemAssistantMessageComponent({ value }: DisplayComponentProps<string>) {
     return <div className="prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline" dangerouslySetInnerHTML={{__html: marked.parse(value, { async: false })}}></div>
 }
+
+export function ItemAssistantMessageComponentWithTitle({ value, title }: DisplayComponentProps<string> & { title?: string }) {
+    return (<div>
+        {/* <div className="flex items-stretch border-b pb-2 pt-2">
+            <div className="flex flex-col items-center pr-4 relative">
+                <div className="size-2 rounded-full bg-gray-500 mb-1 mt-1"></div>
+                <div className="flex-1 w-px bg-gray-300 grow"></div>
+            </div>
+            <div className="flex-1 ">
+                {title && (
+                    <div className="text-sm text-muted-foreground mb-1 font-medium">
+                        {title}
+                    </div>
+                )}
+                <div
+                    className="prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-muted-foreground"
+                    dangerouslySetInnerHTML={{ __html: marked.parse(value, { async: false }) }}
+                ></div>
+            </div>
+        </div> */}
+        <div className="">
+            {title && (
+                <div className="text-sm text-black mb-0.5 font-medium">
+                    {title}
+                </div>
+            )}
+            <div
+                className="prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-muted-foreground"
+                dangerouslySetInnerHTML={{ __html: marked.parse(value, { async: false }) }}
+            ></div>
+        </div>
+
+        <div className=" mt-4">
+            {title && (
+                <div className="text-sm text-black mb-0.5 font-medium">
+                    tool_call
+                </div>
+            )}
+            <div
+                className="prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-muted-foreground "
+                dangerouslySetInnerHTML={{ __html: marked.parse("Something something", { async: false }) }}
+            ></div>
+        </div>
+       
+    </div>);
+}

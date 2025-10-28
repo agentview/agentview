@@ -1019,6 +1019,8 @@ app.openapi(runsPOSTRoute, async (c) => {
           return
         }
 
+        console.log('EVENT', event.name);
+
         if (!hadManifest && event.name !== 'response_data' && event.name !== 'manifest') {
           throw new AgentAPIError({
             message: "No 'manifest' was sent by the agent."

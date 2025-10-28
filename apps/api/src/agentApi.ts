@@ -112,9 +112,13 @@ export async function* callAgentAPI(request: { session: any }, url: string): Asy
       }
     }
 
+    
     /** STREAMING RESPONSE **/
     else if (contentType.startsWith('text/event-stream')) {
-      for await (const { event, data } of parseSSE(response.body)) {
+      console.log('START STREAMING RESPONSE');
+
+      for await (const { event, data } of parseSSE(response.body)) {    
+        console.log('EVENT', event);
         let parsedData: any;
 
         if (event === "ping") {
@@ -222,7 +226,9 @@ async function* parseSSE(body: ReadableStream<Uint8Array<ArrayBufferLike>>): Asy
         break
       }
 
-      buffer += decoder.decode(value, { stream: true })
+      const chunk =decoder.decode(value, { stream: true });
+      console.log(chunk);
+      buffer += chunk
       const blocks = buffer.split('\n\n')
       
       // Keep the last (potentially incomplete) block in buffer

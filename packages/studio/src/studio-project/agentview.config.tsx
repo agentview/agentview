@@ -1,7 +1,7 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
-import { ItemAssistantMessageComponent, ItemUserMessageComponent } from "~/components/display";
+import { ItemAssistantMessageComponent, ItemAssistantMessageComponentWithTitle, ItemUserMessageComponent } from "~/components/display";
 import { ProductDisplay } from "./ProductDisplay";
 import { ProductSelect } from "./ProductSelect";
 import { CustomPage } from "./CustomPage";
@@ -31,6 +31,14 @@ export default defineConfig({
                     displayComponent: ItemUserMessageComponent,
                     inputComponent: UserMessageInputComponent
                 },
+                steps: [
+                    {
+                        type: "thinking",
+                        role: "assistant",
+                        content: z.string(),
+                        displayComponent: (props) => <ItemAssistantMessageComponentWithTitle {...props} title="Thinking" />,
+                    }
+                ],
                 output: {
                     type: "message",
                     role: "assistant",
