@@ -4,6 +4,62 @@ Welcome to the AgentView documentation!
 
 ## What is AgentView?
 
+## (scratchpad)
+
+AgentView is open-source scaffolding for building conversational agents.
+
+It's for AI Engineers who want to build agents **with code**. It provides "everything-around-the-agent" like powerful data viewer, session storage, version management, etc... but lets developers write AI part however they want. They can do it in any programming language and in any framework they want.
+
+### How it works?
+
+Developer provides a STATELESS endpoint, which takes care of intelligence. It's stateless because it doesn't handle any storage. It takes conversation history, conversation state, user memory -> and its task is to generate and send back response + new memories. Since its HTTP endpoint it can be built with Python (FastAPI), Typescript (Hono, Vercel functions, whatever)... So essentially AgentView is NOT an agent framework - by design. It's completely as agnostic as it could be.
+
+AgentView Server communicates with your stateless endpoint and provides following things:
+- Conversation storage
+- Clean, standardized stateful APIs for integration
+- Session management, re‑connects dropped clients, and lets you resume long‑running chats.
+- (soon) Integrations with input channels (email, Slack, Whatsapp, voice, etc...), and output channels for handoffs (Zendesk, etc.)
+
+So essentially it wraps your stateless endpoint and wraps all the boring stuff you probably don't want to handle.
+
+And now, let's switch to AgentView studio. AgentView Studio is an open-source data viewer of the session stored by AgentView server. IT's tasks:
+- View and debug conversations
+- Comment collaboratively on agent outputs (Google Docs-style)
+- Score outputs with teammates or domain experts
+- Manage users, permissions, and teams
+- (soon) Edit prompts and knowledge bases easily
+- Track agent versions
+- Test in "dev mode" without writing code
+
+AgentView Studio is not a cloud web app. It's a React package, where you provide your configuration with code. It makes it trivial to provide custom components for Session Views, custom messages, custom input forms, custom pages, whatever you need. However, it enforces certain design system to keep the Notion-like collaboration features working out-of-the-box.
+
+To some extent it's similar to observability tools (viewing data, scoring and commenting outputs), but it's actually pretty different. AgentView should mostly focus on displaying information that you have to store + the information that end users would see. It's focused on beautiful presentation of data, so that non-technical people love using the tool. Observability tools are developer-first, have every possible detail, and it's great, but it's for devs. AgentView works in tandem with observability tools, you can easily link to traces from the runs displayed AgentView Studio. 
+
+### Some philosophy 
+
+I was hired to build a conversational agents recently for a bunch of companies (mostly shopping assistants). There are obviously bazzilion SaaS customer bot products that try to sell "AI Agent", but my feeling was that those are way too general-purpose. If you really dig into business needs of the client, you can quite easily build agent that is much better than by using off-the-shelf methods. So I wasn't interested in those Saas, I just wanted to build my agents with code.
+
+But I quickly realised that building AI is only tiny part. Building great data viewer, storage, clean API can take even more time than teh agent itself and I thought it doesn't make much sense. 
+
+Why Data Viewer with collaboration? The industry talks a lot about frameworks, workflow tools etc, but not many people talk about the fact that the most important part of the process is not "how you build an agent". It's "how you look at the data and distill it into improvements". If you build an agent for skicnare company, you probably are not a skincare expert and surely not the brands' expert. That's why engaging with stakeholders and domain experts from the company you build an agent for is CRUCIAL and we need great tools for that.
+
+I really wanted to have this Notion-like simplicity where people can easily discuss, and leave scores. 
+I wanted to build a tool where every journey, even the most custom one, can be easily tested in Studio playground.
+The scores, messages, flows might be different, so that's why you can provide a custom React component for every part of the system.
+
+
+
+
+
+
+
+
+
+
+
+
+## What is AgentView?
+
 Agentview is the "CMS for agents" aka AMS - Agent Management System. I conined a new term becuase this kind of tool doesn't exist yet.
 
 (what is agentview shortly)
@@ -15,7 +71,7 @@ Now AgentView takes this endpoint and provides everything around it:
 - session storage
 - version management
 - clean *stateful* api, capable of reconnecting dropped clients
-- powerful super customisable data viewer in React -> where you can modify / exchange any component. The goal is to make it "vibecodable".
+- powerful super customisable data viewer in React -> where you can modify / exchange any component. The goal is to make it "vibecodable", but also well within proper frames.
 - data viewer has collaboration, each agent item can be commented, discussed, use mentions and notifications
 - simulation environment where users can test the agent -> private sessions, shared sessions, etc.
 - adding scores and custom components is also super, easy which makes labeling way easier than in other tools
