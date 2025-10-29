@@ -270,21 +270,6 @@ function SessionPage() {
                                 content = <Component value={item.content} type={item.type} role={item.role} />
                             }
 
-
-                            // if (!itemConfig?.displayComponent) {
-                            //     content = <div className="text-muted-foreground italic">No component (type: "{item.type}"{item.role ? `, role: "${item.role}"` : ""})</div>
-                            // }
-                            // else {
-                            //     if (isInputItem) {
-                            //         content = <div className="pl-[10%] relative">
-                            //             <itemConfig.displayComponent value={item.content} type={item.type} role={item.role} />
-                            //         </div>
-                            //     }
-                            //     else {
-                            //         content = <itemConfig.displayComponent value={item.content} type={item.type} role={item.role} />
-                            //     }
-                            // }
-
                             return {
                                 id: item.id,
                                 itemComponent: <div
