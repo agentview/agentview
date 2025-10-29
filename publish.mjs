@@ -172,14 +172,14 @@ async function publishPackages(version) {
   // Build packages (should be after AGENTVIEW_API_IMAGE is set)
   buildPackages();
 
-  // Publish docker image
-  run(`docker push ${process.env.AGENTVIEW_API_IMAGE}`);
-
   // Commit and tag
   await gitCommitAndTag(version);
 
   // Publish npm packages
   await publishPackages(version);
+
+  // Publish docker image (longest so goes last)
+  run(`docker push ${process.env.AGENTVIEW_API_IMAGE}`);
 
   console.log(`\nPublished v${version}`);
 
