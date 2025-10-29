@@ -17,39 +17,6 @@ import { AVInput } from "~/components/form";
 import { UserMessageInputComponent } from "~/components/form";
 import { Colors } from "~/lib/shared/colors";
 
-export const testJson = {
-    id: 12345,
-    name: "Sample Test Data",
-    age: 34,
-    active: true,
-    score: 98.6,
-    created_at: "2024-04-24T13:45:00Z",
-    tags: ["demo", "testing", "sample", "json"],
-    attributes: {
-        nestedNumber: 42,
-        nestedString: "Nested value",
-        nestedArray: [1, 2, 3],
-        nestedObject: {
-            a: 1,
-            b: 2
-        }
-    },
-    email: "user@example.com",
-    phone: "+1234567890",
-    longText: `
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-        Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-        Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-        Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-        Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-        Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor.
-        Integer posuere erat a ante venenatis dapibus posuere velit aliquet.
-        Praesent commodo cursus magna, vel scelerisque nisl consectetur et.
-        Curabitur blandit tempus porttitor. Maecenas sed diam eget risus varius blandit sit amet non magna.
-        Aenean lacinia bibendum nulla sed consectetur.`
-};
-
-
 
 export default defineConfig({
     apiBaseUrl: "http://localhost:8080",
