@@ -3,8 +3,6 @@ npm-debug.log
 Dockerfile
 .drizzle
 .drizzle/*
-drizzle/*
-drizzle
 .env
 .env.*
 .git

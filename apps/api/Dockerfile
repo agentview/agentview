@@ -37,9 +37,8 @@ RUN npm ci --omit=dev
 # Copy built app
 # COPY --from=build /app/dist ./dist
 COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
-
-# Copy sources for no-build start-ts
 COPY --from=build /app/src ./src
+COPY --from=build /app/drizzle ./drizzle
 
 # Use non-root user
 RUN useradd -m nodeuser && chown -R nodeuser:nodeuser /app
