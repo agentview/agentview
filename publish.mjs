@@ -15,6 +15,7 @@ const ALL_PACKAGES = [
 // Packages to build and publish (npm)
 const PACKAGES = [
   'packages/create-agentview',
+  'packages/studio',
 ];
 
 function run(cmd, opts = {}) {
@@ -89,45 +90,41 @@ async function setPackagesVersion(version) {
   }
 }
 
-function buildCreateAgentviewTemplate(apiImageRepo, version) {
-  const cwd = path.join(REPO_ROOT, 'packages/create-agentview');
-  run('npm run build', {
-    cwd,
-    env: { ...process.env, AGENTVIEW_API_IMAGE: `${apiImageRepo}:${version}` },
-  });
-}
-
-function getApiDockerImageRepo() {
-//   const repo = process.env.AGENTVIEW_API_IMAGE;
-//   if (!repo) {
-//     console.error('\nAGENTVIEW_API_IMAGE is not set. Please set it to your Docker image repo, e.g.:');
-//     console.error('  export AGENTVIEW_API_IMAGE="your-dockerhub-username/agentview-api"\n');
-//     process.exit(1);
-//   }
-//   return repo;
-    return 'rudzienki/agentview-api';
-}
-
-function buildAndPushApiDockerImage(apiImageRepo, version) {
-  const apiDir = path.join(REPO_ROOT, 'apps/api');
-  const fullTag = `${apiImageRepo}:${version}`;
-
-  console.log(`\nBuilding API Docker image: ${fullTag}`);
-  run(`docker build -t ${fullTag} ${apiDir}`);
-
-  if (!isPrerelease(version)) {
-    const latestTag = `${apiImageRepo}:latest`;
-    run(`docker tag ${fullTag} ${latestTag}`);
+function buildPackages() {
+  for (const rel of PACKAGES) {
+    run('npm run build', {
+      cwd: path.join(REPO_ROOT, rel),
+    });
   }
-
-  console.log(`\nPushing API Docker image: ${fullTag}`);
-  run(`docker push ${fullTag}`);
-
-  if (!isPrerelease(version)) {
-    const latestTag = `${apiImageRepo}:latest`;
-    run(`docker push ${latestTag}`);
-  }
+  
+  // run('npm run build', {
+  //   cwd: path.join(REPO_ROOT, 'packages/create-agentview'),
+  //   // env: { ...process.env, AGENTVIEW_API_IMAGE: `${apiImageRepo}:${version}` },
+  // });
+  
+  // // Build packages/studio
+  // const studioCwd = path.join(REPO_ROOT, 'packages/studio');
+  // run('npm run build', {
+  //   cwd: studioCwd,
+  // });
 }
+
+// function buildApiDockerImage() {
+//   // const apiDir = path.join(REPO_ROOT, 'apps/api');
+  
+//   console.log(`\nBuilding API Docker image with npm run docker:build`);
+//   run('npm run docker:build', {
+//     cwd: path.join(REPO_ROOT, 'apps/api'),
+//     // env: { ...process.env, AGENTVIEW_API_IMAGE: `${apiImageRepo}:${version}` },
+//   });
+
+//   run(`docker push ${process.env.AGENTVIEW_API_IMAGE}`);
+  
+//   // console.log(`\nPublishing API Docker image`);
+//   // run('npm run docker:publish', {
+//   //   cwd: apiDir,
+//   // });
+// }
 
 async function gitCommitAndTag(version) {
   const filesToAdd = ['package.json', ...ALL_PACKAGES.map(p => path.join(p, 'package.json'))];
@@ -164,20 +161,44 @@ async function publishPackages(version) {
   const version = await getRootVersion();
   await setPackagesVersion(version);
 
-  // 4) Build create-agentview template (writes docker-compose.yml pointing at the image above)
-  buildCreateAgentviewTemplate(apiImageRepo, version);
+  // Docker
+  process.env.AGENTVIEW_API_IMAGE = `rudzienki/agentview-api:${version}`;
+  run('npm run docker:build', {
+    cwd: path.join(REPO_ROOT, 'apps/api'),
+  });
 
+  // Build packages (should be after AGENTVIEW_API_IMAGE is set)
+  buildPackages();
 
-  // 3) Build and push API Docker image
-  const apiImageRepo = getApiDockerImageRepo();
-  buildAndPushApiDockerImage(apiImageRepo, version);
+  // Publish docker image
+  run(`docker push ${process.env.AGENTVIEW_API_IMAGE}`);
 
-
-  // 5) Commit and tag
+  // Commit and tag
   await gitCommitAndTag(version);
 
-  // 6) Publish npm packages
+  // Publish npm packages
   await publishPackages(version);
 
   console.log(`\nPublished v${version}`);
+
+  // // run('npm run docker:build', {
+  // //   cwd: path.join(REPO_ROOT, 'apps/api'),
+  // //   // env: { ...process.env, AGENTVIEW_API_IMAGE: `${apiImageRepo}:${version}` },
+  // // });
+  // // // Set AGENTVIEW_API_IMAGE environment variable (used by docker:build, create-agentview template, etc.)
+  // // process.env.AGENTVIEW_API_IMAGE = `rudzienki/agentview-api:${version}`;
+  // // if (!isPrerelease(version)) {
+  // //   process.env.AGENTVIEW_API_IMAGE_LATEST = `rudzienki/agentview-api:latest`;
+  // // }
+
+  // // Build and publish API Docker image
+  // buildApiDockerImage(apiImageRepo, version);
+
+  // // Commit and tag
+  // await gitCommitAndTag(version);
+
+  // // Publish npm packages
+  // await publishPackages(version);
+
+  // console.log(`\nPublished v${version}`);
 })();
