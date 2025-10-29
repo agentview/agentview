@@ -164,7 +164,7 @@ export default defineConfig({
                             }}
                                 className="space-y-2"
                             >
-                                <ProductSelect value={productId} onChange={(productId) => {
+                                <ProductSelect value={productId} onChange={(productId: any) => {
                                     setProductId(productId);
                                     setError(undefined);
                                 }} />
