@@ -8,7 +8,7 @@ AgentView is an open-source scaffolding that helps AI engineers build conversati
 
 Core ideas around AgentView:
 - It assumes **AI Engineer writes AI with code**. It's not a no-code builder. 
-- It's framework- and language-agnostic, it doesn't take how you write an AI part. Developer is supposed to provide **statless endpoint** with AI code that can use any framework or any programming language. So it's not an agent framework.
+- It's framework- and language-agnostic, it doesn't care how you write an AI part. Developer is supposed to provide **statless endpoint** with AI code that can use any framework or any programming language. So it's not an agent framework.
 - it helps with everything around, provides storage, manages sessions, storage, provides extremely customisable and powerful data viewer with collaboration features.
 
 
