@@ -69,7 +69,8 @@ function isPrerelease(version) {
 
 function bumpRootVersion(bumpType, preid) {
   if (bumpType === 'prerelease' && !preid) {
-    throw new Error('Prerelease requires a preid (e.g. beta, rc)');
+    console.error('Prerelease requires a preid (e.g. beta, rc)');
+    process.exit(1);
   }
   run(`npm version ${bumpType} --no-git-tag-version ${bumpType === 'prerelease' ? `--preid=${preid}` : ''}`, { cwd: REPO_ROOT });
 }
