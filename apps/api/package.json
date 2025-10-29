@@ -1,6 +1,6 @@
 {
   "name": "@agentview/api",
-  "version": "0.0.4-beta.11",
+  "version": "0.0.4-beta.12",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
