@@ -31,6 +31,7 @@ import z from "zod";
 import { Form as HookForm } from "~/components/ui/form";
 import { Pill } from "~/components/Pill";
 import { useRerender } from "~/hooks/useRerender";
+import { AssistantMessage, StepItem, UserMessage } from "~/components/session-item";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<Session>(`/api/sessions/${params.id}`);
@@ -245,6 +246,7 @@ function SessionPage() {
 
                             const isLastRunItem = index === run.sessionItems.length - 1;
                             const isInputItem = index === 0;
+                            const isOutputItem = index === run.sessionItems.length - 1;
 
                             const hasComments = item.commentMessages.filter((m: any) => !m.deletedAt).length > 0
                             const isSelected = selectedItemId === item.id;
@@ -252,19 +254,36 @@ function SessionPage() {
                             let content: React.ReactNode = null;
 
                             const itemConfig = findItemConfig(agentConfig, item.type, item.role);
-                            if (!itemConfig?.displayComponent) {
-                                content = <div className="text-muted-foreground italic">No component (type: "{item.type}"{item.role ? `, role: "${item.role}"` : ""})</div>
+
+                            if (isInputItem) {
+                                const Component = itemConfig?.displayComponent ?? UserMessage;
+                                content = <div className="pl-[10%] relative">
+                                    <Component value={item.content} type={item.type} role={item.role} />
+                                </div>
+                            }
+                            else if (isOutputItem) {
+                                const Component = itemConfig?.displayComponent ?? AssistantMessage;
+                                content = <Component value={item.content} type={item.type} role={item.role} />
                             }
                             else {
-                                if (isInputItem) {
-                                    content = <div className="pl-[10%] relative">
-                                        <itemConfig.displayComponent value={item.content} type={item.type} role={item.role} />
-                                    </div>
-                                }
-                                else {
-                                    content = <itemConfig.displayComponent value={item.content} type={item.type} role={item.role} />
-                                }
+                                const Component = itemConfig?.displayComponent ?? StepItem;
+                                content = <Component value={item.content} type={item.type} role={item.role} />
                             }
+
+
+                            // if (!itemConfig?.displayComponent) {
+                            //     content = <div className="text-muted-foreground italic">No component (type: "{item.type}"{item.role ? `, role: "${item.role}"` : ""})</div>
+                            // }
+                            // else {
+                            //     if (isInputItem) {
+                            //         content = <div className="pl-[10%] relative">
+                            //             <itemConfig.displayComponent value={item.content} type={item.type} role={item.role} />
+                            //         </div>
+                            //     }
+                            //     else {
+                            //         content = <itemConfig.displayComponent value={item.content} type={item.type} role={item.role} />
+                            //     }
+                            // }
 
                             return {
                                 id: item.id,

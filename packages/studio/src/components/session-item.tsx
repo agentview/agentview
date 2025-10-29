@@ -1,6 +1,10 @@
-import type { SessionItemDisplayComponentProps } from "~/types";
+import type { FormComponentProps, SessionItemDisplayComponentProps } from "~/types";
 import { marked } from "marked";
 import { cn } from "~/lib/utils";
+import { useState } from "react";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "./ui/input-group";
+import { ArrowUpIcon, PauseIcon } from "lucide-react";
+import { z } from "zod";
 
 export function Markdown({ text, isMuted }: { text: string, isMuted?: boolean }) {
     return <div
@@ -36,4 +40,45 @@ export function AssistantMessage({ value }: SessionItemDisplayComponentProps<any
 export function StepItem({ value, type, role }: SessionItemDisplayComponentProps<any>) {
     const title = role ? `${type} · ${role}` : type
     return <BaseItem value={value} variant="muted" title={title} />
+}
+
+
+export function UserMessageInput(props: FormComponentProps<z.ZodString> & { placeholder?: string }) {
+    const [value, setValue] = useState<string>("");
+
+    return <form onSubmit={(e) => {
+        e.preventDefault();
+        props.submit(value);
+    }}>
+        <InputGroup>
+            <InputGroupTextarea placeholder={props.placeholder ?? "Enter your message..."} rows={2} className="min-h-0 pb-0 md:text-md" value={value} onChange={(e) => setValue(e.target.value)} />
+
+            <InputGroupAddon align="block-end">
+                <InputGroupButton
+                    variant="default"
+                    className={`rounded-full ml-auto ${props.isRunning ? "hidden" : ""}`}
+                    size="icon-sm"
+                    type="submit"
+                    disabled={props.isRunning || value.trim() === ""}
+                >
+                    <ArrowUpIcon />
+                    <span className="sr-only">Send</span>
+                </InputGroupButton>
+
+                <InputGroupButton
+                    variant="default"
+                    className={`rounded-full ml-auto ${!props.isRunning ? "hidden" : ""}`}
+                    size="icon-sm"
+                    onClick={() => {
+                        props.cancel();
+                    }}
+                >
+                    <PauseIcon />
+                    <span className="sr-only">Pause</span>
+                </InputGroupButton>
+
+            </InputGroupAddon>
+        </InputGroup>
+
+    </form>
 }

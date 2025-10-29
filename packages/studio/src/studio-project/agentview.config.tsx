@@ -1,7 +1,7 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
-import { UserMessage, AssistantMessage, StepItem } from "~/components/session-item";
+import { UserMessage, AssistantMessage, StepItem, UserMessageInput } from "~/components/session-item";
 import { ProductDisplay } from "./ProductDisplay";
 import { ProductSelect } from "./ProductSelect";
 import { CustomPage } from "./CustomPage";
@@ -9,13 +9,13 @@ import { Button } from "~/components/ui/button";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FormField, FormItem, FormLabel, FormMessage, Form } from "~/components/ui/form";
+import { FormField, FormItem, FormLabel, FormMessage, Form, FormControl } from "~/components/ui/form";
 import { PillSelect } from "~/components/PillSelect";
 import { ToggleGroupControl } from "~/components/ToggleGroup";
 import { OptionDisplay } from "~/components/form";
 import { AVInput } from "~/components/form";
-import { UserMessageInputComponent } from "~/components/form";
 import { Colors } from "~/lib/shared/colors";
+import { Input } from "~/components/ui/input";
 
 
 export default defineConfig({
@@ -30,12 +30,12 @@ export default defineConfig({
                     role: "user",
                     content: z.string(),
                     displayComponent: UserMessage,
-                    inputComponent: UserMessageInputComponent
+                    inputComponent: UserMessageInput
                 },
                 steps: [
                     {
                         type: "thinking",
-                        role: "assistant",
+                        role: "assistant",  
                         content: z.string(),
                         displayComponent: StepItem,
                     }
@@ -108,7 +108,9 @@ export default defineConfig({
                             // defaultValue={"Test"}
                             render={({ field }) => <FormItem>
                                 <FormLabel>Test Field</FormLabel>
-                                <AVInput {...field} placeholder="Enter your test" />
+                                <FormControl>
+                                    <Input {...field} placeholder="Enter your test" />
+                                </FormControl>
                                 <FormMessage />
                             </FormItem>
                             }
@@ -131,14 +133,14 @@ export default defineConfig({
                         type: "message",
                         role: "user",
                         content: z.string(),
-                        displayComponent: ({ value }) => <UserMessage value={value} />,
-                        inputComponent: UserMessageInputComponent
+                        displayComponent: UserMessage,
+                        inputComponent: UserMessageInput
                     },
                     output: {
                         type: "message",
                         role: "assistant",
                         content: z.string(),
-                        displayComponent: ({ value }) => <AssistantMessage value={value} />,
+                        displayComponent: AssistantMessage,
                     },
                 },
                 {
@@ -173,10 +175,10 @@ export default defineConfig({
                         }
                     },
                     output: {
-                        type: "message",
+                        type: "change_page_result",
                         role: "assistant",
                         content: z.string(),
-                        displayComponent: ({ value }) => <AssistantMessage value={value} />,
+                        // displayComponent: ({ value }) => <AssistantMessage value={value} />,
                         // scores: [
                         //     {
                         //         name: "user_reaction",

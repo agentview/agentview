@@ -20,11 +20,7 @@ export type DisplayProperty<TInputArgs = any> = {
   value: (args: TInputArgs) => React.ReactNode;
 }
 
-/**
- * This is generic type:
- * - for "new item" / "new session" form after successful submit, AgentView already takes action (redirect or form reset). In that case submit success callback won't be called and value will be always undefined.
- * - for scores it's a bit different, value can be defined, it can come from external source (e.g. from API response), submit success callback might be also necessary.
- */
+
 export type FormComponentProps<TSchema extends z.ZodTypeAny> = {
   value?: z.infer<TSchema> | undefined, 
   submit: (value: z.infer<TSchema> | null) => Promise<void>,
@@ -34,7 +30,7 @@ export type FormComponentProps<TSchema extends z.ZodTypeAny> = {
   schema: TSchema,
 }
 
-export type FormComponent = React.ComponentType<FormComponentProps>;
+export type FormComponent<TSchema extends z.ZodTypeAny> = React.ComponentType<FormComponentProps<TSchema>>;
 
 export type ControlComponentProps<TValue> = {
   value: TValue | undefined | null;
@@ -60,7 +56,7 @@ export type SessionItemConfig = BaseSessionItemConfig<ScoreConfig> & {
 };
 
 export type SessionInputItemConfig = SessionItemConfig & {
-  inputComponent?: FormComponent;
+  inputComponent?: FormComponent<any>;
 };
 
 export type RunConfig = BaseRunConfig<SessionItemConfig, SessionInputItemConfig> & {
@@ -70,7 +66,7 @@ export type RunConfig = BaseRunConfig<SessionItemConfig, SessionInputItemConfig>
 
 export type AgentConfig = Omit<BaseAgentConfig<RunConfig>, "runs"> & {
   displayProperties?: DisplayProperty<{ session: Session }>[];
-  inputComponent?: FormComponent;
+  inputComponent?: FormComponent<any>;
   runs?: RunConfig[];
   run?: RunConfig;
 }
