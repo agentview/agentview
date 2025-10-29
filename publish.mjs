@@ -10,6 +10,7 @@ const ALL_PACKAGES = [
   'apps/studio',
   'apps/api',
   'packages/create-agentview',
+  'packages/studio',
 ];
 
 // Packages to build and publish (npm)
