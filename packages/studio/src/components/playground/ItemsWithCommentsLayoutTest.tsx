@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ItemsWithCommentsLayout } from "../ItemsWithCommentsLayout";
+import { ItemsWithCommentsLayout } from "../internal/ItemsWithCommentsLayout";
 
 // Global variable with hardcoded items
 

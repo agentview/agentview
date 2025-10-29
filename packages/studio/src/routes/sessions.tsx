@@ -9,8 +9,8 @@ import { apiFetch } from "~/lib/apiFetch";
 import type { Pagination, SessionBase, SessionsPaginatedResponse } from "~/lib/shared/apiTypes";
 import { timeAgoShort } from "~/lib/timeAgo";
 import { useSessionContext } from "~/lib/SessionContext";
-import { NotificationBadge, NotificationDot } from "~/components/NotificationBadge";
-import { UserAvatar } from "~/components/UserAvatar";
+import { NotificationBadge, NotificationDot } from "~/components/internal/NotificationBadge";
+import { UserAvatar } from "~/components/internal/UserAvatar";
 
 async function loader({ request }: LoaderFunctionArgs) {
   const { listParams, needsRedirect } = getListParamsAndCheckForRedirect(request);

@@ -1,7 +1,7 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
-import { ItemAssistantMessageComponent, ItemAssistantMessageComponentWithTitle, ItemUserMessageComponent } from "~/components/display";
+import { UserMessage, AssistantMessage, AssistantMessage2, BaseItem } from "~/components/session-item";
 import { ProductDisplay } from "./ProductDisplay";
 import { ProductSelect } from "./ProductSelect";
 import { CustomPage } from "./CustomPage";
@@ -10,12 +10,46 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormField, FormItem, FormLabel, FormMessage, Form } from "~/components/ui/form";
-import { PillSelect } from "~/components/controls/PillSelect";
-import { ToggleGroupControl } from "~/components/controls/ToggleGroup";
+import { PillSelect } from "~/components/PillSelect";
+import { ToggleGroupControl } from "~/components/ToggleGroup";
 import { OptionDisplay } from "~/components/form";
 import { AVInput } from "~/components/form";
 import { UserMessageInputComponent } from "~/components/form";
 import { Colors } from "~/lib/shared/colors";
+
+export const testJson = {
+    id: 12345,
+    name: "Sample Test Data",
+    age: 34,
+    active: true,
+    score: 98.6,
+    created_at: "2024-04-24T13:45:00Z",
+    tags: ["demo", "testing", "sample", "json"],
+    attributes: {
+        nestedNumber: 42,
+        nestedString: "Nested value",
+        nestedArray: [1, 2, 3],
+        nestedObject: {
+            a: 1,
+            b: 2
+        }
+    },
+    email: "user@example.com",
+    phone: "+1234567890",
+    longText: `
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+        Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+        Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+        Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+        Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor.
+        Integer posuere erat a ante venenatis dapibus posuere velit aliquet.
+        Praesent commodo cursus magna, vel scelerisque nisl consectetur et.
+        Curabitur blandit tempus porttitor. Maecenas sed diam eget risus varius blandit sit amet non magna.
+        Aenean lacinia bibendum nulla sed consectetur.`
+};
+
+
 
 export default defineConfig({
     apiBaseUrl: "http://localhost:8080",
@@ -28,7 +62,7 @@ export default defineConfig({
                     type: "message",
                     role: "user",
                     content: z.string(),
-                    displayComponent: ItemUserMessageComponent,
+                    displayComponent: ({ value }) => <BaseItem value={value} variant="outline" />,
                     inputComponent: UserMessageInputComponent
                 },
                 steps: [
@@ -36,14 +70,14 @@ export default defineConfig({
                         type: "thinking",
                         role: "assistant",
                         content: z.string(),
-                        displayComponent: (props) => <ItemAssistantMessageComponentWithTitle {...props} title="Thinking" />,
+                        displayComponent: ({ value }) => <BaseItem value={value} title="Thinking" variant="muted" />,
                     }
                 ],
                 output: {
                     type: "message",
                     role: "assistant",
                     content: z.string(),
-                    displayComponent: ItemAssistantMessageComponent,
+                    displayComponent: ({ value }) => <BaseItem value={value} />,
                     scores: [
                         {
                             name: "user_reaction",
@@ -130,14 +164,14 @@ export default defineConfig({
                         type: "message",
                         role: "user",
                         content: z.string(),
-                        displayComponent: ItemUserMessageComponent,
+                        displayComponent: ({ value }) => <UserMessage value={value} />,
                         inputComponent: UserMessageInputComponent
                     },
                     output: {
                         type: "message",
                         role: "assistant",
                         content: z.string(),
-                        displayComponent: ItemAssistantMessageComponent
+                        displayComponent: ({ value }) => <AssistantMessage value={value} />,
                     },
                 },
                 {
@@ -175,7 +209,7 @@ export default defineConfig({
                         type: "message",
                         role: "assistant",
                         content: z.string(),
-                        displayComponent: ItemAssistantMessageComponent,
+                        displayComponent: ({ value }) => <AssistantMessage value={value} />,
                         // scores: [
                         //     {
                         //         name: "user_reaction",

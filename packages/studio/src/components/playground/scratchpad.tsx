@@ -1,6 +1,6 @@
 import { AlertCircleIcon, Link, WrenchIcon } from "lucide-react"
 import { cn } from "~/lib/utils"
-import { Button } from "./ui/button"
+import { Button } from "../ui/button"
 
 function NotionPill({ children }: { children: React.ReactNode }) {
     return <div className="flex flex-row gap-1 items-center h-[20px] rounded-xs bg-gray-100 px-1 text-xs [&>*]:size-3 text-gray-700">

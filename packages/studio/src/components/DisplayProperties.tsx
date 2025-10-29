@@ -1,12 +1,11 @@
 import { PropertyListItem, PropertyListTextValue, PropertyListTitle } from "./PropertyList"
 
-import { ErrorBoundary } from "./ErrorBoundary"
+import { ErrorBoundary } from "./internal/ErrorBoundary"
 import type { DisplayProperty } from "~/types"
 
 export function DisplayProperties<T>(props: { displayProperties: DisplayProperty<T>[], inputArgs: T }) {
     return <ErrorBoundary>
         {props.displayProperties.map((property) => {
-
             return <PropertyListItem key={property?.title}>
                 <PropertyListTitle>{property?.title ?? "Unknown property"}</PropertyListTitle>
                 <PropertyListTextValue>

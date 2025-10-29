@@ -30,7 +30,7 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
 } from "../components/ui/sidebar"
-import { NotificationBadge } from "~/components/NotificationBadge";
+import { NotificationBadge } from "~/components/internal/NotificationBadge";
 
 // Removed Framework Mode type import
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "~/components/ui/dropdown-menu";
@@ -44,7 +44,7 @@ import { Button } from "~/components/ui/button";
 import { getAgentParamAndCheckForRedirect } from "~/lib/listParams";
 import { getCurrentAgent } from "~/lib/currentAgent";
 import { matchPath } from "react-router";
-import { UserAvatar } from "~/components/UserAvatar";
+import { UserAvatar } from "~/components/internal/UserAvatar";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await authClient.getSession()

@@ -14,7 +14,6 @@ interface PropertyListItemProps {
 interface PropertyListTitleProps {
   children: React.ReactNode;
   className?: string;
-  width?: string;
 }
 
 interface PropertyListTextValueProps {
@@ -42,8 +41,7 @@ const PropertyListItem: React.FC<PropertyListItemProps> = ({ children, className
 
 const PropertyListTitle: React.FC<PropertyListTitleProps> = ({ 
   children, 
-  className, 
-  width = "w-32" 
+  className,
 }) => {
   return (
     <span className={cn("text-sm text-gray-600 w-[160px] flex-shrink-0 truncate", className)}>
@@ -54,7 +52,7 @@ const PropertyListTitle: React.FC<PropertyListTitleProps> = ({
 
 const PropertyListTextValue: React.FC<PropertyListTextValueProps> = ({ 
   children, 
-  className, 
+  className,
   isMonospace = false,
   isMuted = false
 }) => {

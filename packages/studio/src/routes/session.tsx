@@ -16,12 +16,12 @@ import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig, ScoreConfig } from "~/types";
 import { AVFormError, AVFormField } from "~/components/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
-import { ItemsWithCommentsLayout } from "~/components/ItemsWithCommentsLayout";
-import { CommentsThread } from "~/components/comments";
+import { ItemsWithCommentsLayout } from "~/components/internal/ItemsWithCommentsLayout";
+import { CommentsThread } from "~/components/internal/comments";
 import { Popover, PopoverTrigger, PopoverContent } from "~/components/ui/popover";
 import { config } from "~/config";
 import { findItemConfig, requireAgentConfig, requireItemConfig } from "~/lib/config";
-import { Loader } from "~/components/Loader";
+import { Loader } from "~/components/internal/Loader";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import type { BaseError } from "~/lib/errors";
 import { DisplayProperties } from "~/components/DisplayProperties";
@@ -244,6 +244,7 @@ function SessionPage() {
                         return run.sessionItems.map((item, index) => {
 
                             const isLastRunItem = index === run.sessionItems.length - 1;
+                            const isInputItem = index === 0;
 
                             const hasComments = item.commentMessages.filter((m: any) => !m.deletedAt).length > 0
                             const isSelected = selectedItemId === item.id;
@@ -255,7 +256,14 @@ function SessionPage() {
                                 content = <div className="text-muted-foreground italic">No component (type: "{item.type}"{item.role ? `, role: "${item.role}"` : ""})</div>
                             }
                             else {
-                                content = <itemConfig.displayComponent value={item.content} />
+                                if (isInputItem) {
+                                    content = <div className="pl-[10%] relative">
+                                        <itemConfig.displayComponent value={item.content} />
+                                    </div>
+                                }
+                                else {
+                                    content = <itemConfig.displayComponent value={item.content} />
+                                }
                             }
 
                             return {

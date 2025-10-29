@@ -22,7 +22,7 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } fro
 import { Badge } from "./ui/badge";
 import { Pill } from "./Pill";
 import { Button } from "./ui/button";
-import { type Option, optionValueToString, optionStringToValue } from "./controls/Option";
+import { type Option, optionValueToString, optionStringToValue } from "./Option";
 
 
 export function OptionDisplay<T extends string | number | boolean = string>({ value, options }: { value: T, options: Option<T>[] }) {
