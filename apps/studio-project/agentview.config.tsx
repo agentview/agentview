@@ -34,7 +34,7 @@ export default defineConfig({
                 steps: [
                     {
                         type: "thinking",
-                        role: "assistant",  
+                        role: "assistant",
                         content: z.string(),
                         displayComponent: StepItem,
                     }

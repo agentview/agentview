@@ -48,6 +48,9 @@ I wanted to build a tool where every journey, even the most custom one, can be e
 The scores, messages, flows might be different, so that's why you can provide a custom React component for every part of the system.
 
 
+## GETTING STARTED (DO IT!!! Can be JS first + vercel)
+
+(there are still a lot of things to be done, web chat, user facing docs, etc... So be quick HERE. Explain config, show how the data goes to endpoint, what it expects in return, etc)
 
 
 
