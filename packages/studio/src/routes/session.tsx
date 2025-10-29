@@ -13,7 +13,7 @@ import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitl
 import { AlertCircleIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageCirclePlusIcon, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, ThumbsDown, ThumbsDownIcon, ThumbsUp, ThumbsUpIcon, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
-import type { SessionItemConfig, AgentConfig, ScoreConfig } from "~/types";
+import type { SessionItemConfig, AgentConfig, ScoreConfig, SessionItemDisplayComponentProps } from "~/types";
 import { AVFormError, AVFormField } from "~/components/internal/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/internal/ItemsWithCommentsLayout";
