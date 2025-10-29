@@ -9,15 +9,16 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "agentview": "workspace:*",
     "react": "^19.1",
     "react-dom": "^19.1",
-    "agentview": "workspace:*"
+    "react-hook-form": "^7.63.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.4",
     "@types/react": "^19.1",
-    "typescript": "^5.8",
-    "vite": "^6.3.3",
     "tailwindcss": "^4.1.4",
-    "@tailwindcss/vite": "^4.1.4"
+    "typescript": "^5.8",
+    "vite": "^6.3.3"
   }
 }

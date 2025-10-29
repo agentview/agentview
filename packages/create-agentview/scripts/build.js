@@ -21,7 +21,7 @@ async function buildTemplate() {
   const packageDir = path.resolve(__dirname, '..');
   const repoRoot = path.resolve(packageDir, '..', '..');
 
-  const studioSrc = path.join(repoRoot, 'apps', 'studio');
+  const studioSrc = path.join(repoRoot, 'apps', 'studio-project');
   const distDir = path.join(packageDir, 'dist/');
   const templateDir = path.join(packageDir, 'dist/template');
 

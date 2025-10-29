@@ -42,7 +42,6 @@ export function StepItem({ value, type, role }: SessionItemDisplayComponentProps
     return <BaseItem value={value} variant="muted" title={title} />
 }
 
-
 export function UserMessageInput(props: FormComponentProps<z.ZodString> & { placeholder?: string }) {
     const [value, setValue] = useState<string>("");
 

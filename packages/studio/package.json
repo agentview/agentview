@@ -6,7 +6,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc && tsc-alias && cp src/styles.css dist/styles.css",
+    "build": "tsc && tsc-alias && cp src/styles.css dist/styles.css && cp -R src/tailwindcss-typography/src dist/tailwindcss-typography/src",
     "dev": "vite dev",
     "typecheck": "tsc --noEmit"
   },
