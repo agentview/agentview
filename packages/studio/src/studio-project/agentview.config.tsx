@@ -1,21 +1,21 @@
-import { defineConfig } from "~";
+import { useState } from "react";
 import { z } from "zod";
 import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
-import { UserMessage, AssistantMessage, StepItem, UserMessageInput } from "~/components/session-item";
-import { ProductDisplay } from "./ProductDisplay";
-import { ProductSelect } from "./ProductSelect";
-import { CustomPage } from "./CustomPage";
-import { Button } from "~/components/ui/button";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { defineConfig } from "~";
 import { FormField, FormItem, FormLabel, FormMessage, Form, FormControl } from "~/components/ui/form";
+import { Input } from "~/components/ui/input";
+import { Button } from "~/components/ui/button";
+import { UserMessage, AssistantMessage, StepItem, UserMessageInput } from "~/components/session-item";
 import { PillSelect } from "~/components/PillSelect";
 import { ToggleGroupControl } from "~/components/ToggleGroup";
 import { OptionDisplay } from "~/components/OptionDisplay";
 import { Colors } from "~/lib/shared/colors";
-import { Input } from "~/components/ui/input";
 
+import { ProductDisplay } from "./ProductDisplay";
+import { ProductSelect } from "./ProductSelect";
+import { CustomPage } from "./CustomPage";
 
 export default defineConfig({
     apiBaseUrl: "http://localhost:8080",
