@@ -53,21 +53,6 @@ function isPrerelease(version) {
   return version.includes('-');
 }
 
-// async function ensureRootPackageJson() {
-//   const rootPkgPath = path.join(REPO_ROOT, 'package.json');
-//   let rootPkg;
-//   try {
-//     rootPkg = await readJSON(rootPkgPath);
-//   } catch {
-//     rootPkg = { name: 'agentview-monorepo', private: true, version: '0.0.0', scripts: { publish: 'node ./publish.mjs' } };
-//     await writeJSON(rootPkgPath, rootPkg);
-//   }
-//   if (!rootPkg.scripts) rootPkg.scripts = {};
-//   if (!rootPkg.scripts.publish) rootPkg.scripts.publish = 'node ./publish.mjs';
-//   await writeJSON(rootPkgPath, rootPkg);
-//   return rootPkgPath;
-// }
-
 function bumpRootVersion(bumpType, preid) {
   if (bumpType === 'prerelease' && !preid) {
     console.error('Prerelease requires a preid (e.g. beta, rc)');
@@ -98,35 +83,7 @@ function buildPackages() {
       cwd: path.join(REPO_ROOT, rel),
     });
   }
-  
-  // run('npm run build', {
-  //   cwd: path.join(REPO_ROOT, 'packages/create-agentview'),
-  //   // env: { ...process.env, AGENTVIEW_API_IMAGE: `${apiImageRepo}:${version}` },
-  // });
-  
-  // // Build packages/studio
-  // const studioCwd = path.join(REPO_ROOT, 'packages/studio');
-  // run('npm run build', {
-  //   cwd: studioCwd,
-  // });
 }
-
-// function buildApiDockerImage() {
-//   // const apiDir = path.join(REPO_ROOT, 'apps/api');
-  
-//   console.log(`\nBuilding API Docker image with npm run docker:build`);
-//   run('npm run docker:build', {
-//     cwd: path.join(REPO_ROOT, 'apps/api'),
-//     // env: { ...process.env, AGENTVIEW_API_IMAGE: `${apiImageRepo}:${version}` },
-//   });
-
-//   run(`docker push ${process.env.AGENTVIEW_API_IMAGE}`);
-  
-//   // console.log(`\nPublishing API Docker image`);
-//   // run('npm run docker:publish', {
-//   //   cwd: apiDir,
-//   // });
-// }
 
 async function gitCommitAndTag(version) {
   const filesToAdd = ['package.json', ...ALL_PACKAGES.map(p => path.join(p, 'package.json'))];
@@ -150,6 +107,7 @@ async function publishPackages(version) {
     process.exit(1);
   }
 
+  // Parse arguments
   const bumpType = process.argv[2] || 'patch';
   const preid = process.argv[3];
   const valid = new Set(['patch', 'minor', 'major', 'prerelease']);
@@ -182,25 +140,4 @@ async function publishPackages(version) {
   run(`docker push ${process.env.AGENTVIEW_API_IMAGE}`);
 
   console.log(`\nPublished v${version}`);
-
-  // // run('npm run docker:build', {
-  // //   cwd: path.join(REPO_ROOT, 'apps/api'),
-  // //   // env: { ...process.env, AGENTVIEW_API_IMAGE: `${apiImageRepo}:${version}` },
-  // // });
-  // // // Set AGENTVIEW_API_IMAGE environment variable (used by docker:build, create-agentview template, etc.)
-  // // process.env.AGENTVIEW_API_IMAGE = `rudzienki/agentview-api:${version}`;
-  // // if (!isPrerelease(version)) {
-  // //   process.env.AGENTVIEW_API_IMAGE_LATEST = `rudzienki/agentview-api:latest`;
-  // // }
-
-  // // Build and publish API Docker image
-  // buildApiDockerImage(apiImageRepo, version);
-
-  // // Commit and tag
-  // await gitCommitAndTag(version);
-
-  // // Publish npm packages
-  // await publishPackages(version);
-
-  // console.log(`\nPublished v${version}`);
 })();

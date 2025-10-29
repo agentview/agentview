@@ -16,12 +16,39 @@ function isExcluded(relativePath) {
   return false;
 }
 
+function updateWorkspaceDependencies(packageJson, repoVersion) {
+  const updatedPkg = { ...packageJson };
+  const patchFields = ['dependencies', 'devDependencies'];
+  const isWorkspaceDep = v => v === 'workspace:*' || v === 'workspace:^' || v === 'workspace:~';
+  for (const field of patchFields) {
+    if (updatedPkg[field]) {
+      updatedPkg[field] = { ...updatedPkg[field] };
+      for (const [depName, depVersion] of Object.entries(updatedPkg[field])) {
+        if (isWorkspaceDep(depVersion)) {
+          updatedPkg[field][depName] = `^${repoVersion}`;
+        }
+      }
+    }
+  }
+  return updatedPkg;
+}
+
+async function getCurrentVersion() {
+    // Read repo version for workspace dependency updates
+    const repoPkgJsonPath = path.join(repoRoot, 'package.json');
+    const repoPkgRaw = await readFile(repoPkgJsonPath, 'utf8');
+    const repoPkg = JSON.parse(repoPkgRaw);
+    const repoVersion = repoPkg.version;
+    return repoVersion;
+}
+
 async function buildTemplate() {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const packageDir = path.resolve(__dirname, '..');
   const repoRoot = path.resolve(packageDir, '..', '..');
 
   const studioSrc = path.join(repoRoot, 'apps', 'studio-project');
+  const dockerComposeYmlSrc = path.join(repoRoot, 'apps', 'api', 'docker-compose.dist.yml');
   const distDir = path.join(packageDir, 'dist/');
   const templateDir = path.join(packageDir, 'dist/template');
 
@@ -38,14 +65,25 @@ async function buildTemplate() {
     },
   });
 
-  // set package.json
+  // copy docker-compose.dist.yml
+  await cp(dockerComposeYmlSrc, path.join(templateDir, 'docker-compose.yml'));
+
+  // get current version
+  const repoPkgJsonPath = path.join(repoRoot, 'package.json');
+  const repoPkgRaw = await readFile(repoPkgJsonPath, 'utf8');
+  const repoPkg = JSON.parse(repoPkgRaw);
+  const version = repoPkg.version;
+
+  // create a proper package.json
   const pkgJsonPath = path.join(templateDir, 'package.json');
   const pkgRaw = await readFile(pkgJsonPath, 'utf8');
   const pkg = JSON.parse(pkgRaw);
-  pkg.name = 'my-agentview-app';
-  pkg.version = '0.0.1';
-  if (pkg.private) delete pkg.private;
-  await writeFile(pkgJsonPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+  
+  const updatedPkg = updateWorkspaceDependencies(pkg, version);
+  updatedPkg.name = 'my-agentview-app';
+  updatedPkg.version = '0.0.1';
+  if (updatedPkg.private) delete updatedPkg.private;
+  await writeFile(pkgJsonPath, JSON.stringify(updatedPkg, null, 2) + '\n', 'utf8');
 
   // build .env
   if (!process.env.AGENTVIEW_API_IMAGE) {
