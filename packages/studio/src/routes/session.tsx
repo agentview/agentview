@@ -258,11 +258,11 @@ function SessionPage() {
                             else {
                                 if (isInputItem) {
                                     content = <div className="pl-[10%] relative">
-                                        <itemConfig.displayComponent value={item.content} />
+                                        <itemConfig.displayComponent value={item.content} type={item.type} role={item.role} />
                                     </div>
                                 }
                                 else {
-                                    content = <itemConfig.displayComponent value={item.content} />
+                                    content = <itemConfig.displayComponent value={item.content} type={item.type} role={item.role} />
                                 }
                             }
 

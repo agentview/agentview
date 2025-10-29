@@ -1,4 +1,4 @@
-import type { DisplayComponentProps } from "~/types";
+import type { SessionItemDisplayComponentProps } from "~/types";
 import { marked } from "marked";
 import { cn } from "~/lib/utils";
 
@@ -25,41 +25,15 @@ export function BaseItem({ variant = "default", value, title }: { variant?: "def
     </div>
 }
 
-export function UserMessage({ value }: DisplayComponentProps<string>) {
-    return <div className="border p-3 rounded-lg bg-white">
-        <Markdown text={value} />
-    </div>
+export function UserMessage({ value }: SessionItemDisplayComponentProps<any>) {
+    return <BaseItem value={value} variant="outline" />
 }
 
-export function AssistantMessage({ value }: DisplayComponentProps<string>) {
-    return <Markdown text={value} />
+export function AssistantMessage({ value }: SessionItemDisplayComponentProps<any>) {
+    return <BaseItem value={value} variant="default" />
 }
 
-export function AssistantMessage2({ value, title }: DisplayComponentProps<string> & { title?: string }) {
-    return (<div>
-        <div className="">
-            {title && (
-                <div className="text-sm text-black mb-0.5 font-medium">
-                    {title}
-                </div>
-            )}
-            <div
-                className="prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-muted-foreground"
-                dangerouslySetInnerHTML={{ __html: marked.parse(value, { async: false }) }}
-            ></div>
-        </div>
-
-        <div className=" mt-4">
-            {title && (
-                <div className="text-sm text-black mb-0.5 font-medium">
-                    tool_call
-                </div>
-            )}
-            <div
-                className="prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-muted-foreground "
-                dangerouslySetInnerHTML={{ __html: marked.parse("Something something", { async: false }) }}
-            ></div>
-        </div>
-
-    </div>);
+export function StepItem({ value, type, role }: SessionItemDisplayComponentProps<any>) {
+    const title = role ? `${type} · ${role}` : type
+    return <BaseItem value={value} variant="muted" title={title} />
 }

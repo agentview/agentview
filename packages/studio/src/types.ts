@@ -11,7 +11,6 @@ export type CustomRoute = {
   title: React.ReactNode,
 }
 
-
 export type DisplayComponentProps<T = any> = {
   value: T,
 }
@@ -54,8 +53,10 @@ export type ScoreConfig<TValue = any> = BaseScoreConfig & {
   actionBarComponent?: ControlComponent<TValue>;
 }
 
+export type SessionItemDisplayComponentProps<T=any> = { value: T, type: string, role: string | null }
+
 export type SessionItemConfig = BaseSessionItemConfig<ScoreConfig> & {
-  displayComponent?: React.ComponentType<DisplayComponentProps>;
+  displayComponent?: React.ComponentType<SessionItemDisplayComponentProps>;
 };
 
 export type SessionInputItemConfig = SessionItemConfig & {

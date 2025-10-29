@@ -1,7 +1,7 @@
 import { defineConfig } from "~";
 import { z } from "zod";
 import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
-import { UserMessage, AssistantMessage, AssistantMessage2, BaseItem } from "~/components/session-item";
+import { UserMessage, AssistantMessage, StepItem } from "~/components/session-item";
 import { ProductDisplay } from "./ProductDisplay";
 import { ProductSelect } from "./ProductSelect";
 import { CustomPage } from "./CustomPage";
@@ -62,7 +62,7 @@ export default defineConfig({
                     type: "message",
                     role: "user",
                     content: z.string(),
-                    displayComponent: ({ value }) => <BaseItem value={value} variant="outline" />,
+                    displayComponent: UserMessage,
                     inputComponent: UserMessageInputComponent
                 },
                 steps: [
@@ -70,14 +70,14 @@ export default defineConfig({
                         type: "thinking",
                         role: "assistant",
                         content: z.string(),
-                        displayComponent: ({ value }) => <BaseItem value={value} title="Thinking" variant="muted" />,
+                        displayComponent: StepItem,
                     }
                 ],
                 output: {
                     type: "message",
                     role: "assistant",
                     content: z.string(),
-                    displayComponent: ({ value }) => <BaseItem value={value} />,
+                    displayComponent: AssistantMessage,
                     scores: [
                         {
                             name: "user_reaction",
