@@ -23,7 +23,9 @@ Now AgentView takes this endpoint and provides everything around it:
 The philosophy behind data viewer is that:
 - how you build agent is importnat, but even more important is domain experts "looking at data" and labeling them constantly
 - if you want non-technical people to look at data, the data must be presented in the most digestable and domain-specific way
+- collaboration is crucial for success
 - observability tools are cool, but they're way too technical for non-technical users
+
 
 
 The philosophy behind architecture:

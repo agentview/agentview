@@ -51,29 +51,26 @@ function isPrerelease(version) {
   return version.includes('-');
 }
 
-async function ensureRootPackageJson() {
-  const rootPkgPath = path.join(REPO_ROOT, 'package.json');
-  let rootPkg;
-  try {
-    rootPkg = await readJSON(rootPkgPath);
-  } catch {
-    rootPkg = { name: 'agentview-monorepo', private: true, version: '0.0.0', scripts: { publish: 'node ./publish.mjs' } };
-    await writeJSON(rootPkgPath, rootPkg);
-  }
-  if (!rootPkg.scripts) rootPkg.scripts = {};
-  if (!rootPkg.scripts.publish) rootPkg.scripts.publish = 'node ./publish.mjs';
-  await writeJSON(rootPkgPath, rootPkg);
-  return rootPkgPath;
-}
+// async function ensureRootPackageJson() {
+//   const rootPkgPath = path.join(REPO_ROOT, 'package.json');
+//   let rootPkg;
+//   try {
+//     rootPkg = await readJSON(rootPkgPath);
+//   } catch {
+//     rootPkg = { name: 'agentview-monorepo', private: true, version: '0.0.0', scripts: { publish: 'node ./publish.mjs' } };
+//     await writeJSON(rootPkgPath, rootPkg);
+//   }
+//   if (!rootPkg.scripts) rootPkg.scripts = {};
+//   if (!rootPkg.scripts.publish) rootPkg.scripts.publish = 'node ./publish.mjs';
+//   await writeJSON(rootPkgPath, rootPkg);
+//   return rootPkgPath;
+// }
 
 function bumpRootVersion(bumpType, preid) {
-  const base = 'npm version';
-  const args = [bumpType, '--no-git-tag-version'];
-  if (bumpType === 'prerelease') {
-    if (!preid) throw new Error('Prerelease requires a preid (e.g. beta, rc)');
-    args.splice(1, 0, `--preid=${preid}`);
+  if (bumpType === 'prerelease' && !preid) {
+    throw new Error('Prerelease requires a preid (e.g. beta, rc)');
   }
-  run(`${base} ${args.join(' ')}`, { cwd: REPO_ROOT });
+  run(`npm version ${bumpType} --no-git-tag-version ${bumpType === 'prerelease' ? `--preid=${preid}` : ''}`, { cwd: REPO_ROOT });
 }
 
 async function getRootVersion() {
@@ -155,28 +152,26 @@ async function publishPackages(version) {
   }
 
   const bumpType = process.argv[2] || 'patch';
-  const preid = process.argv[3] || '';
+  const preid = process.argv[3];
   const valid = new Set(['patch', 'minor', 'major', 'prerelease']);
   if (!valid.has(bumpType)) {
     console.error('Usage: node publish.mjs [patch|minor|major|prerelease] [preid]');
     process.exit(1);
   }
 
-  await ensureRootPackageJson();
-
-  // 1) Bump versions first so builds can embed the correct version
+  // Bump versions
   bumpRootVersion(bumpType, preid);
   const version = await getRootVersion();
-
-  // 2) Sync package versions
   await setPackagesVersion(version);
+
+  // 4) Build create-agentview template (writes docker-compose.yml pointing at the image above)
+  buildCreateAgentviewTemplate(apiImageRepo, version);
+
 
   // 3) Build and push API Docker image
   const apiImageRepo = getApiDockerImageRepo();
   buildAndPushApiDockerImage(apiImageRepo, version);
 
-  // 4) Build create-agentview template (writes docker-compose.yml pointing at the image above)
-  buildCreateAgentviewTemplate(apiImageRepo, version);
 
   // 5) Commit and tag
   await gitCommitAndTag(version);
