@@ -86,10 +86,7 @@ function buildPackages() {
 }
 
 async function gitCommitAndTag(version) {
-  const filesToAdd = ['package.json', ...ALL_PACKAGES.map(p => path.join(p, 'package.json'))];
-  for (const f of filesToAdd) {
-    try { run(`git add ${f}`, { cwd: REPO_ROOT }); } catch {}
-  }
+  run(`git add -A`, { cwd: REPO_ROOT })
   run(`git commit -m "chore(release): v${version}"`, { cwd: REPO_ROOT });
   run(`git tag v${version}`, { cwd: REPO_ROOT });
 }
