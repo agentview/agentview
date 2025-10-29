@@ -14,7 +14,7 @@ import { AlertCircleIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, C
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig, ScoreConfig } from "~/types";
-import { AVFormError, AVFormField } from "~/components/form";
+import { AVFormError, AVFormField } from "~/components/internal/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/internal/ItemsWithCommentsLayout";
 import { CommentsThread } from "~/components/internal/comments";

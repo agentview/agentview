@@ -6,7 +6,7 @@ import { getListParams, toQueryParams } from "~/lib/listParams";
 import { type ActionResponse } from "~/lib/errors";
 import { config } from "~/config";
 import { requireAgentConfig } from "~/lib/config";
-import { AVFormError } from "~/components/form";
+import { AVFormError } from "~/components/internal/form";
 
 async function loader({ request }: LoaderFunctionArgs) {
   const listParams = getListParams(request);

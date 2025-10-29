@@ -5,7 +5,7 @@ import type { SessionItem, CommentMessage, Session, User, Score } from "~/lib/sh
 import { Button } from "~/components/ui/button";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { timeAgoShort } from "~/lib/timeAgo";
-import { AVFormField } from "../form";
+import { AVFormField } from "./form";
 import { Alert, AlertDescription } from "../ui/alert";
 import { TextEditor, textToElements } from "./TextEditor";
 import { useSessionContext } from "~/lib/SessionContext";
