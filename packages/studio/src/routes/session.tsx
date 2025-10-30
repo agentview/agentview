@@ -157,7 +157,7 @@ function SessionPage() {
                                 console.log('item.created', event.data)
                                 return {
                                     ...prevWatchedRun,
-                                    sessionItems: [...prevWatchedRun.sessionItems, event.data]
+                                    sessionItems: [...prevWatchedRun.items, event.data]
                                 }
                             }
                             else {
@@ -245,11 +245,11 @@ function SessionPage() {
 
                 <div ref={bodyRef}>
                     <ItemsWithCommentsLayout items={getActiveRuns(session).map((run) => {
-                        return run.sessionItems.map((item, index) => {
+                        return run.items.map((item, index) => {
 
-                            const isLastRunItem = index === run.sessionItems.length - 1;
+                            const isLastRunItem = index === run.items.length - 1;
                             const isInputItem = index === 0;
-                            const isOutputItem = index === run.sessionItems.length - 1;
+                            const isOutputItem = index === run.items.length - 1;
 
                             const hasComments = item.commentMessages.filter((m: any) => !m.deletedAt).length > 0
                             const isSelected = selectedItemId === item.id;

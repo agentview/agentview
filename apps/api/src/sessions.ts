@@ -45,7 +45,7 @@ export async function fetchSessions(session_id?: string, tx?: Transaction) {
         orderBy: (run, { asc }) => [asc(run.createdAt)],
         with: {
           version: true,
-          sessionItems: {
+          items: {
             orderBy: (sessionItem, { asc }) => [asc(sessionItem.createdAt)],
             where: (sessionItem, { ne }) => ne(sessionItem.type, "__state__"),
             with: {
@@ -70,8 +70,8 @@ export async function fetchSessions(session_id?: string, tx?: Transaction) {
     updatedAt: row.updatedAt,
     context: row.context,
     agent: row.agent,
-    clientId: row.clientId,
     client: row.client,
+    clientId: row.client.id,
     runs: row.runs,
   }));
 }
@@ -85,7 +85,6 @@ export async function fetchSession(session_id: string, tx?: Transaction) {
 
   return sessions[0]
 }
-
 
 export async function fetchSessionState(session_id: string, tx?: Transaction) {
   // Fetch the latest __state__ session item by createdAt descending

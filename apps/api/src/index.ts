@@ -22,7 +22,7 @@ import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { ClientSchema, SessionSchema, SessionCreateSchema, SessionItemCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, ClientCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage } from './shared/apiTypes'
+import { ClientSchema, SessionSchema, SessionCreateSchema, SessionItemCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, ClientCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration } from './shared/apiTypes'
 import { getConfig } from './getConfig'
 import type { BaseConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
@@ -175,7 +175,7 @@ function requireScoreConfig(itemConfig: ReturnType<typeof requireItemConfig>, sc
   return scoreConfig
 }
 
-async function requireSession(sessionId: string, auth: Awaited<ReturnType<typeof requireAuthSessionForUserOrClient>>) {
+async function requireSession(sessionId: string, auth: Awaited<ReturnType<typeof requireAuthSessionForUserOrClient>>) : Promise<SessionWithCollaboration> {
   const session = await fetchSession(sessionId)
   if (!session) {
     throw new HTTPException(404, { message: "Session not found" });
@@ -195,7 +195,7 @@ async function requireSession(sessionId: string, auth: Awaited<ReturnType<typeof
   return session
 }
 
-async function requireSessionItem(session: Session, itemId: string) {
+async function requireSessionItem<SessionT extends Session>(session: SessionT, itemId: string) : Promise<SessionT['runs'][number]['items'][number]> {
   const item = getAllSessionItems(session).find((a) => a.id === itemId)
   if (!item) {
     throw new HTTPException(404, { message: "Session item not found" });
@@ -222,7 +222,7 @@ async function requireClient(clientId?: string) {
   return clientRow
 }
 
-async function requireCommentMessageFromUser(item: SessionItem, commentId: string, user: BetterAuthUser) {
+async function requireCommentMessageFromUser(item: SessionItemWithCollaboration, commentId: string, user: BetterAuthUser) {
   const comment = item.commentMessages?.find((m) => m.id === commentId && m.deletedAt === null)
   if (!comment) {
     throw new HTTPException(404, { message: "Comment not found" });
@@ -635,6 +635,7 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
     context: row.sessions.context,
     agent: row.sessions.agent,
     client: row.clients!,
+    clientId: row.clients!.id,
   }));
 
   // Calculate pagination metadata
@@ -1269,7 +1270,7 @@ app.openapi(runWatchRoute, async (c) => {
       return;
     }
 
-    // let sentItemIds: string[] = lastRun.sessionItems.map((item) => item.id) ?? [];
+
     let previousRun = lastRun;
 
     /**
@@ -1285,8 +1286,8 @@ app.openapi(runWatchRoute, async (c) => {
       }
 
       // check for new items
-      const items = lastRun.sessionItems
-      const freshItems = items.filter(i => !previousRun.sessionItems.find(i2 => i2.id === i.id))
+      const items = lastRun.items
+      const freshItems = items.filter(i => !previousRun.items.find(i2 => i2.id === i.id))
 
       for (const item of freshItems) {
         await stream.writeSSE({
@@ -1297,7 +1298,7 @@ app.openapi(runWatchRoute, async (c) => {
 
       previousRun = {
         ...previousRun,
-        sessionItems: [...previousRun.sessionItems, ...freshItems],
+        items: [...previousRun.items, ...freshItems],
       }
 
       // check for state change
@@ -2008,3 +2009,42 @@ serve({
 })
 
 console.log("Agent View API running on port " + port)
+
+
+
+
+// type A = {
+//   a: string,
+//   b: number
+// }
+
+// type A_extended = {
+//   a: string,
+//   b: number,
+//   c: boolean
+// }
+
+// function test<T extends A>(arg: T) {
+//   return {
+//     ...arg
+//   };
+// }
+
+// const a : A = {
+//   a: "hello",
+//   b: 123
+// }
+
+// const a_extended : A_extended = {
+//   a: "hi",
+//   b: 555,
+//   c: true
+// }
+
+// const foo = test(a_extended)
+
+// console.log(foo.c);
+
+// const bar = test(a)
+
+// console.log(bar.c);

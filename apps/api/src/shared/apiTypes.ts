@@ -81,12 +81,15 @@ export const SessionItemSchema = z.object({
 
     runId: z.string(), // potential bloat
     sessionId: z.string(), // potential bloat
+})
 
+export const SessionItemWithCollaborationSchema = SessionItemSchema.extend({
     commentMessages: z.array(CommentMessageSchema),
     scores: z.array(ScoreSchema),
 })
 
 export type SessionItem = z.infer<typeof SessionItemSchema>
+export type SessionItemWithCollaboration = z.infer<typeof SessionItemWithCollaborationSchema>
 
 export const SessionItemCreateSchema = SessionItemSchema.pick({
     type: true,
@@ -100,17 +103,19 @@ export const RunSchema = z.object({
     finishedAt: z.iso.date().nullable(),
     status: z.string(),
     failReason: z.any().nullable(),
-    sessionItems: z.array(SessionItemSchema),
     version: VersionSchema.nullable(),
     metadata: z.any().nullable(),
+    items: z.array(SessionItemSchema),
 
     sessionId: z.string(), // potential bloat
     versionId: z.string().nullable(), // potential bloat
-
-    // responseData: z.any().nullable(), // it shouldn't be here by default! separate endpoint for that!!!
 })
 
 export type Run = z.infer<typeof RunSchema>
+
+export const RunWithCollaborationSchema = RunSchema.extend({
+    items: z.array(SessionItemWithCollaborationSchema),
+})
 
 export const SessionBaseSchema = z.object({
     id: z.string(),
@@ -120,6 +125,7 @@ export const SessionBaseSchema = z.object({
     context: z.any(),
     agent: z.string(),
     client: ClientSchema,
+    clientId: z.string(), // potential bloat
 })
 
 export type SessionBase = z.infer<typeof SessionBaseSchema>
@@ -128,7 +134,12 @@ export const SessionSchema = SessionBaseSchema.extend({
     runs: z.array(RunSchema),
 })
 
+export const SessionWithCollaborationSchema = SessionBaseSchema.extend({
+    runs: z.array(RunWithCollaborationSchema),
+})
+
 export type Session = z.infer<typeof SessionSchema>
+export type SessionWithCollaboration = z.infer<typeof SessionWithCollaborationSchema>
 
 
 export const SessionCreateSchema = SessionBaseSchema.pick({
