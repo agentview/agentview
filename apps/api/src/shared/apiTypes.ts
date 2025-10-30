@@ -107,7 +107,7 @@ export const RunSchema = z.object({
     sessionId: z.string(), // potential bloat
     versionId: z.string().nullable(), // potential bloat
 
-    responseData: z.any().nullable(), // it shouldn't be here by default! separate endpoint for that!!!
+    // responseData: z.any().nullable(), // it shouldn't be here by default! separate endpoint for that!!!
 })
 
 export type Run = z.infer<typeof RunSchema>

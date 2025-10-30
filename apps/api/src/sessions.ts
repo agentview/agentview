@@ -32,6 +32,16 @@ export async function fetchSessions(session_id?: string, tx?: Transaction) {
     with: {
       client: true,
       runs: {
+        columns: {
+          id: true,
+          createdAt: true,
+          finishedAt: true,
+          status: true,
+          failReason: true,
+          metadata: true,
+          sessionId: true,
+          versionId: true,
+        },
         orderBy: (run, { asc }) => [asc(run.createdAt)],
         with: {
           version: true,
