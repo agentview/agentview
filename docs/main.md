@@ -1,5 +1,35 @@
 # AgentView Documentation
 
+
+## ToC
+
+1. Overview (AI SDK like)
+    - Why use AgentView?
+    - Features
+    - Some basic concepts.
+
+2. Getting Started
+    - Set up the project
+    - Explore features
+
+3. Docs
+    - Data model (sessions, runs, items, state, metadata)
+    - Playground sessions
+    - `agentview.config.ts` 
+    - Schema validation
+    - Custom Components
+    - Versioning (Manifest)
+    - Custom Pages
+    - Metadata
+    - Clients
+    - Memory
+    - Client API
+    - Observability tools
+    - Deployment
+
+
+
+
 Welcome to the AgentView documentation!
 
 ## What is AgentView?
@@ -35,6 +65,8 @@ AgentView Studio is not a cloud web app. It's a React package, where you provide
 
 To some extent it's similar to observability tools (viewing data, scoring and commenting outputs), but it's actually pretty different. AgentView should mostly focus on displaying information that you have to store + the information that end users would see. It's focused on beautiful presentation of data, so that non-technical people love using the tool. Observability tools are developer-first, have every possible detail, and it's great, but it's for devs. AgentView works in tandem with observability tools, you can easily link to traces from the runs displayed AgentView Studio. 
 
+[CHART]
+
 ### Some philosophy 
 
 I was hired to build a conversational agents recently for a bunch of companies (mostly shopping assistants). There are obviously bazzilion SaaS customer bot products that try to sell "AI Agent", but my feeling was that those are way too general-purpose. If you really dig into business needs of the client, you can quite easily build agent that is much better than by using off-the-shelf methods. So I wasn't interested in those Saas, I just wanted to build my agents with code.
@@ -48,9 +80,198 @@ I wanted to build a tool where every journey, even the most custom one, can be e
 The scores, messages, flows might be different, so that's why you can provide a custom React component for every part of the system.
 
 
-## GETTING STARTED (DO IT!!! Can be JS first + vercel)
+## GETTING STARTED
 
-(there are still a lot of things to be done, web chat, user facing docs, etc... So be quick HERE. Explain config, show how the data goes to endpoint, what it expects in return, etc)
+Let's build a simple agent with AgnetView.
+
+```
+npm create agentview@latest my-agentview-project
+```
+
+This will install example project in `my-agentview-project/` dir. Go to the dir and install 
+
+```
+cd my-agentview-project
+```
+
+The project has a following structure:
+```
+studio/
+ai-python/
+ai-typescript/
+docker-compose.yml
+```
+
+Let's break it down:
+1. `studio/` - React app with data viewer
+2. `ai-python/` - demo of AI endpoint written in python, simple FastAPI app.
+3. `ai-typescript/` - demo of AI endpoint in TS, with Hono.
+4. `docker-compose.yml` - since there's no cloud yet, you'll need to set up AgentView Server via docker-compose.
+
+Depending on preference how you want to write AI code you can use either `ai-python/` or `ai-typescript`. You'll need `studio/` in both cases.
+
+
+### Set up AgentView Server
+
+AgentView cloud service is work-in-progress so for now you gotta install it via docker compose. Just run:
+
+```
+docker compose up -d
+```
+
+To test whether server is running you can run:
+
+```
+curl localhost:8080/api/status
+
+// expected response: `{ "is_active": false }`
+```
+
+### AgentView Studio
+
+Install and run the studio:
+
+```bash
+cd studio
+npm install
+npm run dev
+```
+
+Now go to the `localhost:1989` URL. You should see registration screen:
+
+[registration screen]
+
+The first user registered is gonna be the admin.
+
+Let's quickly look at the most important config file in the AgentView: `studio/agentview.config.tsx`:
+
+```
+export default defineConfig({
+    apiBaseUrl: "http://localhost:8080",
+    agents: [
+        {
+            name: "simple_chat",
+            url: "http://127.0.0.1:8000/simple_chat",
+            run: {
+                input: {
+                    type: "message",
+                    role: "user",
+                    content: z.string(),
+                    displayComponent: UserMessage,
+                    inputComponent: UserMessageInput
+                },
+                output: {
+                    type: "message",
+                    role: "assistant",
+                    content: z.string(),
+                    displayComponent: AssistantMessage,
+                }
+            }
+        }
+    ]
+})
+```
+
+1. `apiBaseUrl` is the AgentView server. It's the only URL that Studio app communicates with. 
+1. We set up one agent named `simple_chat`.
+2. The `url` points to your Agent API. When generating responses it's the URL that AgentView Server will make request to -> your independent API server with "intelligence" (we'll set it up soon in `ai-python/` or `ai-typescript/`)
+3. `input` defines that the agent run is initiated with { type: "message", role: "user", content: ... }, content is string (schema validation), and defines react components for both how User Message will be displayed, and what's the input form for it in the UI. (maybe let's write about schema validation)
+4. `output` say that the output of the run is assistant message. 
+
+Click at the "Start session". The component at the bottom of the page is UserMessageInput. Write "Hello", hit enter and let's see what happened.
+
+// focus on stateless endpoint.
+// write about data model (what is session, run, item, input, output, steps, state etc) -> link to docs.
+// - THIS IS IMPORTANT. ALSO WRITE ABOUT STORAGE. 
+
+// ALSO -> explain data viewer. Explain it's INTERNAL TOOL for playing around and exploring the agent -> not end-user app. That end-user app is connected via API.
+
+
+// write about custom components -> link to docs.
+
+You'll see 500 error. It means that AgentView server tried to call your AI to generate response but it couldn't, becasue the server is not up. Let's turn it on!
+
+
+### Agent API (TS)
+
+Open a new tab and go to the `ai-typescript`, install and run:
+
+```
+cd ai-typescript
+npm install
+npm run dev
+```
+
+The AI server is running at `localhost:3000`. This is where your AI should be. Let's see the code:
+
+```
+// micro hono app
+```
+
+This app calls OpenAI API to generate response.
+
+- version
+- output item. 
+
+Streaming is possible, you can respond with SSE (defined later in *docs*)
+
+- Let's create a new session and say "Hello", the response is back. 
+- You can collaborative playground, anyone in the team can contribute.
+- You can comment
+- You can continue the discussion. 
+- You can share with the team (your teamate will get notification about playground session you shared!)
+- You can mention him.
+- Like, don't like.
+- Sessions are stored. 
+- Add a session and refresh the browser. You'll see that session is still live (you can opt-out of this behaviour *docs*)
+
+
+## Add tools
+
+When the new run is started (new user message was added), there's a lot of stuff that can happen before generating an answer. You might call tools, model might be "thinking", actually you might even pass the control to mutliple subagents, etc etc. The architecture can be complex.
+
+Let's add a classic `weather_tool` to our agent:
+
+```
+// weather agent
+```
+
+One thing that is interesting to consider: should we even save the tool call in the conversation state? It depends on the use case but it's helpful. If you don't do it, the model won't know how it behaved earlier, it's hard for it to determine that the weather was a result of a tool call. So it might get confused, call the tool again anyway (or keep calling it in next turns).
+
+In this example we want to *store* the tool call so it must be emitted as an item.
+
+Let's go to the viewer and see the result:
+
+[result screen]
+
+
+The tool is visible but not very nice. The superpower of AgentView is "custom-component-for-everything". Let's modify our `agentview.config.tsx`:
+
+```
+// custom component
+// add "tool call" (first item) as `showOnlyWhenActive: true`, 
+```
+
+Let's see if it works:
+
+[result screen with custom component]
+
+Cool! It works. Please take note that users can leave comments on the items.
+
+This increases the VISIBILTY fot he domain experts / business stakeholders. You can decide what is important to show and what is not, and the parts can have their scores and discussions.
+
+### How to think about it?
+
+Since you own the code, AgentView allows for literally anything you want, even the most complex workflows. The core concept about AgentView is that all it cares is:
+- what new items does your agent produce?
+- what is the new state of the session?
+
+The items your agent produce are usually two categories:
+- what end-user sees (if users sees sth, it should be in agentview for review)
+- what you need to store for next turns in the conversation (whatever items you produce, if you need them in the next agent run, you must store them (even if end-user doesn't see them))
+
+
+## Add scores
 
 
 
@@ -59,6 +280,27 @@ The scores, messages, flows might be different, so that's why you can provide a 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## -- SCRATCHPAD AND BIN -- 
 
 
 ## What is AgentView?
