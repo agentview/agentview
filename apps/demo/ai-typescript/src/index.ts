@@ -11,6 +11,8 @@ app.get('/', (c) => {
 })
 
 app.post('/agentview/run', async (c) => {
+  const body = await c.req.json()
+
   const response = await client.responses.create({
     model: "gpt-5-nano",
     input: "Write a one-sentence bedtime story about a unicorn."
