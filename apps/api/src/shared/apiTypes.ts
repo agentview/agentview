@@ -17,17 +17,6 @@ export const ClientCreateSchema = ClientSchema.pick({
 
 export type ClientCreate = z.infer<typeof ClientCreateSchema>
 
-
-// export const UserSchema = z.object({
-//     id: z.string(),
-//     createdAt: z.iso.date(),
-//     updatedAt: z.iso.date(),
-//     name: z.string(),
-//     email: z.string(),
-// })
-
-// export type User = z.infer<typeof UserSchema>
-
 export const InvitationSchema = z.object({
     id: z.string(),
     email: z.string(),
@@ -50,6 +39,7 @@ export const VersionSchema = z.object({
     metadata: z.any(),
     createdAt: z.iso.date(),
 })
+
 
 export const ScoreSchema = z.object({
     id: z.string(),
@@ -85,11 +75,13 @@ export const SessionItemSchema = z.object({
     id: z.string(),
     createdAt: z.iso.date(),
     updatedAt: z.iso.date(),
-    content: z.any(),
-    sessionId: z.string(),
     type: z.string(),
     role: z.string().nullable(),
-    runId: z.string(),
+    content: z.any(),
+
+    runId: z.string(), // potential bloat
+    sessionId: z.string(), // potential bloat
+
     commentMessages: z.array(CommentMessageSchema),
     scores: z.array(ScoreSchema),
 })
@@ -106,14 +98,16 @@ export const RunSchema = z.object({
     id: z.string(),
     createdAt: z.iso.date(),
     finishedAt: z.iso.date().nullable(),
-    sessionId: z.string(),
-    versionId: z.string().nullable(),
     status: z.string(),
     failReason: z.any().nullable(),
-    responseData: z.any().nullable(),
     sessionItems: z.array(SessionItemSchema),
     version: VersionSchema.nullable(),
     metadata: z.any().nullable(),
+
+    sessionId: z.string(), // potential bloat
+    versionId: z.string().nullable(), // potential bloat
+
+    responseData: z.any().nullable(), // it shouldn't be here by default! separate endpoint for that!!!
 })
 
 export type Run = z.infer<typeof RunSchema>
@@ -136,6 +130,7 @@ export const SessionSchema = SessionBaseSchema.extend({
 
 export type Session = z.infer<typeof SessionSchema>
 
+
 export const SessionCreateSchema = SessionBaseSchema.pick({
     agent: true,
     context: true,
@@ -150,6 +145,27 @@ export const ScoreCreateSchema = ScoreSchema.pick({
     value: true,
     commentId: true,
 })
+
+
+
+// const input = {
+//     session: {
+//       id: session.id,
+//       createdAt: session.createdAt,
+//       updatedAt: session.updatedAt,
+//       context: session.context,
+//       clientId: session.clientId,
+//       agent: session.agent,
+//       items: getAllSessionItems(session),
+//       state
+//     },
+//     input: userItem
+//   }
+
+
+
+
+
 
 export const ConfigSchema = z.object({
     id: z.string(),
