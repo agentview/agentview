@@ -63,11 +63,42 @@ importers:
         specifier: ^5.8.3
         version: 5.9.2
 
-  apps/studio-project:
+  apps/demo/ai-typescript:
     dependencies:
+      '@hono/node-server':
+        specifier: ^1.19.5
+        version: 1.19.5(hono@4.10.4)
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.6.1
+      hono:
+        specifier: ^4.10.4
+        version: 4.10.4
+      openai:
+        specifier: ^6.7.0
+        version: 6.7.0(zod@4.1.11)
+    devDependencies:
+      '@types/node':
+        specifier: ^20.11.17
+        version: 20.19.17
+      tsx:
+        specifier: ^4.7.1
+        version: 4.20.5
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.2
+
+  apps/demo/studio:
+    dependencies:
+      '@hookform/resolvers':
+        specifier: ^5.2.2
+        version: 5.2.2(react-hook-form@7.63.0(react@19.1.1))
       agentview:
         specifier: workspace:*
-        version: link:../../packages/studio
+        version: link:../../../packages/studio
+      lucide-react:
+        specifier: ^0.548.0
+        version: 0.548.0(react@19.1.1)
       react:
         specifier: ^19.1
         version: 19.1.1
@@ -77,10 +108,16 @@ importers:
       react-hook-form:
         specifier: ^7.63.0
         version: 7.63.0(react@19.1.1)
+      zod:
+        specifier: ^4.1.11
+        version: 4.1.11
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.1.4
         version: 4.1.13(vite@6.3.6(@types/node@20.19.17)(jiti@2.6.0)(lightningcss@1.30.1)(tsx@4.20.5)(yaml@2.8.1))
+      '@types/node':
+        specifier: ^20
+        version: 20.19.17
       '@types/react':
         specifier: ^19.1
         version: 19.1.13
@@ -609,6 +646,12 @@ packages:
 
   '@hono/node-server@1.19.4':
     resolution: {integrity: sha512-AWKQZ/YkHUBSHeL/5Ld8FWgUs6wFf4TxGYxqp9wLZxRdFuHBpXmgOq+CuDoL4vllkZLzovCf5HBJnypiy3EtHA==}
+    engines: {node: '>=18.14.1'}
+    peerDependencies:
+      hono: ^4
+
+  '@hono/node-server@1.19.5':
+    resolution: {integrity: sha512-iBuhh+uaaggeAuf+TftcjZyWh2GEgZcVGXkNtskLVoWaXhnJtC5HLHrU8W1KHDoucqO1MswwglmkWLFyiDn4WQ==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
@@ -1703,6 +1746,10 @@ packages:
     resolution: {integrity: sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA==}
     engines: {node: '>=8'}
 
+  dotenv@16.6.1:
+    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+    engines: {node: '>=12'}
+
   dotenv@17.2.2:
     resolution: {integrity: sha512-Sf2LSQP+bOlhKWWyhFsn0UsfdK/kCWRv1iuA2gXAwt3dyNabr6QSj00I2V10pidqz69soatm9ZwZvpQMTIOd5Q==}
     engines: {node: '>=12'}
@@ -1930,6 +1977,10 @@ packages:
   hast-util-whitespace@3.0.0:
     resolution: {integrity: sha512-88JUN06ipLwsnv+dVn+OIYOvAuvBMy/Qoi6O7mQHxdPXpjy+Cd6xRkWwux7DKO+4sYILtLBRIKgsdpS2gQc7qw==}
 
+  hono@4.10.4:
+    resolution: {integrity: sha512-YG/fo7zlU3KwrBL5vDpWKisLYiM+nVstBQqfr7gCPbSYURnNEP9BDxEMz8KfsDR9JX0lJWDRNc6nXX31v7ZEyg==}
+    engines: {node: '>=16.9.0'}
+
   hono@4.9.8:
     resolution: {integrity: sha512-JW8Bb4RFWD9iOKxg5PbUarBYGM99IcxFl2FPBo2gSJO11jjUDqlP1Bmfyqt8Z/dGhIQ63PMA9LdcLefXyIasyg==}
     engines: {node: '>=16.9.0'}
@@ -2100,6 +2151,11 @@ packages:
 
   lucide-react@0.525.0:
     resolution: {integrity: sha512-Tm1txJ2OkymCGkvwoHt33Y2JpN5xucVq1slHcgE6Lk0WjDfjgKWor5CdVER8U6DvcfMwh4M8XxmpTiyzfmfDYQ==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  lucide-react@0.548.0:
+    resolution: {integrity: sha512-63b16z63jM9yc1MwxajHeuu0FRZFsDtljtDjYm26Kd86UQ5HQzu9ksEtoUUw4RBuewodw/tGFmvipePvRsKeDA==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -2274,6 +2330,18 @@ packages:
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
+
+  openai@6.7.0:
+    resolution: {integrity: sha512-mgSQXa3O/UXTbA8qFzoa7aydbXBJR5dbLQXCRapAOtoNT+v69sLdKMZzgiakpqhclRnhPggPAXoniVGn2kMY2A==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
 
   openapi3-ts@4.5.0:
     resolution: {integrity: sha512-jaL+HgTq2Gj5jRcfdutgRGLosCy/hT8sQf6VOy+P+g36cZOjI1iukdPnijC+4CmeRzg/jEllJUboEic2FhxhtQ==}
@@ -3002,6 +3070,10 @@ snapshots:
   '@hono/node-server@1.19.4(hono@4.9.8)':
     dependencies:
       hono: 4.9.8
+
+  '@hono/node-server@1.19.5(hono@4.10.4)':
+    dependencies:
+      hono: 4.10.4
 
   '@hono/swagger-ui@0.5.2(hono@4.9.8)':
     dependencies:
@@ -4122,6 +4194,8 @@ snapshots:
     dependencies:
       path-type: 4.0.0
 
+  dotenv@16.6.1: {}
+
   dotenv@17.2.2: {}
 
   drizzle-kit@0.31.4:
@@ -4362,6 +4436,8 @@ snapshots:
     dependencies:
       '@types/hast': 3.0.4
 
+  hono@4.10.4: {}
+
   hono@4.9.8: {}
 
   ignore@5.3.2: {}
@@ -4498,6 +4574,10 @@ snapshots:
   longest-streak@3.1.0: {}
 
   lucide-react@0.525.0(react@19.1.1):
+    dependencies:
+      react: 19.1.1
+
+  lucide-react@0.548.0(react@19.1.1):
     dependencies:
       react: 19.1.1
 
@@ -4852,6 +4932,10 @@ snapshots:
       react-dom: 19.1.1(react@19.1.1)
 
   normalize-path@3.0.0: {}
+
+  openai@6.7.0(zod@4.1.11):
+    optionalDependencies:
+      zod: 4.1.11
 
   openapi3-ts@4.5.0:
     dependencies:

@@ -22,7 +22,7 @@ export default defineConfig({
     agents: [
         {
             name: "simple_chat",
-            url: "http://127.0.0.1:8000/simple_chat",
+            url: "http://127.0.0.1:3000/agentview/run",
             run: {
                 input: {
                     type: "message",

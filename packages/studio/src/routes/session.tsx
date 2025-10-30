@@ -10,7 +10,7 @@ import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/li
 import { type Run, type Session, type SessionItem } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
-import { AlertCircleIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageCirclePlusIcon, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, ThumbsDown, ThumbsDownIcon, ThumbsUp, ThumbsUpIcon, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
+import { AlertCircleIcon, BugIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, ExternalLinkIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageCirclePlusIcon, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, TagsIcon, ThumbsDown, ThumbsDownIcon, ThumbsUp, ThumbsUpIcon, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
 import type { SessionItemConfig, AgentConfig, ScoreConfig, SessionItemDisplayComponentProps } from "~/types";
@@ -287,6 +287,11 @@ function SessionPage() {
                                             {content}
                                         </div>
 
+                                        {isLastRunItem && run.status === "failed" && <div className="text-md mt-6 text-red-500">
+                                            <span className="">{run.failReason?.message ?? "Unknown reason"} </span>
+                                                {/* <br /> <a href="#" className="underline flex flex-row items-center gap-1">Debug <ExternalLinkIcon className="size-4" /></a></span> */}
+                                        </div>}
+
                                         {isLastRunItem && run.status !== "in_progress" && <MessageFooter
                                             session={session}
                                             run={run}
@@ -294,8 +299,8 @@ function SessionPage() {
                                             item={item}
                                             onSelect={() => { setselectedItemId(item.id) }}
                                             isSelected={isSelected}
-                                            onUnselect={() => { setselectedItemId(undefined) }}
                                             isSmallSize={styles.isSmallSize}
+                                            hasErrors={run.status === "failed"}
                                         />}
 
 
@@ -303,10 +308,6 @@ function SessionPage() {
                                             <Loader />
                                         </div>}
 
-                                        {isLastRunItem && run.status === "failed" && <div className="border rounded-md flex items-center gap-2 px-3 py-2 bg-gray-50 text-gray-700 text-sm my-2">
-                                            <AlertCircleIcon className="w-4 h-4 text-red-500" />
-                                            <span>{run.failReason?.message ?? "Unknown reason"}</span>
-                                        </div>}
 
                                     </div>
                                 </div>,
@@ -518,6 +519,7 @@ export const sessionRoute: RouteObject = {
 }
 
 
+
 type MessageFooterProps = {
     session: Session,
     run: Run,
@@ -525,28 +527,13 @@ type MessageFooterProps = {
     item: SessionItem,
     onSelect: () => void,
     isSelected: boolean,
-    onUnselect: () => void,
-    isSmallSize: boolean
+    isSmallSize: boolean,
+    hasErrors?: boolean
 }
-
-
-
-
-function LikeWidget() {
-    return <div className="flex flex-row items-center h-[32px]">
-        <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsUpIcon className="size-4" /></div>
-        <div className="h-[32px] w-[32px] flex items-center justify-center hover:bg-gray-100 rounded-sm"><ThumbsDownIcon className="size-4" /></div>
-
-        {/* <Button variant="ghost" size="xs" className="brightness-95"><ThumbsUp /></Button> */}
-        {/* <Button variant="ghost" size="xs" className="brightness-95"><ThumbsDown /></Button> */}
-    </div>
-}
-
-
 
 
 function MessageFooter(props: MessageFooterProps) {
-    const { session, run, listParams, item, onSelect, isSelected, onUnselect, isSmallSize } = props;
+    const { session, run, listParams, item, onSelect, isSelected, isSmallSize, hasErrors = false } = props;
     const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
 
     const allScoreConfigs = getAllScoreConfigs(session, item);
@@ -567,8 +554,8 @@ function MessageFooter(props: MessageFooterProps) {
     return <div className="mt-3 mb-8 ">
         <div>
             <div className="text-xs flex justify-between gap-2 items-start">
-                <div className="flex flex-row flex-wrap gap-1 items-center">
-                                        
+                { hasErrors ? <div></div> : <div className="flex flex-row flex-wrap gap-1 items-center">
+
                     {actionBarScores.map((scoreConfig) => (
                         <ActionBarScoreForm
                             key={scoreConfig.name}
@@ -591,7 +578,7 @@ function MessageFooter(props: MessageFooterProps) {
                         onOpenChange={setScoreDialogOpen}
                     /> 
 
-                </div>
+                </div> }
 
                 <div className="flex flex-row  items-center text-sm">
                     <Button variant="ghost" size="sm" className="text-muted-foreground" asChild>
@@ -601,7 +588,7 @@ function MessageFooter(props: MessageFooterProps) {
             </div>
         </div>
 
-        {isSmallSize && <div className={`relative mt-4 mb-2`}>
+        {isSmallSize && !hasErrors && <div className={`relative mt-4 mb-2`}>
             <CommentsThread
                 item={item}
                 session={session}
