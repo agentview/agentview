@@ -556,7 +556,7 @@ function MessageFooter(props: MessageFooterProps) {
     return <div className="mt-3 mb-8 ">
         <div>
             <div className="text-xs flex justify-between gap-2 items-start">
-                <div className="flex flex-row flex-wrap gap-1 items-center -ml-2.5">
+                <div className="flex flex-row flex-wrap gap-1 items-center -ml-2">
 
                     {!hasErrors && <>
                         {actionBarScores.map((scoreConfig) => (
@@ -582,7 +582,7 @@ function MessageFooter(props: MessageFooterProps) {
                         />
                     </>}
 
-                    {hasErrors && <Button variant="ghost" size="sm" onClick={() => { toast.info("Error details printed in the console") }}>
+                    {hasErrors && <Button variant="ghost" size="sm" onClick={() => { toast.info("Check console for error details.") }}>
                         Debug<ExternalLinkIcon />
                     </Button>}
 
@@ -590,7 +590,7 @@ function MessageFooter(props: MessageFooterProps) {
 
 
 
-                <div className="flex flex-row  items-center text-sm -mr-2.5">
+                <div className="flex flex-row  items-center text-sm -mr-2">
                     <Button variant="ghost" size="sm" className="text-muted-foreground" asChild>
                         <Link to={`/sessions/${session.handle}/runs/${run.id}?${toQueryParams(listParams)}`}><WrenchIcon className="size-4" />Run</Link>
                     </Button>
