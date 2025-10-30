@@ -32,6 +32,8 @@ import { Form as HookForm } from "~/components/ui/form";
 import { Pill } from "~/components/Pill";
 import { useRerender } from "~/hooks/useRerender";
 import { AssistantMessage, StepItem, UserMessage } from "~/components/session-item";
+import { toast } from "sonner";
+
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<Session>(`/api/sessions/${params.id}`);
@@ -289,7 +291,7 @@ function SessionPage() {
 
                                         {isLastRunItem && run.status === "failed" && <div className="text-md mt-6 text-red-500">
                                             <span className="">{run.failReason?.message ?? "Unknown reason"} </span>
-                                                {/* <br /> <a href="#" className="underline flex flex-row items-center gap-1">Debug <ExternalLinkIcon className="size-4" /></a></span> */}
+                                            {/* <br /> <a href="#" className="underline flex flex-row items-center gap-1">Debug <ExternalLinkIcon className="size-4" /></a></span> */}
                                         </div>}
 
                                         {isLastRunItem && run.status !== "in_progress" && <MessageFooter
@@ -554,33 +556,41 @@ function MessageFooter(props: MessageFooterProps) {
     return <div className="mt-3 mb-8 ">
         <div>
             <div className="text-xs flex justify-between gap-2 items-start">
-                { hasErrors ? <div></div> : <div className="flex flex-row flex-wrap gap-1 items-center">
+                <div className="flex flex-row flex-wrap gap-1 items-center -ml-2.5">
 
-                    {actionBarScores.map((scoreConfig) => (
-                        <ActionBarScoreForm
-                            key={scoreConfig.name}
+                    {!hasErrors && <>
+                        {actionBarScores.map((scoreConfig) => (
+                            <ActionBarScoreForm
+                                key={scoreConfig.name}
+                                session={session}
+                                item={item}
+                                scoreConfig={scoreConfig}
+                            />
+                        ))}
+
+                        <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: item.id })}`}>
+                                <MessageCirclePlus />Comment
+                            </Link>
+                        </Button>
+
+                        <ScoreDialog
                             session={session}
                             item={item}
-                            scoreConfig={scoreConfig}
+                            open={scoreDialogOpen}
+                            onOpenChange={setScoreDialogOpen}
                         />
-                    ))}
+                    </>}
 
-                    <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: item.id })}`}>
-                            <MessageCirclePlus />Comment
-                        </Link>
-                    </Button>
+                    {hasErrors && <Button variant="ghost" size="sm" onClick={() => { toast.info("Error details printed in the console") }}>
+                        Debug<ExternalLinkIcon />
+                    </Button>}
 
-                    <ScoreDialog
-                        session={session}
-                        item={item}
-                        open={scoreDialogOpen}
-                        onOpenChange={setScoreDialogOpen}
-                    /> 
+                </div>
 
-                </div> }
 
-                <div className="flex flex-row  items-center text-sm">
+
+                <div className="flex flex-row  items-center text-sm -mr-2.5">
                     <Button variant="ghost" size="sm" className="text-muted-foreground" asChild>
                         <Link to={`/sessions/${session.handle}/runs/${run.id}?${toQueryParams(listParams)}`}><WrenchIcon className="size-4" />Run</Link>
                     </Button>
