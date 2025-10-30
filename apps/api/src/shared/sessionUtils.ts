@@ -8,7 +8,7 @@ export function getActiveRuns<SessionT extends Session>(session: SessionT) {
   return session.runs.filter((run, index) => run.status !== 'failed' || index === session.runs.length - 1)
 }
 
-export function getAllSessionItems<SessionT extends Session>(session: SessionT, options?: { activeOnly?: boolean }) : SessionT['runs'][number]['items'] {
+export function getAllSessionItems<SessionT extends Session>(session: SessionT, options?: { activeOnly?: boolean }) {
   const items: SessionT['runs'][number]['items'] = []
 
   const activeRuns = options?.activeOnly ? getActiveRuns(session) : session.runs

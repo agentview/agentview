@@ -175,7 +175,7 @@ function requireScoreConfig(itemConfig: ReturnType<typeof requireItemConfig>, sc
   return scoreConfig
 }
 
-async function requireSession(sessionId: string, auth: Awaited<ReturnType<typeof requireAuthSessionForUserOrClient>>) : Promise<SessionWithCollaboration> {
+async function requireSession(sessionId: string, auth: Awaited<ReturnType<typeof requireAuthSessionForUserOrClient>>) {
   const session = await fetchSession(sessionId)
   if (!session) {
     throw new HTTPException(404, { message: "Session not found" });
@@ -195,7 +195,7 @@ async function requireSession(sessionId: string, auth: Awaited<ReturnType<typeof
   return session
 }
 
-async function requireSessionItem<SessionT extends Session>(session: SessionT, itemId: string) : Promise<SessionT['runs'][number]['items'][number]> {
+async function requireSessionItem(session: SessionWithCollaboration, itemId: string) {
   const item = getAllSessionItems(session).find((a) => a.id === itemId)
   if (!item) {
     throw new HTTPException(404, { message: "Session item not found" });
@@ -2012,39 +2012,3 @@ console.log("Agent View API running on port " + port)
 
 
 
-
-// type A = {
-//   a: string,
-//   b: number
-// }
-
-// type A_extended = {
-//   a: string,
-//   b: number,
-//   c: boolean
-// }
-
-// function test<T extends A>(arg: T) {
-//   return {
-//     ...arg
-//   };
-// }
-
-// const a : A = {
-//   a: "hello",
-//   b: 123
-// }
-
-// const a_extended : A_extended = {
-//   a: "hi",
-//   b: 555,
-//   c: true
-// }
-
-// const foo = test(a_extended)
-
-// console.log(foo.c);
-
-// const bar = test(a)
-
-// console.log(bar.c);
