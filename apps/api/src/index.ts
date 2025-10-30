@@ -1148,6 +1148,44 @@ app.openapi(runsPOSTRoute, async (c) => {
   return c.json(newRun, 201);
 })
 
+// Get run response details
+const runDetailsGETRoute = createRoute({
+  method: 'get',
+  path: '/api/sessions/{sessionId}/runs/{runId}/details',
+  request: {
+    params: z.object({
+      sessionId: z.string(),
+      runId: z.string(),
+    }),
+  },
+  responses: {
+    200: response_data(z.any()),
+    401: response_error(),
+    404: response_error(),
+  },
+})
+
+app.openapi(runDetailsGETRoute, async (c) => {
+  const auth = await requireAuthSessionForUserOrClient(c.req.raw.headers);
+
+  const { sessionId, runId } = c.req.param();
+
+  await requireSession(sessionId, auth);
+
+  const runRow = await db.query.runs.findFirst({
+    where: and(
+      eq(runs.id, runId),
+      eq(runs.sessionId, sessionId),
+    ),
+  });
+
+  if (!runRow) {
+    return c.json({ message: 'Run not found' }, 404);
+  }
+
+  return c.json(runRow.responseData ?? null, 200);
+})
+
 
 // Cancel Run Endpoint
 const runCancelRoute = createRoute({

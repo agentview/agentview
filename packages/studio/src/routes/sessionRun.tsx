@@ -13,6 +13,8 @@ import { TerminalIcon } from "lucide-react";
 import { requireAgentConfig, requireItemConfig, requireRunConfig } from "~/lib/config";
 import { config } from "~/config";
 import { DisplayProperties } from "~/components/DisplayProperties";
+import type { ActionResponse } from "~/lib/errors";
+import { debugRun } from "~/lib/debugRun";
 
 function loader({ request, params }: LoaderFunctionArgs) {
     const listParams = getListParams(request);
@@ -113,19 +115,7 @@ function Component() {
                             See request / response of your Agent API call, full error details or metadata.
                         </div>
                     </div>
-                    <Button variant="default" onClick={() => {
-                        console.log({
-                            id: run.id,
-                            createdAt: run.createdAt,
-                            finishedAt: run.finishedAt,
-                            status: run.status,
-                            version: run.version,
-                            request: run.responseData?.request,
-                            response: run.responseData?.response,
-                            metadata: run.metadata,
-                            error: run.failReason,
-                        })
-                    }}>Print to console</Button>
+                    <Button variant="default" onClick={() => { debugRun(run); }}>Print to console</Button>
 
                 </div>
 

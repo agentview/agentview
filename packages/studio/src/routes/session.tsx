@@ -33,6 +33,7 @@ import { Pill } from "~/components/Pill";
 import { useRerender } from "~/hooks/useRerender";
 import { AssistantMessage, StepItem, UserMessage } from "~/components/session-item";
 import { toast } from "sonner";
+import { debugRun } from "~/lib/debugRun";
 
 
 async function loader({ request, params }: LoaderFunctionArgs) {
@@ -582,7 +583,7 @@ function MessageFooter(props: MessageFooterProps) {
                         />
                     </>}
 
-                    {hasErrors && <Button variant="ghost" size="sm" onClick={() => { toast.info("Check console for error details.") }}>
+                    {hasErrors && <Button variant="ghost" size="sm" onClick={() => { debugRun(run) }}>
                     <SquareTerminal />Debug
                     </Button>}
                 </div>
