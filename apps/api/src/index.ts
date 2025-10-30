@@ -21,8 +21,8 @@ import { fetchSession, fetchSessionState } from './sessions'
 import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { ClientSchema, SessionSchema, SessionCreateSchema, SessionItemCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, ClientCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration } from './shared/apiTypes'
+import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
+import { ClientSchema, SessionSchema, SessionCreateSchema, SessionItemCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, ClientCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type AgentAPIRunBody } from './shared/apiTypes'
 import { getConfig } from './getConfig'
 import type { BaseConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
@@ -195,12 +195,12 @@ async function requireSession(sessionId: string, auth: Awaited<ReturnType<typeof
   return session
 }
 
-async function requireSessionItem(session: SessionWithCollaboration, itemId: string) {
+async function requireSessionItem(session: Awaited<ReturnType<typeof requireSession>>, itemId: string) : Promise<SessionItemWithCollaboration> {
   const item = getAllSessionItems(session).find((a) => a.id === itemId)
   if (!item) {
     throw new HTTPException(404, { message: "Session item not found" });
   }
-  return item
+  return item as SessionItemWithCollaboration
 }
 
 async function requireClient(clientId?: string) {
@@ -950,10 +950,10 @@ app.openapi(runsPOSTRoute, async (c) => {
     return c.json({ message: `Cannot add user item when session is in 'in_progress' status.` }, 400);
   }
 
-  const state = await fetchSessionState(sessionId);
+  // const state = await fetchSessionState(sessionId);
 
   // Create user item and run
-  const userItem = await db.transaction(async (tx) => {
+  const userItem : SessionItem = await db.transaction(async (tx) => {
 
     const [newRun] = await tx.insert(runs).values({
       sessionId: sessionId,
@@ -985,16 +985,22 @@ app.openapi(runsPOSTRoute, async (c) => {
 
   (async () => {
 
-    const input = {
+    const agentAPIRunBody : AgentAPIRunBody = {
       session: {
-        id: session.id,
-        createdAt: session.createdAt,
-        updatedAt: session.updatedAt,
-        context: session.context,
-        clientId: session.clientId,
-        agent: session.agent,
-        items: getAllSessionItems(session),
-        state
+        ...session,
+        runs: session.runs.filter((run) => run.status === 'completed').map((run) => ({
+          ...run,
+          items: run.items.map((item) => ({
+            type: item.type,
+            role: item.role,
+            content: item.content,
+            runId: run.id,
+            sessionId: session.id,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+            id: item.id,
+          })),
+        })),
       },
       input: userItem
     }
@@ -1009,7 +1015,7 @@ app.openapi(runsPOSTRoute, async (c) => {
 
     try {
       // Try streaming first, fallback to non-streaming
-      const runOutput = callAgentAPI(input, agentConfig.url)
+      const runOutput = callAgentAPI(agentAPIRunBody, agentConfig.url)
 
       let versionId: string | null = null;
 
@@ -2009,6 +2015,3 @@ serve({
 })
 
 console.log("Agent View API running on port " + port)
-
-
-

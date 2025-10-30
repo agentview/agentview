@@ -1,3 +1,5 @@
+import type { AgentAPIRunBody } from "./shared/apiTypes";
+
 export interface AgentErrorResponse {
   message: string
   [key: string]: any
@@ -18,7 +20,7 @@ export type AgentAPIEvent = {
   data: any
 }
 
-export async function* callAgentAPI(request: { session: any }, url: string): AsyncGenerator<AgentAPIEvent, void, unknown> {
+export async function* callAgentAPI(body: AgentAPIRunBody, url: string): AsyncGenerator<AgentAPIEvent, void, unknown> {
   let response : Response;
 
   try {
@@ -27,7 +29,7 @@ export async function* callAgentAPI(request: { session: any }, url: string): Asy
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify(body),
     })
 
     const responseData : any = {
@@ -37,7 +39,7 @@ export async function* callAgentAPI(request: { session: any }, url: string): Asy
         headers: {
           'Content-Type': 'application/json',
         },
-        body: request
+        body: body
       },
       response: {
         status: response.status,

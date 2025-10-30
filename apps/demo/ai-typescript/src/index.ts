@@ -12,6 +12,13 @@ app.get('/', (c) => {
 
 app.post('/agentview/run', async (c) => {
   const body = await c.req.json()
+  
+  console.log('BODY', body)
+
+  // TODO: TYPES
+  // Remove BLOAT IDs from API.
+  const items = body.session.runs.flatMap((run: any) => run.items);
+  console.log('ALL ITEMS', items);
 
   const response = await client.responses.create({
     model: "gpt-5-nano",

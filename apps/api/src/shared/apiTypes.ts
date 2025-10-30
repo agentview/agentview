@@ -117,6 +117,8 @@ export const RunWithCollaborationSchema = RunSchema.extend({
     items: z.array(SessionItemWithCollaborationSchema),
 })
 
+export type RunWithCollaboration = z.infer<typeof RunWithCollaborationSchema>
+
 export const SessionBaseSchema = z.object({
     id: z.string(),
     handle: z.string(),
@@ -228,3 +230,11 @@ export const SessionsPaginatedResponseSchema = z.object({
 })
 
 export type SessionsPaginatedResponse = z.infer<typeof SessionsPaginatedResponseSchema>
+
+
+export const AgentAPIRunBodySchema = z.object({
+    session: SessionSchema,
+    input: SessionItemSchema,
+})
+
+export type AgentAPIRunBody = z.infer<typeof AgentAPIRunBodySchema>

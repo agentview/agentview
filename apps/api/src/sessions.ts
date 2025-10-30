@@ -3,8 +3,9 @@ import { db } from "./db"
 import { sessionItems, sessions } from "./schemas/schema"
 import type { Transaction } from "./types";
 import { isUUID } from "./isUUID";
+import type { SessionWithCollaboration } from "./shared/apiTypes";
 
-export async function fetchSessions(session_id?: string, tx?: Transaction) {
+export async function fetchSessions(session_id?: string, tx?: Transaction): Promise<SessionWithCollaboration[]> {
 
   const where = (() => {
     if (!session_id) {
@@ -73,10 +74,10 @@ export async function fetchSessions(session_id?: string, tx?: Transaction) {
     client: row.client,
     clientId: row.client.id,
     runs: row.runs,
-  }));
+  })) as SessionWithCollaboration[];
 }
 
-export async function fetchSession(session_id: string, tx?: Transaction) {
+export async function fetchSession(session_id: string, tx?: Transaction): Promise<SessionWithCollaboration | undefined> {
   const sessions = await fetchSessions(session_id, tx)
 
   if (sessions.length === 0) {
