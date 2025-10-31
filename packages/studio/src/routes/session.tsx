@@ -7,7 +7,7 @@ import { parseSSE } from "~/lib/parseSSE";
 import { apiFetch } from "~/lib/apiFetch";
 import { getAPIBaseUrl } from "~/lib/getAPIBaseUrl";
 import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/lib/shared/sessionUtils";
-import { type Run, type RunWithCollaboration, type Session, type SessionItem, type SessionWithCollaboration } from "~/lib/shared/apiTypes";
+import { type Run, type RunWithCollaboration, type Session, type SessionItem, type SessionItemWithCollaboration, type SessionWithCollaboration } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
 import { AlertCircleIcon, BugIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, ExternalLinkIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageCirclePlusIcon, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, SquareTerminal, TagsIcon, TerminalIcon, ThumbsDown, ThumbsDownIcon, ThumbsUp, ThumbsUpIcon, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
@@ -63,7 +63,7 @@ function SessionPage() {
     const [watchedRun, setWatchedRun] = useState<RunWithCollaboration | undefined>(undefined)
 
     // Session with applied local watched run
-    const session : SessionWithCollaboration = {
+    const session = {
         ...loaderData.session,
         runs: loaderData.session.runs.map(run => {
             if (run.id === watchedRun?.id) {
@@ -71,7 +71,7 @@ function SessionPage() {
             }
             return run;
         })
-    }
+    } as SessionWithCollaboration
 
     const listParams = loaderData.listParams;
     const activeItems = getAllSessionItems(session, { activeOnly: true })
@@ -524,10 +524,10 @@ export const sessionRoute: RouteObject = {
 
 
 type MessageFooterProps = {
-    session: Session,
-    run: Run,
+    session: SessionWithCollaboration,
+    run: RunWithCollaboration,
     listParams: ReturnType<typeof getListParams>,
-    item: SessionItem,
+    item: SessionItemWithCollaboration,
     onSelect: () => void,
     isSelected: boolean,
     isSmallSize: boolean,
@@ -612,13 +612,13 @@ function MessageFooter(props: MessageFooterProps) {
 
 
 
-function getAllScoreConfigs(session: Session, item: SessionItem) {
+function getAllScoreConfigs(session: SessionWithCollaboration, item: SessionItemWithCollaboration) {
     const agentConfig = requireAgentConfig(config, session.agent);
     const itemConfig = requireItemConfig(agentConfig, item.type, item.role);
     return itemConfig?.scores || [];
 }
 
-function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, item: SessionItem, open: boolean, onOpenChange: (open: boolean) => void }) {
+function ScoreDialog({ session, item, open, onOpenChange }: { session: SessionWithCollaboration, item: SessionItemWithCollaboration, open: boolean, onOpenChange: (open: boolean) => void }) {
     const { user } = useSessionContext();
     const fetcher = useFetcher();
 
@@ -719,7 +719,7 @@ function ScoreDialog({ session, item, open, onOpenChange }: { session: Session, 
 }
 
 
-function ActionBarScoreForm({ session, item, scoreConfig }: { session: Session, item: SessionItem, scoreConfig: ScoreConfig }) {
+function ActionBarScoreForm({ session, item, scoreConfig }: { session: SessionWithCollaboration, item: SessionItemWithCollaboration, scoreConfig: ScoreConfig }) {
     const { user } = useSessionContext();
     const fetcher = useFetcher();
     const revalidator = useRevalidator();
