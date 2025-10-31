@@ -1,28 +1,19 @@
 import { type SessionItem, type Session, type Run, type SessionWithCollaboration, type RunWithCollaboration, type SessionItemWithCollaboration } from "./apiTypes"
 
-export function getLastRun(session: SessionWithCollaboration) : RunWithCollaboration | undefined;
-export function getLastRun(session: Session) : Run | undefined;
-export function getLastRun(session: Session | SessionWithCollaboration) : any {
+export function getLastRun<SessionT extends Session>(session: SessionT) : SessionT["runs"][number] | undefined {
   return session.runs.length > 0 ? session.runs[session.runs.length - 1] : undefined
 }
 
-export function getActiveRuns(session: SessionWithCollaboration) : RunWithCollaboration[];
-export function getActiveRuns(session: Session) : Run[];
-export function getActiveRuns(session: Session | SessionWithCollaboration) {
+export function getActiveRuns<SessionT extends Session>(session: SessionT) : SessionT["runs"][number][] {
   return session.runs.filter((run, index) => run.status !== 'failed' || index === session.runs.length - 1)
 }
 
-export function getAllSessionItems(session: SessionWithCollaboration, options?: { activeOnly?: boolean }) : SessionItemWithCollaboration[];
-export function getAllSessionItems(session: Session, options?: { activeOnly?: boolean }) : SessionItem[];
-export function getAllSessionItems(session: Session | SessionWithCollaboration, options?: { activeOnly?: boolean }) {
-  const items: SessionItem[] = []
-
+export function getAllSessionItems<SessionT extends Session>(session: SessionT, options?: { activeOnly?: boolean }) : SessionT["runs"][number]["items"][number][] {
+  const items : SessionT["runs"][number]["items"][number][] = []
   const activeRuns = options?.activeOnly ? getActiveRuns(session) : session.runs
-
   activeRuns.map((run, index) => {
     items.push(...run.items)
   })
-
   return items
 }
 

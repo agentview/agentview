@@ -2,6 +2,7 @@ import 'dotenv/config'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import OpenAI from "openai";
+import { type ConfigCreate, ConfigCreateSchema } from "agentview";
 
 const app = new Hono()
 const client = new OpenAI();
