@@ -1,7 +1,7 @@
 import { AlertCircleIcon, EllipsisVerticalIcon, Gauge, GaugeIcon, PencilIcon, PencilLineIcon, Reply, ReplyIcon } from "lucide-react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useFetcher, useRevalidator } from "react-router";
-import type { SessionItem, CommentMessage, Session, User, Score } from "~/lib/shared/apiTypes";
+import type { SessionItem, CommentMessage, Session, User, Score, SessionWithCollaboration, SessionItemWithCollaboration } from "~/lib/shared/apiTypes";
 import { Button } from "~/components/ui/button";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { timeAgoShort } from "~/lib/timeAgo";
@@ -21,8 +21,8 @@ import type { ScoreConfig } from "~/types";
 import { UserAvatar } from "./UserAvatar";
 
 export type CommentsThreadRawProps = {
-    session: Session,
-    item: SessionItem,
+    session: SessionWithCollaboration,
+    item: SessionItemWithCollaboration,
     collapsed?: boolean,
     singleLineMessageHeader?: boolean,
     small?: boolean,
@@ -34,8 +34,8 @@ export type CommentsThreadProps = CommentsThreadRawProps & {
 }
 
 export type CommentSessionFloatingButtonProps = CommentsThreadProps & {
-    session: Session,
-    item: SessionItem,
+    session: SessionWithCollaboration,
+    item: SessionItemWithCollaboration,
     onSelect: (item: any) => void,
 }
 

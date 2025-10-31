@@ -22,7 +22,7 @@ import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { ClientSchema, SessionSchema, SessionCreateSchema, SessionItemCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, ClientCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type AgentAPIRunBody } from './shared/apiTypes'
+import { ClientSchema, SessionSchema, SessionCreateSchema, SessionItemCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, ClientCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody } from './shared/apiTypes'
 import { getConfig } from './getConfig'
 import type { BaseConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
@@ -985,7 +985,7 @@ app.openapi(runsPOSTRoute, async (c) => {
 
   (async () => {
 
-    const agentAPIRunBody : AgentAPIRunBody = {
+    const runBody : RunBody = {
       session: {
         ...session,
         runs: session.runs.filter((run) => run.status === 'completed').map((run) => ({
@@ -1015,7 +1015,7 @@ app.openapi(runsPOSTRoute, async (c) => {
 
     try {
       // Try streaming first, fallback to non-streaming
-      const runOutput = callAgentAPI(agentAPIRunBody, agentConfig.url)
+      const runOutput = callAgentAPI(runBody, agentConfig.url)
 
       let versionId: string | null = null;
 

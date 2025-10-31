@@ -7,7 +7,7 @@ import { parseSSE } from "~/lib/parseSSE";
 import { apiFetch } from "~/lib/apiFetch";
 import { getAPIBaseUrl } from "~/lib/getAPIBaseUrl";
 import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/lib/shared/sessionUtils";
-import { type Run, type Session, type SessionItem } from "~/lib/shared/apiTypes";
+import { type Run, type RunWithCollaboration, type Session, type SessionItem, type SessionWithCollaboration } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
 import { AlertCircleIcon, BugIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, ExternalLinkIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageCirclePlusIcon, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, SquareTerminal, TagsIcon, TerminalIcon, ThumbsDown, ThumbsDownIcon, ThumbsUp, ThumbsUpIcon, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
@@ -37,7 +37,7 @@ import { debugRun } from "~/lib/debugRun";
 
 
 async function loader({ request, params }: LoaderFunctionArgs) {
-    const response = await apiFetch<Session>(`/api/sessions/${params.id}`);
+    const response = await apiFetch<SessionWithCollaboration>(`/api/sessions/${params.id}`);
 
     if (!response.ok) {
         throw data(response.error, { status: response.status })
@@ -60,12 +60,12 @@ function SessionPage() {
     const navigate = useNavigate();
     const { user } = useSessionContext();
 
-    const [watchedRun, setWatchedRun] = useState<Run | undefined>(undefined)
+    const [watchedRun, setWatchedRun] = useState<RunWithCollaboration | undefined>(undefined)
 
     // Session with applied local watched run
-    const session = {
+    const session : SessionWithCollaboration = {
         ...loaderData.session,
-        runs: loaderData.session.runs.map((run: Run) => {
+        runs: loaderData.session.runs.map(run => {
             if (run.id === watchedRun?.id) {
                 return watchedRun
             }
@@ -242,7 +242,7 @@ function SessionPage() {
                 <div className="p-6 border-b">
                     <SessionDetails session={session} agentConfig={agentConfig} />
                 </div>
-
+    
                 <div ref={bodyRef}>
                     <ItemsWithCommentsLayout items={getActiveRuns(session).map((run) => {
                         return run.items.map((item, index) => {

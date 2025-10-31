@@ -232,9 +232,10 @@ export const SessionsPaginatedResponseSchema = z.object({
 export type SessionsPaginatedResponse = z.infer<typeof SessionsPaginatedResponseSchema>
 
 
-export const AgentAPIRunBodySchema = z.object({
+// run webhook
+export const RunBodySchema = z.object({
     session: SessionSchema,
     input: SessionItemSchema,
 })
 
-export type AgentAPIRunBody = z.infer<typeof AgentAPIRunBodySchema>
+export type RunBody = z.infer<typeof RunBodySchema>

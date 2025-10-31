@@ -68,6 +68,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.5
         version: 1.19.5(hono@4.10.4)
+      agentview:
+        specifier: workspace:*
+        version: link:../../../packages/studio
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1

@@ -1,4 +1,4 @@
-import type { AgentAPIRunBody } from "./shared/apiTypes";
+import type { RunBody } from "./shared/apiTypes";
 
 export interface AgentErrorResponse {
   message: string
@@ -20,7 +20,7 @@ export type AgentAPIEvent = {
   data: any
 }
 
-export async function* callAgentAPI(body: AgentAPIRunBody, url: string): AsyncGenerator<AgentAPIEvent, void, unknown> {
+export async function* callAgentAPI(body: RunBody, url: string): AsyncGenerator<AgentAPIEvent, void, unknown> {
   let response : Response;
 
   try {
