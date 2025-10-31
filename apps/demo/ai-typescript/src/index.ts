@@ -2,7 +2,7 @@ import 'dotenv/config'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import OpenAI from "openai";
-import { type ConfigCreate, ConfigCreateSchema } from "agentview";
+import { RunBody } from "agentview";
 
 const app = new Hono()
 const client = new OpenAI();
@@ -12,13 +12,15 @@ app.get('/', (c) => {
 })
 
 app.post('/agentview/run', async (c) => {
-  const body = await c.req.json()
+  const body = await c.req.json() as RunBody
+
+  body.dupa
   
   console.log('BODY', body)
 
   // TODO: TYPES
   // Remove BLOAT IDs from API.
-  const items = body.session.runs.flatMap((run: any) => run.items);
+  const items = body.session.dupa.flatMap((run: any) => run.items);
   console.log('ALL ITEMS', items);
 
   const response = await client.responses.create({
