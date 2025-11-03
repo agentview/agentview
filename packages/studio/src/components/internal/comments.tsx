@@ -11,7 +11,7 @@ import { TextEditor, textToElements } from "./TextEditor";
 import { useSessionContext } from "~/lib/SessionContext";
 import { apiFetch } from "~/lib/apiFetch";
 import { config } from "~/config";
-import { requireAgentConfig, requireItemConfig } from "~/lib/config";
+import { findItemConfig, requireAgentConfig, requireItemConfig } from "~/lib/config";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
@@ -389,47 +389,17 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
     });
 
     const agentConfig = requireAgentConfig(config, session.agent);
-    const itemConfig = requireItemConfig(agentConfig, item.type, item.role);
+    const itemConfig = findItemConfig(agentConfig, item.content);
 
     // score configs
     const getScoreConfig = (score: Score) => {
-        return itemConfig.scores?.find((scoreConfig) => scoreConfig.name === score.name);
+        return itemConfig?.scores?.find((scoreConfig) => scoreConfig.name === score.name);
     }
-
-    const activeScores = message.scores.filter((score) => score.deletedAt === null && getScoreConfig(score));
 
     return (
         <div>
+            <CommentMessageHeader title={author.name ?? author.email} subtitle={subtitle} singleLineMessageHeader={singleLineMessageHeader} user={author} />
 
-            <CommentMessageHeader title={author.name ?? author.email} subtitle={subtitle} singleLineMessageHeader={singleLineMessageHeader} user={author}
-            // actions={
-            //     isOwn && (<DropdownMenu>
-            //         <DropdownMenuTrigger asChild>
-            //             <Button size="icon" variant="ghost">
-            //                 <EllipsisVerticalIcon className="w-4 h-4 text-gray-400" />
-            //             </Button>
-            //         </DropdownMenuTrigger>
-            //         <DropdownMenuContent className="w-32" align="start">
-            //             <DropdownMenuItem onClick={(e) => {
-            //                 setIsEditing(true);
-            //             }}>
-            //                 Edit
-            //             </DropdownMenuItem>
-            //             <DropdownMenuItem onClick={(e) => {
-            //                 e.preventDefault();
-            //                 if (confirm('Are you sure you want to delete this comment?')) {
-            //                     fetcher.submit(null, { method: 'delete', action: `/sessions/${session.id}/items/${item.id}/comments/${message.id}` }); // that could be fetcher.Form!
-            //                 }
-            //             }}>
-            //                 Delete
-            //             </DropdownMenuItem>
-            //         </DropdownMenuContent>
-            //     </DropdownMenu>
-            //     )
-            // }
-            />
-
-            {/* Comment content */}
             <div className="text-sm ml-8">
                 {isEditing ? (<div>
 

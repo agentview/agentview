@@ -3,7 +3,7 @@ import { configs } from "./schemas/schema";
 import { desc } from "drizzle-orm";
 import { convertJsonSchemaToZod } from 'zod-from-json-schema';
 import type { BaseConfig, BaseConfigSchema, BaseScoreConfig, BaseSessionItemConfig, BaseSessionItemConfigSchema } from "./shared/configTypes";
-import { z } from "zod";
+import { z, ZodObject } from "zod";
 
 function parseConfig(config: z.infer<typeof BaseConfigSchema>): BaseConfig {
     return {
@@ -22,9 +22,7 @@ function parseConfig(config: z.infer<typeof BaseConfigSchema>): BaseConfig {
 
 function parseSessionItem(item: z.infer<typeof BaseSessionItemConfigSchema>): BaseSessionItemConfig<BaseScoreConfig> {
     return {
-        type: item.type,
-        role: item.role,
-        content: convertJsonSchemaToZod(item.content),
+        schema: convertJsonSchemaToZod(item.schema) as ZodObject,
         scores: item.scores?.map((score: any) => ({
             ...score,
             schema: convertJsonSchemaToZod(score.schema),

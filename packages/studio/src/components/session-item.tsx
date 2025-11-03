@@ -30,16 +30,17 @@ export function BaseItem({ variant = "default", value, title }: { variant?: "def
 }
 
 export function UserMessage({ value }: SessionItemDisplayComponentProps<any>) {
-    return <BaseItem value={value} variant="outline" />
+    console.log("value", value);
+    return <BaseItem value={value?.content} variant="outline" />
 }
 
 export function AssistantMessage({ value }: SessionItemDisplayComponentProps<any>) {
-    return <BaseItem value={value} variant="default" />
+    return <BaseItem value={value?.content} variant="default" />
 }
 
-export function StepItem({ value, type, role }: SessionItemDisplayComponentProps<any>) {
-    const title = role ? `${type} · ${role}` : type
-    return <BaseItem value={value} variant="muted" title={title} />
+export function StepItem({ value }: SessionItemDisplayComponentProps<any>) {
+    // const title = role ? `${type} · ${role}` : type
+    return <BaseItem value={value} variant="muted" />
 }
 
 export function UserMessageInput(props: FormComponentProps<z.ZodString> & { placeholder?: string }) {

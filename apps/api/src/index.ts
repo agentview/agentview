@@ -22,7 +22,7 @@ import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { ClientSchema, SessionSchema, SessionCreateSchema, SessionItemCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, ClientCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody } from './shared/apiTypes'
+import { ClientSchema, SessionSchema, SessionCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, ClientCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody } from './shared/apiTypes'
 import { getConfig } from './getConfig'
 import type { BaseConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
@@ -32,6 +32,7 @@ import { isInboxItemUnread } from './inboxItems'
 import { createClient, createClientAuthSession, getClientAuthSession, verifyJWT, findClientByExternalId } from './clientsAuth'
 import packageJson from '../package.json'
 import type { Transaction } from './types'
+import { normalizeItemSchema } from './shared/sessionUtils'
 
 console.log("Migrating database...");
 await migrate(db, { migrationsFolder: './drizzle' });
@@ -128,28 +129,28 @@ function requireAgentConfig(config: BaseConfig, name: string) {
   return agentConfig
 }
 
-function checkItemConfigMatch(itemConfig: BaseSessionItemConfig<BaseScoreConfig>, type: string, role?: string | null) {
-  return itemConfig.type === type && (!itemConfig.role || itemConfig.role === role)
+function checkItemConfigMatch(itemConfig: BaseSessionItemConfig<BaseScoreConfig>, content: any) {
+  return normalizeItemSchema(itemConfig.schema).safeParse(content).success
 }
 
-function requireItemConfig(agentConfig: ReturnType<typeof requireAgentConfig>, type: string, role?: string | null, runItemType?: "input" | "output" | "step") {
+function requireItemConfig(agentConfig: ReturnType<typeof requireAgentConfig>, content: any, itemType?: "input" | "output" | "step") {  
   let itemConfig: BaseSessionItemConfig<BaseScoreConfig> | undefined = undefined;
 
   for (const run of agentConfig.runs) {
-    if (!runItemType || runItemType === "input") {
-      if (checkItemConfigMatch(run.input, type, role)) {
+    if (!itemType || itemType === "input") {
+      if (checkItemConfigMatch(run.input, content)) {
         itemConfig = run.input
         break;
       }
     }
-    if (!runItemType || runItemType === "output") {
-      if (checkItemConfigMatch(run.output, type, role)) {
+    if (!itemType || itemType === "output") {
+      if (checkItemConfigMatch(run.output, content)) {
         itemConfig = run.output
         break;
       }
     }
-    if (!runItemType || runItemType === "step") {
-      const result = run.steps?.find((step) => checkItemConfigMatch(step, type, role))
+    if (!itemType || itemType === "step") {
+      const result = run.steps?.find((step) => checkItemConfigMatch(step, content))
       if (result) {
         itemConfig = result;
         break;
@@ -157,11 +158,8 @@ function requireItemConfig(agentConfig: ReturnType<typeof requireAgentConfig>, t
     }
   }
 
-  // const itemConfig = agentConfig.items?.find((item) => item.type === type && (!item.role || item.role === role))
-  const itemTypeCuteName = `${type}' / '${role}`
-
   if (!itemConfig) {
-    throw new HTTPException(400, { message: `Item '${itemTypeCuteName}' not found in configuration for agent '${agentConfig.name}'. ${runItemType ? `For run item type: ${runItemType}` : ''}` });
+    throw new HTTPException(400, { message: `Item not found in configuration for agent '${agentConfig.name}'. ${itemType ? `For run item type: ${itemType}` : ''}` });
   }
 
   return itemConfig
@@ -170,7 +168,7 @@ function requireItemConfig(agentConfig: ReturnType<typeof requireAgentConfig>, t
 function requireScoreConfig(itemConfig: ReturnType<typeof requireItemConfig>, scoreName: string) {
   const scoreConfig = itemConfig.scores?.find((scoreConfig) => scoreConfig.name === scoreName)
   if (!scoreConfig) {
-    throw new HTTPException(400, { message: `Score name '${scoreName}' not found in configuration for item '${itemConfig.type}' / '${itemConfig.role}'` });
+    throw new HTTPException(400, { message: `Score name '${scoreName}' not found in configuration.'` });
   }
   return scoreConfig
 }
@@ -912,9 +910,7 @@ const runsPOSTRoute = createRoute({
     params: z.object({
       sessionId: z.string(),
     }),
-    body: body(z.object({
-      input: SessionItemCreateSchema
-    }))
+    body: body(z.object({ input: z.any() }))
   },
   responses: {
     201: response_data(RunSchema), // todo: this sucks I guess
@@ -927,22 +923,32 @@ app.openapi(runsPOSTRoute, async (c) => {
   const auth = await requireAuthSessionForUserOrClient(c.req.raw.headers);
 
   const { sessionId } = c.req.param()
-  const { input: { type, role, content } } = await c.req.valid('json')
+  const { input } = await c.req.valid('json')
 
   const session = await requireSession(sessionId, auth)
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
-  const itemConfig = requireItemConfig(agentConfig, type, role, "input")
+  const itemConfig = requireItemConfig(agentConfig, input, "input")
+
+  // console.log('RESULT MATCHING ITEM CONFIG', z.toJSONSchema(itemConfig.schema));
+
+
+  console.log('itemConfig', z.toJSONSchema(itemConfig.schema));
+  console.log('input', input);
+
+  const testParseResult = itemConfig.schema.safeParse(input);
+  console.log('testParseResult', testParseResult);
+
 
   // return c.json({ message: `Some error` }, 400);
 
   // Validate content against the schema
-  try {
-    // return c.json({ message: `Error parsing session item`, code: 'parse.schema' }, 400);
-    itemConfig.content.parse(content);
-  } catch (error: any) {
-    return c.json({ message: `Invalid content: ${error.message}`, code: 'parse.schema', issues: error.issues }, 400);
-  }
+  // try {
+  //   // return c.json({ message: `Error parsing session item`, code: 'parse.schema' }, 400);
+  //   itemConfig.content.parse(content);
+  // } catch (error: any) {
+  //   return c.json({ message: `Invalid content: ${error.message}`, code: 'parse.schema', issues: error.issues }, 400);
+  // }
 
   const lastRun = getLastRun(session)
 
@@ -962,9 +968,9 @@ app.openapi(runsPOSTRoute, async (c) => {
 
     const [userItem] = await tx.insert(sessionItems).values({
       sessionId: sessionId,
-      type,
-      role,
-      content,
+      // type,
+      // role,
+      content: input,
       runId: newRun.id,
     }).returning();
 
@@ -991,8 +997,8 @@ app.openapi(runsPOSTRoute, async (c) => {
         runs: session.runs.filter((run) => run.status === 'completed').map((run) => ({
           ...run,
           items: run.items.map((item) => ({
-            type: item.type,
-            role: item.role,
+            // type: item.type,
+            // role: item.role,
             content: item.content,
             runId: run.id,
             sessionId: session.id,
@@ -1074,32 +1080,33 @@ app.openapi(runsPOSTRoute, async (c) => {
         else if (event.name === 'state') {
           await db.insert(sessionItems).values({
             sessionId: sessionId,
-            type: "__state__",
+            isState: true,
             content: event.data,
             runId: userItem.runId,
           })
         }
         else if (event.name === 'item') {
 
-          const parsedItem = z.object({
-            type: z.string(),
-            role: z.string().optional(),
-            content: z.any(),
-          }).safeParse(event.data)
+          // const parsedItem = z.object({
+          //   type: z.string(),
+          //   role: z.string().optional(),
+          //   content: z.any(),
+          // }).safeParse(event.data)
 
-          if (!parsedItem.success) {
-            throw new AgentAPIError({
-              message: "Invalid item",
-              details: event.data
-            });
-          }
+          // if (!parsedItem.success) {
+          //   throw new AgentAPIError({
+          //     message: "Invalid item",
+          //     details: event.data
+          //   });
+          // }
 
           await db.insert(sessionItems).values({
             sessionId: sessionId,
-            type: parsedItem.data.type,
-            role: parsedItem.data.role,
-            content: parsedItem.data.content,
-            metadata: event.data.metadata,
+            // type: parsedItem.data.type,
+            // role: parsedItem.data.role,
+            // content: parsedItem.data.content,
+            content: event.data,
+            // metadata: event.data.metadata,
             runId: userItem.runId,
           })
         }
@@ -1615,7 +1622,7 @@ app.openapi(scoresPUTRoute, async (c) => {
   const item = await requireSessionItem(session, itemId);
 
   const agentConfig = requireAgentConfig(config, session.agent);
-  const itemConfig = requireItemConfig(agentConfig, item.type, item.role ?? undefined)
+  const itemConfig = requireItemConfig(agentConfig, item.content)
 
   await db.transaction(async (tx) => {
     for (const score of inputScores) {

@@ -92,8 +92,9 @@ export const sessionItems = pgTable("session_items", {
   content: jsonb("content"),
   sessionId: uuid("session_id").notNull().references(() => sessions.id, { onDelete: 'cascade' }),
   runId: uuid("run_id").notNull().references(() => runs.id, { onDelete: 'set null' }),
-  type: varchar("type", { length: 255 }).notNull(),
-  role: varchar("role", { length: 255 }),
+  isState: boolean("is_state").notNull().default(false),
+  // type: varchar("type", { length: 255 }).notNull(),
+  // role: varchar("role", { length: 255 }),
   metadata: jsonb("metadata")
 })
 

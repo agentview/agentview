@@ -6,7 +6,6 @@ import { isUUID } from "./isUUID";
 import type { SessionWithCollaboration } from "./shared/apiTypes";
 
 export async function fetchSessions(session_id?: string, tx?: Transaction): Promise<SessionWithCollaboration[]> {
-
   const where = (() => {
     if (!session_id) {
       return undefined;
@@ -48,7 +47,7 @@ export async function fetchSessions(session_id?: string, tx?: Transaction): Prom
           version: true,
           items: {
             orderBy: (sessionItem, { asc }) => [asc(sessionItem.createdAt)],
-            where: (sessionItem, { ne }) => ne(sessionItem.type, "__state__"),
+            where: (sessionItem, { ne }) => ne(sessionItem.isState, true),
             with: {
               commentMessages: {
                 orderBy: (commentMessages, { asc }) => [asc(commentMessages.createdAt)],
@@ -90,7 +89,7 @@ export async function fetchSession(session_id: string, tx?: Transaction): Promis
 export async function fetchSessionState(session_id: string, tx?: Transaction) {
   // Fetch the latest __state__ session item by createdAt descending
   const stateItem = await (tx || db).query.sessionItems.findFirst({
-    where: and(eq(sessionItems.sessionId, session_id), eq(sessionItems.type, "__state__")),
+    where: and(eq(sessionItems.sessionId, session_id), eq(sessionItems.isState, true)),
     orderBy: (sessionItem, { desc }) => [desc(sessionItem.createdAt)],
   });
 

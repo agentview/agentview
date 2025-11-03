@@ -33,45 +33,30 @@ export default defineConfig({
                         content: z.string(),
                     },
                     displayComponent: UserMessage,
-                    inputComponent: UserMessageInput
-                }
-                input: {
-                    shape: {
-                        type: "message",
-                        role: "user",
-                        content: z.string(),
-                    },
-                    type: "message",
-                    role: "user",
-                    // name: "message",
-                    content: z.string(),
-                    // schema: {
-                    //     type: z.literal("message"),
-                    //     role: z.literal("user"),
-                    //     content: z.string(),
-                    // },
-                    displayComponent: UserMessage,
-                    inputComponent: UserMessageInput
+                    inputComponent: (props) => <UserMessageInput {...props} submit={(val) => props.submit({ content: val, type: "message", role: "user" })} />
                 },
                 steps: [
                     {
-                        type: "thinking",
-                        role: "assistant",
-                        content: z.string(),
+                        schema: {
+                            type: "thinking",
+                            role: "assistant"
+                        },
                         displayComponent: StepItem,
                     },
                     {
-                        role: "user",
-                        type: "function_call_result",
-                        // name: "function",
-                        content: z.string(),
+                        schema: {
+                            role: "user",
+                            type: "function_call_result",
+                        },
                         displayComponent: StepItem,
                     }
                 ],
                 output: {
-                    type: "message",
-                    role: "assistant",
-                    content: z.string(),
+                    schema: {
+                        role: "assistant",
+                        type: "message",
+                        content: z.string(),
+                    },
                     displayComponent: AssistantMessage,
                     scores: [
                         {
@@ -108,143 +93,143 @@ export default defineConfig({
                 ],
             }
         },
-        {
-            name: "pdp_chat",
-            url: "http://127.0.0.1:8000/product_chat",
-            context: z.object({
-                product_id: z.string(),
-                test: z.string().min(5, "Test must be at least 5 characters long")
-            }),
-            inputComponent: ({ schema, submit, isRunning }) => {
-                const form = useForm({
-                    resolver: zodResolver<any, any, any>(schema),
-                })
+        // {
+        //     name: "pdp_chat",
+        //     url: "http://127.0.0.1:8000/product_chat",
+        //     context: z.object({
+        //         product_id: z.string(),
+        //         test: z.string().min(5, "Test must be at least 5 characters long")
+        //     }),
+        //     inputComponent: ({ schema, submit, isRunning }) => {
+        //         const form = useForm({
+        //             resolver: zodResolver<any, any, any>(schema),
+        //         })
 
-                return <Form {...form}>
-                    <form onSubmit={form.handleSubmit(submit)} className={"space-y-5"}>
-                        <FormField
-                            name={"product_id"}
-                            render={({ field }) => <FormItem>
-                                <FormLabel>Product</FormLabel>
-                                <ProductSelect {...field} />
-                                <FormMessage />
-                            </FormItem>
-                            }
-                        />
-                        <FormField
-                            name={"test"}
-                            // defaultValue={"Test"}
-                            render={({ field }) => <FormItem>
-                                <FormLabel>Test Field</FormLabel>
-                                <FormControl>
-                                    <Input {...field} placeholder="Enter your test" />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            }
-                        />
-                        <Button type="submit" disabled={isRunning}>Submit</Button>
-                    </form>
-                </Form>
-            },
-            displayProperties: [
-                {
-                    title: "Product",
-                    value: ({ session }) => <ProductDisplay value={session.context?.product_id} />
-                }
-            ],
+        //         return <Form {...form}>
+        //             <form onSubmit={form.handleSubmit(submit)} className={"space-y-5"}>
+        //                 <FormField
+        //                     name={"product_id"}
+        //                     render={({ field }) => <FormItem>
+        //                         <FormLabel>Product</FormLabel>
+        //                         <ProductSelect {...field} />
+        //                         <FormMessage />
+        //                     </FormItem>
+        //                     }
+        //                 />
+        //                 <FormField
+        //                     name={"test"}
+        //                     // defaultValue={"Test"}
+        //                     render={({ field }) => <FormItem>
+        //                         <FormLabel>Test Field</FormLabel>
+        //                         <FormControl>
+        //                             <Input {...field} placeholder="Enter your test" />
+        //                         </FormControl>
+        //                         <FormMessage />
+        //                     </FormItem>
+        //                     }
+        //                 />
+        //                 <Button type="submit" disabled={isRunning}>Submit</Button>
+        //             </form>
+        //         </Form>
+        //     },
+        //     displayProperties: [
+        //         {
+        //             title: "Product",
+        //             value: ({ session }) => <ProductDisplay value={session.context?.product_id} />
+        //         }
+        //     ],
 
-            runs: [
-                {
-                    title: "Message",
-                    input: {
-                        type: "message",
-                        role: "user",
-                        content: z.string(),
-                        displayComponent: UserMessage,
-                        inputComponent: UserMessageInput
-                    },
-                    output: {
-                        type: "message",
-                        role: "assistant",
-                        content: z.string(),
-                        displayComponent: AssistantMessage,
-                    },
-                },
-                {
-                    title: "Change page",
-                    input: {
-                        type: "change_page",
-                        role: "user",
-                        content: z.object({
-                            product_id: z.string(),
-                        }),
-                        inputComponent: ({ submit, isRunning, schema }) => {
-                            const [productId, setProductId] = useState<string | undefined>(undefined);
-                            const [error, setError] = useState<string | undefined>(undefined);
+        //     runs: [
+        //         {
+        //             title: "Message",
+        //             input: {
+        //                 type: "message",
+        //                 role: "user",
+        //                 content: z.string(),
+        //                 displayComponent: UserMessage,
+        //                 inputComponent: UserMessageInput
+        //             },
+        //             output: {
+        //                 type: "message",
+        //                 role: "assistant",
+        //                 content: z.string(),
+        //                 displayComponent: AssistantMessage,
+        //             },
+        //         },
+        //         {
+        //             title: "Change page",
+        //             input: {
+        //                 type: "change_page",
+        //                 role: "user",
+        //                 content: z.object({
+        //                     product_id: z.string(),
+        //                 }),
+        //                 inputComponent: ({ submit, isRunning, schema }) => {
+        //                     const [productId, setProductId] = useState<string | undefined>(undefined);
+        //                     const [error, setError] = useState<string | undefined>(undefined);
 
-                            return <form onSubmit={(e) => {
-                                e.preventDefault();
-                                if (!productId) {
-                                    setError("Product ID is required");
-                                    return;
-                                }
-                                submit({ product_id: productId });
-                            }}
-                                className="space-y-2"
-                            >
-                                <ProductSelect value={productId} onChange={(productId: any) => {
-                                    setProductId(productId);
-                                    setError(undefined);
-                                }} />
-                                {error && <div className="text-red-500 mt-2 text-sm">{error}</div>}
-                                <Button type="submit">Submit</Button>
-                            </form>
-                        }
-                    },
-                    output: {
-                        type: "change_page_result",
-                        role: "assistant",
-                        content: z.string(),
-                        // displayComponent: ({ value }) => <AssistantMessage value={value} />,
-                        // scores: [
-                        //     {
-                        //         name: "user_reaction",
-                        //         title: "Reaction",
-                        //         schema: z.boolean(),
-                        //         inputComponent: ToggleBooleanInput,
-                        //         displayComponent: DisplayBooleanComponent,
-                        //         options: {
-                        //             true: {
-                        //                 icon: ThumbsUp,
-                        //                 label: "Like"
-                        //             },
-                        //             false: {
-                        //                 icon: ThumbsDown,
-                        //                 label: "Don't like"
-                        //             }
-                        //         }
-                        //     },
-                        //     {
-                        //         name: "recommended_score",
-                        //         title: "Your score",
-                        //         schema: z.string(),
-                        //         inputComponent: SelectInput,
-                        //         displayComponent: ({ value }) => <ScoreBadge score={value} />,
-                        //         options: {
-                        //             items: [
-                        //                 { value: "best_fit", label: "Best Fit" },
-                        //                 { value: "great_option", label: "Great Option" },
-                        //                 { value: "optional", label: "Optional" },
-                        //                 { value: "not_recommended", label: "Not Recommended" }
-                        //             ]
-                        //         }
-                        //     }
-                        // ]
-                    }
-                }
-            ]
-        }
+        //                     return <form onSubmit={(e) => {
+        //                         e.preventDefault();
+        //                         if (!productId) {
+        //                             setError("Product ID is required");
+        //                             return;
+        //                         }
+        //                         submit({ product_id: productId });
+        //                     }}
+        //                         className="space-y-2"
+        //                     >
+        //                         <ProductSelect value={productId} onChange={(productId: any) => {
+        //                             setProductId(productId);
+        //                             setError(undefined);
+        //                         }} />
+        //                         {error && <div className="text-red-500 mt-2 text-sm">{error}</div>}
+        //                         <Button type="submit">Submit</Button>
+        //                     </form>
+        //                 }
+        //             },
+        //             output: {
+        //                 type: "change_page_result",
+        //                 role: "assistant",
+        //                 content: z.string(),
+        //                 // displayComponent: ({ value }) => <AssistantMessage value={value} />,
+        //                 // scores: [
+        //                 //     {
+        //                 //         name: "user_reaction",
+        //                 //         title: "Reaction",
+        //                 //         schema: z.boolean(),
+        //                 //         inputComponent: ToggleBooleanInput,
+        //                 //         displayComponent: DisplayBooleanComponent,
+        //                 //         options: {
+        //                 //             true: {
+        //                 //                 icon: ThumbsUp,
+        //                 //                 label: "Like"
+        //                 //             },
+        //                 //             false: {
+        //                 //                 icon: ThumbsDown,
+        //                 //                 label: "Don't like"
+        //                 //             }
+        //                 //         }
+        //                 //     },
+        //                 //     {
+        //                 //         name: "recommended_score",
+        //                 //         title: "Your score",
+        //                 //         schema: z.string(),
+        //                 //         inputComponent: SelectInput,
+        //                 //         displayComponent: ({ value }) => <ScoreBadge score={value} />,
+        //                 //         options: {
+        //                 //             items: [
+        //                 //                 { value: "best_fit", label: "Best Fit" },
+        //                 //                 { value: "great_option", label: "Great Option" },
+        //                 //                 { value: "optional", label: "Optional" },
+        //                 //                 { value: "not_recommended", label: "Not Recommended" }
+        //                 //             ]
+        //                 //         }
+        //                 //     }
+        //                 // ]
+        //             }
+        //         }
+        //     ]
+        // }
     ],
     customRoutes: [
         {

@@ -49,10 +49,10 @@ export type ScoreConfig<TValue = any> = BaseScoreConfig & {
   actionBarComponent?: ControlComponent<TValue>;
 }
 
-export type SessionItemDisplayComponentProps<T=any> = { value: T, type: string, role: string | null }
+export type SessionItemDisplayComponentProps<T=any> = DisplayComponentProps<T>;
 
 export type SessionItemConfig = BaseSessionItemConfig<ScoreConfig> & {
-  displayComponent?: React.ComponentType<SessionItemDisplayComponentProps>;
+  displayComponent?: React.ComponentType<DisplayComponentProps>;
 };
 
 export type SessionInputItemConfig = SessionItemConfig & {

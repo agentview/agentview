@@ -75,8 +75,8 @@ export const SessionItemSchema = z.object({
     id: z.string(),
     createdAt: z.iso.date(),
     updatedAt: z.iso.date(),
-    type: z.string(),
-    role: z.string().nullable(),
+    // type: z.string(),
+    // role: z.string().nullable(),
     content: z.any(),
 
     runId: z.string(), // potential bloat
@@ -91,11 +91,11 @@ export const SessionItemWithCollaborationSchema = SessionItemSchema.extend({
 export type SessionItem = z.infer<typeof SessionItemSchema>
 export type SessionItemWithCollaboration = z.infer<typeof SessionItemWithCollaborationSchema>
 
-export const SessionItemCreateSchema = SessionItemSchema.pick({
-    type: true,
-    role: true,
-    content: true,
-})
+// export const SessionItemCreateSchema = SessionItemSchema.pick({
+//     // type: true,
+//     // role: true,
+//     content: true,
+// })
 
 export const RunSchema = z.object({
     id: z.string(),

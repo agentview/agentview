@@ -1,6 +1,7 @@
 import type { AgentViewConfig, SessionItemConfig } from "../types";
 import * as z from "zod"
 import type { BaseConfig, BaseScoreConfig, BaseSessionItemConfig } from "./shared/configTypes";
+import { normalizeItemSchema } from "./shared/sessionUtils";
 
 
 export function serializeBaseConfig(config: BaseConfig): any {
@@ -24,9 +25,9 @@ export function getBaseConfig(config: AgentViewConfig): BaseConfig {
 
 function getBaseSessionItem(item: SessionItemConfig): BaseSessionItemConfig<BaseScoreConfig> {
   return {
-    type: item.type,
-    role: item.role,
-    content: item.content,
+    // type: item.type,
+    // role: item.role,
+    schema: normalizeItemSchema(item.schema),
     scores: item.scores?.map((score) => ({
       name: score.name,
       schema: score.schema,

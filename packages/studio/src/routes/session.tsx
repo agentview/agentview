@@ -13,7 +13,7 @@ import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitl
 import { AlertCircleIcon, BugIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, ExternalLinkIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageCirclePlusIcon, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, SquareTerminal, TagsIcon, TerminalIcon, ThumbsDown, ThumbsDownIcon, ThumbsUp, ThumbsUpIcon, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { useSessionContext } from "~/lib/SessionContext";
-import type { SessionItemConfig, AgentConfig, ScoreConfig, SessionItemDisplayComponentProps } from "~/types";
+import type { SessionItemConfig, AgentConfig, ScoreConfig } from "~/types";
 import { AVFormError, AVFormField } from "~/components/internal/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { ItemsWithCommentsLayout } from "~/components/internal/ItemsWithCommentsLayout";
@@ -34,6 +34,7 @@ import { useRerender } from "~/hooks/useRerender";
 import { AssistantMessage, StepItem, UserMessage } from "~/components/session-item";
 import { toast } from "sonner";
 import { debugRun } from "~/lib/debugRun";
+import { runDefaultName } from "~/lib/runDefaultName";
 
 
 async function loader({ request, params }: LoaderFunctionArgs) {
@@ -256,21 +257,21 @@ function SessionPage() {
 
                             let content: React.ReactNode = null;
 
-                            const itemConfig = findItemConfig(agentConfig, item.type, item.role);
+                            const itemConfig = findItemConfig(agentConfig, item.content);
 
                             if (isInputItem) {
                                 const Component = itemConfig?.displayComponent ?? UserMessage;
                                 content = <div className="pl-[10%] relative">
-                                    <Component value={item.content} type={item.type} role={item.role} />
+                                    <Component value={item.content} />
                                 </div>
                             }
                             else if (isOutputItem) {
                                 const Component = itemConfig?.displayComponent ?? AssistantMessage;
-                                content = <Component value={item.content} type={item.type} role={item.role} />
+                                content = <Component value={item.content} />
                             }
                             else {
                                 const Component = itemConfig?.displayComponent ?? StepItem;
-                                content = <Component value={item.content} type={item.type} role={item.role} />
+                                content = <Component value={item.content} />
                             }
 
                             return {
@@ -417,11 +418,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
             const response = await apiFetch(`/api/sessions/${session.id}/runs`, {
                 method: 'POST',
                 body: {
-                    input: {
-                        type: inputItemConfig.type,
-                        role: inputItemConfig.role,
-                        content: values
-                    }
+                    input: values
                 }
             });
 
@@ -460,24 +457,22 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
                         <FirstInputComponent
                             cancel={cancel}
                             submit={(values) => { submit(values, runConfigs[0].input) }}
-                            schema={runConfigs[0].input.content}
+                            schema={runConfigs[0].input.schema}
                             error={error}
                             isRunning={lastRun?.status === 'in_progress'}
                         /></div>}
                 </div>
             ) : (
                 // Multiple input configs - use tabs
-                <Tabs defaultValue={`${runConfigs[0].input.type}-${runConfigs[0].input.role || 'default'}`} className="gap-3" onValueChange={() => {
+                <Tabs defaultValue={`0`} className="gap-3" onValueChange={() => {
                     setError(undefined)
                 }}>
                     <TabsList>
                         {runConfigs.map((runConfig, index) => {
                             const inputConfig = runConfig.input;
 
-                            const tabName = runConfig.title || (inputConfig.role
-                                ? `${inputConfig.type} / ${inputConfig.role}`
-                                : inputConfig.type)
-                            const tabValue = `${inputConfig.type}-${inputConfig.role || 'default'}`;
+                            const tabName = runConfig.title ?? runDefaultName(inputConfig) ?? "Unknown Name";
+                            const tabValue = `${index}`;
 
                             return (
                                 <TabsTrigger key={index} value={tabValue}>
@@ -489,7 +484,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
 
                     {runConfigs.map((runConfig, index) => {
                         const inputConfig = runConfig.input;
-                        const tabValue = `${inputConfig.type}-${inputConfig.role || 'default'}`;
+                        const tabValue = `${index}`;
 
                         const InputComponent = runConfig.input.inputComponent;
 
@@ -500,12 +495,12 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
                                 {InputComponent && <InputComponent
                                     cancel={cancel}
                                     submit={(values) => { submit(values, inputConfig) }}
-                                    schema={inputConfig.content}
+                                    schema={inputConfig.schema}
                                     error={error}
                                     isRunning={lastRun?.status === 'in_progress'}
                                 />}
 
-                                {!InputComponent && <div className="text-muted-foreground">No input component for session item: <code className="text-sm">{"{"} type: "{inputConfig.type}"{inputConfig.role ? `, role: "${inputConfig.role}"` : ""} {"}"}</code></div>}
+                                {!InputComponent && <div className="text-muted-foreground"><code>inputComponent</code> is missing for this run.</div>}
                             </TabsContent>
                         );
                     })}
@@ -614,7 +609,7 @@ function MessageFooter(props: MessageFooterProps) {
 
 function getAllScoreConfigs(session: SessionWithCollaboration, item: SessionItemWithCollaboration) {
     const agentConfig = requireAgentConfig(config, session.agent);
-    const itemConfig = requireItemConfig(agentConfig, item.type, item.role);
+    const itemConfig = findItemConfig(agentConfig, item.content);
     return itemConfig?.scores || [];
 }
 

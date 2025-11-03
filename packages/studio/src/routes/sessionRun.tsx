@@ -36,7 +36,7 @@ function Component() {
     }
 
     const agentConfig = requireAgentConfig(config, session.agent);
-    const runConfig = requireRunConfig(agentConfig, run.items[0].type, run.items[0].role);
+    const runConfig = requireRunConfig(agentConfig, run.items[0].content);
 
     const close = () => {
         navigate(`../?${toQueryParams(listParams)}`);

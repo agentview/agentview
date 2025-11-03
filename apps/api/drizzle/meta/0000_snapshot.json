@@ -1,5 +1,5 @@
 {
-  "id": "fe8bffbf-e8fa-46ac-a3be-38ec2fa3ddc4",
+  "id": "f32dd867-90ae-4806-a3b9-27f8eb16f741",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1102,17 +1102,12 @@
           "primaryKey": false,
           "notNull": true
         },
-        "type": {
-          "name": "type",
-          "type": "varchar(255)",
+        "is_state": {
+          "name": "is_state",
+          "type": "boolean",
           "primaryKey": false,
-          "notNull": true
-        },
-        "role": {
-          "name": "role",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": false
         },
         "metadata": {
           "name": "metadata",

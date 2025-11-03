@@ -130,8 +130,7 @@ CREATE TABLE "session_items" (
 	"content" jsonb,
 	"session_id" uuid NOT NULL,
 	"run_id" uuid NOT NULL,
-	"type" varchar(255) NOT NULL,
-	"role" varchar(255),
+	"is_state" boolean DEFAULT false NOT NULL,
 	"metadata" jsonb
 );
 --> statement-breakpoint

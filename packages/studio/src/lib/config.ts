@@ -1,4 +1,5 @@
 import type { AgentViewConfig, AgentConfig, SessionItemConfig, RunConfig } from "~/types";
+import { normalizeItemSchema } from "./shared/sessionUtils";
 
 export function requireAgentConfig(config: AgentViewConfig, agentName: string) {
     const agentConfig = config.agents?.find((agent) => agent.name === agentName);
@@ -8,54 +9,56 @@ export function requireAgentConfig(config: AgentViewConfig, agentName: string) {
     return agentConfig;
 }
 
-export function findRunConfig(agentConfig: AgentConfig, type: string, role?: string | null) {
+export function findRunConfig(agentConfig: AgentConfig, content: any) {
     for (const run of agentConfig.runs ?? []) {
-        if (checkItemConfigMatch(run.input, type, role) || checkItemConfigMatch(run.output, type, role) || run.steps?.find((step) => checkItemConfigMatch(step, type, role))) {
+        if (checkItemConfigMatch(run.input, content) || checkItemConfigMatch(run.output, content) || run.steps?.find((step) => checkItemConfigMatch(step, content))) {
             return run;
         }
     }
 }
 
-export function requireRunConfig(agentConfig: AgentConfig, type: string, role?: string | null) {
-    const runConfig = findRunConfig(agentConfig, type, role);
+export function requireRunConfig(agentConfig: AgentConfig, content: any) {
+    const runConfig = findRunConfig(agentConfig, content);
     if (!runConfig) {
-        throw new Error(`Run config not found for item (type: '${type}', role: '${role}') for agent '${agentConfig.name}'.`);
+        throw new Error(`Run config not found for item for agent '${agentConfig.name}'.`);
     }
     return runConfig;
 }
 
-export function findItemConfig(agentConfig: AgentConfig, type: string, role?: string | null, runItemType?: "input" | "output" | "step") {    
-    const runConfig = findRunConfig(agentConfig, type, role);
+export function findItemConfig(agentConfig: AgentConfig, content: any, runItemType?: "input" | "output" | "step") {    
+    const runConfig = findRunConfig(agentConfig, content);
     if (!runConfig) {
         return
     }
 
     if (!runItemType || runItemType === "input") {
-        if (checkItemConfigMatch(runConfig.input, type, role)) {
+        if (checkItemConfigMatch(runConfig.input, content)) {
             return runConfig.input
         }
     }
     if (!runItemType || runItemType === "output") {
-        if (checkItemConfigMatch(runConfig.output, type, role)) {
+        if (checkItemConfigMatch(runConfig.output, content)) {
             return runConfig.output
         }
     }
     if (!runItemType || runItemType === "step") {
-        const result = runConfig.steps?.find((step) => checkItemConfigMatch(step, type, role))
+        const result = runConfig.steps?.find((step) => checkItemConfigMatch(step, content))
         if (result) {
             return result;
         }
     }
 }
 
-export function requireItemConfig(agentConfig: AgentConfig, type: string, role?: string | null, runItemType?: "input" | "output" | "step") {
-    const itemConfig = findItemConfig(agentConfig, type, role, runItemType);
+export function requireItemConfig(agentConfig: AgentConfig, content: any, itemType?: "input" | "output" | "step") {
+    const itemConfig = findItemConfig(agentConfig, content, itemType);
     if (!itemConfig) {
-        throw new Error(`Item config not found for item (type: '${type}', role: '${role}') for agent '${agentConfig.name}'. ${runItemType ? `For run item type: ${runItemType}` : ''}`);
+        throw new Error(`Item config not found for the item for agent '${agentConfig.name}'. ${itemType ? `For run item type: ${itemType}` : ''}`);
     }
     return itemConfig;
 }
 
-function checkItemConfigMatch(itemConfig: SessionItemConfig, type: string, role?: string | null) {
-    return itemConfig.type === type && (!itemConfig.role || itemConfig.role === role)
+function checkItemConfigMatch(itemConfig: SessionItemConfig, content: any) {
+    const schema = normalizeItemSchema(itemConfig.schema);
+    return schema.safeParse(content).success;
+    // return itemConfig.type === type && (!itemConfig.role || itemConfig.role === role)
 }

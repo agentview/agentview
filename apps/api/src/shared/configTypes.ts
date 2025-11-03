@@ -1,10 +1,7 @@
 import { z } from "zod";
 
-
 export const BaseSessionItemConfigSchema = z.object({
-    type: z.string(),
-    role: z.string().optional(),
-    content: z.any(),
+    schema: z.any(),
     scores: z.array(z.object({
         name: z.string(),
         schema: z.any(),
@@ -31,9 +28,7 @@ export interface BaseScoreConfig {
 }
 
 export interface BaseSessionItemConfig<TScoreConfig> {
-    type: string;
-    role?: string;
-    content: z.ZodType;
+    schema: Record<string, z.ZodType | string> | z.ZodObject;
     scores?: TScoreConfig[];
 }
 
