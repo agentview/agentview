@@ -930,33 +930,11 @@ app.openapi(runsPOSTRoute, async (c) => {
   const agentConfig = requireAgentConfig(config, session.agent)
   const itemConfig = requireItemConfig(agentConfig, input, "input")
 
-  // console.log('RESULT MATCHING ITEM CONFIG', z.toJSONSchema(itemConfig.schema));
-
-
-  console.log('itemConfig', z.toJSONSchema(itemConfig.schema));
-  console.log('input', input);
-
-  const testParseResult = itemConfig.schema.safeParse(input);
-  console.log('testParseResult', testParseResult);
-
-
-  // return c.json({ message: `Some error` }, 400);
-
-  // Validate content against the schema
-  // try {
-  //   // return c.json({ message: `Error parsing session item`, code: 'parse.schema' }, 400);
-  //   itemConfig.content.parse(content);
-  // } catch (error: any) {
-  //   return c.json({ message: `Invalid content: ${error.message}`, code: 'parse.schema', issues: error.issues }, 400);
-  // }
-
   const lastRun = getLastRun(session)
 
   if (lastRun?.status === 'in_progress') {
     return c.json({ message: `Cannot add user item when session is in 'in_progress' status.` }, 400);
   }
-
-  // const state = await fetchSessionState(sessionId);
 
   // Create user item and run
   const userItem : SessionItem = await db.transaction(async (tx) => {
@@ -1008,7 +986,7 @@ app.openapi(runsPOSTRoute, async (c) => {
           })),
         })),
       },
-      input: userItem
+      input
     }
 
     async function isStillRunning() {

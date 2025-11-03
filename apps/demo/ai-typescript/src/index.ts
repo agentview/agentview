@@ -2,7 +2,7 @@ import 'dotenv/config'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import OpenAI from "openai";
-import { type RunBody } from "agentview";
+import { parseBody } from "agentview";
 
 const app = new Hono()
 const client = new OpenAI();
@@ -12,18 +12,13 @@ app.get('/', (c) => {
 })
 
 app.post('/agentview/run', async (c) => {
-  const body = await c.req.json() as RunBody
-
-  const items = body.session.runs.flatMap(run => run.items);
-  const input = body.input;
+  const { items, input } = parseBody(await c.req.json());
 
   const response = await client.responses.create({
     model: "gpt-5-nano",
     input: [
-      { role: "user", content: "Hello I'm Andrew"},
-      { role: "user", content: "I'm 35"},
-      { role: "user", content: "I live in Gdańsk"},
-      { role: "user", content: "What do you know about me?"},
+      ...items,
+      input
     ]
   });
 

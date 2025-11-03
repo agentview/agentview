@@ -235,7 +235,7 @@ export type SessionsPaginatedResponse = z.infer<typeof SessionsPaginatedResponse
 // run webhook
 export const RunBodySchema = z.object({
     session: SessionSchema,
-    input: SessionItemSchema,
+    input: z.any(),
 })
 
 export type RunBody = z.infer<typeof RunBodySchema>
