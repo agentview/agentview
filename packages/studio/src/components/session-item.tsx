@@ -8,7 +8,7 @@ import { z } from "zod";
 
 export function Markdown({ text, isMuted }: { text: string, isMuted?: boolean }) {
     return <div
-        className={cn("prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline", isMuted && "text-muted-foreground")}
+        className={cn("prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-foreground", isMuted && "text-muted-foreground text-sm")}
         dangerouslySetInnerHTML={{ __html: marked.parse(text, { async: false }) }}
     ></div>
 }
@@ -42,7 +42,7 @@ export function TestItem({ value, title }: { value: string | any, title?: string
         )}
 
         <div className="text-sm">
-        {content}
+            {content}
         </div>
     </div>
 }
