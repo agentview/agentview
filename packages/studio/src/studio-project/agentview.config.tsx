@@ -17,6 +17,8 @@ import { ProductDisplay } from "./ProductDisplay";
 import { ProductSelect } from "./ProductSelect";
 import { CustomPage } from "./CustomPage";
 
+
+
 export default defineConfig({
     apiBaseUrl: "http://localhost:8080",
     agents: [
@@ -25,16 +27,43 @@ export default defineConfig({
             url: "http://127.0.0.1:3000/agentview/run",
             run: {
                 input: {
+                    schema: {
+                        type: "message",
+                        role: "user",
+                        content: z.string(),
+                    },
+                    displayComponent: UserMessage,
+                    inputComponent: UserMessageInput
+                }
+                input: {
+                    shape: {
+                        type: "message",
+                        role: "user",
+                        content: z.string(),
+                    },
                     type: "message",
                     role: "user",
+                    // name: "message",
                     content: z.string(),
+                    // schema: {
+                    //     type: z.literal("message"),
+                    //     role: z.literal("user"),
+                    //     content: z.string(),
+                    // },
                     displayComponent: UserMessage,
                     inputComponent: UserMessageInput
                 },
                 steps: [
                     {
                         type: "thinking",
-                        role: "assistant",  
+                        role: "assistant",
+                        content: z.string(),
+                        displayComponent: StepItem,
+                    },
+                    {
+                        role: "user",
+                        type: "function_call_result",
+                        // name: "function",
                         content: z.string(),
                         displayComponent: StepItem,
                     }
@@ -96,10 +125,10 @@ export default defineConfig({
                         <FormField
                             name={"product_id"}
                             render={({ field }) => <FormItem>
-                                    <FormLabel>Product</FormLabel>
-                                    <ProductSelect {...field} />
-                                    <FormMessage />
-                                </FormItem> 
+                                <FormLabel>Product</FormLabel>
+                                <ProductSelect {...field} />
+                                <FormMessage />
+                            </FormItem>
                             }
                         />
                         <FormField
@@ -240,3 +269,4 @@ const selectOptions = [
     { value: "four", label: "One", icon: <Link />, color: Colors.purple },
     { value: "five", label: "Three", icon: <ExternalLink />, color: Colors.yellow },
 ]
+

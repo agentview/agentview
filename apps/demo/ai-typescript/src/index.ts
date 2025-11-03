@@ -15,10 +15,16 @@ app.post('/agentview/run', async (c) => {
   const body = await c.req.json() as RunBody
 
   const items = body.session.runs.flatMap(run => run.items);
+  const input = body.input;
 
   const response = await client.responses.create({
     model: "gpt-5-nano",
-    input: "Write a one-sentence bedtime story about a unicorn."
+    input: [
+      { role: "user", content: "Hello I'm Andrew"},
+      { role: "user", content: "I'm 35"},
+      { role: "user", content: "I live in Gdańsk"},
+      { role: "user", content: "What do you know about me?"},
+    ]
   });
 
   return c.json({ 
