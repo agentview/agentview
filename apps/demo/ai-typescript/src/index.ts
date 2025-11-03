@@ -1,41 +1,94 @@
 import 'dotenv/config'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
-import OpenAI from "openai";
+import { tool, Agent, run } from '@openai/agents';
+import { z } from 'zod';
 import { parseBody } from "agentview";
+import { HTTPException } from 'hono/http-exception';
 
-const app = new Hono()
-const client = new OpenAI();
+const app = new Hono();
+
+app.onError((error, c) => {
+  if (error instanceof Error) {
+    return c.json({ message: error.message}, (error as any).status ?? 500);
+  }
+
+  return c.json({ message: 'Internal server error' }, 500);
+});
 
 app.get('/', (c) => {
   return c.text('Hello Hono!')
 })
 
+const manifest = {
+  version: "0.0.1",
+  env: "dev"
+}
+
+const weatherAgent = new Agent({
+  name: 'Weather Assistant',
+  model: 'gpt-5-mini',
+  modelSettings: {
+    reasoning: { effort: 'medium', summary: 'auto' }
+  },
+  instructions: 'You are a helpful general-purposeassistant. You have super skill of checking the weather for any location.',
+  tools: [
+    tool({
+      name: 'weather_tool',
+      description: 'Get weather information for a location using wttr.in',
+      parameters: z.object({
+        location: z.string().describe('The city name to get weather for'),
+      }),
+      execute: async ({ location }) => {
+        const response = await fetch(`https://wttr.in/${encodeURIComponent(location)}?format=j2`);
+          if (!response.ok) {
+            return { error: 'Failed to fetch weather data' };
+          }
+          return await response.json();
+      },
+    })
+  ],
+});
+
 app.post('/agentview/run', async (c) => {
   const { items, input } = parseBody(await c.req.json());
-
-  const response = await client.responses.create({
-    model: "gpt-5-nano",
-    input: [
-      ...items,
-      input
-    ]
-  });
+  
+  const result = await run(weatherAgent, [...items, input]);
 
   return c.json({ 
-    manifest: {
-      version: "0.0.1",
-      env: "dev"
-    },
-    items: [
-      {
-        type: "message",
-        role: "assistant",
-        content: response.output_text
-      }
-    ]
+    manifest,
+    items: result.output
   })
 })
+
+
+
+
+// app.post('/agentview/run', async (c) => {
+//   const { items, input } = parseBody(await c.req.json());
+
+//   const response = await client.responses.create({
+//     model: "gpt-5-nano",
+//     input: [
+//       ...items,
+//       input
+//     ]
+//   });
+
+//   return c.json({ 
+//     manifest: {
+//       version: "0.0.1",
+//       env: "dev"
+//     },
+//     items: [
+//       {
+//         type: "message",
+//         role: "assistant",
+//         content: response.output_text
+//       }
+//     ]
+//   })
+// })
 
 serve({
   fetch: app.fetch,

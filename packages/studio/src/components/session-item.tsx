@@ -29,13 +29,30 @@ export function BaseItem({ variant = "default", value, title }: { variant?: "def
     </div>
 }
 
-export function UserMessage({ value }: SessionItemDisplayComponentProps<any>) {
-    console.log("value", value);
-    return <BaseItem value={value?.content} variant="outline" />
+export function TestItem({ value, title }: { value: string | any, title?: string }) {
+    const content = typeof value === "string" ?
+        <Markdown text={value} isMuted={true} /> :
+        <pre className="text-xs overflow-x-scroll bg-gray-50 p-3 rounded-md">{JSON.stringify(value, null, 2)}</pre>;
+
+    return <div className={"px-3 py-2 rounded-lg bg-gray-50"}>
+        {title && (
+            <div className="text-sm text-black mb-1 font-medium">
+                {title}
+            </div>
+        )}
+
+        <div className="text-sm">
+        {content}
+        </div>
+    </div>
 }
 
-export function AssistantMessage({ value }: SessionItemDisplayComponentProps<any>) {
-    return <BaseItem value={value?.content} variant="default" />
+export function UserMessage({ value }: { value: string }) {
+    return <BaseItem value={value} variant="outline" />
+}
+
+export function AssistantMessage({ value }: { value: string }) {
+    return <BaseItem value={value} variant="default" />
 }
 
 export function StepItem({ value }: SessionItemDisplayComponentProps<any>) {

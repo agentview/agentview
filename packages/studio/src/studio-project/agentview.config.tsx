@@ -7,7 +7,7 @@ import { defineConfig } from "~";
 import { FormField, FormItem, FormLabel, FormMessage, Form, FormControl } from "~/components/ui/form";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
-import { UserMessage, AssistantMessage, StepItem, UserMessageInput } from "~/components/session-item";
+import { UserMessage, AssistantMessage, StepItem, UserMessageInput, BaseItem } from "~/components/session-item";
 import { PillSelect } from "~/components/PillSelect";
 import { ToggleGroupControl } from "~/components/ToggleGroup";
 import { OptionDisplay } from "~/components/OptionDisplay";
@@ -32,32 +32,38 @@ export default defineConfig({
                         role: "user",
                         content: z.string(),
                     },
-                    displayComponent: UserMessage,
+                    displayComponent: ({value}) => <UserMessage value={value.content}/>,
                     inputComponent: (props) => <UserMessageInput {...props} submit={(val) => props.submit({ content: val, type: "message", role: "user" })} />
                 },
                 steps: [
                     {
                         schema: {
-                            type: "thinking",
-                            role: "assistant"
+                            type: "reasoning",
                         },
-                        displayComponent: StepItem,
+                        displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.content[0]?.text} variant="muted" />,
                     },
                     {
                         schema: {
-                            role: "user",
+                            type: "function_call",
+                            name: "weather_tool"
+                        },
+                        displayComponent: ({ value}) => <BaseItem title="Weather Tool" value={"Checking weather in: " + JSON.parse(value.arguments).location + "..."} variant="muted" />,
+                        // displayComponent: StepItem,
+                    },
+                    {
+                        schema: {
                             type: "function_call_result",
                         },
-                        displayComponent: StepItem,
+                        displayComponent: ({ value}) => <BaseItem title="Weather Tool Result" value={JSON.parse(value.output.text).current_condition[0]} variant="muted" />
                     }
                 ],
                 output: {
                     schema: {
                         role: "assistant",
                         type: "message",
-                        content: z.string(),
+                        content: z.any(),
                     },
-                    displayComponent: AssistantMessage,
+                    displayComponent: ({value}) => <AssistantMessage value={value.content[0]?.text}/>,
                     scores: [
                         {
                             name: "user_reaction",
