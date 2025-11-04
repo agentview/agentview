@@ -1,8 +1,9 @@
 import type { RouteObject } from "react-router";
-import type { BaseScoreConfig, BaseSessionItemConfig, BaseAgentConfig, BaseConfig, BaseRunConfig } from "./lib/shared/configTypes";
+import type { BaseScoreConfig, BaseSessionItemConfig, BaseAgentConfig, BaseAgentViewConfig, BaseRunConfig } from "./lib/shared/configTypes";
 import type { Run, Session } from "./lib/shared/apiTypes";
 import { z, type ZodType } from "zod";
 import type { BaseError } from "./lib/errors";
+import { requireAgentConfig } from "./lib/shared/configUtils";
 
 
 export type CustomRoute = {
@@ -64,15 +65,24 @@ export type RunConfig = BaseRunConfig<SessionItemConfig, SessionInputItemConfig>
   displayProperties?: DisplayProperty<{ session: Session, run: Run }>[];
 };
 
-export type AgentConfig = Omit<BaseAgentConfig<RunConfig>, "runs"> & {
+export type AgentConfig = BaseAgentConfig<RunConfig> & {
   displayProperties?: DisplayProperty<{ session: Session }>[];
   inputComponent?: FormComponent<any>;
-  runs?: RunConfig[];
   run?: RunConfig;
 }
 
-export type AgentViewConfig = {
+export type AgentViewConfig = BaseAgentViewConfig<AgentConfig> & {
   apiBaseUrl: string;
-  agents?: AgentConfig[],
+  // agents?: AgentConfig[],
   customRoutes?: CustomRoute[],
+}
+
+
+
+function __testTypes__(config: AgentViewConfig) {
+  const configAfterRequire = requireAgentConfig(config, "simple_chat");
+
+  const Component1 = config.agents?.[0].runs?.[0].input.displayComponent;
+  const Component2 = configAfterRequire.runs?.[0].input.displayComponent;
+  
 }

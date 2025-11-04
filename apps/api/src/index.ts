@@ -136,7 +136,7 @@ function checkItemConfigMatch(itemConfig: BaseSessionItemConfig<BaseScoreConfig>
 function requireItemConfig(agentConfig: ReturnType<typeof requireAgentConfig>, content: any, itemType?: "input" | "output" | "step") {  
   let itemConfig: BaseSessionItemConfig<BaseScoreConfig> | undefined = undefined;
 
-  for (const run of agentConfig.runs) {
+  for (const run of (agentConfig.runs ?? [])) {
     if (!itemType || itemType === "input") {
       if (checkItemConfigMatch(run.input, content)) {
         itemConfig = run.input

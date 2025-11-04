@@ -11,13 +11,13 @@ import { TextEditor, textToElements } from "./TextEditor";
 import { useSessionContext } from "~/lib/SessionContext";
 import { apiFetch } from "~/lib/apiFetch";
 import { config } from "~/config";
-import { findItemConfig, requireAgentConfig, requireItemConfig } from "~/lib/config";
+import { findItemConfig, requireAgentConfig, requireItemConfig } from "~/lib/shared/configUtils";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { Form } from "../ui/form";
 import React from "react";
-import type { ScoreConfig } from "~/types";
+import { AgentViewConfig, type ScoreConfig } from "~/types";
 import { UserAvatar } from "./UserAvatar";
 
 export type CommentsThreadRawProps = {
@@ -388,7 +388,11 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
         setIsEditing(false);
     });
 
-    const agentConfig = requireAgentConfig(config, session.agent);
+    const agentConfig = requireAgentConfig<AgentViewConfig>(config, session.agent);
+
+    const Component1 = config.agents?.[0].runs?.[0].input.displayComponent;
+    const Component2 = agentConfig.runs?.[0].input.displayComponent;
+    
     const itemConfig = findItemConfig(agentConfig, item.content);
 
     // score configs

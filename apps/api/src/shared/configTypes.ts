@@ -6,7 +6,7 @@ export const BaseSessionItemConfigSchema = z.object({
         name: z.string(),
         schema: z.any(),
     })).optional(),
-})
+});
 
 export const BaseConfigSchema = z.object({
     agents: z.array(z.object({
@@ -29,25 +29,25 @@ export interface BaseScoreConfig {
 
 export type SessionItemSchema = Record<string, z.ZodType | string> | z.ZodObject;
 
-export interface BaseSessionItemConfig<TScoreConfig> {
+export interface BaseSessionItemConfig<TScoreConfig extends BaseScoreConfig = BaseScoreConfig> {
     schema: SessionItemSchema;
     resultOf?: SessionItemSchema;
     scores?: TScoreConfig[];
 }
 
-export interface BaseRunConfig<TSessionItemConfig, TSessionInputItemConfig> {
+export interface BaseRunConfig<TSessionItemConfig extends BaseSessionItemConfig = BaseSessionItemConfig, TSessionInputItemConfig extends BaseSessionItemConfig = BaseSessionItemConfig> {
     input: TSessionInputItemConfig;
     output: TSessionItemConfig;
     steps?: TSessionItemConfig[];
 }
 
-export interface BaseAgentConfig<TRunConfig> {
+export interface BaseAgentConfig<TRunConfig extends BaseRunConfig = BaseRunConfig> {
     name: string;
     url: string;
     context?: z.ZodTypeAny;
-    runs: TRunConfig[];
+    runs?: TRunConfig[];
 }
 
-export type BaseConfig = {
-    agents?: BaseAgentConfig<BaseRunConfig<BaseSessionItemConfig<BaseScoreConfig>, BaseSessionItemConfig<BaseScoreConfig>>>[],
+export type BaseAgentViewConfig<TAgentConfig extends BaseAgentConfig = BaseAgentConfig> = {
+    agents?: TAgentConfig[],
 }
