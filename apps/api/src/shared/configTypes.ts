@@ -27,8 +27,11 @@ export interface BaseScoreConfig {
     options?: any
 }
 
+export type SessionItemSchema = Record<string, z.ZodType | string> | z.ZodObject;
+
 export interface BaseSessionItemConfig<TScoreConfig> {
-    schema: Record<string, z.ZodType | string> | z.ZodObject;
+    schema: SessionItemSchema;
+    resultOf?: SessionItemSchema;
     scores?: TScoreConfig[];
 }
 

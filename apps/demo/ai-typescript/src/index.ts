@@ -10,7 +10,7 @@ const app = new Hono();
 
 app.onError((error, c) => {
   if (error instanceof Error) {
-    return c.json({ message: error.message}, (error as any).status ?? 500);
+    return c.json({ message: error.message }, (error as any).status ?? 500);
   }
 
   return c.json({ message: 'Internal server error' }, 500);
@@ -41,10 +41,10 @@ const weatherAgent = new Agent({
       }),
       execute: async ({ location }) => {
         const response = await fetch(`https://wttr.in/${encodeURIComponent(location)}?format=j2`);
-          if (!response.ok) {
-            return { error: 'Failed to fetch weather data' };
-          }
-          return await response.json();
+        if (!response.ok) {
+          return { error: 'Failed to fetch weather data' };
+        }
+        return await response.json();
       },
     })
   ],
@@ -52,10 +52,10 @@ const weatherAgent = new Agent({
 
 app.post('/agentview/run', async (c) => {
   const { items, input } = parseBody(await c.req.json());
-  
+
   const result = await run(weatherAgent, [...items, input]);
 
-  return c.json({ 
+  return c.json({
     manifest,
     items: result.output
   })

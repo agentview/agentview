@@ -30,23 +30,40 @@ export function findItemConfig(agentConfig: AgentConfig, content: any, runItemTy
     if (!runConfig) {
         return
     }
+    
+    const foundItems : SessionItemConfig[] = [];
 
     if (!runItemType || runItemType === "input") {
         if (checkItemConfigMatch(runConfig.input, content)) {
-            return runConfig.input
+            foundItems.push(runConfig.input)
         }
     }
     if (!runItemType || runItemType === "output") {
         if (checkItemConfigMatch(runConfig.output, content)) {
-            return runConfig.output
+            foundItems.push(runConfig.output)
         }
     }
     if (!runItemType || runItemType === "step") {
-        const result = runConfig.steps?.find((step) => checkItemConfigMatch(step, content))
-        if (result) {
-            return result;
+        for (const step of runConfig.steps ?? []) {
+            if (checkItemConfigMatch(step, content)) {
+                foundItems.push(step);
+            }
         }
     }
+    
+
+    if (foundItems.length === 0) {
+        return undefined;
+    }
+
+    if (foundItems.length > 1) {
+        console.warn(`More than 1 item schemas were matched with a content for agent '${agentConfig.name}'.`);
+        console.warn('Content', content);
+        console.warn('Found items', foundItems.map((item) => item.schema));
+        return undefined;
+    }
+
+    return foundItems[0];
 }
 
 export function requireItemConfig(agentConfig: AgentConfig, content: any, itemType?: "input" | "output" | "step") {
