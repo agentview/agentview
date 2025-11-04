@@ -80,9 +80,11 @@ export type AgentViewConfig = BaseAgentViewConfig<AgentConfig> & {
 
 
 function __testTypes__(config: AgentViewConfig) {
-  const configAfterRequire = requireAgentConfig(config, "simple_chat");
 
-  const Component1 = config.agents?.[0].runs?.[0].input.displayComponent;
-  const Component2 = configAfterRequire.runs?.[0].input.displayComponent;
+  const agent = config.agents?.find((agent) => agent.name === "simple_chat");
+  const agent2 = requireAgentConfig(config, "simple_chat");
+
+  const Component1 = agent?.runs?.[0].displayProperties;
+  const Component2 = agent2.runs?.[0].displayProperties;
   
 }

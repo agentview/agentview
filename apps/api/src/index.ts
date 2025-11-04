@@ -24,7 +24,7 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
 import { ClientSchema, SessionSchema, SessionCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, ClientCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody } from './shared/apiTypes'
 import { getConfig } from './getConfig'
-import type { BaseConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig } from './shared/configTypes'
+import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
 import { getUsersCount } from './users'
 import { updateInboxes } from './updateInboxes'
@@ -33,6 +33,7 @@ import { createClient, createClientAuthSession, getClientAuthSession, verifyJWT,
 import packageJson from '../package.json'
 import type { Transaction } from './types'
 import { normalizeItemSchema } from './shared/sessionUtils'
+import { findItemConfig } from './shared/configUtils'
 
 console.log("Migrating database...");
 await migrate(db, { migrationsFolder: './drizzle' });
@@ -121,7 +122,7 @@ async function requireConfig() {
   return config
 }
 
-function requireAgentConfig(config: BaseConfig, name: string) {
+function requireAgentConfig(config: BaseAgentViewConfig, name: string) {
   const agentConfig = config.agents?.find((agent) => agent.name === name)
   if (!agentConfig) {
     throw new HTTPException(404, { message: `Agent '${name}' not found in schema.` });
@@ -129,34 +130,8 @@ function requireAgentConfig(config: BaseConfig, name: string) {
   return agentConfig
 }
 
-function checkItemConfigMatch(itemConfig: BaseSessionItemConfig<BaseScoreConfig>, content: any) {
-  return normalizeItemSchema(itemConfig.schema).safeParse(content).success
-}
-
 function requireItemConfig(agentConfig: ReturnType<typeof requireAgentConfig>, content: any, itemType?: "input" | "output" | "step") {  
-  let itemConfig: BaseSessionItemConfig<BaseScoreConfig> | undefined = undefined;
-
-  for (const run of (agentConfig.runs ?? [])) {
-    if (!itemType || itemType === "input") {
-      if (checkItemConfigMatch(run.input, content)) {
-        itemConfig = run.input
-        break;
-      }
-    }
-    if (!itemType || itemType === "output") {
-      if (checkItemConfigMatch(run.output, content)) {
-        itemConfig = run.output
-        break;
-      }
-    }
-    if (!itemType || itemType === "step") {
-      const result = run.steps?.find((step) => checkItemConfigMatch(step, content))
-      if (result) {
-        itemConfig = result;
-        break;
-      }
-    }
-  }
+  let itemConfig = findItemConfig(agentConfig, content, itemType);
 
   if (!itemConfig) {
     throw new HTTPException(400, { message: `Item not found in configuration for agent '${agentConfig.name}'. ${itemType ? `For run item type: ${itemType}` : ''}` });

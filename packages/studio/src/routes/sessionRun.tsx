@@ -10,7 +10,7 @@ import { getListParams, toQueryParams } from "~/lib/listParams";
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "~/components/ui/dialog";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
 import { TerminalIcon } from "lucide-react";
-import { requireAgentConfig, requireItemConfig, requireRunConfig } from "~/lib/config";
+import { requireAgentConfig, requireItemConfig, requireRunConfig } from "~/lib/shared/configUtils";
 import { config } from "~/config";
 import { DisplayProperties } from "~/components/DisplayProperties";
 import type { ActionResponse } from "~/lib/errors";

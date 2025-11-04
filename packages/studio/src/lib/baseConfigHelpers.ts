@@ -1,14 +1,14 @@
 import type { AgentViewConfig, SessionItemConfig } from "../types";
 import * as z from "zod"
-import type { BaseConfig, BaseScoreConfig, BaseSessionItemConfig } from "./shared/configTypes";
+import type { BaseAgentViewConfig, BaseScoreConfig, BaseSessionItemConfig } from "./shared/configTypes";
 import { normalizeItemSchema } from "./shared/sessionUtils";
 
 
-export function serializeBaseConfig(config: BaseConfig): any {
+export function serializeBaseConfig(config: BaseAgentViewConfig): any {
   return serializeObject(config);
 }
 
-export function getBaseConfig(config: AgentViewConfig): BaseConfig {
+export function getBaseConfig(config: AgentViewConfig): BaseAgentViewConfig {
   return {
     agents: (config.agents ?? []).map((agent) => ({
       name: agent.name,
@@ -22,7 +22,7 @@ export function getBaseConfig(config: AgentViewConfig): BaseConfig {
     }))
   }
 }
-
+  
 function getBaseSessionItem(item: SessionItemConfig): BaseSessionItemConfig<BaseScoreConfig> {
   return {
     // type: item.type,

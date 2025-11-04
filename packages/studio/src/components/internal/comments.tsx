@@ -17,7 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { Form } from "../ui/form";
 import React from "react";
-import { AgentViewConfig, type ScoreConfig } from "~/types";
+import { type AgentViewConfig } from "~/types";
 import { UserAvatar } from "./UserAvatar";
 
 export type CommentsThreadRawProps = {
@@ -389,10 +389,6 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
     });
 
     const agentConfig = requireAgentConfig<AgentViewConfig>(config, session.agent);
-
-    const Component1 = config.agents?.[0].runs?.[0].input.displayComponent;
-    const Component2 = agentConfig.runs?.[0].input.displayComponent;
-    
     const itemConfig = findItemConfig(agentConfig, item.content);
 
     // score configs

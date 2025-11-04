@@ -1,7 +1,7 @@
 import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig } from "./configTypes";
 import { normalizeItemSchema } from "./sessionUtils";
 
-export function requireAgentConfig<T extends BaseAgentViewConfig>(config: T, agentName: string) {
+export function requireAgentConfig<T extends BaseAgentViewConfig>(config: T, agentName: string): NonNullable<T["agents"]>[number] {
     const agentConfig = config.agents?.find((agent) => agent.name === agentName);
     if (!agentConfig) {
         throw new Error(`Agent config not found for agent '${agentName}'`);
@@ -9,7 +9,7 @@ export function requireAgentConfig<T extends BaseAgentViewConfig>(config: T, age
     return agentConfig;
 }
 
-export function findRunConfig<T extends BaseAgentConfig>(agentConfig: T, content: any) {
+export function findRunConfig<T extends BaseAgentConfig>(agentConfig: T, content: any) : NonNullable<T["runs"]>[number] | undefined {
     for (const run of agentConfig.runs ?? []) {
         if (checkItemConfigMatch(run.input, content) || checkItemConfigMatch(run.output, content) || run.steps?.find((step) => checkItemConfigMatch(step, content))) {
             return run;
@@ -31,7 +31,7 @@ export function findItemConfig<T extends BaseAgentConfig>(agentConfig: T, conten
         return
     }
     
-    const foundItems : Exclude<T["runs"], undefined>[number]["input"][] = [];
+    const foundItems : NonNullable<T["runs"]>[number]["input"][] = [];
 
     if (!runItemType || runItemType === "input") {
         if (checkItemConfigMatch(runConfig.input, content)) {

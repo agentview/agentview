@@ -2,10 +2,10 @@ import { db } from "./db";
 import { configs } from "./schemas/schema";
 import { desc } from "drizzle-orm";
 import { convertJsonSchemaToZod } from 'zod-from-json-schema';
-import type { BaseConfig, BaseConfigSchema, BaseScoreConfig, BaseSessionItemConfig, BaseSessionItemConfigSchema } from "./shared/configTypes";
+import type { BaseAgentViewConfig, BaseConfigSchema, BaseScoreConfig, BaseSessionItemConfig, BaseSessionItemConfigSchema } from "./shared/configTypes";
 import { z, ZodObject } from "zod";
 
-function parseConfig(config: z.infer<typeof BaseConfigSchema>): BaseConfig {
+function parseConfig(config: z.infer<typeof BaseConfigSchema>): BaseAgentViewConfig {
     return {
         agents: config.agents?.map(agent => ({
             name: agent.name,

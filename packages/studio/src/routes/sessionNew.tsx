@@ -5,7 +5,7 @@ import { apiFetch } from "~/lib/apiFetch";
 import { getListParams, toQueryParams } from "~/lib/listParams";
 import { type ActionResponse } from "~/lib/errors";
 import { config } from "~/config";
-import { requireAgentConfig } from "~/lib/config";
+import { requireAgentConfig } from "~/lib/shared/configUtils";
 import { AVFormError } from "~/components/internal/form";
 
 async function loader({ request }: LoaderFunctionArgs) {
@@ -14,7 +14,7 @@ async function loader({ request }: LoaderFunctionArgs) {
 
   return {
     agentConfig
-  }
+  } 
 }
 
 async function action({ request, params }: ActionFunctionArgs): Promise<ActionResponse | Response> {
