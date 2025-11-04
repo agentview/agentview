@@ -99,44 +99,7 @@ export function requireRunConfig<T extends BaseAgentConfig>(agentConfig: T, cont
     return result;
 }
 
-
 function matchItemConfigs<T extends BaseSessionItemConfig>(itemConfigs: T[], content: any): T[] {
-    // return matchItemConfigsRaw(itemConfigs, content);
-    const matches: T[] = [];
-
-    const normalItemConfigs = itemConfigs.filter(c => !c.resultOf);
-    const callResultItemConfigs = itemConfigs.filter(c => c.resultOf);
-
-    matches.push(...matchItemConfigsRaw(normalItemConfigs, content)); // without resultOf -> just raw check
-
-    for (const itemConfig of callResultItemConfigs) {
-        const callItemConfigs = normalItemConfigs.filter(c => {
-            // console.log('---');
-            // console.log('key1', getSchemaKey(c.schema));
-            // console.log('key2', getSchemaKey(itemConfig.resultOf!));
-            const result = keysMatch(getSchemaKey(c.schema), getSchemaKey(itemConfig.resultOf!))
-            // console.log('result: ', result);
-            return result;
-        });
-
-        if (callItemConfigs.length === 0) {
-            console.warn("resultOf error: no call matched");
-        }
-        else if (callItemConfigs.length > 1) {
-            console.warn("resultOf error: more than 1 call matched");
-        }
-        else {
-            matches.push({
-                ...itemConfig,
-                call: callItemConfigs[0],
-            });
-        }
-    }
-
-    return matches;
-}
-
-function matchItemConfigsRaw<T extends BaseSessionItemConfig>(itemConfigs: T[], content: any): T[] {
     const matches: T[] = [];
     for (const itemConfig of itemConfigs) {
         if (normalizeItemSchema(itemConfig.schema).safeParse(content).success) {
@@ -145,6 +108,67 @@ function matchItemConfigsRaw<T extends BaseSessionItemConfig>(itemConfigs: T[], 
     }
     return matches;
 }
+
+// function matchItemConfigs<T extends BaseSessionItemConfig>(itemConfigs: T[], content: any): T[] {
+//     console.log("<<<<< MATCH ITEM CONFIGS >>>>>")
+//     console.log("CONTENT:", content)
+//     // return matchItemConfigsRaw(itemConfigs, content);
+
+//      // find all matching items first
+//     const rawMatches = matchItemConfigsRaw(itemConfigs, content);
+
+//     // split them into normal matches and call results
+//     const normalMatches = rawMatches.filter(c => !c.resultOf);
+//     const callResultMatches = rawMatches.filter(c => c.resultOf);
+
+//     const matches: T[] = normalMatches;
+
+//     // for call results we must check caller match too
+//     for (const itemConfig of callResultMatches) {
+        
+
+
+//         const callItemConfigs = itemConfigs.filter(c => {
+//             if (c.resultOf) {
+//                 return false;
+//             }
+//             console.log('---');
+//             console.log('key1', getSchemaKey(c.schema));
+//             console.log('key2', getSchemaKey(itemConfig.resultOf!));
+//             const result = keysMatch(getSchemaKey(c.schema), getSchemaKey(itemConfig.resultOf!))
+//             console.log('result: ', result);
+//             return result;
+//         });
+//         console.log('num: ', callItemConfigs.length);
+
+//         if (callItemConfigs.length === 0) {
+//             console.warn("resultOf error: no call matched");
+//         }
+//         else if (callItemConfigs.length > 1) {
+//             console.warn("resultOf error: more than 1 call matched");
+//         }
+//         else {
+//             matches.push({
+//                 ...itemConfig,
+//                 call: callItemConfigs[0],
+//             });
+//         }
+//     }
+
+//     console.log("MATCHES", matches)
+
+//     return matches;
+// }
+
+// function matchItemConfigsRaw<T extends BaseSessionItemConfig>(itemConfigs: T[], content: any): T[] {
+//     const matches: T[] = [];
+//     for (const itemConfig of itemConfigs) {
+//         if (normalizeItemSchema(itemConfig.schema).safeParse(content).success) {
+//             matches.push(itemConfig);
+//         }
+//     }
+//     return matches;
+// }
 
 
 export function normalizeItemSchema(schema: SessionItemSchema): z.ZodObject {

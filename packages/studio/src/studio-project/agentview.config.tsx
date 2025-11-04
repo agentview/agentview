@@ -55,13 +55,16 @@ export default defineConfig({
                     {
                         schema: {
                             type: "function_call_result",
+                            callId: z.string().meta({
+                                hasMatchingItem: { type: "function_call", name: "weather_tool", callId: "$this" }
+                            })
                         },
                         displayComponent: ({ value }) => <div>Dupa!!!</div>,
-                        resultOf: {
-                            type: "function_call",
-                            name: "weather_tool",
-                            // callId: "$callId"
-                        }
+                        // resultOf: {
+                        //     type: "function_call",
+                        //     name: "weather_tool",
+                        //     // callId: "$callId"
+                        // }
                     },
                     {
                         schema: {
