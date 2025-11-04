@@ -10,7 +10,7 @@ import { getListParams, toQueryParams } from "~/lib/listParams";
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "~/components/ui/dialog";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
 import { TerminalIcon } from "lucide-react";
-import { requireAgentConfig, requireItemConfig, requireRunConfig } from "~/lib/shared/configUtils";
+import { findItemAndRunConfig, requireAgentConfig } from "~/lib/shared/configUtils";
 import { config } from "~/config";
 import { DisplayProperties } from "~/components/DisplayProperties";
 import type { ActionResponse } from "~/lib/errors";
@@ -36,7 +36,14 @@ function Component() {
     }
 
     const agentConfig = requireAgentConfig(config, session.agent);
-    const runConfig = requireRunConfig(agentConfig, run.items[0].content, "input");
+
+    const result = findItemAndRunConfig(agentConfig, session, run.items[0].id, "input");
+    if (!result) {
+        throw data({ message: "Run config not found" }, { status: 404 });
+    }
+
+    const { runConfig } = result;
+
 
     const close = () => {
         navigate(`../?${toQueryParams(listParams)}`);

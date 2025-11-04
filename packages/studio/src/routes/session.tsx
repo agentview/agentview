@@ -257,7 +257,7 @@ function SessionPage() {
 
                             let content: React.ReactNode = null;
 
-                            const itemConfig = findItemConfig(agentConfig, item.content);
+                            const itemConfig = findItemConfig(agentConfig, session, item.id);
 
                             if (isInputItem) {
                                 const Component = itemConfig?.displayComponent ?? UserMessage;
@@ -609,7 +609,7 @@ function MessageFooter(props: MessageFooterProps) {
 
 function getAllScoreConfigs(session: SessionWithCollaboration, item: SessionItemWithCollaboration) {
     const agentConfig = requireAgentConfig(config, session.agent);
-    const itemConfig = findItemConfig(agentConfig, item.content);
+    const itemConfig = findItemConfig(agentConfig, session, item.id);
     return itemConfig?.scores || [];
 }
 

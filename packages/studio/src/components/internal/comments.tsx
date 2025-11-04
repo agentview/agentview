@@ -389,7 +389,7 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
     });
 
     const agentConfig = requireAgentConfig<AgentViewConfig>(config, session.agent);
-    const itemConfig = findItemConfig(agentConfig, item.content);
+    const itemConfig = findItemConfig(agentConfig, session, item.id);
 
     // score configs
     const getScoreConfig = (score: Score) => {

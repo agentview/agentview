@@ -47,8 +47,6 @@ export default defineConfig({
                             type: "function_call",
                             name: "weather_tool"
                         },
-                        // displayComponent: ({ value }) => <BaseItem title="Weather Tool" value={"Checking weather in: " + JSON.parse(value.arguments).location + "..."} variant="muted" />,
-                        // resultOf: callOrReturn
                         displayComponent: ({ value}) => <BaseItem title="Weather Tool" value={"Checking weather in: " + JSON.parse(value.arguments).location + "..."} variant="muted" />,
                         // displayComponent: StepItem,
                     },
@@ -56,19 +54,17 @@ export default defineConfig({
                         schema: {
                             type: "function_call_result",
                             callId: z.string().meta({
-                                hasMatchingItem: { type: "function_call", name: "weather_tool", callId: "$this" }
+                                hasMatchingItem: { type: "function_call", name: "another_tool", callId: "$this" }
                             })
                         },
-                        displayComponent: ({ value }) => <div>Dupa!!!</div>,
-                        // resultOf: {
-                        //     type: "function_call",
-                        //     name: "weather_tool",
-                        //     // callId: "$callId"
-                        // }
+                        displayComponent: ({ value }) => <div>Another tool result</div>,
                     },
                     {
                         schema: {
                             type: "function_call_result",
+                            callId: z.string().meta({
+                                hasMatchingItem: { type: "function_call", name: "weather_tool", callId: "$this" }
+                            })
                         },
                         displayComponent: ({ value }) => {
                             let current;

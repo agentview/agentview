@@ -130,8 +130,8 @@ function requireAgentConfig(config: BaseAgentViewConfig, name: string) {
   return agentConfig
 }
 
-function requireItemConfig(agentConfig: ReturnType<typeof requireAgentConfig>, content: any, itemType?: "input" | "output" | "step") {  
-  let itemConfig = findItemConfig(agentConfig, content, itemType);
+function requireItemConfig(agentConfig: ReturnType<typeof requireAgentConfig>, session: Session, contentOrId: object | string, itemType?: "input" | "output" | "step") {  
+  let itemConfig = findItemConfig(agentConfig, session, contentOrId, itemType);
 
   if (!itemConfig) {
     throw new HTTPException(400, { message: `Item not found in configuration for agent '${agentConfig.name}'. ${itemType ? `For run item type: ${itemType}` : ''}` });
@@ -903,7 +903,7 @@ app.openapi(runsPOSTRoute, async (c) => {
   const session = await requireSession(sessionId, auth)
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
-  const itemConfig = requireItemConfig(agentConfig, input, "input")
+  const itemConfig = requireItemConfig(agentConfig, session, input, "input")
 
   const lastRun = getLastRun(session)
 
@@ -1575,7 +1575,7 @@ app.openapi(scoresPUTRoute, async (c) => {
   const item = await requireSessionItem(session, itemId);
 
   const agentConfig = requireAgentConfig(config, session.agent);
-  const itemConfig = requireItemConfig(agentConfig, item.content)
+  const itemConfig = requireItemConfig(agentConfig, session, item.id)
 
   await db.transaction(async (tx) => {
     for (const score of inputScores) {
