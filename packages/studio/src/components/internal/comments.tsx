@@ -11,7 +11,7 @@ import { TextEditor, textToElements } from "./TextEditor";
 import { useSessionContext } from "~/lib/SessionContext";
 import { apiFetch } from "~/lib/apiFetch";
 import { config } from "~/config";
-import { findItemConfig, requireAgentConfig, requireItemConfig } from "~/lib/shared/configUtils";
+import { findItemConfig, requireAgentConfig } from "~/lib/shared/configUtils";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";

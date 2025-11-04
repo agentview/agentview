@@ -36,7 +36,7 @@ function Component() {
     }
 
     const agentConfig = requireAgentConfig(config, session.agent);
-    const runConfig = requireRunConfig(agentConfig, run.items[0].content);
+    const runConfig = requireRunConfig(agentConfig, run.items[0].content, "input");
 
     const close = () => {
         navigate(`../?${toQueryParams(listParams)}`);

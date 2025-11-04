@@ -32,7 +32,7 @@ import { isInboxItemUnread } from './inboxItems'
 import { createClient, createClientAuthSession, getClientAuthSession, verifyJWT, findClientByExternalId } from './clientsAuth'
 import packageJson from '../package.json'
 import type { Transaction } from './types'
-import { normalizeItemSchema } from './shared/sessionUtils'
+import { normalizeItemSchema } from './shared/configUtils'
 import { findItemConfig } from './shared/configUtils'
 
 console.log("Migrating database...");

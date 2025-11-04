@@ -1,5 +1,5 @@
-import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig } from "./configTypes";
-import { normalizeItemSchema } from "./sessionUtils";
+import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig, SessionItemSchema, SessionItemSchemaKey } from "./configTypes";
+import { z } from "zod";
 
 export function requireAgentConfig<T extends BaseAgentViewConfig>(config: T, agentName: string): NonNullable<T["agents"]>[number] {
     const agentConfig = config.agents?.find((agent) => agent.name === agentName);
@@ -9,71 +9,204 @@ export function requireAgentConfig<T extends BaseAgentViewConfig>(config: T, age
     return agentConfig;
 }
 
-export function findRunConfig<T extends BaseAgentConfig>(agentConfig: T, content: any) : NonNullable<T["runs"]>[number] | undefined {
-    for (const run of agentConfig.runs ?? []) {
-        if (checkItemConfigMatch(run.input, content) || checkItemConfigMatch(run.output, content) || run.steps?.find((step) => checkItemConfigMatch(step, content))) {
-            return run;
+export function findItemAndRunConfig<T extends BaseAgentConfig>(agentConfig: T, content: any, itemType?: "input" | "output" | "step") {
+    type RunT = NonNullable<T["runs"]>[number];
+    type ItemConfigT = RunT["output"] & { __type: "input" | "output" | "step" }; // output type is the same as step type, we also ignore input type difference for now 
+
+    const matches : Array<{ 
+        runConfig: RunT, 
+        itemConfigs: ItemConfigT[]
+    }> = []
+
+    for (const runConfig of agentConfig.runs ?? []) {
+        const availableItemConfigs: ItemConfigT[] = [];
+
+        if (!itemType || itemType === "input") {
+            availableItemConfigs.push({ ...runConfig.input, __type: "input" });
+        }
+        if (!itemType || itemType === "output") {
+            availableItemConfigs.push({ ...runConfig.output, __type: "output" });
+        }
+        if (!itemType || itemType === "step") {
+            availableItemConfigs.push(...(runConfig.steps?.map((step) => ({ ...step, __type: "step" as const })) ?? []));
+        }
+
+        const matchedItemConfigs = matchItemConfigs(availableItemConfigs, content);
+        if (matchedItemConfigs.length > 0) {
+            matches.push({
+                runConfig,
+                itemConfigs: matchedItemConfigs,
+            });
         }
     }
+
+    if (matches.length === 0) {
+        return undefined;
+    }
+    else if (matches.length > 1) {
+        console.warn(`More than 1 run was matched for the item content.`);
+        console.warn('Item content', content);
+        console.warn('Matches', matches)
+        return undefined;
+    }
+
+    const runConfig = matches[0].runConfig;
+    const itemConfigs = matches[0].itemConfigs;
+
+    if (itemConfigs.length === 0) {
+        return undefined;
+    }
+    else if (itemConfigs.length > 1) {
+        console.warn(`More than 1 item was matched for the item content.`);
+        console.warn('Item content', content);
+        console.warn('Matches', matches[0])
+        return undefined;
+    }
+
+    const { __type, ...itemConfig } = itemConfigs[0];
+    return { runConfig, itemConfig, itemType: __type };
 }
 
-export function requireRunConfig<T extends BaseAgentConfig>(agentConfig: T, content: any) {
-    const runConfig = findRunConfig(agentConfig, content);
-    if (!runConfig) {
-        throw new Error(`Run config not found for item for agent '${agentConfig.name}'.`);
+export function findItemConfig<T extends BaseAgentConfig>(agentConfig: T, content: any, itemType?: "input" | "output" | "step") {
+    const result = findItemAndRunConfig(agentConfig, content, itemType);
+    if (!result) {
+        return undefined;
     }
-    return runConfig;
+    return result.itemConfig;
 }
 
-export function findItemConfig<T extends BaseAgentConfig>(agentConfig: T, content: any, runItemType?: "input" | "output" | "step") {    
-    const runConfig = findRunConfig(agentConfig, content);
-    if (!runConfig) {
-        return
+export function findRunConfig<T extends BaseAgentConfig>(agentConfig: T, content: any, itemType?: "input" | "output" | "step") {
+    const result = findItemAndRunConfig(agentConfig, content, itemType);
+    if (!result) {
+        return undefined;
     }
-    
-    const foundItems : NonNullable<T["runs"]>[number]["input"][] = [];
+    return result.runConfig;
+}
 
-    if (!runItemType || runItemType === "input") {
-        if (checkItemConfigMatch(runConfig.input, content)) {
-            foundItems.push(runConfig.input)
+export function requireItemConfig<T extends BaseAgentConfig>(agentConfig: T, content: any , itemType?: "input" | "output" | "step") {
+    const result = findItemConfig(agentConfig, content, itemType);
+    if (!result) {
+        throw new Error(`Item config of type '${itemType}' not found for the item for agent '${agentConfig.name}'.`);
+    }
+    return result;
+}
+
+export function requireRunConfig<T extends BaseAgentConfig>(agentConfig: T, content: any , itemType?: "input" | "output" | "step") {
+    const result = findRunConfig(agentConfig, content, itemType);
+    if (!result) {
+        throw new Error(`Run config of type '${itemType}' not found for the item for agent '${agentConfig.name}'.`);
+    }
+    return result;
+}
+
+
+function matchItemConfigs<T extends BaseSessionItemConfig>(itemConfigs: T[], content: any): T[] {
+    // return matchItemConfigsRaw(itemConfigs, content);
+    const matches: T[] = [];
+
+    const normalItemConfigs = itemConfigs.filter(c => !c.resultOf);
+    const callResultItemConfigs = itemConfigs.filter(c => c.resultOf);
+
+    matches.push(...matchItemConfigsRaw(normalItemConfigs, content)); // without resultOf -> just raw check
+
+    for (const itemConfig of callResultItemConfigs) {
+        const callItemConfigs = normalItemConfigs.filter(c => {
+            // console.log('---');
+            // console.log('key1', getSchemaKey(c.schema));
+            // console.log('key2', getSchemaKey(itemConfig.resultOf!));
+            const result = keysMatch(getSchemaKey(c.schema), getSchemaKey(itemConfig.resultOf!))
+            // console.log('result: ', result);
+            return result;
+        });
+
+        if (callItemConfigs.length === 0) {
+            console.warn("resultOf error: no call matched");
+        }
+        else if (callItemConfigs.length > 1) {
+            console.warn("resultOf error: more than 1 call matched");
+        }
+        else {
+            matches.push({
+                ...itemConfig,
+                call: callItemConfigs[0],
+            });
         }
     }
-    if (!runItemType || runItemType === "output") {
-        if (checkItemConfigMatch(runConfig.output, content)) {
-            foundItems.push(runConfig.output)
+
+    return matches;
+}
+
+function matchItemConfigsRaw<T extends BaseSessionItemConfig>(itemConfigs: T[], content: any): T[] {
+    const matches: T[] = [];
+    for (const itemConfig of itemConfigs) {
+        if (normalizeItemSchema(itemConfig.schema).safeParse(content).success) {
+            matches.push(itemConfig);
         }
     }
-    if (!runItemType || runItemType === "step") {
-        for (const step of runConfig.steps ?? []) {
-            if (checkItemConfigMatch(step, content)) {
-                foundItems.push(step);
+    return matches;
+}
+
+
+export function normalizeItemSchema(schema: SessionItemSchema): z.ZodObject {
+    if (schema instanceof z.ZodType) {
+        if (schema instanceof z.ZodObject) {
+            return schema;
+        }
+    }
+    else if (typeof schema === "object") {
+        const shape: Record<string, any> = {};
+        for (const [key, val] of Object.entries(schema)) {
+            if (typeof val === "string") {
+                shape[key] = z.literal(val);
+            } else {
+                shape[key] = val;
             }
         }
+        return z.object(shape);
+    }
+    throw new Error("Invalid schema, must be z.ZodObject or object");
+}
+
+
+export function getSchemaKey(schema: SessionItemSchema): SessionItemSchemaKey {
+    const normalizedSchema = normalizeItemSchema(schema);
+
+    const result: SessionItemSchemaKey = {};
+    
+    for (const [key, value] of Object.entries(normalizedSchema.shape)) {
+        if (value instanceof z.ZodOptional) {
+            continue;
+        }
+
+        if (value instanceof z.ZodLiteral && typeof value.value === "string") {
+            result[key] = value.value;
+        }
+        else if (value instanceof z.ZodObject) {
+            result[key] = getSchemaKey(value.shape);
+        }
+        else {
+            result[key] = null;
+        }
     }
     
-    if (foundItems.length === 0) {
-        return undefined;
-    }
-
-    if (foundItems.length > 1) {
-        console.warn(`More than 1 item schemas were matched with a content for agent '${agentConfig.name}'.`);
-        console.warn('Content', content);
-        console.warn('Found items', foundItems.map((item) => item.schema));
-        return undefined;
-    }
-
-    return foundItems[0];
+    return result;
 }
 
-export function requireItemConfig<T extends BaseAgentConfig>(agentConfig: T, content: any, itemType?: "input" | "output" | "step") {
-    const itemConfig = findItemConfig(agentConfig, content, itemType);
-    if (!itemConfig) {
-        throw new Error(`Item config not found for the item for agent '${agentConfig.name}'. ${itemType ? `For run item type: ${itemType}` : ''}`);
-    }
-    return itemConfig;
-}
 
-function checkItemConfigMatch<T extends BaseSessionItemConfig>(itemConfig: T, content: any) {
-    const schema = normalizeItemSchema(itemConfig.schema);
-    return schema.safeParse(content).success;
+function keysMatch(schemaKey1: SessionItemSchemaKey, schemaKey2: SessionItemSchemaKey): boolean {
+    for (const [key, value] of Object.entries(schemaKey2)) {
+        if (schemaKey1[key] === undefined) {
+            return false;
+        }
+
+        if (typeof value === "object" && value !== null && typeof schemaKey1[key] === "object" && schemaKey1[key] !== null) {
+            if (!keysMatch(schemaKey1[key], value)) {
+                return false;
+            }
+        }
+        else if (value !== schemaKey1[key]) {
+            return false;
+        }
+    }
+    return true;
 }

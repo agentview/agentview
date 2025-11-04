@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const BaseSessionItemConfigSchema = z.object({
     schema: z.any(),
+    resultOf: z.any().optional(),
     scores: z.array(z.object({
         name: z.string(),
         schema: z.any(),
@@ -29,9 +30,13 @@ export interface BaseScoreConfig {
 
 export type SessionItemSchema = Record<string, z.ZodType | string> | z.ZodObject;
 
+export type SessionItemSchemaKey = {
+    [key: string]: string | null | SessionItemSchemaKey;
+};
+
 export interface BaseSessionItemConfig<TScoreConfig extends BaseScoreConfig = BaseScoreConfig> {
     schema: SessionItemSchema;
-    resultOf?: SessionItemSchema;
+    resultOf?: SessionItemSchemaKey;
     scores?: TScoreConfig[];
 }
 

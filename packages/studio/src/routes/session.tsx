@@ -20,7 +20,7 @@ import { ItemsWithCommentsLayout } from "~/components/internal/ItemsWithComments
 import { CommentsThread } from "~/components/internal/comments";
 import { Popover, PopoverTrigger, PopoverContent } from "~/components/ui/popover";
 import { config } from "~/config";
-import { findItemConfig, requireAgentConfig, requireItemConfig } from "~/lib/shared/configUtils";
+import { findItemConfig, requireAgentConfig } from "~/lib/shared/configUtils";
 import { Loader } from "~/components/internal/Loader";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import type { BaseError } from "~/lib/errors";

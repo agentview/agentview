@@ -1,7 +1,7 @@
 import type { AgentViewConfig, SessionItemConfig } from "../types";
 import * as z from "zod"
 import type { BaseAgentViewConfig, BaseScoreConfig, BaseSessionItemConfig } from "./shared/configTypes";
-import { normalizeItemSchema } from "./shared/sessionUtils";
+import { normalizeItemSchema } from "./shared/configUtils";
 
 
 export function serializeBaseConfig(config: BaseAgentViewConfig): any {

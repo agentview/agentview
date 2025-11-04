@@ -47,15 +47,16 @@ export default defineConfig({
                             type: "function_call",
                             name: "weather_tool"
                         },
+                        // displayComponent: ({ value }) => <BaseItem title="Weather Tool" value={"Checking weather in: " + JSON.parse(value.arguments).location + "..."} variant="muted" />,
                         // resultOf: callOrReturn
-                        // displayComponent: ({ value}) => <BaseItem title="Weather Tool" value={"Checking weather in: " + JSON.parse(value.arguments).location + "..."} variant="muted" />,
+                        displayComponent: ({ value}) => <BaseItem title="Weather Tool" value={"Checking weather in: " + JSON.parse(value.arguments).location + "..."} variant="muted" />,
                         // displayComponent: StepItem,
                     },
                     {
                         schema: {
                             type: "function_call_result",
-                            callId: z.string(),
                         },
+                        displayComponent: ({ value }) => <div>Dupa!!!</div>,
                         resultOf: {
                             type: "function_call",
                             name: "weather_tool",

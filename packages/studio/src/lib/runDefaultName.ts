@@ -1,5 +1,5 @@
 import type { SessionItemConfig } from "~/types";
-import { normalizeItemSchema } from "./shared/sessionUtils";
+import { normalizeItemSchema } from "./shared/configUtils";
 import { z } from "zod";
 
 export function runDefaultName(itemConfig: SessionItemConfig) {
