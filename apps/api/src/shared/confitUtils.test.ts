@@ -1,8 +1,16 @@
 import { describe, it, expect } from 'vitest'
 import { z } from 'zod';
-import { type BaseAgentConfig } from './configTypes';
+import { type BaseAgentConfig, type BaseRunConfig, type BaseSessionItemConfig } from './configTypes';
 import { findItemAndRunConfig, findItemConfig } from './configUtils';
 import type { Session } from './apiTypes';
+
+// those types here add $id on the session item config level, also tests whether our functions properly infers types :) 
+type SessionItemConfig = BaseSessionItemConfig & {
+    $id: string;
+}
+type RunConfig = BaseRunConfig<SessionItemConfig, SessionItemConfig>
+type AgentConfig = BaseAgentConfig<RunConfig>
+
 
 let sessionItemIdCounter = 1;
 
@@ -68,13 +76,14 @@ function functionCall($id: string, fields1: any = {}, fields2: any = {}) {
     }
 }
 
-function createAgent(steps: any[]): BaseAgentConfig {
+function createAgent(steps: any[]): AgentConfig {
     return {
         name: 'test',
         url: 'http://test.com',
         runs: [
             {
                 input: {
+                    $id: "input",
                     schema: {
                         type: "message",
                         role: "user",
@@ -82,6 +91,7 @@ function createAgent(steps: any[]): BaseAgentConfig {
                     }
                 },
                 output: {
+                    $id: "output",
                     schema: {
                         type: "message",
                         role: "user",
