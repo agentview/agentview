@@ -55,8 +55,10 @@ export default defineConfig({
                             type: "function_call_result",
                             callId: z.string().meta({
                                 hasMatchingItem: { type: "function_call", name: "another_tool", callId: "$this" }
+                                // toolCallId: { type: "function_call", name: "another_tool", callId: "$id" } // !!!!!! ALSO: add tool call value :)
                             })
                         },
+                        // resultOf: !!! -> better. 
                         displayComponent: ({ value }) => <div>Another tool result</div>,
                     },
                     {
