@@ -154,16 +154,20 @@ export default defineConfig({
             url: "http://127.0.0.1:8000/simple_chat",
             run: {
                 input: {
-                    type: "message",
-                    role: "user",
-                    content: z.string(),
+                    schema: {
+                        type: "message",
+                        role: "user",
+                        content: z.string(),
+                    }
                     displayComponent: UserMessage,
                     inputComponent: UserMessageInput
                 },
                 output: {
-                    type: "message",
-                    role: "assistant",
-                    content: z.string(),
+                    schema: {
+                        type: "message",
+                        role: "assistant",
+                        content: z.string(),
+                    }
                     displayComponent: AssistantMessage,
                 }
             }
