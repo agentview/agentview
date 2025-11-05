@@ -46,14 +46,14 @@ export default defineConfig({
                         schema: {
                             type: "function_call",
                             name: "weather_tool",
-                            // callId: z.string().meta({ callId: true })
+                            callId: z.string().meta({ callId: true })
                         },
                         // displayComponent: ({ value}) => <BaseItem title="Weather Tool" value={"Checking weather in: " + JSON.parse(value.arguments).location + "..."} variant="muted" />,
                         displayComponent: ({ value }) => <div>Weather tool call</div>,
                         callResult: {
                             schema: {
                                 type: "function_call_result",
-                                // callId: z.string().meta({ callId: true })
+                                callId: z.string().meta({ callId: true })
                             },
                             displayComponent: ({ value }) => <div>Weather tool result</div>,
                         }

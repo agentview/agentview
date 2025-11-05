@@ -121,7 +121,7 @@ function getCallIdKey(inputSchema: SessionItemSchema): any | undefined {
 
 function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension>(itemConfigs: T[], content: Record<string, any>, prevItems: Record<string, any>[]): T[] {
     const matches: T[] = [];
-    // console.log('#####')
+    console.log('MATCH ITEM CONFIGS >>>>>')
     // console.log(content, prevItems);
 
     for (const itemConfig of itemConfigs) {
@@ -147,8 +147,12 @@ function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension
 
             for (let i = prevItems.length - 1; i >= 0; i--) {
                 const prevItem = prevItems[i];
-                if (schema.safeParse(prevItem).success && prevItem[callIdKey] === content[callIdKey]) { // if both keys are `undefined`, first match.
-                    console.log('!!!!!!', prevItem)
+
+                // if (callResultSchema.safeParse(prevItem).success) { // If we encounter *any* matching result in previous items that already looks like matching response, then we stop looking. 
+                //     break;
+                // }
+
+                if (schema.safeParse(prevItem).success && prevItem[callIdKey] === content[resultIdKey]) { // if both keys are `undefined`, first match.
                     matches.push({
                         ...itemConfig.callResult,
                         toolCallContent: prevItem,

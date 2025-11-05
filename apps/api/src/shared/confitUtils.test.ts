@@ -151,7 +151,7 @@ const reasoning = () => {
     })
 }
 
-describe('agent with 2 function calls / call Ids not set up properly', () => {
+describe('agent with 2 function calls / call ids not set up', () => {
     const functionCall1 = functionCall("function1", { name: "function1" }, { });
     const functionCall2 = functionCall("function2", { name: "function2" }, { });
 
@@ -179,7 +179,7 @@ describe('agent with 2 function calls / call Ids not set up properly', () => {
             expect(findItemConfig(agent, session, call2.call.id)?.$id).toBe(`function2_call`);
         })
 
-        it('can\'t find results', () => {
+        it('can\'t find call results', () => {
             expect(findItemConfig(agent, session, "xxx")).toBeUndefined();
             expect(findItemConfig(agent, session, call1.result.id)).toBeUndefined();
             expect(findItemConfig(agent, session, call2.result.id)).toBeUndefined();
@@ -273,7 +273,6 @@ describe('agent with 2 function calls, with ids', () => {
             call2.result,
             reasoning()
         ])
-
 
         it ('can find calls', () => {
             expect(findItemConfig(agent, session, call1.call.id)?.$id).toBe('function1_call');
