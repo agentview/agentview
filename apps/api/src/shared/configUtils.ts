@@ -102,7 +102,21 @@ export function findItemConfig<T extends BaseAgentConfig, SessionT extends Sessi
     return result.itemConfig;
 }
 
-function matchItemConfigs<T extends BaseSessionItemConfig>(itemConfigs: T[], content: Record<string, any>, prevItems: object[]): T[] {
+function getCallIdKey(inputSchema: SessionItemSchema): any | undefined {
+    const schema = normalizeItemSchema(inputSchema);
+    const shape = schema.shape;
+    for (const [key, value] of Object.entries(shape)) {
+        const meta = value.meta();
+
+        // @ts-ignore
+        if (meta?.callId === true) {
+            return key;
+        }
+    }
+    return undefined;
+}
+
+function matchItemConfigs<T extends BaseSessionItemConfig>(itemConfigs: T[], content: Record<string, any>, prevItems: Record<string, any>[]): T[] {
     const matches: T[] = [];
     console.log('#####')
     console.log(content, prevItems);
@@ -110,62 +124,66 @@ function matchItemConfigs<T extends BaseSessionItemConfig>(itemConfigs: T[], con
     for (const itemConfig of itemConfigs) {
         const schema = normalizeItemSchema(itemConfig.schema);
 
-        // // first pass (without hasMatchingItem)
-        // if (!normalizeItemSchema(itemConfig.schema).safeParse(content).success) {
-        //     continue;
-        // }
-
-        const shape = schema.shape;
-
-        // scan for hasMatchingItem
-        Object.entries(shape).forEach(([key, field]) => {
-            if (field instanceof ZodString) {
-                const hasMatchingItem = field.meta()?.hasMatchingItem as Record<string, string> | undefined;
-
-                console.log('hasMatchingItem', hasMatchingItem);
-
-                // hasMatchingItem must be object
-                if (typeof hasMatchingItem !== "object" || hasMatchingItem === null) {
-                    return;
-                }
-
-                console.log('refining');
-                    
-                shape[key] = field.refine((value) => {
-                    const matchingItem = { ...hasMatchingItem };
-                    for (const key in matchingItem) {
-                        if (matchingItem[key] === "$this") {
-                            matchingItem[key] = value;
-                        }
-                    }
-
-                    const matchingItemSchema = normalizeItemSchema(matchingItem);
-                    console.log('matchingItem', matchingItem);
-                    const result = prevItems.some((prevItem) => matchingItemSchema.safeParse(prevItem).success);
-                    console.log('result', result);
-                    return result
-                });
-            }
-          })
-
-        const refinedSchema = z.object(shape);
-        if (refinedSchema.safeParse(content).success) {
+        if (schema.safeParse(content).success) {
             matches.push(itemConfig);
         }
 
-        //   if (!wasHasMatchingItemUsed) {
-        //     matches.push(itemConfig);
-        //   }
-        
-        
-        // hasMatchingItem: { type: "function_call", name: "weather_tool", callId: "$this" }
+        if (itemConfig.callResult) {
+            const callResultSchema = normalizeItemSchema(itemConfig.callResult.schema);
+            if (!callResultSchema.safeParse(content).success) {
+                continue;
+            }
 
+            const callIdKey = getCallIdKey(itemConfig.schema) ?? "__aaa__";
+            const resultIdKey = getCallIdKey(itemConfig.callResult.schema) ?? "__bbb__";
 
+            for (let i = prevItems.length - 1; i >= 0; i--) {
+                const prevItem = prevItems[i];
+                if (schema.safeParse(prevItem).success && prevItem[callIdKey] === content[callIdKey]) { // if both keys are `undefined`, first match.
+                    matches.push(itemConfig.callResult as T);
+                    break;
+                }
+            }
+        }
 
-        
-        // if (normalizeItemSchema(itemConfig.schema).safeParse(content).success) {
+        // const shape = schema.shape;
+
+        // // scan for hasMatchingItem
+        // Object.entries(shape).forEach(([key, field]) => {
+        //     if (field instanceof ZodString) {
+        //         const hasMatchingItem = field.meta()?.hasMatchingItem as Record<string, string> | undefined;
+
+        //         console.log('hasMatchingItem', hasMatchingItem);
+
+        //         // hasMatchingItem must be object
+        //         if (typeof hasMatchingItem !== "object" || hasMatchingItem === null) {
+        //             return;
+        //         }
+
+        //         console.log('refining');
+                    
+        //         shape[key] = field.refine((value) => {
+        //             const matchingItem = { ...hasMatchingItem };
+        //             for (const key in matchingItem) {
+        //                 if (matchingItem[key] === "$this") {
+        //                     matchingItem[key] = value;
+        //                 }
+        //             }
+
+        //             const matchingItemSchema = normalizeItemSchema(matchingItem);
+        //             console.log('matchingItem', matchingItem);
+        //             const result = prevItems.some((prevItem) => matchingItemSchema.safeParse(prevItem).success);
+        //             console.log('result', result);
+        //             return result
+        //         });
+        //     }
+        //   })
+
+        // const refinedSchema = z.object(shape);
+        // if (refinedSchema.safeParse(content).success) {
         //     matches.push(itemConfig);
         // }
+
     }
     return matches;
 }

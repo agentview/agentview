@@ -54,6 +54,7 @@ export type SessionItemDisplayComponentProps<T=any> = DisplayComponentProps<T>;
 
 export type SessionItemConfig = BaseSessionItemConfig<ScoreConfig> & {
   displayComponent?: React.ComponentType<DisplayComponentProps>;
+  callResult?: SessionItemConfig;
 };
 
 export type SessionInputItemConfig = SessionItemConfig & {

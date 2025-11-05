@@ -38,6 +38,8 @@ export interface BaseSessionItemConfig<TScoreConfig extends BaseScoreConfig = Ba
     schema: SessionItemSchema;
     resultOf?: SessionItemSchemaKey;
     scores?: TScoreConfig[];
+    callResult?: BaseSessionItemConfig<TScoreConfig>;
+    // callId?: string | { call: string, result: string }
 }
 
 export interface BaseRunConfig<TSessionItemConfig extends BaseSessionItemConfig = BaseSessionItemConfig, TSessionInputItemConfig extends BaseSessionItemConfig = BaseSessionItemConfig> {
