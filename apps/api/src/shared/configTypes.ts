@@ -36,7 +36,7 @@ export type SessionItemSchemaKey = {
 
 export interface BaseSessionItemConfig<TScoreConfig extends BaseScoreConfig = BaseScoreConfig> {
     schema: SessionItemSchema;
-    resultOf?: SessionItemSchemaKey;
+    // resultOf?: SessionItemSchemaKey;
     scores?: TScoreConfig[];
     callResult?: BaseSessionItemConfig<TScoreConfig>;
     // callId?: string | { call: string, result: string }

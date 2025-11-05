@@ -14,10 +14,13 @@ export function requireAgentConfig<T extends BaseAgentViewConfig>(config: T, age
 // two possible inputs:
 // - session (items history) + new item (not yet in session) -> we assume it goes last, all items are previous items
 // - session (items history) + item id -> concrete item, we find it and try to find the config
+
+type SessionItemExtension = { __type: "input" | "output" | "step", toolCallContent?: any }
+
 export function findItemAndRunConfig<T extends BaseAgentConfig, SessionT extends Session>(agentConfig: T, session: SessionT, contentOrId: string | Record<string, any>, itemType?: "input" | "output" | "step") {
-    console.log("--------------------------------")
+    // console.log("--------------------------------")
     type RunT = NonNullable<T["runs"]>[number];
-    type ItemConfigT = RunT["output"] & { __type: "input" | "output" | "step" }; // output type is the same as step type, we also ignore input type difference for now 
+    type ItemConfigT = RunT["output"] & SessionItemExtension; // output type is the same as step type, we also ignore input type difference for now 
 
     // existing session id
     let newContent: Record<string, any>;
@@ -89,8 +92,8 @@ export function findItemAndRunConfig<T extends BaseAgentConfig, SessionT extends
         return undefined;
     }
 
-    const { __type, ...itemConfig } = itemConfigs[0];
-    return { runConfig, itemConfig, itemType: __type };
+    const { __type, toolCallContent, ...itemConfig } = itemConfigs[0];
+    return { runConfig, itemConfig, itemType: __type, toolCallContent };
 }
 
 
@@ -116,10 +119,10 @@ function getCallIdKey(inputSchema: SessionItemSchema): any | undefined {
     return undefined;
 }
 
-function matchItemConfigs<T extends BaseSessionItemConfig>(itemConfigs: T[], content: Record<string, any>, prevItems: Record<string, any>[]): T[] {
+function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension>(itemConfigs: T[], content: Record<string, any>, prevItems: Record<string, any>[]): T[] {
     const matches: T[] = [];
-    console.log('#####')
-    console.log(content, prevItems);
+    // console.log('#####')
+    // console.log(content, prevItems);
 
     for (const itemConfig of itemConfigs) {
         const schema = normalizeItemSchema(itemConfig.schema);
@@ -127,65 +130,63 @@ function matchItemConfigs<T extends BaseSessionItemConfig>(itemConfigs: T[], con
         if (schema.safeParse(content).success) {
             matches.push(itemConfig);
         }
-
+        
         if (itemConfig.callResult) {
             const callResultSchema = normalizeItemSchema(itemConfig.callResult.schema);
             if (!callResultSchema.safeParse(content).success) {
                 continue;
             }
 
-            const callIdKey = getCallIdKey(itemConfig.schema) ?? "__aaa__";
-            const resultIdKey = getCallIdKey(itemConfig.callResult.schema) ?? "__bbb__";
+            const callIdKey = getCallIdKey(itemConfig.schema);
+            const resultIdKey = getCallIdKey(itemConfig.callResult.schema);
+
+            if (!callIdKey || !resultIdKey) {
+                console.warn('Both callIdKey and resultIdKey must be defined for result');
+                break;
+            }
 
             for (let i = prevItems.length - 1; i >= 0; i--) {
                 const prevItem = prevItems[i];
                 if (schema.safeParse(prevItem).success && prevItem[callIdKey] === content[callIdKey]) { // if both keys are `undefined`, first match.
-                    matches.push(itemConfig.callResult as T);
+                    console.log('!!!!!!', prevItem)
+                    matches.push({
+                        ...itemConfig.callResult,
+                        toolCallContent: prevItem,
+                    } as T);
                     break;
                 }
             }
         }
-
-        // const shape = schema.shape;
-
-        // // scan for hasMatchingItem
-        // Object.entries(shape).forEach(([key, field]) => {
-        //     if (field instanceof ZodString) {
-        //         const hasMatchingItem = field.meta()?.hasMatchingItem as Record<string, string> | undefined;
-
-        //         console.log('hasMatchingItem', hasMatchingItem);
-
-        //         // hasMatchingItem must be object
-        //         if (typeof hasMatchingItem !== "object" || hasMatchingItem === null) {
-        //             return;
-        //         }
-
-        //         console.log('refining');
-                    
-        //         shape[key] = field.refine((value) => {
-        //             const matchingItem = { ...hasMatchingItem };
-        //             for (const key in matchingItem) {
-        //                 if (matchingItem[key] === "$this") {
-        //                     matchingItem[key] = value;
-        //                 }
-        //             }
-
-        //             const matchingItemSchema = normalizeItemSchema(matchingItem);
-        //             console.log('matchingItem', matchingItem);
-        //             const result = prevItems.some((prevItem) => matchingItemSchema.safeParse(prevItem).success);
-        //             console.log('result', result);
-        //             return result
-        //         });
-        //     }
-        //   })
-
-        // const refinedSchema = z.object(shape);
-        // if (refinedSchema.safeParse(content).success) {
-        //     matches.push(itemConfig);
-        // }
-
     }
+
     return matches;
+
+    // for (const itemConfig of itemConfigs) {
+    //     const schema = normalizeItemSchema(itemConfig.schema);
+
+    //     if (schema.safeParse(content).success) {
+    //         matches.push(itemConfig);
+    //     }
+
+    //     if (itemConfig.callResult) {
+    //         const callResultSchema = normalizeItemSchema(itemConfig.callResult.schema);
+    //         if (!callResultSchema.safeParse(content).success) {
+    //             continue;
+    //         }
+
+    //         const callIdKey = getCallIdKey(itemConfig.schema) ?? "__aaa__";
+    //         const resultIdKey = getCallIdKey(itemConfig.callResult.schema) ?? "__bbb__";
+
+    //         for (let i = prevItems.length - 1; i >= 0; i--) {
+    //             const prevItem = prevItems[i];
+    //             if (schema.safeParse(prevItem).success && prevItem[callIdKey] === content[callIdKey]) { // if both keys are `undefined`, first match.
+    //                 matches.push(itemConfig.callResult as T);
+    //                 break;
+    //             }
+    //         }
+    //     }
+    // }
+    // return matches;
 }
 
 // function matchItemConfigs<T extends BaseSessionItemConfig>(itemConfigs: T[], content: any): T[] {
