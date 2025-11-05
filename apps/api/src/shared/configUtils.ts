@@ -121,8 +121,6 @@ function getCallIdKey(inputSchema: SessionItemSchema): any | undefined {
 
 function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension>(itemConfigs: T[], content: Record<string, any>, prevItems: Record<string, any>[]): T[] {
     const matches: T[] = [];
-    console.log('MATCH ITEM CONFIGS >>>>>')
-    // console.log(content, prevItems);
 
     for (const itemConfig of itemConfigs) {
         const schema = normalizeItemSchema(itemConfig.schema);
