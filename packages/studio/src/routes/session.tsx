@@ -35,6 +35,7 @@ import { AssistantMessage, StepItem, UserMessage } from "~/components/session-it
 import { toast } from "sonner";
 import { debugRun } from "~/lib/debugRun";
 import { runDefaultName } from "~/lib/runDefaultName";
+import { ErrorBoundary } from "~/components/internal/ErrorBoundary";
 
 
 async function loader({ request, params }: LoaderFunctionArgs) {
@@ -288,7 +289,9 @@ function SessionPage() {
                                     <div className={`relative`} style={{ marginLeft: `${styles.padding}px`, width: `${styles.textWidth}px` }}>
 
                                         <div data-item onClick={() => { setselectedItemId(item.id) }}>
-                                            {content}
+                                            <ErrorBoundary>
+                                                {content}
+                                            </ErrorBoundary>
                                         </div>
 
                                         {isLastRunItem && run.status === "failed" && <div className="text-md mt-6 text-red-500">

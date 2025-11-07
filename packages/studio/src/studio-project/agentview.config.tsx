@@ -25,6 +25,7 @@ export default defineConfig({
         {
             name: "simple_chat",
             url: "http://127.0.0.1:3000/agentview/run",
+
             run: {
                 input: {
                     schema: {
@@ -48,31 +49,62 @@ export default defineConfig({
                             name: "weather_tool",
                             callId: z.string().meta({ callId: true })
                         },
-                        // displayComponent: ({ value}) => <BaseItem title="Weather Tool" value={"Checking weather in: " + JSON.parse(value.arguments).location + "..."} variant="muted" />,
-                        displayComponent: ({ value }) => <div>Weather tool call</div>,
+                        displayComponent: ({ value}) => <BaseItem title="Weather Tool" value={"Checking weather in: " + JSON.parse(value.arguments).location + "..."} variant="muted" />,
                         callResult: {
                             schema: {
                                 type: "function_call_result",
                                 callId: z.string().meta({ callId: true })
                             },
-                            displayComponent: ({ value }) => <div>Weather tool result</div>,
+                            displayComponent: ({ value }) => {
+                                let current;
+                                try {
+                                    current = JSON.parse(value.output.text).current_condition[0];
+                                } catch (e) {
+                                    return <BaseItem title="Weather Tool Result" value="Weather data unavailable" variant="muted" />;
+                                }
+                                if (!current) {
+                                    return <BaseItem title="Weather Tool Result" value="Weather data unavailable" variant="muted" />;
+                                }
+    
+                                // Render as a single, friendly line with emojis
+                                const tempC = current.temp_C;
+                                const desc = current.weatherDesc?.[0]?.value;
+                                const feels = current.FeelsLikeC;
+                                const humidity = current.humidity;
+                                const wind = current.windspeedKmph;
+                                const weatherIcons: Record<string, string> = {
+                                    "Partly cloudy": "⛅️",
+                                    "Cloudy": "☁️",
+                                    "Sunny": "☀️",
+                                    "Clear": "🌙",
+                                    "Rain": "🌧️",
+                                    "Mist": "🌫️",
+                                    "Snow": "❄️",
+                                    "Thunder": "⛈️"
+                                };
+                                // Default to description or emoji cloud if none
+                                const emoji = weatherIcons[desc] || "🌡️";
+                                const summary = `${emoji} ${desc}, ${tempC}°C, feels like ${feels}°C, 💧${humidity}%, 💨${wind}km/h`;
+    
+                                return <BaseItem title="Weather Tool Result" value={summary} variant="muted" />
+                            }
                         }
                     },
-                    {
-                        schema: {
-                            type: "function_call",
-                            name: "another_tool",
-                        },
-                        displayComponent: ({ value }) => <div>Another tool call</div>,
-                        callResult: {
-                            schema: {
-                                type: "function_call_result",
-                            },
-                            displayComponent: ({ value }) => <div>Another tool result</div>,
-                        }
-                        // resultOf: !!! -> better. 
-                        // displayComponent: ({ value }) => <div>Another tool result</div>,
-                    },
+                    // {
+                    //     schema: {
+                    //         type: "function_call",
+                    //         name: "another_tool",
+                    //     },
+                    //     displayComponent: ({ value }) => <div>Another tool call</div>,
+                    //     callResult: {
+                    //         schema: {
+                    //             type: "function_call_result",
+                    //         },
+                    //         displayComponent: ({ value }) => <div>Another tool result</div>,
+                    //     }
+                    //     // resultOf: !!! -> better. 
+                    //     // displayComponent: ({ value }) => <div>Another tool result</div>,
+                    // },
                     // {
                     //     schema: {
                     //         type: "function_call_result",

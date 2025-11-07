@@ -1,48 +1,26 @@
 # AgentView Documentation
 
-
-## ToC
-
-1. Overview (AI SDK like)
-    - Why use AgentView?
-    - Features
-    - Some basic concepts.
-
-2. Getting Started
-    - Set up the project
-    - Explore features
-
-3. Docs
-    - Data model (sessions, runs, items, state, metadata)
-    - Playground sessions
-    - `agentview.config.ts` 
-    - Schema validation
-    - Custom Components
-    - Versioning (Manifest)
-    - Custom Pages
-    - Metadata
-    - Clients
-    - Memory
-    - Client API
-    - Observability tools
-    - Deployment
-
-
-
-
 Welcome to the AgentView documentation!
 
 ## What is AgentView?
 
-## (scratchpad)
+AgentView is an open-source tool 
 
-AgentView is open-source scaffolding for building conversational agents.
+AgentView is an open-source toolkit for building conversational agents. It consists of 2 parts:
+1. Studio - absurdly extendable data viewer (shipped as a React package)
+2. Server - provides persistence, clean APIs, versioning etc.
 
-It's for AI Engineers who want to build agents **with code**. It provides "everything-around-the-agent" like powerful data viewer, session storage, version management, etc... but lets developers write AI part however they want. They can do it in any programming language and in any framework they want.
+Most importantly, AgentView is **framework/language-agnostic in terms of AI code**.
 
 ### How it works?
 
-Developer provides a STATELESS endpoint, which takes care of intelligence. It's stateless because it doesn't handle any storage. It takes conversation history, conversation state, user memory -> and its task is to generate and send back response + new memories. Since its HTTP endpoint it can be built with Python (FastAPI), Typescript (Hono, Vercel functions, whatever)... So essentially AgentView is NOT an agent framework - by design. It's completely as agnostic as it could be.
+Developer provides a STATELESS endpoint, which takes care of intelligence, which we call Agent API. It's stateless because it doesn't handle any storage. It takes conversation history, conversation state, user memory -> and its task is to generate and send back response + new memories. Since its HTTP endpoint it can be built with Python (FastAPI), Typescript (Hono, Vercel functions, whatever)... So essentially AgentView is NOT an agent framework - by design. It's completely as agnostic as it could be.
+
+**Getting Started:** You provide a stateless HTTP endpoint (your Agent API) that handles AI logic. It receives conversation history and user context, then returns a response and new memories. You can build this endpoint in any language or framework—Python, TypeScript, or anything else. AgentView handles storage, sessions, and the viewer—you just focus on the AI.
+
+
+
+
 
 AgentView Server communicates with your stateless endpoint and provides following things:
 - Conversation storage

@@ -1933,6 +1933,7 @@ const statusRoute = createRoute({
   path: '/api/status',
   responses: {
     200: response_data(z.object({
+      status: "ok",
       is_active: z.boolean(),
     })),
   },
@@ -1940,7 +1941,7 @@ const statusRoute = createRoute({
 
 app.openapi(statusRoute, async (c) => {
   const hasUsers = await getUsersCount() > 0;
-  return c.json({ is_active: hasUsers }, 200);
+  return c.json({ status: "ok", is_active: hasUsers }, 200);
 })
 
 /* --------- EMAILS --------- */

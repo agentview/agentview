@@ -4,7 +4,6 @@ import { Hono } from 'hono'
 import { tool, Agent, run } from '@openai/agents';
 import { z } from 'zod';
 import { parseBody } from "agentview";
-import { HTTPException } from 'hono/http-exception';
 
 const app = new Hono();
 
@@ -62,37 +61,7 @@ app.post('/agentview/run', async (c) => {
 })
 
 
-
-
-// app.post('/agentview/run', async (c) => {
-//   const { items, input } = parseBody(await c.req.json());
-
-//   const response = await client.responses.create({
-//     model: "gpt-5-nano",
-//     input: [
-//       ...items,
-//       input
-//     ]
-//   });
-
-//   return c.json({ 
-//     manifest: {
-//       version: "0.0.1",
-//       env: "dev"
-//     },
-//     items: [
-//       {
-//         type: "message",
-//         role: "assistant",
-//         content: response.output_text
-//       }
-//     ]
-//   })
-// })
-
 serve({
   fetch: app.fetch,
   port: 3000
-}, (info) => {
-  console.log(`Server is running on http://localhost:${info.port}`)
 })
