@@ -3,26 +3,54 @@ import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { tool, Agent, run } from '@openai/agents';
 import { z } from 'zod';
+import { OpenAI } from 'openai';
 import { parseBody } from "agentview";
 
 const app = new Hono();
-
-app.onError((error, c) => {
-  if (error instanceof Error) {
-    return c.json({ message: error.message }, (error as any).status ?? 500);
-  }
-
-  return c.json({ message: 'Internal server error' }, 500);
-});
-
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
 
 const manifest = {
   version: "0.0.1",
   env: "dev"
 }
+
+app.post('/agentview/chat', async (c) => {
+  const { sessionId, input, token } = await c.req.json();
+
+  const history = sessionId ? await fetchSession(sessionId, token).history : [];
+
+  const client = new OpenAI()
+  const response = await client.responses.create({
+    model: "gpt-5-nano",
+    input: [...history, input]
+  });
+
+  await pushItems({ output: response.output })
+
+  return c.json({ 
+    manifest,
+    items: response.output
+  })
+})
+
+
+
+
+
+
+app.post('/agentview/simple_chat/run', async (c) => {
+  const { items, input } = parseBody(await c.req.json());
+
+  const client = new OpenAI()
+  const response = await client.responses.create({
+    model: "gpt-5-nano",
+    input: [...items, input]
+  });
+
+  return c.json({ 
+    manifest,
+    items: response.output
+  })
+})
 
 const weatherAgent = new Agent({
   name: 'Weather Assistant',
@@ -61,7 +89,22 @@ app.post('/agentview/run', async (c) => {
 })
 
 
+app.onError((error, c) => {
+  if (error instanceof Error) {
+    return c.json({ message: error.message }, (error as any).status ?? 500);
+  }
+
+  return c.json({ message: 'Internal server error' }, 500);
+});
+
+app.get('/', (c) => {
+  return c.text('Hello Hono!')
+})
+
+
 serve({
   fetch: app.fetch,
   port: 3000
+}, (info) => {
+  console.log(`Agent App server is running on localhost:${info.port}`)
 })
