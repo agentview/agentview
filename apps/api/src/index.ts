@@ -1933,7 +1933,7 @@ const statusRoute = createRoute({
   path: '/api/status',
   responses: {
     200: response_data(z.object({
-      status: "ok",
+      status: z.literal("ok"),
       is_active: z.boolean(),
     })),
   },
