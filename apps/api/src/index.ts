@@ -1141,9 +1141,6 @@ app.openapi(runsPATCHRoute, async (c) => {
   return c.json(newRun, 201);
 })
 
-
-
-
 const runWatchRoute = createRoute({
   method: 'get',
   path: '/api/runs/{run_id}/watch',
