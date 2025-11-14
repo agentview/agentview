@@ -634,7 +634,7 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
   };
 }
 
-const sessionsGETRoute = createRoute({
+const sessionsGETRoute = createRoute({ // TODO: this route could be separated into user-facing vs admin (that would be actually super quick)
   method: 'get',
   path: '/api/sessions',
   request: {
@@ -649,26 +649,9 @@ const sessionsGETRoute = createRoute({
 app.openapi(sessionsGETRoute, async (c) => {
   const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers)
   const params = c.req.query();
-  
   const sessions = await getSessions(params, auth)
-
   return c.json(sessions, 200);
 })
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -710,7 +693,7 @@ app.openapi(sessionsGETStatsRoute, async (c) => {
       and(
         eq(inboxItems.userId, authSession.user.id),
         sql`${inboxItems.lastNotifiableEventId} > COALESCE(${inboxItems.lastReadEventId}, 0)`,
-        getSessionListFilter(params, authSession.user.id)
+        getSessionListFilter(params, { type: 'user', session: authSession })
       )
     )
 
@@ -719,7 +702,7 @@ app.openapi(sessionsGETStatsRoute, async (c) => {
   }
 
   if (granular) {
-    const sessionsResult = await getSessions(params, authSession.user.id);
+    const sessionsResult = await getSessions(params, { type: 'user', session: authSession });
     const sessionIds = sessionsResult.sessions.map((row) => row.id);
 
     response.sessions = {}
