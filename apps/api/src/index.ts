@@ -10,7 +10,7 @@ import type { User as BetterAuthUser, ZodError } from "better-auth";
 import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi'
 import { swaggerUI } from '@hono/swagger-ui'
 import { db } from './db'
-import { clients, sessions, sessionItems, runs, emails, commentMessages, commentMessageEdits, commentMentions, versions, scores, configs, events, inboxItems } from './schemas/schema'
+import { endUsers, sessions, sessionItems, runs, emails, commentMessages, commentMessageEdits, commentMentions, versions, scores, configs, events, inboxItems } from './schemas/schema'
 import { eq, desc, and, inArray, ne, gt, isNull, isNotNull, or, gte, sql, countDistinct, DrizzleQueryError, type InferSelectModel, type InferModel } from 'drizzle-orm'
 import { response_data, response_error, body } from './hono_utils'
 import { isUUID } from './isUUID'
@@ -22,14 +22,14 @@ import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { ClientSchema, SessionSchema, SessionCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, ClientCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody } from './shared/apiTypes'
+import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody } from './shared/apiTypes'
 import { getConfig } from './getConfig'
 import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
 import { getUsersCount } from './users'
 import { updateInboxes } from './updateInboxes'
 import { isInboxItemUnread } from './inboxItems'
-import { createClient, createClientAuthSession, getClientAuthSession, verifyJWT, findClientByExternalId } from './clientsAuth'
+import { createEndUser, createEndUserAuthSession, getEndUserAuthSession, verifyJWT, findEndUserByExternalId } from './endUsersAuth'
 import packageJson from '../package.json'
 import type { Transaction } from './types'
 import { normalizeItemSchema } from './shared/configUtils'
@@ -101,12 +101,12 @@ async function requireAuthSession(headers: Headers, options?: { admin?: boolean 
   return userSession
 }
 
-async function requireAuthSessionForUserOrClient(headers: Headers) {
-  const clientAuthSession = await getClientAuthSession({ headers })
+async function requireAuthSessionForUserOrEndUser(headers: Headers) {
+  const endUserAuthSession = await getEndUserAuthSession({ headers })
   const userAuthSession = await auth.api.getSession({ headers })
 
-  if (clientAuthSession) {
-    return { type: ('client' as const), session: clientAuthSession }
+  if (endUserAuthSession) {
+    return { type: ('endUser' as const), session: endUserAuthSession }
   }
   if (userAuthSession) {
     return { type: ('user' as const), session: userAuthSession }
@@ -148,19 +148,19 @@ function requireScoreConfig(itemConfig: ReturnType<typeof requireItemConfig>, sc
   return scoreConfig
 }
 
-async function requireSession(sessionId: string, auth: Awaited<ReturnType<typeof requireAuthSessionForUserOrClient>>) {
+async function requireSession(sessionId: string, auth: Awaited<ReturnType<typeof requireAuthSessionForUserOrEndUser>>) {
   const session = await fetchSession(sessionId)
   if (!session) {
     throw new HTTPException(404, { message: "Session not found" });
   }
 
-  if (auth.type === 'client') {
-    if (session.clientId !== auth.session.clientId) {
+  if (auth.type === 'endUser') {
+    if (session.endUserId !== auth.session.endUserId) {
       throw new HTTPException(404, { message: "Session not found" });
     }
   }
   else {
-    if (session.client.simulatedBy && !session.client.isShared && session.client.simulatedBy !== auth.session.user.id) {
+    if (session.endUser.simulatedBy && !session.endUser.isShared && session.endUser.simulatedBy !== auth.session.user.id) {
       throw new HTTPException(404, { message: "Session not found" });
     }
   }
@@ -176,23 +176,23 @@ async function requireSessionItem(session: Awaited<ReturnType<typeof requireSess
   return item as SessionItemWithCollaboration
 }
 
-async function requireClient(clientId?: string) {
-  if (!clientId) {
-    throw new HTTPException(400, { message: `Client id is required` });
+async function requireEndUser(endUserId?: string) {
+  if (!endUserId) {
+    throw new HTTPException(400, { message: `End user id is required` });
   }
 
-  if (!isUUID(clientId)) {
-    throw new HTTPException(400, { message: `Invalid client id: ${clientId}` });
+  if (!isUUID(endUserId)) {
+    throw new HTTPException(400, { message: `Invalid end user id: ${endUserId}` });
   }
 
-  const clientRow = await db.query.clients.findFirst({
-    where: eq(clients.id, clientId),
+  const endUser = await db.query.endUsers.findFirst({
+    where: eq(endUsers.id, endUserId),
   });
 
-  if (!clientRow) {
-    throw new HTTPException(404, { message: "Client not found" });
+  if (!endUser) {
+    throw new HTTPException(404, { message: "End user not found" });
   }
-  return clientRow
+  return endUser
 }
 
 async function requireCommentMessageFromUser(item: SessionItemWithCollaboration, commentId: string, user: BetterAuthUser) {
@@ -374,157 +374,155 @@ async function deleteComment(
 }
 
 
-/* --------- CLIENTS --------- */
+/* --------- END USERS --------- */
 
-// Client authentication endpoint
-const clientAuthRoute = createRoute({
+// // End user authentication endpoint (disabled for now)
+// const clientAuthRoute = createRoute({
+//   method: 'post',
+//   path: '/api/end-users/auth',
+//   request: {
+//     body: body(z.object({
+//       id_token: z.string().optional(),
+//     })),
+//   },
+//   responses: {
+//     200: response_data(z.object({
+//       token: z.string(),
+//       endUserId: z.string(),
+//       expiresAt: z.iso.date(),
+//     })),
+//     401: response_error(),
+//     404: response_error(),
+//   },
+// })
+
+// app.openapi(clientAuthRoute, async (c) => {
+//   const endUserSession = await getEndUserAuthSession({ headers: c.req.raw.headers })
+
+//   if (endUserSession) {
+//     return c.json({
+//       endUserId: endUserSession.endUserId,
+//       token: endUserSession.token,
+//       expiresAt: endUserSession.expiresAt,
+//     }, 200)
+//   }
+
+//   const endUser = await (async () => {
+//     const body = await c.req.valid('json')
+
+//     if (body.id_token) {
+//       const jwtPayload = verifyJWT(body.id_token)
+
+//       if (!jwtPayload) {
+//         throw new HTTPException(401, { message: "Can't verify this ID token." });
+//       }
+
+//       const existingClient = await  (jwtPayload.external_id)
+
+//       if (existingClient) {
+//         return existingClient
+//       } else {
+//         return await createEndUser(jwtPayload.external_id)
+//       }
+//     }
+
+//     return await createEndUser()
+//   })()
+
+//   const newendUsersession = await createEndUserAuthSession(endUser.id, {
+//     ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip'),
+//     userAgent: c.req.header('user-agent'),
+//   })
+
+//   return c.json({
+//     endUserId: client.id,
+//     token: newendUsersession.token,
+//     expiresAt: newendUsersession.expiresAt,
+//   }, 200)
+// })
+
+
+const endUsersPOSTRoute = createRoute({
   method: 'post',
-  path: '/api/clients/auth',
+  path: '/api/end-users',
   request: {
-    body: body(z.object({
-      id_token: z.string().optional(),
-    })),
+    body: body(EndUserCreateSchema)
   },
   responses: {
-    200: response_data(z.object({
-      token: z.string(),
-      clientId: z.string(),
-      expiresAt: z.iso.date(),
-    })),
-    401: response_error(),
-    404: response_error(),
+    201: response_data(EndUserSchema)
   },
 })
 
-app.openapi(clientAuthRoute, async (c) => {
-  const clientSession = await getClientAuthSession({ headers: c.req.raw.headers })
-
-  if (clientSession) {
-    return c.json({
-      clientId: clientSession.clientId,
-      token: clientSession.token,
-      expiresAt: clientSession.expiresAt,
-    }, 200)
-  }
-
-  const client = await (async () => {
-    const body = await c.req.valid('json')
-
-    if (body.id_token) {
-      const jwtPayload = verifyJWT(body.id_token)
-
-      if (!jwtPayload) {
-        throw new HTTPException(401, { message: "Can't verify this ID token." });
-      }
-
-      const existingClient = await findClientByExternalId(jwtPayload.external_id)
-
-      if (existingClient) {
-        return existingClient
-      } else {
-        return await createClient(jwtPayload.external_id)
-      }
-    }
-
-    return await createClient()
-  })()
-
-  const newClientSession = await createClientAuthSession(client.id, {
-    ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip'),
-    userAgent: c.req.header('user-agent'),
-  })
-
-  return c.json({
-    clientId: client.id,
-    token: newClientSession.token,
-    expiresAt: newClientSession.expiresAt,
-  }, 200)
-})
-
-
-// API Clients POST
-const apiClientsPOSTRoute = createRoute({
-  method: 'post',
-  path: '/api/clients',
-  request: {
-    body: body(ClientCreateSchema)
-  },
-  responses: {
-    201: response_data(ClientSchema)
-  },
-})
-
-app.openapi(apiClientsPOSTRoute, async (c) => {
+app.openapi(endUsersPOSTRoute, async (c) => {
   const authSession = await requireAuthSession(c.req.raw.headers)
 
   const body = await c.req.valid('json')
 
-  const [newClient] = await db.insert(clients).values({
+  const [newEndUser] = await db.insert(endUsers).values({
     simulatedBy: authSession.user.id,
     isShared: body.isShared,
+    externalId: body.externalId,
   }).returning();
 
-  return c.json(newClient, 201);
+  return c.json(newEndUser, 201);
 })
 
-// Client GET
-const clientGETRoute = createRoute({
+const endUserGETRoute = createRoute({
   method: 'get',
-  path: '/api/clients/{id}',
+  path: '/api/end-users/{id}',
   request: {
     params: z.object({
       id: z.string(),
     }),
   },
   responses: {
-    200: response_data(ClientSchema),
+    200: response_data(EndUserSchema),
     404: response_error()
   },
 })
 
-app.openapi(clientGETRoute, async (c) => {
+app.openapi(endUserGETRoute, async (c) => {
   await requireAuthSession(c.req.raw.headers)
 
   const { id } = c.req.param()
 
-  const clientRow = await db.query.clients.findFirst({
-    where: eq(clients.id, id),
-  });
+  const endUser = await requireEndUser(id)
 
-  if (!clientRow) {
-    return c.json({ message: "Client not found" }, 404);
-  }
-
-  return c.json(clientRow, 200);
+  return c.json(endUser, 200);
 })
 
-const apiClientsPUTRoute = createRoute({
+const apiEndUsersPUTRoute = createRoute({
   method: 'put',
-  path: '/api/clients/{clientId}',
+  path: '/api/end-users/{endUserId}',
   request: {
-    body: body(ClientCreateSchema)
+    body: body(EndUserCreateSchema)
   },
   responses: {
-    200: response_data(ClientSchema)
+    200: response_data(EndUserSchema)
   },
 })
 
-app.openapi(apiClientsPUTRoute, async (c) => {
+app.openapi(apiEndUsersPUTRoute, async (c) => {
   const authSession = await requireAuthSession(c.req.raw.headers)
 
   const body = await c.req.valid('json')
-  const { clientId } = c.req.param()
+  const { endUserId } = c.req.param()
 
-  const clientRow = await requireClient(clientId)
+  const endUser = await requireEndUser(endUserId)
 
-  if (clientRow.simulatedBy !== authSession.user.id) {
+  if (endUser.simulatedBy && endUser.simulatedBy !== authSession.user.id) {
     throw new HTTPException(401, { message: "Unauthorized" });
   }
 
-  const [updatedClient] = await db.update(clients).set(body).where(eq(clients.id, clientId)).returning();
+  const [updatedEndUser] = await db.update(endUsers).set(body).where(eq(endUsers.id, endUserId)).returning();
 
-  return c.json(updatedClient, 200);
+  return c.json(updatedEndUser, 200);
 })
+
+
+/**
+ * SESSIONS
+ */
 
 
 const SessionsGetQueryParamsSchema = z.object({
@@ -534,7 +532,7 @@ const SessionsGetQueryParamsSchema = z.object({
   limit: z.string().optional(),
 })
 
-function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchema>, clientId?: string) {
+function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchema>, endUserId?: string) {
   const { agent, list = "real" } = params;
 
   const filters: any[] = []
@@ -544,16 +542,16 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
   }
 
   if (list === "real") {
-    filters.push(isNull(clients.simulatedBy));
+    filters.push(isNull(endUsers.simulatedBy));
   }
   else if (list === "simulated_shared") {
-    filters.push(and(isNotNull(clients.simulatedBy), eq(clients.isShared, true)));
+    filters.push(and(isNotNull(endUsers.simulatedBy), eq(endUsers.isShared, true)));
   }
   else if (list === "simulated_private") {
-    if (!clientId) {
-      throw new Error("Client ID not given for simulated_private list")
+    if (!endUserId) {
+      throw new Error("End user ID not given for simulated_private list")
     }
-    filters.push(and(eq(clients.simulatedBy, clientId), eq(clients.isShared, false)));
+    filters.push(and(eq(endUsers.simulatedBy, endUserId), eq(endUsers.isShared, false)));
   }
 
   return and(...filters);
@@ -571,7 +569,7 @@ const sessionsGETRoute = createRoute({
   },
 })
 
-async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>, clientId: string) {
+async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>, endUserId: string) {
   const DEFAULT_LIMIT = 10
   const DEFAULT_PAGE = 1
 
@@ -583,8 +581,8 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
   const totalCountResult = await db
     .select({ count: sql<number>`count(*)` })
     .from(sessions)
-    .leftJoin(clients, eq(sessions.clientId, clients.id))
-    .where(getSessionListFilter(params, clientId));
+    .leftJoin(endUsers, eq(sessions.endUserId, endUsers.id))
+    .where(getSessionListFilter(params, endUserId));
 
   const totalCount = totalCountResult[0]?.count ?? 0;
 
@@ -592,8 +590,8 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
   const result = await db
     .select()
     .from(sessions)
-    .leftJoin(clients, eq(sessions.clientId, clients.id))
-    .where(getSessionListFilter(params, clientId))
+    .leftJoin(endUsers, eq(sessions.endUserId, endUsers.id))
+    .where(getSessionListFilter(params, endUserId))
     .orderBy(desc(sessions.updatedAt))
     .limit(limit)
     .offset(offset);
@@ -607,8 +605,8 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
     updatedAt: row.sessions.updatedAt,
     context: row.sessions.context,
     agent: row.sessions.agent,
-    client: row.clients!,
-    clientId: row.clients!.id,
+    endUser: row.end_users!,
+    endUserId: row.end_users!.id,
   }));
 
   // Calculate pagination metadata
@@ -633,11 +631,11 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
 }
 
 app.openapi(sessionsGETRoute, async (c) => {
-  const auth = await requireAuthSessionForUserOrClient(c.req.raw.headers)
+  const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers)
   const params = c.req.query();
-  const clientId = auth.type === 'client' ? auth.session.client.id : auth.session.user.id;
+  const endUserId = auth.type === 'endUser' ? auth.session.endUser.id : auth.session.user.id;
 
-  return c.json(await getSessions(params, clientId), 200);
+  return c.json(await getSessions(params, endUserId), 200);
 })
 
 
@@ -674,7 +672,7 @@ app.openapi(sessionsGETStatsRoute, async (c) => {
     })
     .from(inboxItems)
     .leftJoin(sessions, eq(inboxItems.sessionId, sessions.id))
-    .leftJoin(clients, eq(sessions.clientId, clients.id))
+    .leftJoin(endUsers, eq(sessions.endUserId, endUsers.id))
     .where(
       and(
         eq(inboxItems.userId, authSession.user.id),
@@ -696,7 +694,7 @@ app.openapi(sessionsGETStatsRoute, async (c) => {
     const sessionRows = await db.query.sessions.findMany({
       where: inArray(sessions.id, sessionIds),
       with: {
-        client: true,
+        endUser: true,
         inboxItems: {
           where: eq(inboxItems.userId, authSession.user.id),
         },
@@ -750,14 +748,14 @@ app.openapi(sessionsPOSTRoute, async (c) => {
 
   const config = await requireConfig()
   const agentConfig = await requireAgentConfig(config, body.agent)
-  const auth = await requireAuthSessionForUserOrClient(c.req.raw.headers)
+  const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers)
 
   const client = await (async () => {
-    if (auth.type === 'client') {
-      return auth.session.client
+    if (auth.type === 'endUser') {
+      return auth.session.endUser
     }
     else {
-      return await requireClient(body.clientId)
+      return await requireEndUser(body.endUserId)
     }
   })()
 
@@ -774,7 +772,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
   }
 
   const newSession = await db.transaction(async (tx) => {
-    const handleSuffix = auth.type === 'client' ? "" : "s";
+    const handleSuffix = auth.type === 'endUser' ? "" : "s";
 
     const sessionWithHighestHandleNumber = await tx.query.sessions.findFirst({
       orderBy: (sessions, { desc }) => [desc(sessions.handleNumber)],
@@ -788,10 +786,10 @@ app.openapi(sessionsPOSTRoute, async (c) => {
       handleSuffix: handleSuffix,
       context: body.context,
       agent: body.agent,
-      clientId: client.id
+      endUserId: client.id
     }).returning();
 
-    // add event (only for users, not clients)
+    // add event (only for users, not endUsers)
     if (auth.type === 'user') {
       const [event] = await tx.insert(events).values({
         type: 'session_created',
@@ -809,7 +807,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
       await updateInboxes(tx, event, newSession, null);
       return newSession;
     } else {
-      // For clients, just return the session without events/inboxes
+      // For endUsers, just return the session without events/inboxes
       return await fetchSession(newSessionRow.id, tx);
     }
   });
@@ -832,13 +830,12 @@ const sessionGETRoute = createRoute({
 })
 
 app.openapi(sessionGETRoute, async (c) => {
-  const auth = await requireAuthSessionForUserOrClient(c.req.raw.headers)
+  const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers)
   const { sessionId } = c.req.param()
 
   const session = await requireSession(sessionId, auth);
   return c.json(session, 200);
 })
-
 
 const sessionSeenRoute = createRoute({
   method: 'post',
@@ -895,7 +892,7 @@ const runsPOSTRoute = createRoute({
 })
 
 app.openapi(runsPOSTRoute, async (c) => {
-  const auth = await requireAuthSessionForUserOrClient(c.req.raw.headers);
+  const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers);
 
   const { sessionId } = c.req.param()
   const { input } = await c.req.valid('json')
@@ -1133,7 +1130,7 @@ const runDetailsGETRoute = createRoute({
 })
 
 app.openapi(runDetailsGETRoute, async (c) => {
-  const auth = await requireAuthSessionForUserOrClient(c.req.raw.headers);
+  const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers);
 
   const { sessionId, runId } = c.req.param();
 
@@ -1171,7 +1168,7 @@ const runCancelRoute = createRoute({
 });
 
 app.openapi(runCancelRoute, async (c) => {
-  const auth = await requireAuthSessionForUserOrClient(c.req.raw.headers);
+  const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers);
 
   const { sessionId } = c.req.param();
 
@@ -1212,7 +1209,7 @@ const runWatchRoute = createRoute({
 
 // @ts-ignore don't know how to fix this with hono yet
 app.openapi(runWatchRoute, async (c) => {
-  const auth = await requireAuthSessionForUserOrClient(c.req.raw.headers);
+  const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers);
 
   const { sessionId } = c.req.param()
 

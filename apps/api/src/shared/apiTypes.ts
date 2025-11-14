@@ -1,21 +1,25 @@
 import z from 'zod'
 
 
-export const ClientSchema = z.object({
+export const EndUserSchema = z.object({
     id: z.string(),
+    externalId: z.string().nullable(),
     createdAt: z.iso.date(),
     updatedAt: z.iso.date(),
     simulatedBy: z.string().nullable(),
     isShared: z.boolean(),
 })
 
-export type Client = z.infer<typeof ClientSchema>
+export type EndUser = z.infer<typeof EndUserSchema>
 
-export const ClientCreateSchema = ClientSchema.pick({
+export const EndUserCreateSchema = EndUserSchema.pick({
     isShared: true,
+    externalId: true,
 }).partial()
 
-export type ClientCreate = z.infer<typeof ClientCreateSchema>
+export type EndUserCreate = z.infer<typeof EndUserCreateSchema>
+
+
 
 export const InvitationSchema = z.object({
     id: z.string(),
@@ -126,8 +130,8 @@ export const SessionBaseSchema = z.object({
     updatedAt: z.iso.date(),
     context: z.any(),
     agent: z.string(),
-    client: ClientSchema,
-    clientId: z.string(), // potential bloat
+    endUser: EndUserSchema,
+    endUserId: z.string(), // potential bloat
 })
 
 export type SessionBase = z.infer<typeof SessionBaseSchema>
@@ -148,7 +152,7 @@ export const SessionCreateSchema = SessionBaseSchema.pick({
     agent: true,
     context: true,
 }).extend({
-    clientId: z.string().optional(),
+    endUserId: z.string().optional(),
     isShared: z.boolean().optional(),
 })
 
@@ -158,23 +162,6 @@ export const ScoreCreateSchema = ScoreSchema.pick({
     value: true,
     commentId: true,
 })
-
-
-
-// const input = {
-//     session: {
-//       id: session.id,
-//       createdAt: session.createdAt,
-//       updatedAt: session.updatedAt,
-//       context: session.context,
-//       clientId: session.clientId,
-//       agent: session.agent,
-//       items: getAllSessionItems(session),
-//       state
-//     },
-//     input: userItem
-//   }
-
 
 
 

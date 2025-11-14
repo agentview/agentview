@@ -12,17 +12,6 @@ export const invitations = pgTable("invitations", {
   invitedBy: text('invited_by').references(() => users.id, { onDelete: 'cascade' })
 });
 
-// Channels table for managing different communication channels
-// export const channels = pgTable("channels", {
-//   id: uuid("id").primaryKey().defaultRandom(),
-//   type: varchar({ length: 255 }).notNull(), // 'slack', 'email', 'whatsapp', 'web_chat', etc.
-//   name: varchar({ length: 255 }).notNull(),
-//   config: jsonb("config"),
-//   enabled: boolean("enabled").notNull().default(true),
-//   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-//   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-// });
-
 export const emails = pgTable("emails", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").references(() => users.id),
@@ -38,17 +27,18 @@ export const emails = pgTable("emails", {
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 
-export const clients = pgTable("clients", {
+export const endUsers = pgTable("end_users", {
   id: uuid("id").primaryKey().defaultRandom(),
+  externalId: varchar("external_id", { length: 255 }),
+
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   simulatedBy: text('simulated_by').references(() => users.id, { onDelete: 'set null' }),
   isShared: boolean("is_shared").notNull().default(false),
   
-  external_id: varchar("external_id", { length: 255 }),
-}, (table) => [uniqueIndex('client_external_id_unique').on(table.external_id)]);
+}, (table) => [uniqueIndex('end_user_external_id_unique').on(table.externalId)]);
 
-export const clientAuthSessions = pgTable("client_auth_sessions", {
+export const endUserAuthSessions = pgTable("end_user_auth_sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
   expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
   token: text("token").notNull().unique(),
@@ -56,9 +46,9 @@ export const clientAuthSessions = pgTable("client_auth_sessions", {
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
-  clientId: uuid("client_id")
+  endUserId: uuid("end_user_id")
     .notNull()
-    .references(() => clients.id, { onDelete: "cascade" })
+    .references(() => endUsers.id, { onDelete: "cascade" })
 });
 
 export const sessions = pgTable("sessions", {
@@ -68,7 +58,7 @@ export const sessions = pgTable("sessions", {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   context: jsonb("data"),
-  clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  endUserId: uuid("end_user_id").notNull().references(() => endUsers.id, { onDelete: 'cascade' }),
   agent: varchar("agent", { length: 255 }).notNull(),
 }, (table) => [uniqueIndex('sessions_handle_unique').on(table.handleNumber, table.handleSuffix)]);
 
@@ -206,25 +196,25 @@ export const configs = pgTable('configs', {
 export const sessionRelations = relations(sessions, ({ many, one }) => ({
   sessionItems: many(sessionItems),
   runs: many(runs),
-  client: one(clients, {
-    fields: [sessions.clientId],
-    references: [clients.id],
+  endUser: one(endUsers, {
+    fields: [sessions.endUserId],
+    references: [endUsers.id],
   }),
   inboxItems: many(inboxItems),
 }));
 
-export const clientRelations = relations(clients, ({ many, one }) => ({
+export const endUserRelations = relations(endUsers, ({ many, one }) => ({
   sessions: many(sessions),
   simulatedBy: one(users, {
-    fields: [clients.simulatedBy],
+    fields: [endUsers.simulatedBy],
     references: [users.id],
   }),
 }));
 
-export const clientAuthSessionsRelations = relations(clientAuthSessions, ({ one }) => ({
-  client: one(clients, {
-    fields: [clientAuthSessions.clientId],
-    references: [clients.id],
+export const endUserAuthSessionsRelations = relations(endUserAuthSessions, ({ one }) => ({
+  endUser: one(endUsers, {
+    fields: [endUserAuthSessions.endUserId],
+    references: [endUsers.id],
   }),
 }));
 
@@ -368,8 +358,8 @@ export const schema = {
 
   emails,
 
-  clients,
-  clientAuthSessions,
+  endUsers,
+  endUserAuthSessions,
   sessions,
   sessionItems,
   versions,
@@ -383,9 +373,9 @@ export const schema = {
   inboxItems,
   configs,
 
-  clientAuthSessionsRelations,
+  endUserAuthSessionsRelations,
   sessionRelations,
-  clientRelations,
+  endUserRelations,
   versionsRelations,
   runRelations,
   sessionItemsRelations,

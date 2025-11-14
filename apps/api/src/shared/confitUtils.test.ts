@@ -119,14 +119,15 @@ function createSession(items: any[]): Session {
         updatedAt: new Date().toISOString(),
         context: {},
         agent: 'test',
-        client: {
+        endUser: {
             id: '1',
+            externalId: 'xxx',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             simulatedBy: null,
             isShared: false,
         },
-        clientId: 'xxx',
+        endUserId: 'xxx',
         runs: [
             {
                 id: "run1",
