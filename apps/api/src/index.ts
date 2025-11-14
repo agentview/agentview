@@ -130,7 +130,7 @@ function requireAgentConfig(config: BaseAgentViewConfig, name: string) {
   return agentConfig
 }
 
-function requireItemConfig(agentConfig: ReturnType<typeof requireAgentConfig>, session: Session, contentOrId: object | string, itemType?: "input" | "output" | "step") {  
+function requireItemConfig(agentConfig: ReturnType<typeof requireAgentConfig>, session: Session, contentOrId: object | string, itemType?: "input" | "output" | "step") {
   let itemConfig = findItemConfig(agentConfig, session, contentOrId, itemType);
 
   if (!itemConfig) {
@@ -168,7 +168,7 @@ async function requireSession(sessionId: string, auth: Awaited<ReturnType<typeof
   return session
 }
 
-async function requireSessionItem(session: Awaited<ReturnType<typeof requireSession>>, itemId: string) : Promise<SessionItemWithCollaboration> {
+async function requireSessionItem(session: Awaited<ReturnType<typeof requireSession>>, itemId: string): Promise<SessionItemWithCollaboration> {
   const item = getAllSessionItems(session).find((a) => a.id === itemId)
   if (!item) {
     throw new HTTPException(404, { message: "Session item not found" });
@@ -528,13 +528,18 @@ app.openapi(apiEndUsersPUTRoute, async (c) => {
 
 const SessionsGetQueryParamsSchema = z.object({
   agent: z.string().optional(),
-  list: z.enum(allowedSessionLists).optional(),
   page: z.string().optional(),
   limit: z.string().optional(),
+
+  endUserId: z.string().optional(),
+  list: z.enum(allowedSessionLists).optional(),
 })
 
-function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchema>, endUserId?: string) {
-  const { agent, list = "real" } = params;
+const DEFAULT_LIMIT = 50
+const DEFAULT_PAGE = 1
+
+function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchema>, auth: Awaited<ReturnType<typeof requireAuthSessionForUserOrEndUser>>) {
+  const { agent, list, endUserId } = params;
 
   const filters: any[] = []
 
@@ -542,38 +547,38 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
     filters.push(eq(sessions.agent, agent));
   }
 
-  if (list === "real") {
-    filters.push(isNull(endUsers.simulatedBy));
-  }
-  else if (list === "simulated_shared") {
-    filters.push(and(isNotNull(endUsers.simulatedBy), eq(endUsers.isShared, true)));
-  }
-  else if (list === "simulated_private") {
-    if (!endUserId) {
-      throw new Error("End user ID not given for simulated_private list")
+  // List
+  if (list) {
+    if (auth.type === 'user') {
+      if (list === "playground_shared") {
+        filters.push(and(isNotNull(endUsers.simulatedBy), eq(endUsers.isShared, true)));
+      }
+      else if (list === "playground_private") {
+        filters.push(and(eq(endUsers.simulatedBy, auth.session.user.id), eq(endUsers.isShared, false)));
+      }
+      else { // default "prod"
+        filters.push(isNull(endUsers.simulatedBy));
+      }
     }
-    filters.push(and(eq(endUsers.simulatedBy, endUserId), eq(endUsers.isShared, false)));
+    else if (auth.type === 'endUser') {
+      throw new HTTPException(401, { message: "Unauthorized to use 'list' param." });
+    }
   }
 
+  // End user
+  if (endUserId) {
+    if (auth.type === 'user') {
+      filters.push(eq(endUsers.id, endUserId));
+    }
+    else if (auth.type === 'endUser') {
+      throw new HTTPException(401, { message: "Unauthorized to use 'endUserId' param." });
+    }
+  }
+  
   return and(...filters);
 }
 
-const sessionsGETRoute = createRoute({
-  method: 'get',
-  path: '/api/sessions',
-  request: {
-    query: SessionsGetQueryParamsSchema,
-  },
-  responses: {
-    200: response_data(SessionsPaginatedResponseSchema),
-    401: response_error(),
-  },
-})
-
-async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>, endUserId: string) {
-  const DEFAULT_LIMIT = 10
-  const DEFAULT_PAGE = 1
-
+async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>, auth: Awaited<ReturnType<typeof requireAuthSessionForUserOrEndUser>>) {
   const limit = Math.max(parseInt(params.limit ?? DEFAULT_LIMIT.toString()) || DEFAULT_LIMIT, 1);
   const page = Math.max(parseInt(params.page ?? DEFAULT_PAGE.toString()) || DEFAULT_PAGE, 1);
   const offset = (page - 1) * limit;
@@ -583,7 +588,7 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
     .select({ count: sql<number>`count(*)` })
     .from(sessions)
     .leftJoin(endUsers, eq(sessions.endUserId, endUsers.id))
-    .where(getSessionListFilter(params, endUserId));
+    .where(getSessionListFilter(params, auth));
 
   const totalCount = totalCountResult[0]?.count ?? 0;
 
@@ -592,12 +597,10 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
     .select()
     .from(sessions)
     .leftJoin(endUsers, eq(sessions.endUserId, endUsers.id))
-    .where(getSessionListFilter(params, endUserId))
+    .where(getSessionListFilter(params, auth))
     .orderBy(desc(sessions.updatedAt))
     .limit(limit)
     .offset(offset);
-
-
 
   const sessionsResult = result.map((row) => ({
     id: row.sessions.id,
@@ -631,13 +634,42 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
   };
 }
 
+const sessionsGETRoute = createRoute({
+  method: 'get',
+  path: '/api/sessions',
+  request: {
+    query: SessionsGetQueryParamsSchema,
+  },
+  responses: {
+    200: response_data(SessionsPaginatedResponseSchema),
+    401: response_error(),
+  },
+})
+
 app.openapi(sessionsGETRoute, async (c) => {
   const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers)
   const params = c.req.query();
-  const endUserId = auth.type === 'endUser' ? auth.session.endUser.id : auth.session.user.id;
+  
+  const sessions = await getSessions(params, auth)
 
-  return c.json(await getSessions(params, endUserId), 200);
+  return c.json(sessions, 200);
 })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 type StatsResponse = {
@@ -910,7 +942,7 @@ app.openapi(runsPOSTRoute, async (c) => {
   }
 
   // Create user item and run
-  const userItem : SessionItem = await db.transaction(async (tx) => {
+  const userItem: SessionItem = await db.transaction(async (tx) => {
 
     const [newRun] = await tx.insert(runs).values({
       sessionId: sessionId,
@@ -942,7 +974,7 @@ app.openapi(runsPOSTRoute, async (c) => {
 
   (async () => {
 
-    const runBody : RunBody = {
+    const runBody: RunBody = {
       session: {
         ...session,
         runs: session.runs.filter((run) => run.status === 'completed').map((run) => ({
@@ -1268,7 +1300,7 @@ app.openapi(runWatchRoute, async (c) => {
       // check for state change
       const runFieldsToCompare = ['id', 'createdAt', 'finishedAt', 'sessionId', 'versionId', 'status', 'failReason', 'version', 'metadata'] as const;
       const changedFields: Partial<typeof lastRun> = {};
-      
+
       for (const field of runFieldsToCompare) {
         if (JSON.stringify(previousRun[field]) !== JSON.stringify(lastRun[field])) {
           changedFields[field] = lastRun[field];
@@ -1287,7 +1319,7 @@ app.openapi(runWatchRoute, async (c) => {
           ...changedFields,
         };
       }
-      
+
       // End if run is no longer in_progress
       if (lastRun?.status !== 'in_progress') {
         break;

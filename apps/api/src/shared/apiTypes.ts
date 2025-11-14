@@ -197,7 +197,7 @@ export type User = z.infer<typeof UserSchema>
 
 export type UserUpdate = z.infer<typeof UserUpdateSchema>
 
-export const allowedSessionLists = ["real", "simulated_private", "simulated_shared"]
+export const allowedSessionLists = ["prod", "playground_private", "playground_shared"]
 
 export const PaginationSchema = z.object({
   page: z.number(),
