@@ -108,18 +108,6 @@ export const auth = betterAuth({
                         image: image
                     }).where(eq(users.email, ctx.body.email))
                 }
-
-                const cookie = ctx.context.responseHeaders!.get("set-cookie")?.split(";")[0]!;
-                const headers = new Headers();
-                headers.set("Cookie", cookie);
-
-                await auth.api.createApiKey({
-                    body: {
-                        name: 'main',
-                        expiresIn: 60 * 60 * 24 * 365
-                    },
-                    headers
-                });
             }
         })
     },
