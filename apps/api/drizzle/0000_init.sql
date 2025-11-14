@@ -1,24 +1,3 @@
-CREATE TABLE "client_auth_sessions" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"expires_at" timestamp with time zone NOT NULL,
-	"token" text NOT NULL,
-	"created_at" timestamp with time zone NOT NULL,
-	"updated_at" timestamp with time zone NOT NULL,
-	"ip_address" text,
-	"user_agent" text,
-	"client_id" uuid NOT NULL,
-	CONSTRAINT "client_auth_sessions_token_unique" UNIQUE("token")
-);
---> statement-breakpoint
-CREATE TABLE "clients" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"simulated_by" text,
-	"is_shared" boolean DEFAULT false NOT NULL,
-	"external_id" varchar(255)
-);
---> statement-breakpoint
 CREATE TABLE "comment_mentions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"comment_message_id" uuid NOT NULL,
@@ -64,6 +43,27 @@ CREATE TABLE "emails" (
 	"reply_to" varchar(255),
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "end_user_auth_sessions" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
+	"token" text NOT NULL,
+	"created_at" timestamp with time zone NOT NULL,
+	"updated_at" timestamp with time zone NOT NULL,
+	"ip_address" text,
+	"user_agent" text,
+	"end_user_id" uuid NOT NULL,
+	CONSTRAINT "end_user_auth_sessions_token_unique" UNIQUE("token")
+);
+--> statement-breakpoint
+CREATE TABLE "end_users" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"external_id" varchar(255),
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"simulated_by" text,
+	"is_shared" boolean DEFAULT false NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "events" (
@@ -141,7 +141,7 @@ CREATE TABLE "sessions" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"data" jsonb,
-	"client_id" uuid NOT NULL,
+	"end_user_id" uuid NOT NULL,
 	"agent" varchar(255) NOT NULL
 );
 --> statement-breakpoint
@@ -206,8 +206,6 @@ CREATE TABLE "verifications" (
 	"updated_at" timestamp
 );
 --> statement-breakpoint
-ALTER TABLE "client_auth_sessions" ADD CONSTRAINT "client_auth_sessions_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "clients" ADD CONSTRAINT "clients_simulated_by_users_id_fk" FOREIGN KEY ("simulated_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "comment_mentions" ADD CONSTRAINT "comment_mentions_comment_message_id_comment_messages_id_fk" FOREIGN KEY ("comment_message_id") REFERENCES "public"."comment_messages"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "comment_mentions" ADD CONSTRAINT "comment_mentions_mentioned_user_id_users_id_fk" FOREIGN KEY ("mentioned_user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "comment_message_edits" ADD CONSTRAINT "comment_message_edits_comment_message_id_comment_messages_id_fk" FOREIGN KEY ("comment_message_id") REFERENCES "public"."comment_messages"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -216,6 +214,8 @@ ALTER TABLE "comment_messages" ADD CONSTRAINT "comment_messages_user_id_users_id
 ALTER TABLE "comment_messages" ADD CONSTRAINT "comment_messages_deleted_by_users_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "configs" ADD CONSTRAINT "configs_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "emails" ADD CONSTRAINT "emails_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "end_user_auth_sessions" ADD CONSTRAINT "end_user_auth_sessions_end_user_id_end_users_id_fk" FOREIGN KEY ("end_user_id") REFERENCES "public"."end_users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "end_users" ADD CONSTRAINT "end_users_simulated_by_users_id_fk" FOREIGN KEY ("simulated_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "events" ADD CONSTRAINT "events_author_id_users_id_fk" FOREIGN KEY ("author_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "inbox_items" ADD CONSTRAINT "inbox_items_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "inbox_items" ADD CONSTRAINT "inbox_items_session_item_id_session_items_id_fk" FOREIGN KEY ("session_item_id") REFERENCES "public"."session_items"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -231,9 +231,9 @@ ALTER TABLE "scores" ADD CONSTRAINT "scores_created_by_users_id_fk" FOREIGN KEY 
 ALTER TABLE "scores" ADD CONSTRAINT "scores_deleted_by_users_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session_items" ADD CONSTRAINT "session_items_session_id_sessions_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."sessions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session_items" ADD CONSTRAINT "session_items_run_id_runs_id_fk" FOREIGN KEY ("run_id") REFERENCES "public"."runs"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "sessions" ADD CONSTRAINT "sessions_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "sessions" ADD CONSTRAINT "sessions_end_user_id_end_users_id_fk" FOREIGN KEY ("end_user_id") REFERENCES "public"."end_users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "auth_sessions" ADD CONSTRAINT "auth_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "client_external_id_unique" ON "clients" USING btree ("external_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "end_user_external_id_unique" ON "end_users" USING btree ("external_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "sessions_handle_unique" ON "sessions" USING btree ("handle_number","handle_suffix");--> statement-breakpoint
 CREATE UNIQUE INDEX "version_env_unique" ON "versions" USING btree ("version","env");
