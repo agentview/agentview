@@ -22,7 +22,7 @@ import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody } from './shared/apiTypes'
+import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema } from './shared/apiTypes'
 import { getConfig } from './getConfig'
 import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
@@ -787,7 +787,7 @@ const sessionGETRoute = createRoute({
     }),
   },
   responses: {
-    200: response_data(SessionSchema),
+    200: response_data(SessionWithCollaborationSchema),
     404: response_error()
   },
 })
@@ -820,13 +820,19 @@ app.openapi(publicSessionGETRoute, async (c) => {
   const { session_id } = c.req.param()
 
   const session = await requireSession(session_id, { type: 'endUser', session: endUserAuthSession });
-  return c.json(session, 200);
+
+  const sessionWithoutCollaboration = {
+    ...session,
+    runs: session.runs.map((run) => ({
+      ...run,
+      items: run.items.map(({ commentMessages, scores, ...item }) => ({
+        ...item
+      })),
+    }))
+  }
+  
+  return c.json(sessionWithoutCollaboration, 200);
 })
-
-
-
-
-
 
 
 const sessionsPOSTRoute = createRoute({
@@ -846,16 +852,9 @@ app.openapi(sessionsPOSTRoute, async (c) => {
 
   const config = await requireConfig()
   const agentConfig = await requireAgentConfig(config, body.agent)
-  const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers)
+  const authSession = await requireAuthSession(c.req.raw.headers)
 
-  const client = await (async () => {
-    if (auth.type === 'endUser') {
-      return auth.session.endUser
-    }
-    else {
-      return await requireEndUser(body.endUserId)
-    }
-  })()
+  const endUser = await requireEndUser(body.endUserId);
 
   // Validate context against the schema
   if (agentConfig.context) {
@@ -870,7 +869,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
   }
 
   const newSession = await db.transaction(async (tx) => {
-    const handleSuffix = auth.type === 'endUser' ? "" : "s";
+    const handleSuffix = endUser.simulatedBy ? "s" : "";
 
     const sessionWithHighestHandleNumber = await tx.query.sessions.findFirst({
       orderBy: (sessions, { desc }) => [desc(sessions.handleNumber)],
@@ -884,14 +883,13 @@ app.openapi(sessionsPOSTRoute, async (c) => {
       handleSuffix: handleSuffix,
       context: body.context,
       agent: body.agent,
-      endUserId: client.id
+      endUserId: endUser.id
     }).returning();
 
     // add event (only for users, not endUsers)
-    if (auth.type === 'user') {
       const [event] = await tx.insert(events).values({
         type: 'session_created',
-        authorId: auth.session.user.id,
+        authorId: authSession.user.id,
         payload: {
           session_id: newSessionRow.id,
         }
@@ -904,10 +902,6 @@ app.openapi(sessionsPOSTRoute, async (c) => {
 
       await updateInboxes(tx, event, newSession, null);
       return newSession;
-    } else {
-      // For endUsers, just return the session without events/inboxes
-      return await fetchSession(newSessionRow.id, tx);
-    }
   });
 
   return c.json(newSession, 201);
@@ -969,12 +963,12 @@ const runsPOSTRoute = createRoute({
 })
 
 app.openapi(runsPOSTRoute, async (c) => {
-  const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers);
+  const authSession = await requireAuthSession(c.req.raw.headers);
 
   const { sessionId } = c.req.param()
   const { input } = await c.req.valid('json')
 
-  const session = await requireSession(sessionId, auth)
+  const session = await requireSession(sessionId, { type: 'user', session: authSession });
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
   const itemConfig = requireItemConfig(agentConfig, session, input, "input")
@@ -1189,43 +1183,43 @@ app.openapi(runsPOSTRoute, async (c) => {
   return c.json(newRun, 201);
 })
 
-// Get run response details
-const runDetailsGETRoute = createRoute({
-  method: 'get',
-  path: '/api/sessions/{sessionId}/runs/{runId}/details',
-  request: {
-    params: z.object({
-      sessionId: z.string(),
-      runId: z.string(),
-    }),
-  },
-  responses: {
-    200: response_data(z.any()),
-    401: response_error(),
-    404: response_error(),
-  },
-})
+// // Get run response details
+// const runDetailsGETRoute = createRoute({
+//   method: 'get',
+//   path: '/api/sessions/{sessionId}/runs/{runId}/details',
+//   request: {
+//     params: z.object({
+//       sessionId: z.string(),
+//       runId: z.string(),
+//     }),
+//   },
+//   responses: {
+//     200: response_data(z.any()),
+//     401: response_error(),
+//     404: response_error(),
+//   },
+// })
 
-app.openapi(runDetailsGETRoute, async (c) => {
-  const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers);
+// app.openapi(runDetailsGETRoute, async (c) => {
+//   const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers);
 
-  const { sessionId, runId } = c.req.param();
+//   const { sessionId, runId } = c.req.param();
 
-  await requireSession(sessionId, auth);
+//   await requireSession(sessionId, auth);
 
-  const runRow = await db.query.runs.findFirst({
-    where: and(
-      eq(runs.id, runId),
-      eq(runs.sessionId, sessionId),
-    ),
-  });
+//   const runRow = await db.query.runs.findFirst({
+//     where: and(
+//       eq(runs.id, runId),
+//       eq(runs.sessionId, sessionId),
+//     ),
+//   });
 
-  if (!runRow) {
-    return c.json({ message: 'Run not found' }, 404);
-  }
+//   if (!runRow) {
+//     return c.json({ message: 'Run not found' }, 404);
+//   }
 
-  return c.json(runRow.responseData ?? null, 200);
-})
+//   return c.json(runRow.responseData ?? null, 200);
+// })
 
 
 // Cancel Run Endpoint
