@@ -101,18 +101,34 @@ async function requireAuthSession(headers: Headers, options?: { admin?: boolean 
   return userSession
 }
 
-async function requireAuthSessionForUserOrEndUser(headers: Headers) {
+async function requireEndUserAuthSession(headers: Headers) {
   const endUserAuthSession = await getEndUserAuthSession({ headers })
-  const userAuthSession = await auth.api.getSession({ headers })
-
-  if (endUserAuthSession) {
-    return { type: ('endUser' as const), session: endUserAuthSession }
+  if (!endUserAuthSession) {
+    throw new HTTPException(401, { message: "Unauthorized" });
   }
-  if (userAuthSession) {
-    return { type: ('user' as const), session: userAuthSession }
-  }
-  throw new HTTPException(401, { message: "Unauthorized" });
+  return endUserAuthSession
 }
+
+type UniversalAuthSession = {
+  type: 'user',
+  session: Awaited<ReturnType<typeof requireAuthSession>>
+} | {
+  type: 'endUser',
+  session: Awaited<ReturnType<typeof requireEndUserAuthSession>>
+}
+
+// async function requireAuthSessionForUserOrEndUser(headers: Headers) {
+//   const endUserAuthSession = await getEndUserAuthSession({ headers })
+//   const userAuthSession = await auth.api.getSession({ headers })
+
+//   if (endUserAuthSession) {
+//     return { type: ('endUser' as const), session: endUserAuthSession }
+//   }
+//   if (userAuthSession) {
+//     return { type: ('user' as const), session: userAuthSession }
+//   }
+//   throw new HTTPException(401, { message: "Unauthorized" });
+// }
 
 async function requireConfig() {
   const config = await getConfig()
@@ -148,7 +164,8 @@ function requireScoreConfig(itemConfig: ReturnType<typeof requireItemConfig>, sc
   return scoreConfig
 }
 
-async function requireSession(sessionId: string, auth: Awaited<ReturnType<typeof requireAuthSessionForUserOrEndUser>>) {
+
+async function requireSession(sessionId: string, auth: UniversalAuthSession) {
   const session = await fetchSession(sessionId)
   if (!session) {
     throw new HTTPException(404, { message: "Session not found" });
@@ -156,12 +173,12 @@ async function requireSession(sessionId: string, auth: Awaited<ReturnType<typeof
 
   if (auth.type === 'endUser') {
     if (session.endUserId !== auth.session.endUserId) {
-      throw new HTTPException(404, { message: "Session not found" });
+      throw new HTTPException(401, { message: "Unauthorized" });
     }
   }
   else {
     if (session.endUser.simulatedBy && !session.endUser.isShared && session.endUser.simulatedBy !== auth.session.user.id) {
-      throw new HTTPException(404, { message: "Session not found" });
+      throw new HTTPException(401, { message: "Unauthorized" });
     }
   }
 
@@ -525,20 +542,22 @@ app.openapi(apiEndUsersPUTRoute, async (c) => {
  * SESSIONS
  */
 
-
-const SessionsGetQueryParamsSchema = z.object({
+const PublicSessionsGetQueryParamsSchema = z.object({
   agent: z.string().optional(),
   page: z.string().optional(),
-  limit: z.string().optional(),
+  limit: z.string().optional()
+});
 
+const SessionsGetQueryParamsSchema = PublicSessionsGetQueryParamsSchema.extend({
   endUserId: z.string().optional(),
   list: z.enum(allowedSessionLists).optional(),
 })
 
+
 const DEFAULT_LIMIT = 50
 const DEFAULT_PAGE = 1
 
-function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchema>, auth: Awaited<ReturnType<typeof requireAuthSessionForUserOrEndUser>>) {
+function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchema>, loggedInUserId?: string) {
   const { agent, list, endUserId } = params;
 
   const filters: any[] = []
@@ -547,38 +566,27 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
     filters.push(eq(sessions.agent, agent));
   }
 
-  // List
-  if (list) {
-    if (auth.type === 'user') {
-      if (list === "playground_shared") {
-        filters.push(and(isNotNull(endUsers.simulatedBy), eq(endUsers.isShared, true)));
-      }
-      else if (list === "playground_private") {
-        filters.push(and(eq(endUsers.simulatedBy, auth.session.user.id), eq(endUsers.isShared, false)));
-      }
-      else { // default "prod"
-        filters.push(isNull(endUsers.simulatedBy));
-      }
+  if (list === "playground_shared") {
+    filters.push(and(isNotNull(endUsers.simulatedBy), eq(endUsers.isShared, true)));
+  }
+  else if (list === "playground_private") {
+    if (!loggedInUserId) {
+      throw new HTTPException(401, { message: "`playground_private` can only be used with provided logged in user id." });
     }
-    else if (auth.type === 'endUser') {
-      throw new HTTPException(401, { message: "Unauthorized to use 'list' param." });
-    }
+    filters.push(and(eq(endUsers.simulatedBy, loggedInUserId), eq(endUsers.isShared, false)));
+  }
+  else if (list === "prod") {
+    filters.push(isNull(endUsers.simulatedBy));
   }
 
-  // End user
   if (endUserId) {
-    if (auth.type === 'user') {
-      filters.push(eq(endUsers.id, endUserId));
-    }
-    else if (auth.type === 'endUser') {
-      throw new HTTPException(401, { message: "Unauthorized to use 'endUserId' param." });
-    }
+    filters.push(eq(endUsers.id, endUserId));
   }
-  
+
   return and(...filters);
 }
 
-async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>, auth: Awaited<ReturnType<typeof requireAuthSessionForUserOrEndUser>>) {
+async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>, loggedInUserId?: string) {
   const limit = Math.max(parseInt(params.limit ?? DEFAULT_LIMIT.toString()) || DEFAULT_LIMIT, 1);
   const page = Math.max(parseInt(params.page ?? DEFAULT_PAGE.toString()) || DEFAULT_PAGE, 1);
   const offset = (page - 1) * limit;
@@ -588,7 +596,7 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
     .select({ count: sql<number>`count(*)` })
     .from(sessions)
     .leftJoin(endUsers, eq(sessions.endUserId, endUsers.id))
-    .where(getSessionListFilter(params, auth));
+    .where(getSessionListFilter(params, loggedInUserId));
 
   const totalCount = totalCountResult[0]?.count ?? 0;
 
@@ -597,7 +605,7 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
     .select()
     .from(sessions)
     .leftJoin(endUsers, eq(sessions.endUserId, endUsers.id))
-    .where(getSessionListFilter(params, auth))
+    .where(getSessionListFilter(params, loggedInUserId))
     .orderBy(desc(sessions.updatedAt))
     .limit(limit)
     .offset(offset);
@@ -634,7 +642,8 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
   };
 }
 
-const sessionsGETRoute = createRoute({ // TODO: this route could be separated into user-facing vs admin (that would be actually super quick)
+// internal
+const sessionsGETRoute = createRoute({
   method: 'get',
   path: '/api/sessions',
   request: {
@@ -647,9 +656,30 @@ const sessionsGETRoute = createRoute({ // TODO: this route could be separated in
 })
 
 app.openapi(sessionsGETRoute, async (c) => {
-  const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers)
+  const authSession = await requireAuthSession(c.req.raw.headers)
   const params = c.req.query();
-  const sessions = await getSessions(params, auth)
+  const sessions = await getSessions(params, authSession.user.id)
+  return c.json(sessions, 200);
+})
+
+// public
+const publicSessionsGETRoute = createRoute({
+  method: 'get',
+  path: '/api/public/sessions',
+  tags: ['public'],
+  request: {
+    query: PublicSessionsGetQueryParamsSchema,
+  },
+  responses: {
+    200: response_data(SessionsPaginatedResponseSchema),
+    401: response_error(),
+  },
+})
+
+app.openapi(publicSessionsGETRoute, async (c) => {
+  const endUserAuthSession = await requireEndUserAuthSession(c.req.raw.headers)
+  const params = c.req.query();
+  const sessions = await getSessions({ ...params, endUserId: endUserAuthSession.endUserId })
   return c.json(sessions, 200);
 })
 
@@ -693,7 +723,7 @@ app.openapi(sessionsGETStatsRoute, async (c) => {
       and(
         eq(inboxItems.userId, authSession.user.id),
         sql`${inboxItems.lastNotifiableEventId} > COALESCE(${inboxItems.lastReadEventId}, 0)`,
-        getSessionListFilter(params, { type: 'user', session: authSession })
+        getSessionListFilter(params, authSession.user.id)
       )
     )
 
@@ -702,7 +732,7 @@ app.openapi(sessionsGETStatsRoute, async (c) => {
   }
 
   if (granular) {
-    const sessionsResult = await getSessions(params, { type: 'user', session: authSession });
+    const sessionsResult = await getSessions(params, authSession.user.id);
     const sessionIds = sessionsResult.sessions.map((row) => row.id);
 
     response.sessions = {}
@@ -746,6 +776,58 @@ app.openapi(sessionsGETStatsRoute, async (c) => {
 
   return c.json(response, 200);
 })
+
+
+const sessionGETRoute = createRoute({
+  method: 'get',
+  path: '/api/sessions/{session_id}',
+  request: {
+    params: z.object({
+      sessionId: z.string(),
+    }),
+  },
+  responses: {
+    200: response_data(SessionSchema),
+    404: response_error()
+  },
+})
+
+app.openapi(sessionGETRoute, async (c) => {
+  const authSession = await requireAuthSession(c.req.raw.headers)
+  const { session_id } = c.req.param()
+
+  const session = await requireSession(session_id, { type: 'user', session: authSession });
+  return c.json(session, 200);
+})
+
+const publicSessionGETRoute = createRoute({
+  method: 'get',
+  path: '/api/public/sessions/{session_id}',
+  tags: ['public'],
+  request: {
+    params: z.object({
+      sessionId: z.string(),
+    }),
+  },
+  responses: {
+    200: response_data(SessionSchema),
+    404: response_error()
+  },
+})
+
+app.openapi(publicSessionGETRoute, async (c) => {
+  const endUserAuthSession = await requireEndUserAuthSession(c.req.raw.headers)
+  const { session_id } = c.req.param()
+
+  const session = await requireSession(session_id, { type: 'endUser', session: endUserAuthSession });
+  return c.json(session, 200);
+})
+
+
+
+
+
+
 
 const sessionsPOSTRoute = createRoute({
   method: 'post',
@@ -831,27 +913,6 @@ app.openapi(sessionsPOSTRoute, async (c) => {
   return c.json(newSession, 201);
 })
 
-const sessionGETRoute = createRoute({
-  method: 'get',
-  path: '/api/sessions/{sessionId}',
-  request: {
-    params: z.object({
-      sessionId: z.string(),
-    }),
-  },
-  responses: {
-    200: response_data(SessionSchema),
-    404: response_error()
-  },
-})
-
-app.openapi(sessionGETRoute, async (c) => {
-  const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers)
-  const { sessionId } = c.req.param()
-
-  const session = await requireSession(sessionId, auth);
-  return c.json(session, 200);
-})
 
 const sessionSeenRoute = createRoute({
   method: 'post',
