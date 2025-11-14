@@ -44,6 +44,14 @@ export const VersionSchema = z.object({
     createdAt: z.iso.date(),
 })
 
+export const VersionCreateSchema = z.object({
+    version: z.string(),
+    env: z.string().optional(),
+    metadata: z.any().optional(),
+})
+
+export type VersionCreate = z.infer<typeof VersionCreateSchema>
+
 
 export const ScoreSchema = z.object({
     id: z.string(),
@@ -95,11 +103,6 @@ export const SessionItemWithCollaborationSchema = SessionItemSchema.extend({
 export type SessionItem = z.infer<typeof SessionItemSchema>
 export type SessionItemWithCollaboration = z.infer<typeof SessionItemWithCollaborationSchema>
 
-// export const SessionItemCreateSchema = SessionItemSchema.pick({
-//     // type: true,
-//     // role: true,
-//     content: true,
-// })
 
 export const RunSchema = z.object({
     id: z.string(),
@@ -114,6 +117,28 @@ export const RunSchema = z.object({
     sessionId: z.string(), // potential bloat
     versionId: z.string().nullable(), // potential bloat
 })
+
+export const RunCreateSchema = z.object({
+    sessionId: z.string(),
+    items: z.array(z.object({})).min(1),
+    version: VersionCreateSchema,
+    metadata: z.object({}).optional(),
+    status: z.enum(['in_progress', 'completed', 'failed']).optional(),
+    state: z.any().optional(),
+    failReason: z.any().nullable().optional()
+});
+
+export type RunCreate = z.infer<typeof RunCreateSchema>
+
+export const RunUpdateSchema = RunCreateSchema.pick({
+    items: true,
+    metadata: true,
+    status: true,
+    state: true,
+    failReason: true
+}).partial()
+
+export type RunUpdate = z.infer<typeof RunUpdateSchema>
 
 export type Run = z.infer<typeof RunSchema>
 

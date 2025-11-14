@@ -22,7 +22,7 @@ import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema } from './shared/apiTypes'
+import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema } from './shared/apiTypes'
 import { getConfig } from './getConfig'
 import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
@@ -183,6 +183,16 @@ async function requireSession(sessionId: string, auth: UniversalAuthSession) {
   }
 
   return session
+}
+
+async function requireRun(runId: string) {
+  const run = await db.query.runs.findFirst({
+    where: eq(runs.id, runId),
+  });
+  if (!run) {
+    throw new HTTPException(404, { message: "Run not found" });
+  }
+  return run
 }
 
 async function requireSessionItem(session: Awaited<ReturnType<typeof requireSession>>, itemId: string): Promise<SessionItemWithCollaboration> {
@@ -853,7 +863,6 @@ app.openapi(sessionsPOSTRoute, async (c) => {
   const config = await requireConfig()
   const agentConfig = await requireAgentConfig(config, body.agent)
   const authSession = await requireAuthSession(c.req.raw.headers)
-
   const endUser = await requireEndUser(body.endUserId);
 
   // Validate context against the schema
@@ -945,346 +954,228 @@ app.openapi(sessionSeenRoute, async (c) => {
 /* --------- RUNS --------- */
 
 
-// Create run
+function parseVersion(version: string): { major: number, minor: number, patch: number } | undefined {
+  // Accept version strings like '1.2.3', 'v1.2.3', possibly with suffixes like '-beta'
+  const m = version.match(/^v?(\d+)\.(\d+)\.(\d+)/);
+  if (!m) return undefined;
+  const major = Number(m[1]), minor = Number(m[2]), patch = Number(m[3]);
+  if (Number.isNaN(major) || Number.isNaN(minor) || Number.isNaN(patch)) return undefined;
+  return { major, minor, patch };
+}
+
+
 const runsPOSTRoute = createRoute({
   method: 'post',
-  path: '/api/sessions/{sessionId}/runs',
+  path: '/api/runs',
   request: {
     params: z.object({
-      sessionId: z.string(),
+      session_id: z.string(),
     }),
-    body: body(z.object({ input: z.any() }))
+    body: body(RunCreateSchema)
   },
   responses: {
-    201: response_data(RunSchema), // todo: this sucks I guess
+    201: response_data(RunSchema),
     400: response_error(),
     404: response_error()
   },
 })
+
 
 app.openapi(runsPOSTRoute, async (c) => {
   const authSession = await requireAuthSession(c.req.raw.headers);
 
-  const { sessionId } = c.req.param()
-  const { input } = await c.req.valid('json')
+  // const { session_id } = c.req.param()
+  const body = await c.req.valid('json')
 
-  const session = await requireSession(sessionId, { type: 'user', session: authSession });
+  const session = await requireSession(body.sessionId, { type: 'user', session: authSession });
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
-  const itemConfig = requireItemConfig(agentConfig, session, input, "input")
+  const itemConfig = requireItemConfig(agentConfig, session, body.items[0], "input")
 
   const lastRun = getLastRun(session)
 
   if (lastRun?.status === 'in_progress') {
-    return c.json({ message: `Cannot add user item when session is in 'in_progress' status.` }, 400);
+    return new HTTPException(400, { message: `Can't create a run because session has already a run in progress.` });
   }
 
-  // Create user item and run
-  const userItem: SessionItem = await db.transaction(async (tx) => {
+  /** ITEMS VALIDATION **/
+
+  // TODO!!!!
+
+
+  /** METADATA VALIDATION **/
+
+  // TODO!!!!
+
+  /** STATE **/
+
+  
+  /** VERSION CHECKING **/
+
+  const parsedVersion = parseVersion(body.version.version);
+  if (!parsedVersion) {
+    throw new HTTPException(400, { message: "Invalid version number format. Should be like '1.2.3'" });
+  }
+
+  if (lastRun?.version && !lastRun.version.env && !body.version.env) { // if previous version and current version exist and are not suffixed, check for compatibility
+    const lastVersionParsed = parseVersion(lastRun.version.version);
+
+    if (lastVersionParsed?.major !== parsedVersion?.major || lastVersionParsed?.minor !== parsedVersion?.minor) {
+      throw new HTTPException(400, { message: "Cannot continue a session with a different major or minor version." });
+    }
+
+    if (lastVersionParsed?.patch < parsedVersion?.patch) {
+      throw new HTTPException(400, { message: "Cannot continue a session with a smaller patch version." });
+    }
+  }
+
+  const [version] = await db.insert(versions).values({
+    version: body.version.version,
+    env: body.version.env || 'dev',
+    metadata: body.version.metadata,
+  }).onConflictDoNothing().returning();
+
+
+  // Create run and items
+  await db.transaction(async (tx) => {
 
     const [newRun] = await tx.insert(runs).values({
-      sessionId: sessionId,
-      status: 'in_progress',
+      sessionId: body.sessionId,
+      status: body.status ?? 'in_progress',
+      versionId: version.id,
+      metadata: body.metadata,
     }).returning();
 
-    const [userItem] = await tx.insert(sessionItems).values({
-      sessionId: sessionId,
-      // type,
-      // role,
-      content: input,
-      runId: newRun.id,
-    }).returning();
-
-    return userItem;
+    await tx.insert(sessionItems).values(
+      body.items.map(item => ({
+        sessionId: body.sessionId,
+        content: item,
+        runId: newRun.id,
+      }))
+    ).returning();
   });
 
-
-  /***
-   * 
-   * SIMULATION OF THE BACKGROUND JOB RUNNING
-   * 
-   * This should go to the queue but for now is scheduled in HTTP Server process
-   * 
-   * Caveats:
-   * - when server goes down then status is not recovered (dangling `in_progress` run)
-   * 
-   ***/
-
-  (async () => {
-
-    const runBody: RunBody = {
-      session: {
-        ...session,
-        runs: session.runs.filter((run) => run.status === 'completed').map((run) => ({
-          ...run,
-          items: run.items.map((item) => ({
-            // type: item.type,
-            // role: item.role,
-            content: item.content,
-            runId: run.id,
-            sessionId: session.id,
-            createdAt: item.createdAt,
-            updatedAt: item.updatedAt,
-            id: item.id,
-          })),
-        })),
-      },
-      input
-    }
-
-    async function isStillRunning() {
-      const currentRun = await db.query.runs.findFirst({ where: eq(runs.id, userItem.runId) });
-      if (currentRun && currentRun.status === 'in_progress') {
-        return true
-      }
-      return false
-    }
-
-    try {
-      // Try streaming first, fallback to non-streaming
-      const runOutput = callAgentAPI(runBody, agentConfig.url)
-
-      let versionId: string | null = null;
-
-      let hadManifest = false
-
-      for await (const event of runOutput) {
-        if (!(await isStillRunning())) {
-          return
-        }
-
-        console.log('EVENT', event.name);
-
-        if (!hadManifest && event.name !== 'response_data' && event.name !== 'manifest') {
-          throw new AgentAPIError({
-            message: "No 'manifest' was sent by the agent."
-          });
-        }
-
-        if (event.name === 'response_data') {
-          await db.update(runs)
-            .set({ responseData: event.data })
-            .where(eq(runs.id, userItem.runId));
-          continue;
-        }
-        else if (event.name === 'manifest') {
-          // Create or find existing version
-          const [version] = await db.insert(versions).values({
-            version: event.data.version,
-            env: event.data.env || 'dev',
-            metadata: event.data.metadata || null,
-          }).onConflictDoUpdate({
-            target: [versions.version, versions.env],
-            set: {
-              metadata: event.data.metadata || null,
-            }
-          }).returning();
-
-          versionId = version.id;
-
-          // Update the run with version_id
-          if (userItem.runId) {
-            await db.update(runs)
-              .set({ versionId })
-              .where(eq(runs.id, userItem.runId));
-          }
-
-          hadManifest = true;
-          continue; // Skip this item as it's not an item
-        }
-        else if (event.name === 'metadata') {
-          await db.update(runs)
-            .set({ metadata: event.data })
-            .where(eq(runs.id, userItem.runId));
-          continue;
-        }
-        else if (event.name === 'state') {
-          await db.insert(sessionItems).values({
-            sessionId: sessionId,
-            isState: true,
-            content: event.data,
-            runId: userItem.runId,
-          })
-        }
-        else if (event.name === 'item') {
-
-          // const parsedItem = z.object({
-          //   type: z.string(),
-          //   role: z.string().optional(),
-          //   content: z.any(),
-          // }).safeParse(event.data)
-
-          // if (!parsedItem.success) {
-          //   throw new AgentAPIError({
-          //     message: "Invalid item",
-          //     details: event.data
-          //   });
-          // }
-
-          await db.insert(sessionItems).values({
-            sessionId: sessionId,
-            // type: parsedItem.data.type,
-            // role: parsedItem.data.role,
-            // content: parsedItem.data.content,
-            content: event.data,
-            // metadata: event.data.metadata,
-            runId: userItem.runId,
-          })
-        }
-        else {
-          throw new AgentAPIError({
-            message: `Unknown event type: "${event.name}"`
-          });
-        }
-      }
-
-      if (!(await isStillRunning())) {
-        return
-      }
-
-      await db.update(runs)
-        .set({
-          status: 'completed',
-          finishedAt: new Date().toISOString(),
-        })
-        .where(eq(runs.id, userItem.runId));
-    }
-    catch (error: unknown) {
-      if (!(await isStillRunning())) {
-        return
-      }
-
-      let failReason: { message: string, [key: string]: any }
-
-      if (error instanceof AgentAPIError) {
-        failReason = error.object
-      }
-      else {
-        console.error(error)
-        failReason = {
-          message: "AgentView internal error, please report to the team"
-        }
-      }
-
-      await db.update(runs)
-        .set({
-          status: 'failed',
-          finishedAt: new Date().toISOString(),
-          failReason
-        })
-        .where(eq(runs.id, userItem.runId));
-    }
-
-  })();
-
-  const newSession = await fetchSession(sessionId);
-  const newRun = getLastRun(newSession!);
+  const updatedSession = await requireSession(body.sessionId, { type: 'user', session: authSession });
+  const newRun = getLastRun(updatedSession)!;
 
   return c.json(newRun, 201);
 })
 
-// // Get run response details
-// const runDetailsGETRoute = createRoute({
-//   method: 'get',
-//   path: '/api/sessions/{sessionId}/runs/{runId}/details',
-//   request: {
-//     params: z.object({
-//       sessionId: z.string(),
-//       runId: z.string(),
-//     }),
-//   },
-//   responses: {
-//     200: response_data(z.any()),
-//     401: response_error(),
-//     404: response_error(),
-//   },
-// })
-
-// app.openapi(runDetailsGETRoute, async (c) => {
-//   const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers);
-
-//   const { sessionId, runId } = c.req.param();
-
-//   await requireSession(sessionId, auth);
-
-//   const runRow = await db.query.runs.findFirst({
-//     where: and(
-//       eq(runs.id, runId),
-//       eq(runs.sessionId, sessionId),
-//     ),
-//   });
-
-//   if (!runRow) {
-//     return c.json({ message: 'Run not found' }, 404);
-//   }
-
-//   return c.json(runRow.responseData ?? null, 200);
-// })
 
 
-// Cancel Run Endpoint
-const runCancelRoute = createRoute({
-  method: 'post',
-  path: '/api/sessions/{sessionId}/cancel_run',
+
+const runsPATCHRoute = createRoute({
+  method: 'patch',
+  path: '/api/runs/{run_id}',
   request: {
     params: z.object({
-      sessionId: z.string(),
+      run_id: z.string(),
     }),
+    body: body(RunUpdateSchema)
   },
   responses: {
-    200: response_data(z.object({})),
+    201: response_data(RunSchema),
     400: response_error(),
-    404: response_error(),
+    404: response_error()
   },
-});
+})
 
-app.openapi(runCancelRoute, async (c) => {
-  const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers);
+app.openapi(runsPATCHRoute, async (c) => {
+  const authSession = await requireAuthSession(c.req.raw.headers);
 
-  const { sessionId } = c.req.param();
+  const { run_id } = c.req.param()
+  const body = await c.req.valid('json')
 
-  const session = await requireSession(sessionId, auth);
+  const run = await requireRun(run_id)
 
-  const lastRun = getLastRun(session)
+  const session_id = run.sessionId;
+  const session = await requireSession(session_id, { type: 'user', session: authSession });
+  const config = await requireConfig()
+  const agentConfig = requireAgentConfig(config, session.agent)
 
-  if (lastRun?.status !== 'in_progress') {
-    return c.json({ message: 'Run is not in progress' }, 400);
+  // prevent wrong status changes
+  if (body.status && (run.status === 'failed' || run.status === 'completed') && body.status !== run.status) {
+    throw new HTTPException(400, { message: `Cannot change the status of a completed or failed run.` });
   }
-  // Set the run as failed
-  await db.update(runs)
-    .set({
-      status: 'failed',
-      finishedAt: new Date().toISOString(),
-      failReason: { message: 'Run was cancelled by user' }
-    })
-    .where(eq(runs.id, lastRun.id));
 
-  return c.json(await fetchSession(sessionId), 200);
-});
+  /**
+   * ITEMS VALIDATION
+   */
+
+  // TODO!!!!
+
+  /**
+   * METADATA VALIDATION
+   */
+
+  const justCompleted = body.status === 'completed' && run.status !== 'completed';
+  const justFailed = body.status === 'failed' && run.status !== 'failed';
+  const justFinished = justCompleted || justFailed;
+
+  const newStatus = body.status ?? run.status;
+  const newFailReason = newStatus === 'failed' ? body.failReason : run.failReason; // ignore fail reason for non-failed statuses
+  const finishedAt = justFinished ? new Date().toISOString() : run.finishedAt;
+  
+  await db.transaction(async (tx) => {
+    if (body.items) {
+      await tx.insert(sessionItems).values(
+        body.items?.map(item => ({
+          sessionId: session_id,
+          content: item,
+          runId: run.id
+        }))
+      );
+    }
+
+    await tx.update(runs).set({
+      status: newStatus,
+      metadata: body.metadata,
+      failReason: newFailReason,
+      finishedAt: finishedAt,
+    }).where(eq(runs.id, run.id));
+  });
+
+  const updatedSession = await requireSession(session_id, { type: 'user', session: authSession });
+  const newRun = getLastRun(updatedSession)!;
+
+  return c.json(newRun, 201);
+})
+
+
+
 
 const runWatchRoute = createRoute({
   method: 'get',
-  path: '/api/sessions/{sessionId}/watch_run',
+  path: '/api/runs/{run_id}/watch',
   request: {
     params: z.object({
-      sessionId: z.string()
+      run_id: z.string()
     })
   },
   responses: {
-    // 201: response_data(z.array(SessionItemSchema)),
+    200: {
+      content: {
+        'text/event-stream': {
+          schema: z.string(),
+        },
+      },
+      description: "Streams items from the run",
+    },
     400: response_error(),
     404: response_error()
   },
 })
 
 
-// @ts-ignore don't know how to fix this with hono yet
 app.openapi(runWatchRoute, async (c) => {
-  const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers);
+  const authSession = await requireAuthSession(c.req.raw.headers);
 
-  const { sessionId } = c.req.param()
+  const { run_id } = c.req.param()
 
-  const session = await requireSession(sessionId, auth)
+  const run = await requireRun(run_id)
+  const session_id = run.sessionId;
+
+  const session = await requireSession(session_id, { type: 'user', session: authSession })
   const lastRun = getLastRun(session)
 
   return streamSSE(c, async (stream) => {
@@ -1304,7 +1195,6 @@ app.openapi(runWatchRoute, async (c) => {
       return;
     }
 
-
     let previousRun = lastRun;
 
     /**
@@ -1312,7 +1202,7 @@ app.openapi(runWatchRoute, async (c) => {
      * Soon we'll need to create a proper messaging, when some LLM API will be streaming characters then even NOTIFY/LISTEN won't make it performance-wise.
      */
     while (running) {
-      const session = await requireSession(sessionId, auth)
+      const session = await requireSession(session_id, { type: 'user', session: authSession })
       const lastRun = getLastRun(session)
 
       if (!lastRun) {
@@ -1369,8 +1259,442 @@ app.openapi(runWatchRoute, async (c) => {
   });
 });
 
-/* --------- ITEMS --------- */
 
+
+
+
+
+
+
+
+// const runsPOSTRoute = createRoute({
+//   method: 'post',
+//   path: '/api/sessions/{sessionId}/runs',
+//   request: {
+//     params: z.object({
+//       sessionId: z.string(),
+//     }),
+//     body: body(z.object({ input: z.any() }))
+//   },
+//   responses: {
+//     201: response_data(RunSchema), // todo: this sucks I guess
+//     400: response_error(),
+//     404: response_error()
+//   },
+// })
+
+// app.openapi(runsPOSTRoute, async (c) => {
+//   const authSession = await requireAuthSession(c.req.raw.headers);
+
+//   const { sessionId } = c.req.param()
+//   const { input } = await c.req.valid('json')
+
+//   const session = await requireSession(sessionId, { type: 'user', session: authSession });
+//   const config = await requireConfig()
+//   const agentConfig = requireAgentConfig(config, session.agent)
+//   const itemConfig = requireItemConfig(agentConfig, session, input, "input")
+
+//   const lastRun = getLastRun(session)
+
+//   if (lastRun?.status === 'in_progress') {
+//     return c.json({ message: `Cannot add user item when session is in 'in_progress' status.` }, 400);
+//   }
+
+//   // Create user item and run
+//   const userItem: SessionItem = await db.transaction(async (tx) => {
+
+//     const [newRun] = await tx.insert(runs).values({
+//       sessionId: sessionId,
+//       status: 'in_progress',
+//     }).returning();
+
+//     const [userItem] = await tx.insert(sessionItems).values({
+//       sessionId: sessionId,
+//       // type,
+//       // role,
+//       content: input,
+//       runId: newRun.id,
+//     }).returning();
+
+//     return userItem;
+//   });
+
+
+//   /***
+//    * 
+//    * SIMULATION OF THE BACKGROUND JOB RUNNING
+//    * 
+//    * This should go to the queue but for now is scheduled in HTTP Server process
+//    * 
+//    * Caveats:
+//    * - when server goes down then status is not recovered (dangling `in_progress` run)
+//    * 
+//    ***/
+
+//   (async () => {
+
+//     const runBody: RunBody = {
+//       session: {
+//         ...session,
+//         runs: session.runs.filter((run) => run.status === 'completed').map((run) => ({
+//           ...run,
+//           items: run.items.map((item) => ({
+//             // type: item.type,
+//             // role: item.role,
+//             content: item.content,
+//             runId: run.id,
+//             sessionId: session.id,
+//             createdAt: item.createdAt,
+//             updatedAt: item.updatedAt,
+//             id: item.id,
+//           })),
+//         })),
+//       },
+//       input
+//     }
+
+//     async function isStillRunning() {
+//       const currentRun = await db.query.runs.findFirst({ where: eq(runs.id, userItem.runId) });
+//       if (currentRun && currentRun.status === 'in_progress') {
+//         return true
+//       }
+//       return false
+//     }
+
+//     try {
+//       // Try streaming first, fallback to non-streaming
+//       const runOutput = callAgentAPI(runBody, agentConfig.url)
+
+//       let versionId: string | null = null;
+
+//       let hadManifest = false
+
+//       for await (const event of runOutput) {
+//         if (!(await isStillRunning())) {
+//           return
+//         }
+
+//         console.log('EVENT', event.name);
+
+//         if (!hadManifest && event.name !== 'response_data' && event.name !== 'manifest') {
+//           throw new AgentAPIError({
+//             message: "No 'manifest' was sent by the agent."
+//           });
+//         }
+
+//         if (event.name === 'response_data') {
+//           await db.update(runs)
+//             .set({ responseData: event.data })
+//             .where(eq(runs.id, userItem.runId));
+//           continue;
+//         }
+//         else if (event.name === 'manifest') {
+//           // Create or find existing version
+//           const [version] = await db.insert(versions).values({
+//             version: event.data.version,
+//             env: event.data.env || 'dev',
+//             metadata: event.data.metadata || null,
+//           }).onConflictDoUpdate({
+//             target: [versions.version, versions.env],
+//             set: {
+//               metadata: event.data.metadata || null,
+//             }
+//           }).returning();
+
+//           versionId = version.id;
+
+//           // Update the run with version_id
+//           if (userItem.runId) {
+//             await db.update(runs)
+//               .set({ versionId })
+//               .where(eq(runs.id, userItem.runId));
+//           }
+
+//           hadManifest = true;
+//           continue; // Skip this item as it's not an item
+//         }
+//         else if (event.name === 'metadata') {
+//           await db.update(runs)
+//             .set({ metadata: event.data })
+//             .where(eq(runs.id, userItem.runId));
+//           continue;
+//         }
+//         else if (event.name === 'state') {
+//           await db.insert(sessionItems).values({
+//             sessionId: sessionId,
+//             isState: true,
+//             content: event.data,
+//             runId: userItem.runId,
+//           })
+//         }
+//         else if (event.name === 'item') {
+
+//           // const parsedItem = z.object({
+//           //   type: z.string(),
+//           //   role: z.string().optional(),
+//           //   content: z.any(),
+//           // }).safeParse(event.data)
+
+//           // if (!parsedItem.success) {
+//           //   throw new AgentAPIError({
+//           //     message: "Invalid item",
+//           //     details: event.data
+//           //   });
+//           // }
+
+//           await db.insert(sessionItems).values({
+//             sessionId: sessionId,
+//             // type: parsedItem.data.type,
+//             // role: parsedItem.data.role,
+//             // content: parsedItem.data.content,
+//             content: event.data,
+//             // metadata: event.data.metadata,
+//             runId: userItem.runId,
+//           })
+//         }
+//         else {
+//           throw new AgentAPIError({
+//             message: `Unknown event type: "${event.name}"`
+//           });
+//         }
+//       }
+
+//       if (!(await isStillRunning())) {
+//         return
+//       }
+
+//       await db.update(runs)
+//         .set({
+//           status: 'completed',
+//           finishedAt: new Date().toISOString(),
+//         })
+//         .where(eq(runs.id, userItem.runId));
+//     }
+//     catch (error: unknown) {
+//       if (!(await isStillRunning())) {
+//         return
+//       }
+
+//       let failReason: { message: string, [key: string]: any }
+
+//       if (error instanceof AgentAPIError) {
+//         failReason = error.object
+//       }
+//       else {
+//         console.error(error)
+//         failReason = {
+//           message: "AgentView internal error, please report to the team"
+//         }
+//       }
+
+//       await db.update(runs)
+//         .set({
+//           status: 'failed',
+//           finishedAt: new Date().toISOString(),
+//           failReason
+//         })
+//         .where(eq(runs.id, userItem.runId));
+//     }
+
+//   })();
+
+//   const newSession = await fetchSession(sessionId);
+//   const newRun = getLastRun(newSession!);
+
+//   return c.json(newRun, 201);
+// })
+
+// // // Get run response details
+// // const runDetailsGETRoute = createRoute({
+// //   method: 'get',
+// //   path: '/api/sessions/{sessionId}/runs/{runId}/details',
+// //   request: {
+// //     params: z.object({
+// //       sessionId: z.string(),
+// //       runId: z.string(),
+// //     }),
+// //   },
+// //   responses: {
+// //     200: response_data(z.any()),
+// //     401: response_error(),
+// //     404: response_error(),
+// //   },
+// // })
+
+// // app.openapi(runDetailsGETRoute, async (c) => {
+// //   const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers);
+
+// //   const { sessionId, runId } = c.req.param();
+
+// //   await requireSession(sessionId, auth);
+
+// //   const runRow = await db.query.runs.findFirst({
+// //     where: and(
+// //       eq(runs.id, runId),
+// //       eq(runs.sessionId, sessionId),
+// //     ),
+// //   });
+
+// //   if (!runRow) {
+// //     return c.json({ message: 'Run not found' }, 404);
+// //   }
+
+// //   return c.json(runRow.responseData ?? null, 200);
+// // })
+
+
+// // Cancel Run Endpoint
+// const runCancelRoute = createRoute({
+//   method: 'post',
+//   path: '/api/sessions/{sessionId}/cancel_run',
+//   request: {
+//     params: z.object({
+//       sessionId: z.string(),
+//     }),
+//   },
+//   responses: {
+//     200: response_data(z.object({})),
+//     400: response_error(),
+//     404: response_error(),
+//   },
+// });
+
+// app.openapi(runCancelRoute, async (c) => {
+//   const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers);
+
+//   const { sessionId } = c.req.param();
+
+//   const session = await requireSession(sessionId, auth);
+
+//   const lastRun = getLastRun(session)
+
+//   if (lastRun?.status !== 'in_progress') {
+//     return c.json({ message: 'Run is not in progress' }, 400);
+//   }
+//   // Set the run as failed
+//   await db.update(runs)
+//     .set({
+//       status: 'failed',
+//       finishedAt: new Date().toISOString(),
+//       failReason: { message: 'Run was cancelled by user' }
+//     })
+//     .where(eq(runs.id, lastRun.id));
+
+//   return c.json(await fetchSession(sessionId), 200);
+// });
+
+// const runWatchRoute = createRoute({
+//   method: 'get',
+//   path: '/api/sessions/{sessionId}/watch_run',
+//   request: {
+//     params: z.object({
+//       sessionId: z.string()
+//     })
+//   },
+//   responses: {
+//     // 201: response_data(z.array(SessionItemSchema)),
+//     400: response_error(),
+//     404: response_error()
+//   },
+// })
+
+
+// // @ts-ignore don't know how to fix this with hono yet
+// app.openapi(runWatchRoute, async (c) => {
+//   const auth = await requireAuthSessionForUserOrEndUser(c.req.raw.headers);
+
+//   const { sessionId } = c.req.param()
+
+//   const session = await requireSession(sessionId, auth)
+//   const lastRun = getLastRun(session)
+
+//   return streamSSE(c, async (stream) => {
+//     let running = true;
+//     stream.onAbort(() => {
+//       running = false;
+//     });
+
+//     // let's start with sending full run snapshot
+//     await stream.writeSSE({
+//       data: JSON.stringify(lastRun ?? null),
+//       event: 'run.snapshot',
+//     });
+
+//     // close stream for runs that are not in_progress
+//     if (lastRun?.status !== 'in_progress') {
+//       return;
+//     }
+
+
+//     let previousRun = lastRun;
+
+//     /**
+//      * POLLING HERE
+//      * Soon we'll need to create a proper messaging, when some LLM API will be streaming characters then even NOTIFY/LISTEN won't make it performance-wise.
+//      */
+//     while (running) {
+//       const session = await requireSession(sessionId, auth)
+//       const lastRun = getLastRun(session)
+
+//       if (!lastRun) {
+//         throw new Error('unreachable');
+//       }
+
+//       // check for new items
+//       const items = lastRun.items
+//       const freshItems = items.filter(i => !previousRun.items.find(i2 => i2.id === i.id))
+
+//       for (const item of freshItems) {
+//         await stream.writeSSE({
+//           data: JSON.stringify(item),
+//           event: 'item.created',
+//         });
+//       }
+
+//       previousRun = {
+//         ...previousRun,
+//         items: [...previousRun.items, ...freshItems],
+//       }
+
+//       // check for state change
+//       const runFieldsToCompare = ['id', 'createdAt', 'finishedAt', 'sessionId', 'versionId', 'status', 'failReason', 'version', 'metadata'] as const;
+//       const changedFields: Partial<typeof lastRun> = {};
+
+//       for (const field of runFieldsToCompare) {
+//         if (JSON.stringify(previousRun[field]) !== JSON.stringify(lastRun[field])) {
+//           changedFields[field] = lastRun[field];
+//         }
+//       }
+
+//       if (Object.keys(changedFields).length > 0) {
+//         await stream.writeSSE({
+//           data: JSON.stringify(changedFields),
+//           event: 'run.state',
+//         });
+
+//         // Update previousRun with the new values (excluding sessionItems)
+//         previousRun = {
+//           ...previousRun,
+//           ...changedFields,
+//         };
+//       }
+
+//       // End if run is no longer in_progress
+//       if (lastRun?.status !== 'in_progress') {
+//         break;
+//       }
+
+//       // Wait 1s before next poll
+//       await new Promise(resolve => setTimeout(resolve, 1000));
+//     }
+//   });
+// });
+
+
+
+
+
+/* --------- ITEMS --------- */
 
 const itemSeenRoute = createRoute({
   method: 'post',
