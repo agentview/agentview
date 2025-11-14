@@ -351,6 +351,12 @@ function Component() {
                         <span>Password</span>
                       </Link>
                     </SidebarMenuButton>
+                    <SidebarMenuButton asChild isActive={isMenuLinkActive("/settings/api-keys")}>
+                      <Link to="/settings/api-keys">
+                        <UserIcon className="h-4 w-4" />
+                        <span>API Keys</span>
+                      </Link>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                   {/* <SidebarMenuItem>
                     <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>

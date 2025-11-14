@@ -24,12 +24,12 @@ import { rootRoute } from "./root";
 import { sessionRunRoute } from "./routes/sessionRun";
 import { settingsRoute } from "./routes/settings";
 import { settingsProfileRoute } from "./routes/settingsProfile";
+import { settingsApiKeysRoute } from "./routes/settingsApiKeys";
 import type { AgentViewConfig } from "./types";
 import { sessionItemScoresRoute } from "./routes/sessionItemScores";
 import { settingsPasswordRoute } from "./routes/settingsPassword";
 
 export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObject[] {
-
   const defaultRoutes = (customRoutes?.filter(route => route.scope === "default") || []).map(route => route.route);
   const loggedInRoutes = (customRoutes?.filter(route => route.scope === "loggedIn") || []).map(route => route.route);
 
@@ -53,6 +53,10 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
                 {
                   path: "profile",
                   ...settingsProfileRoute,
+                },
+                {
+                  path: "api-keys",
+                  ...settingsApiKeysRoute,
                 },
                 {
                   path: "password",

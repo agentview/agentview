@@ -1,39 +1,52 @@
-// import { buildSchemaKey } from "./shared/configUtils";
-// import { z } from "zod";
+import "dotenv/config";
+import { auth } from "./auth";
 
-
-
-// console.log(buildSchemaKey({
-//     type: "message",
-//     role: "assistant"
-// }));
-
-// console.log(buildSchemaKey({
-//     functionCall: z.object({
-//         test: z.any(),
-//         dupa: z.string()
-//     })
-// }));
-
-
-function isSubset(a: any, b: any): boolean {
-    if (a === b) return true;
-    if (typeof a !== 'object' || typeof b !== 'object' || a == null || b == null)
-      return false;
-  
-    return Object.keys(a).every(
-      key => key in b && isSubset(a[key], b[key])
-    );
+const response = await auth.api.signInEmail({
+  returnHeaders: true,
+  body: {
+      email: "admin@admin.com",
+      password: "blablabla"
   }
+})
 
-console.log(isSubset({
-    a: {
-    }
-}, {
-    a: {
-        b: {
-            c: 1,
-            d: 2
-        }
-    }
-}));
+const cookie = response.headers.get("set-cookie")!.split(";")[0];
+const headers = new Headers();
+headers.set("Cookie", cookie);
+
+
+// const session = await auth.api.getSession({
+//   headers
+// })
+
+// console.log(session);
+
+// // const user = response.user;
+// // const userId = user.id;
+
+// const data = await auth.api.createApiKey({
+//   body: {
+//       name: 'xxx',
+//       expiresIn: 60 * 60 * 24 * 365
+//   },
+//   headers
+// });
+
+// console.log(data);
+
+
+const data2 = await auth.api.listApiKeys({
+  headers
+});
+
+console.log("--------------------------------");
+console.log(data2);
+
+const data3 = await auth.api.getApiKey({
+  query: {
+    id: data2[0].id, // required
+  },
+  headers
+})
+console.log("--------------------------------");
+
+console.log(data3);

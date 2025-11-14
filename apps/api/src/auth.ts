@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { createAuthMiddleware, APIError } from "better-auth/api";
-import { admin } from "better-auth/plugins"
+import { admin, apiKey } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
 import { users } from "./schemas/auth-schema";
@@ -9,7 +9,7 @@ import { eq } from "drizzle-orm";
 import { areThereRemainingAdmins } from "./areThereRemainingAdmins";
 import { getUsersCount } from "./users";
 import { getStudioURL } from "./getStudioURL";
-import { colorValues } from "./shared/colors";  
+import { colorValues } from "./shared/colors";
 
 export const auth = betterAuth({
     trustedOrigins: [getStudioURL()],
@@ -24,10 +24,12 @@ export const auth = betterAuth({
         enabled: true
     },
     plugins: [
-        admin()
+        admin(),
+        apiKey()
     ],
     hooks: {
         before: createAuthMiddleware(async (ctx) => {
+
             if (ctx.path === "/admin/set-role") {
                 if (ctx.body?.role !== "admin") {
                     if (!await areThereRemainingAdmins(ctx.body?.userId)) {
@@ -47,8 +49,6 @@ export const auth = betterAuth({
             }
             else if (ctx.path === "/sign-up/email") {
 
-                
-
                 // first admin
                 if (await getUsersCount() === 0) {
                     return;
@@ -56,14 +56,14 @@ export const auth = betterAuth({
 
                 try {
                     const invitation = await getValidInvitation(ctx.body?.invitationId)
-    
+
                     // if user doesn't have valid invitation, then do not allow to sign up
                     if (invitation.email !== ctx.body?.email) {
                         throw new APIError("BAD_REQUEST", {
                             message: "Invalid invitation.",
                         });
                     }
-    
+
                 } catch (error) {
                     if (error instanceof Error) {
                         throw new APIError("BAD_REQUEST", {
@@ -98,7 +98,7 @@ export const auth = betterAuth({
                 }
                 else {
                     // I have no idea how to use better-auth "internals" to update this role, api.admin.setRole seems to be available only when I'm logged as admin user, but here it's basically "system"
-                    
+
                     // accept invitation and update user role to the role from invitation
                     await acceptInvitation(ctx.body?.invitationId)
                     const invitation = await getInvitation(ctx.body?.invitationId)
@@ -107,9 +107,19 @@ export const auth = betterAuth({
                         role: invitation.role,
                         image: image
                     }).where(eq(users.email, ctx.body.email))
-
                 }
 
+                const cookie = ctx.context.responseHeaders!.get("set-cookie")?.split(";")[0]!;
+                const headers = new Headers();
+                headers.set("Cookie", cookie);
+
+                await auth.api.createApiKey({
+                    body: {
+                        name: 'main',
+                        expiresIn: 60 * 60 * 24 * 365
+                    },
+                    headers
+                });
             }
         })
     },

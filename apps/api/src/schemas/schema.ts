@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, uuid, varchar, jsonb, boolean, uniqueIndex, integer, bigserial, bigint, serial, unique, smallint } from "drizzle-orm/pg-core";
-import { users, accounts, verifications, authSessions } from "./auth-schema";
+import { users, accounts, verifications, authSessions, apikeys } from "./auth-schema";
 import { relations, sql } from "drizzle-orm";
 
 export const invitations = pgTable("invitations", {
@@ -355,6 +355,7 @@ export const schema = {
   accounts,
   verifications,
   invitations,
+  apikeys,
 
   emails,
 
