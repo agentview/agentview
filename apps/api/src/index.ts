@@ -110,11 +110,13 @@ async function getApiKey(id: string) { // this function exists just for type inf
 type UserPrincipal = {
   type: 'user',
   session: NonNullable<Awaited<ReturnType<(typeof getBetterAuthSession)>>>,
+  endUser?: EndUser // narrowing down scope
 }
 
 type ApiKeyPrincipal = {
   type: 'apiKey',
   apiKey: NonNullable<Awaited<ReturnType<typeof getApiKey>>>,
+  endUser?: EndUser // narrowing down scope
 }
 
 type EndUserPrincipal = {
@@ -138,17 +140,30 @@ function extractBearerToken(headers: Headers) {
   return rest.join(' ').trim()
 }
 
-async function authn(headers: Headers, options?: { allowEndUser?: boolean }): Promise<PrivatePrincipal> {
+function extractEndUserToken(headers: Headers) {
+  const xEndUserToken = headers.get('x-end-user-token')
+  if (!xEndUserToken) return null
+  return xEndUserToken.trim()
+}
+
+async function authn(headers: Headers): Promise<PrivatePrincipal> {
+  // See whether end-user header exists
+  let endUser: EndUser | undefined;
+
+  const token = extractEndUserToken(headers)
+  if (token) {  
+    endUser = await findEndUser({ token });
+  }
+
   // users
   const userSession = await auth.api.getSession({ headers })
   if (userSession) {
-    return { type: 'user', session: userSession }
+    return { type: 'user', session: userSession, endUser }
   }
 
   const bearer = extractBearerToken(headers)
 
   if (bearer) {
-
     // API Keys
     const maybeApiKey = await auth.api.verifyApiKey({
       body: {
@@ -163,7 +178,7 @@ async function authn(headers: Headers, options?: { allowEndUser?: boolean }): Pr
         },
       })
 
-      return { type: 'apiKey', apiKey }
+      return { type: 'apiKey', apiKey, endUser }
     }
   }
 
@@ -171,10 +186,10 @@ async function authn(headers: Headers, options?: { allowEndUser?: boolean }): Pr
 }
 
 async function authnEndUser(headers: Headers): Promise<EndUserPrincipal> {
-  const bearer = extractBearerToken(headers)
+  const token = extractEndUserToken(headers)
 
-  if (bearer) {
-    const endUser = await findEndUser({ token: bearer })
+  if (token) {
+    const endUser = await findEndUser({ token })
     if (endUser) {
       return { type: 'endUser', endUser }
     }
@@ -220,6 +235,11 @@ function authorize(principal: Principal, action: Action) {
         }
       }
     }
+    else if ((principal.type === 'apiKey' || principal.type === 'user') && principal.endUser) { // API_KEY or user, but end user is provided -> narrow down scope to end user
+      if ((action.action === "end-user:read" || action.action === "end-user:update") && action.endUser.id === principal.endUser.id) {
+        return true;
+      }
+    }
     else if (principal.type === 'user') {
       const userId = principal.session.user.id
 
@@ -234,6 +254,7 @@ function authorize(principal: Principal, action: Action) {
       if (action.action === "end-user:update" && action.endUser.simulatedBy === userId) { // all access for your sessions
         return true;
       }
+
     }
     else if (principal.type === 'apiKey') { // god mode access to api keys for now
       return true;
@@ -716,6 +737,11 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
 
     if (endUserId) {
       filters.push(eq(endUsers.id, endUserId));
+    }
+
+    // add extra filter if end user is provided -> narrow down scope to end user's sessions
+    if (principal.endUser) {
+      filters.push(eq(endUsers.id, principal.endUser.id));
     }
   }
   else if (principal.type === 'endUser') {
