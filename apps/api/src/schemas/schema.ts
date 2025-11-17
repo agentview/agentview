@@ -35,21 +35,23 @@ export const endUsers = pgTable("end_users", {
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   simulatedBy: text('simulated_by').references(() => users.id, { onDelete: 'set null' }),
   isShared: boolean("is_shared").notNull().default(false),
+
+  token: text("token").notNull().unique(),
   
 }, (table) => [uniqueIndex('end_user_external_id_unique').on(table.externalId)]);
 
-export const endUserAuthSessions = pgTable("end_user_auth_sessions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
-  token: text("token").notNull().unique(),
-  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
-  endUserId: uuid("end_user_id")
-    .notNull()
-    .references(() => endUsers.id, { onDelete: "cascade" })
-});
+// export const endUserAuthSessions = pgTable("end_user_auth_sessions", {
+//   id: uuid("id").primaryKey().defaultRandom(),
+//   expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
+//   token: text("token").notNull().unique(),
+//   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+//   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
+//   ipAddress: text("ip_address"),
+//   userAgent: text("user_agent"),
+//   endUserId: uuid("end_user_id")
+//     .notNull()
+//     .references(() => endUsers.id, { onDelete: "cascade" })
+// });
 
 export const sessions = pgTable("sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -57,7 +59,7 @@ export const sessions = pgTable("sessions", {
   handleSuffix: varchar("handle_suffix", { length: 255 }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-  context: jsonb("data"),
+  metadata: jsonb("metadata"),
   endUserId: uuid("end_user_id").notNull().references(() => endUsers.id, { onDelete: 'cascade' }),
   agent: varchar("agent", { length: 255 }).notNull(),
 }, (table) => [uniqueIndex('sessions_handle_unique').on(table.handleNumber, table.handleSuffix)]);
@@ -211,12 +213,12 @@ export const endUserRelations = relations(endUsers, ({ many, one }) => ({
   }),
 }));
 
-export const endUserAuthSessionsRelations = relations(endUserAuthSessions, ({ one }) => ({
-  endUser: one(endUsers, {
-    fields: [endUserAuthSessions.endUserId],
-    references: [endUsers.id],
-  }),
-}));
+// export const endUserAuthSessionsRelations = relations(endUserAuthSessions, ({ one }) => ({
+//   endUser: one(endUsers, {
+//     fields: [endUserAuthSessions.endUserId],
+//     references: [endUsers.id],
+//   }),
+// }));
 
 // export const channelsRelations = relations(channels, ({ many }) => ({
 //   sessionItems: many(sessionItems),
@@ -360,7 +362,7 @@ export const schema = {
   emails,
 
   endUsers,
-  endUserAuthSessions,
+  // endUserAuthSessions,
   sessions,
   sessionItems,
   versions,
@@ -374,7 +376,7 @@ export const schema = {
   inboxItems,
   configs,
 
-  endUserAuthSessionsRelations,
+  // endUserAuthSessionsRelations,
   sessionRelations,
   endUserRelations,
   versionsRelations,

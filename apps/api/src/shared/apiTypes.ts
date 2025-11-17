@@ -120,9 +120,9 @@ export const RunSchema = z.object({
 
 export const RunCreateSchema = z.object({
     sessionId: z.string(),
-    items: z.array(z.object({})).min(1),
+    items: z.array(z.record(z.string(), z.any())).min(1),
     version: VersionCreateSchema,
-    metadata: z.object({}).optional(),
+    metadata: z.record(z.string(), z.any()).optional(),
     status: z.enum(['in_progress', 'completed', 'failed']).optional(),
     state: z.any().optional(),
     failReason: z.any().nullable().optional()
@@ -153,7 +153,7 @@ export const SessionBaseSchema = z.object({
     handle: z.string(),
     createdAt: z.iso.date(),
     updatedAt: z.iso.date(),
-    context: z.any(),
+    metadata: z.record(z.string(), z.any()).nullable(),
     agent: z.string(),
     endUser: EndUserSchema,
     endUserId: z.string(), // potential bloat
@@ -175,11 +175,14 @@ export type SessionWithCollaboration = z.infer<typeof SessionWithCollaborationSc
 
 export const SessionCreateSchema = SessionBaseSchema.pick({
     agent: true,
-    context: true,
+    metadata: true,
 }).extend({
     endUserId: z.string().optional(),
-    isShared: z.boolean().optional(),
+    endUserExternalId: z.string().optional(),
+    endUserToken: z.string().optional(),
 })
+
+export type SessionCreate = z.infer<typeof SessionCreateSchema>
 
 export const ScoreCreateSchema = ScoreSchema.pick({
     sessionItemId: true,
@@ -187,10 +190,6 @@ export const ScoreCreateSchema = ScoreSchema.pick({
     value: true,
     commentId: true,
 })
-
-
-
-
 
 export const ConfigSchema = z.object({
     id: z.string(),

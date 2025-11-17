@@ -11,7 +11,7 @@ import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi'
 import { swaggerUI } from '@hono/swagger-ui'
 import { db } from './db'
 import { endUsers, sessions, sessionItems, runs, emails, commentMessages, commentMessageEdits, commentMentions, versions, scores, configs, events, inboxItems } from './schemas/schema'
-import { eq, desc, and, inArray, ne, gt, isNull, isNotNull, or, gte, sql, countDistinct, DrizzleQueryError, type InferSelectModel, type InferModel } from 'drizzle-orm'
+import { eq, desc, and, inArray, ne, gt, isNull, isNotNull, or, gte, sql, countDistinct, DrizzleQueryError, type InferSelectModel } from 'drizzle-orm'
 import { response_data, response_error, body } from './hono_utils'
 import { isUUID } from './isUUID'
 import { extractMentions } from './utils'
@@ -29,7 +29,7 @@ import { users } from './schemas/auth-schema'
 import { getUsersCount } from './users'
 import { updateInboxes } from './updateInboxes'
 import { isInboxItemUnread } from './inboxItems'
-import { createEndUser, createEndUserAuthSession, getEndUserAuthSession, verifyJWT, findEndUserByExternalId } from './endUsersAuth'
+import { findEndUser, createEndUser } from './endUsers'
 import packageJson from '../package.json'
 import type { Transaction } from './types'
 import { normalizeItemSchema } from './shared/configUtils'
@@ -119,7 +119,7 @@ type ApiKeyPrincipal = {
 
 type EndUserPrincipal = {
   type: 'endUser',
-  session: NonNullable<Awaited<ReturnType<typeof getEndUserAuthSession>>>
+  endUser: EndUser
 }
 
 type PrivatePrincipal = UserPrincipal | ApiKeyPrincipal;
@@ -174,9 +174,9 @@ async function authnEndUser(headers: Headers): Promise<EndUserPrincipal> {
   const bearer = extractBearerToken(headers)
 
   if (bearer) {
-    const endUserAuthSession = await getEndUserAuthSession({ headers })
-    if (endUserAuthSession) {
-      return { type: 'endUser', session: endUserAuthSession }
+    const endUser = await findEndUser({ token: bearer })
+    if (endUser) {
+      return { type: 'endUser', endUser }
     }
   }
 
@@ -215,7 +215,7 @@ function authorize(principal: Principal, action: Action) {
 
     if (principal.type === 'endUser') { // only session:read for end users for now
       if (action.action === "end-user:read") {
-        if (action.endUser.id === principal.session.endUserId) {
+        if (action.endUser.id === principal.endUser.id) {
           return true;
         }
       }
@@ -331,19 +331,9 @@ async function requireSessionItem(session: Awaited<ReturnType<typeof requireSess
   return item as SessionItemWithCollaboration
 }
 
-async function requireEndUser(endUserId?: string) {
-  if (!endUserId) {
-    throw new HTTPException(400, { message: `End user id is required` });
-  }
 
-  if (!isUUID(endUserId)) {
-    throw new HTTPException(400, { message: `Invalid end user id: ${endUserId}` });
-  }
-
-  const endUser = await db.query.endUsers.findFirst({
-    where: eq(endUsers.id, endUserId),
-  });
-
+async function requireEndUser({ id, externalId, token }: { id?: string, externalId?: string, token?: string }) {
+  const endUser = await findEndUser({ id, externalId, token })
   if (!endUser) {
     throw new HTTPException(404, { message: "End user not found" });
   }
@@ -615,14 +605,13 @@ app.openapi(endUsersPOSTRoute, async (c) => {
   await authorize(principal, { action: "end-user:create" })
 
   const userId = requireUserId(principal);
-
   const body = await c.req.valid('json')
 
-  const [newEndUser] = await db.insert(endUsers).values({
+  const newEndUser = await createEndUser({
     simulatedBy: userId,
     isShared: body.isShared,
     externalId: body.externalId,
-  }).returning();
+  })
 
   return c.json(newEndUser, 201);
 })
@@ -645,7 +634,7 @@ app.openapi(endUserGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
   const { id } = c.req.param()
-  const endUser = await requireEndUser(id)
+  const endUser = await requireEndUser({ id })
 
   await authorize(principal, { action: "end-user:read", endUser })
 
@@ -654,7 +643,7 @@ app.openapi(endUserGETRoute, async (c) => {
 
 const apiEndUsersPUTRoute = createRoute({
   method: 'put',
-  path: '/api/end-users/{endUserId}',
+  path: '/api/end-users/{id}',
   request: {
     body: body(EndUserCreateSchema)
   },
@@ -666,13 +655,13 @@ const apiEndUsersPUTRoute = createRoute({
 app.openapi(apiEndUsersPUTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
-  const { endUserId } = c.req.param()
-  const endUser = await requireEndUser(endUserId)
+  const { id } = c.req.param()
+  const endUser = await requireEndUser({ id })
   const body = await c.req.valid('json')
 
   await authorize(principal, { action: "end-user:update", endUser })
 
-  const [updatedEndUser] = await db.update(endUsers).set(body).where(eq(endUsers.id, endUserId)).returning();
+  const [updatedEndUser] = await db.update(endUsers).set(body).where(eq(endUsers.id, id)).returning();
 
   return c.json(updatedEndUser, 200);
 })
@@ -730,7 +719,7 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
     }
   }
   else if (principal.type === 'endUser') {
-    filters.push(eq(endUsers.id, principal.session.endUserId));
+    filters.push(eq(endUsers.id, principal.endUser.id));
   }
 
   return and(...filters);
@@ -765,7 +754,7 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
     handle: row.sessions.handleNumber.toString() + (row.sessions.handleSuffix ?? ""),
     createdAt: row.sessions.createdAt,
     updatedAt: row.sessions.updatedAt,
-    context: row.sessions.context,
+    metadata: row.sessions.metadata,
     agent: row.sessions.agent,
     endUser: row.end_users!,
     endUserId: row.end_users!.id,
@@ -1005,19 +994,35 @@ const sessionsPOSTRoute = createRoute({
 app.openapi(sessionsPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
-  const { isShared = false, ...body } = await c.req.valid('json')
+  const body = await c.req.valid('json')
 
   const config = await requireConfig()
   const agentConfig = await requireAgentConfig(config, body.agent)
-  const endUser = await requireEndUser(body.endUserId);
 
-  authorize(principal, { action: "end-user:update", endUser });
   const userId = requireUserId(principal);
 
+  // find end user or create new one if not found
+  const endUser = await (async () => {
+    if (body.endUserId || body.endUserExternalId || body.endUserToken) {
+      const existingEndUser = await findEndUser({ id: body.endUserId, externalId: body.endUserExternalId, token: body.endUserToken })
+      if (existingEndUser) {
+        return existingEndUser;
+      }
+      else {
+        throw new HTTPException(404, { message: "End user not found" });
+      }
+    }
+
+    authorize(principal, { action: "end-user:create" });
+    return await createEndUser({ simulatedBy: userId })
+  })()
+
+  authorize(principal, { action: "end-user:update", endUser });
+
   // Validate context against the schema
-  if (agentConfig.context) {
+  if (agentConfig.metadata) {
     try {
-      agentConfig.context.parse(body.context);
+      agentConfig.metadata.parse(body.metadata);
     } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         return c.json({ message: "Error parsing the session context.", code: 'parse.schema', details: error.issues }, 400);
@@ -1039,7 +1044,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     const [newSessionRow] = await tx.insert(sessions).values({
       handleNumber: newHandleNumber,
       handleSuffix: handleSuffix,
-      context: body.context,
+      metadata: body.metadata,
       agent: body.agent,
       endUserId: endUser.id
     }).returning();

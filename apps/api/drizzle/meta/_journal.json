@@ -15,6 +15,20 @@
       "when": 1763132215387,
       "tag": "0001_apikey",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1763389959192,
+      "tag": "0002_remove-session-context",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1763407146404,
+      "tag": "0003_end_user_session",
+      "breakpoints": true
     }
   ]
 }
