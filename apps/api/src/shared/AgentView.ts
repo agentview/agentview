@@ -36,52 +36,8 @@ export interface AgentViewOptions {
   version: string
 }
 
-export interface CreateSessionOptions {
-  metadata?: any
-  endUserId?: string
-  endUserExternalId?: string
-  endUserToken?: string
-  isShared?: boolean
-}
-
-export interface GetSessionOptions {
-  id: string
-  userToken?: string
-}
-
-export interface CreateRunOptions {
-  items: any[]
-  sessionId: string
-  status?: 'in_progress' | 'completed' | 'failed'
-  state?: any
-  metadata?: any
-  failReason?: any
-}
-
-export interface UpdateRunOptions {
-  id: string
-  items?: any[]
-  status?: 'in_progress' | 'completed' | 'failed'
-  failReason?: any
-  metadata?: any
-  state?: any
-}
-
-export interface CreateEndUserOptions {
-  externalId?: string
-  isShared?: boolean
-}
-
-export interface GetEndUserOptions {
-  endUserId?: string
-  endUserExternalId?: string
-  endUserToken?: string
-}
-
-export interface UpdateEndUserOptions {
-  endUserId: string
-  externalId?: string
-  isShared?: boolean
+export type EndUserTokenOptions = {
+    endUserToken?: string
 }
 
 export class AgentView {
@@ -106,10 +62,15 @@ export class AgentView {
   private async request<T>(
     method: string,
     path: string,
-    body?: any
+    body: any,
+    endUserToken?: string
   ): Promise<T> {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+    }
+
+    if (endUserToken) {
+      headers['X-End-User-Token'] = endUserToken;
     }
 
     if (this.apiKey) {
@@ -139,110 +100,39 @@ export class AgentView {
     return await response.json()
   }
 
-  async createSession(options: CreateSessionOptions = {}): Promise<Session> {
-    // If endUserExternalId is provided, we need to find or create the end user
-    let endUserId = options.endUserId
-    if (options.endUserExternalId && !endUserId) {
-      // Create a new end user if externalId is provided
-      const endUser = await this.createEndUser({ externalId: options.endUserExternalId })
-      endUserId = endUser.id
-    }
-
-    const body: SessionCreate = {
-      agent: this.agent,
-      metadata: options.metadata,
-      endUserId,
-      isShared: options.isShared,
-    }
-
-    const session = await this.request<Session>('POST', `/api/sessions`, body)
-    return session
+  async createSession(options: SessionCreate & EndUserTokenOptions): Promise<Session> {
+    const { endUserToken, ...body } = options;
+    return await this.request<Session>('POST', `/api/sessions`, body, endUserToken)
   }
 
-  async getSession(options: GetSessionOptions): Promise<SessionWithCollaboration> {
-    const session = await this.request<SessionWithCollaboration>(
-      'GET',
-      `/api/sessions/${options.id}`
-    )
-    return session
+  async getSession(options: { id: string } & EndUserTokenOptions): Promise<SessionWithCollaboration> {
+    const { endUserToken, id } = options;
+    return await this.request<SessionWithCollaboration>('GET', `/api/sessions/${id}`, undefined, endUserToken)
   }
 
-  async createRun(options: CreateRunOptions): Promise<Run> {
-    const body: RunCreate = {
-      sessionId: options.sessionId,
-      items: options.items,
-      version: {
-        version: this.version,
-      },
-      status: options.status,
-      state: options.state,
-      metadata: options.metadata,
-      failReason: options.failReason,
-    }
-
-    const run = await this.request<Run>('POST', `/api/runs`, body)
-    return run
+  async createRun(options: Omit<RunCreate, 'version'> & EndUserTokenOptions): Promise<Run> {
+    const { endUserToken, ...body } = options;
+    return await this.request<Run>('POST', `/api/runs`, { ...body, version: { version: this.version } }, endUserToken)
   }
 
-  async updateRun(options: UpdateRunOptions): Promise<Run> {
-    const body: RunUpdate = {
-      items: options.items,
-      status: options.status,
-      failReason: options.failReason,
-      metadata: options.metadata,
-      state: options.state,
-    }
-
-    const run = await this.request<Run>('PATCH', `/api/runs/${options.id}`, body)
-    return run
+  async updateRun(options: RunUpdate & EndUserTokenOptions & { id: string }): Promise<Run> {
+    const { endUserToken, id, ...body } = options;
+    return await this.request<Run>('PATCH', `/api/runs/${id}`, body, endUserToken)
   }
 
-  async createEndUser(options: CreateEndUserOptions = {}): Promise<EndUser> {
-    const body: EndUserCreate = {
-      externalId: options.externalId,
-      isShared: options.isShared,
-    }
-
-    const endUser = await this.request<EndUser>('POST', `/api/end-users`, body)
-    return endUser
+  async createEndUser(options: EndUserCreate & EndUserTokenOptions): Promise<EndUser> {
+    const { endUserToken, ...body } = options;
+    return await this.request<EndUser>('POST', `/api/end-users`, body, endUserToken)
   }
 
-  async getEndUser(options: GetEndUserOptions): Promise<EndUser> {
-    if (options.endUserId) {
-      return await this.request<EndUser>('GET', `/api/end-users/${options.endUserId}`)
-    }
-
-    // Note: The API doesn't currently support getting by externalId or token
-    // This would need to be implemented on the server side
-    if (options.endUserExternalId || options.endUserToken) {
-      throw new AgentViewError(
-        {
-          message: 'Getting end user by externalId or token is not yet supported by the API',
-        },
-        501
-      )
-    }
-
-    throw new AgentViewError(
-      {
-        message: 'Either endUserId, endUserExternalId, or endUserToken must be provided',
-      },
-      400
-    )
+  async getEndUser(options: { id: string } & EndUserTokenOptions): Promise<EndUser> {
+    const { endUserToken, id } = options;
+    return await this.request<EndUser>('GET', `/api/end-users/${id}`, undefined, endUserToken)
   }
 
-  async updateEndUser(options: UpdateEndUserOptions): Promise<EndUser> {
-    const body: EndUserCreate = {
-      externalId: options.externalId,
-      isShared: options.isShared,
-    }
-
-    const endUser = await this.request<EndUser>(
-      'PUT',
-      `/api/end-users/${options.endUserId}`,
-      body
-    )
-    return endUser
+  async updateEndUser(options: EndUserCreate & EndUserTokenOptions & { id: string }): Promise<EndUser> {
+    const { endUserToken, id, ...body } = options;
+    return await this.request<EndUser>('PUT', `/api/end-users/${id}`, body, endUserToken)
   }
 }
 

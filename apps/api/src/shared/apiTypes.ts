@@ -179,7 +179,6 @@ export const SessionCreateSchema = SessionBaseSchema.pick({
 }).extend({
     endUserId: z.string().optional(),
     endUserExternalId: z.string().optional(),
-    endUserToken: z.string().optional(),
 })
 
 export type SessionCreate = z.infer<typeof SessionCreateSchema>

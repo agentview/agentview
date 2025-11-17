@@ -153,6 +153,9 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
   const token = extractEndUserToken(headers)
   if (token) {  
     endUser = await findEndUser({ token });
+    if (!endUser) {
+      throw new HTTPException(404, { message: "User from X-End-User-Token not found." });
+    }
   }
 
   // users
@@ -1029,14 +1032,16 @@ app.openapi(sessionsPOSTRoute, async (c) => {
 
   // find end user or create new one if not found
   const endUser = await (async () => {
-    if (body.endUserId || body.endUserExternalId || body.endUserToken) {
-      const existingEndUser = await findEndUser({ id: body.endUserId, externalId: body.endUserExternalId, token: body.endUserToken })
-      if (existingEndUser) {
-        return existingEndUser;
-      }
-      else {
-        throw new HTTPException(404, { message: "End user not found" });
-      }
+    if (principal.endUser) {
+      return principal.endUser;
+    }
+
+    if (body.endUserId) {
+      return await requireEndUser({ id: body.endUserId });
+    }
+
+    if (body.endUserExternalId) {
+      return await requireEndUser({ externalId: body.endUserExternalId });
     }
 
     authorize(principal, { action: "end-user:create" });
