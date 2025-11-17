@@ -122,7 +122,11 @@ type EndUserPrincipal = {
   session: NonNullable<Awaited<ReturnType<typeof getEndUserAuthSession>>>
 }
 
+type PrivatePrincipal = UserPrincipal | ApiKeyPrincipal;
 type Principal = UserPrincipal | ApiKeyPrincipal | EndUserPrincipal;
+
+
+
 
 function extractBearerToken(headers: Headers) {
   const authorization = headers.get('authorization')
@@ -134,11 +138,7 @@ function extractBearerToken(headers: Headers) {
   return rest.join(' ').trim()
 }
 
-function getApiKeyFromHeaders(headers: Headers) {
-  return extractBearerToken(headers) ?? headers.get('x-api-key')?.trim() ?? null
-}
-
-async function authn(headers: Headers): Promise<Principal> {
+async function authn(headers: Headers, options?: { allowEndUser?: boolean }): Promise<PrivatePrincipal> {
   // users
   const userSession = await auth.api.getSession({ headers })
   if (userSession) {
@@ -165,17 +165,25 @@ async function authn(headers: Headers): Promise<Principal> {
 
       return { type: 'apiKey', apiKey }
     }
-
-    // End Users
-    const endUserAuthSession = await getEndUserAuthSession({ headers })
-    if (endUserAuthSession) {
-      return { type: 'endUser', session: endUserAuthSession }
-    }
-
   }
 
   throw new HTTPException(401, { message: "Unauthorized" });
 }
+
+async function authnEndUser(headers: Headers): Promise<EndUserPrincipal> {
+  const bearer = extractBearerToken(headers)
+
+  if (bearer) {
+    const endUserAuthSession = await getEndUserAuthSession({ headers })
+    if (endUserAuthSession) {
+      return { type: 'endUser', session: endUserAuthSession }
+    }
+  }
+
+  throw new HTTPException(401, { message: "Unauthorized" });
+}
+
+
 
 function requireUserPrincipal(principal: Principal) {
   if (principal.type === 'user') {
@@ -186,68 +194,99 @@ function requireUserPrincipal(principal: Principal) {
 
 // AUTHORIZATION
 
-type EndUserAction = {
-  type: "end-user:read",
+type Action = {
+  action: "end-user:read",
   endUser: EndUser,
 } | {
-  type: "end-user:edit",
+  action: "end-user:update",
   endUser: EndUser
 } | {
-  type: "end-user:create"
+  action: "end-user:create"
+} | {
+  action: "admin"
+} | {
+  action: "config"
 }
 
-async function authorizeEndUserAction(principal: Principal, action: EndUserAction) {
-  if (principal.type === 'endUser') { // only session:read for end users for now
-    if (action.type === "end-user:read") {
-      if (action.endUser.id === principal.session.endUserId) {
+function authorize(principal: Principal, action: Action) {
+
+  // sessions / end-users actions
+  if (action.action === "end-user:read" || action.action === "end-user:update" || action.action === "end-user:create") {
+
+    if (principal.type === 'endUser') { // only session:read for end users for now
+      if (action.action === "end-user:read") {
+        if (action.endUser.id === principal.session.endUserId) {
+          return true;
+        }
+      }
+    }
+    else if (principal.type === 'user') {
+      const userId = principal.session.user.id
+
+      if (action.action === "end-user:read" && (!action.endUser.simulatedBy || action.endUser.isShared)) { // sessions without owner or shared -> read access
+        return true;
+      }
+
+      if (action.action === "end-user:create") {
+        return true;
+      }
+
+      if (action.action === "end-user:update" && action.endUser.simulatedBy === userId) { // all access for your sessions
         return true;
       }
     }
-  }
-  else if (principal.type === 'user') {
-    const userId = principal.session.user.id
-
-    if (action.type === "end-user:read" && (!action.endUser.simulatedBy || action.endUser.isShared)) { // sessions without owner or shared -> read access
+    else if (principal.type === 'apiKey') { // god mode access to api keys for now
       return true;
     }
 
-    if (action.type === "end-user:create") {
-      return true;
-    }
-
-    if (action.type === "end-user:edit" && action.endUser.simulatedBy === userId) { // all access for your sessions
+  }
+  else if (action.action === "admin") {
+    if (principal.type === 'user' && principal.session.user.role === "admin") {
       return true;
     }
   }
-  else if (principal.type === 'apiKey') { // god mode access to api keys for now
-    return true;
-  }
+  else if (action.action === "config") {
+    if (principal.type === 'apiKey' || principal.type === 'user') { // TODO: fixme!!! Just api key!
+      return true;
+    }
 
+    throw new HTTPException(401, { message: "Unauthorized" });
+  }
+}
+
+// Can call this function after authorise safely
+function requireUserId(principal: Principal) {
+  if (principal.type === 'user') {
+    return principal.session.user.id;
+  }
+  else if (principal.type === 'apiKey') {
+    return principal.apiKey.userId;
+  }
   throw new HTTPException(401, { message: "Unauthorized" });
 }
 
-type SessionAction = {
-  type: "session:read",
-  session: Session,
-} | {
-  type: "session:edit",
-  session: Session
-} | {
-  type: "session:create"
-}
+// type SessionAction = {
+//   type: "session:read",
+//   session: Session,
+// } | {
+//   type: "session:edit",
+//   session: Session
+// } | {
+//   type: "session:create"
+// }
 
-async function authorizeSessionAction(principal: Principal, action: SessionAction) {
-  if (action.type === "session:read") {
-    return authorizeEndUserAction(principal, { type: "end-user:read", endUser: action.session.endUser });
-  }
-  else if (action.type === "session:edit") {
-    return authorizeEndUserAction(principal, { type: "end-user:edit", endUser: action.session.endUser });
-  }
-  else if (action.type === "session:create") {
-    return authorizeEndUserAction(principal, { type: "end-user:create" });
-  }
-  throw new HTTPException(401, { message: "Unauthorized" });
-}
+// async function authorizeSessionAction(principal: Principal, action: SessionAction) {
+//   if (action.type === "session:read") {
+//     return authorizeEndUserAction(principal, { type: "end-user:read", endUser: action.session.endUser });
+//   }
+//   else if (action.type === "session:edit") {
+//     return authorizeEndUserAction(principal, { type: "end-user:edit", endUser: action.session.endUser });
+//   }
+//   else if (action.type === "session:create") {
+//     return authorizeEndUserAction(principal, { type: "end-user:create" });
+//   }
+//   throw new HTTPException(401, { message: "Unauthorized" });
+// }
 
 
 // // async function authorizeSessionWrite(principal: Principal, session: Session) {
@@ -723,18 +762,9 @@ const endUsersPOSTRoute = createRoute({
 
 app.openapi(endUsersPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  await authorizeEndUserAction(principal, { type: "end-user:create" })
+  await authorize(principal, { action: "end-user:create" })
 
-  let userId: string | undefined;
-  if (principal.type === 'user') {
-    userId = principal.session.user.id;
-  }
-  else if (principal.type === 'apiKey') {
-    userId = principal.apiKey.userId; // this should be dependent on the settings. 
-  }
-  else {
-    throw new HTTPException(401, { message: "Unauthorized" }); // this is unreachable actually
-  }
+  const userId = requireUserId(principal);
 
   const body = await c.req.valid('json')
 
@@ -767,8 +797,8 @@ app.openapi(endUserGETRoute, async (c) => {
   const { id } = c.req.param()
   const endUser = await requireEndUser(id)
 
-  await authorizeEndUserAction(principal, { type: "end-user:read", endUser })
-  
+  await authorize(principal, { action: "end-user:read", endUser })
+
   return c.json(endUser, 200);
 })
 
@@ -790,7 +820,7 @@ app.openapi(apiEndUsersPUTRoute, async (c) => {
   const endUser = await requireEndUser(endUserId)
   const body = await c.req.valid('json')
 
-  await authorizeEndUserAction(principal, { type: "end-user:edit", endUser })
+  await authorize(principal, { action: "end-user:update", endUser })
 
   const [updatedEndUser] = await db.update(endUsers).set(body).where(eq(endUsers.id, endUserId)).returning();
 
@@ -837,7 +867,9 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
       if (principal.type === 'user') {
         filters.push(and(eq(endUsers.simulatedBy, principal.session.user.id), eq(endUsers.isShared, false)));
       }
-      throw new HTTPException(401, { message: "`playground_private` can only be used with provided logged in user id." });
+      else {
+        throw new HTTPException(401, { message: "`playground_private` can only be used with provided logged in user id." });
+      }
     }
     else if (list === "prod") {
       filters.push(isNull(endUsers.simulatedBy));
@@ -946,7 +978,7 @@ const publicSessionsGETRoute = createRoute({
 })
 
 app.openapi(publicSessionsGETRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
+  const principal = await authnEndUser(c.req.raw.headers)
   const params = c.req.query();
   const sessions = await getSessions(params, principal)
   return c.json(sessions, 200);
@@ -1067,7 +1099,7 @@ app.openapi(sessionGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const { session_id } = c.req.param()
   const session = await requireSession(session_id);
-  await authorizeSessionAction(principal, { type: "session:read", session });
+  await authorize(principal, { action: "end-user:read", endUser: session.endUser });
 
   return c.json(session, 200);
 })
@@ -1088,10 +1120,11 @@ const publicSessionGETRoute = createRoute({
 })
 
 app.openapi(publicSessionGETRoute, async (c) => {
-  const endUserAuthSession = await requireEndUserAuthSession(c.req.raw.headers)
-  const { session_id } = c.req.param()
+  const principal = await authnEndUser(c.req.raw.headers)
 
-  const session = await requireSession(session_id, { type: 'endUser', session: endUserAuthSession });
+  const { session_id } = c.req.param()
+  const session = await requireSession(session_id);
+  authorize(principal, { action: "end-user:read", endUser: session.endUser });
 
   const sessionWithoutCollaboration = {
     ...session,
@@ -1120,12 +1153,16 @@ const sessionsPOSTRoute = createRoute({
 })
 
 app.openapi(sessionsPOSTRoute, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+
   const { isShared = false, ...body } = await c.req.valid('json')
 
   const config = await requireConfig()
   const agentConfig = await requireAgentConfig(config, body.agent)
-  const auth = await requireUserOrApiKey(c.req.raw.headers)
   const endUser = await requireEndUser(body.endUserId);
+
+  authorize(principal, { action: "end-user:update", endUser });
+  const userId = requireUserId(principal);
 
   // Validate context against the schema
   if (agentConfig.context) {
@@ -1160,7 +1197,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     // add event (only for users, not endUsers)
     const [event] = await tx.insert(events).values({
       type: 'session_created',
-      authorId: auth.user.id,
+      authorId: userId,
       payload: {
         session_id: newSessionRow.id,
       }
@@ -1196,7 +1233,8 @@ const sessionSeenRoute = createRoute({
 })
 
 app.openapi(sessionSeenRoute, async (c) => {
-  const auth = await requireUserOrApiKey(c.req.raw.headers);
+  const principal = await authn(c.req.raw.headers)
+  const userPrincipal = requireUserPrincipal(principal);
 
   const { sessionId } = c.req.param()
 
@@ -1204,7 +1242,7 @@ app.openapi(sessionSeenRoute, async (c) => {
     lastReadEventId: sql`${inboxItems.lastNotifiableEventId}`,
     updatedAt: new Date().toISOString(),
   }).where(and(
-    eq(inboxItems.userId, auth.user.id),
+    eq(inboxItems.userId, userPrincipal.session.user.id),
     eq(inboxItems.sessionId, sessionId),
     isNull(inboxItems.sessionItemId),
   ))
@@ -1244,12 +1282,12 @@ const runsPOSTRoute = createRoute({
 
 
 app.openapi(runsPOSTRoute, async (c) => {
-  const auth = await requireUserOrApiKey(c.req.raw.headers);
-
-  // const { session_id } = c.req.param()
+  const principal = await authn(c.req.raw.headers)
   const body = await c.req.valid('json')
+  const session = await requireSession(body.sessionId);
 
-  const session = await requireSession(body.sessionId, auth);
+  authorize(principal, { action: "end-user:update", endUser: session.endUser });
+
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
   const itemConfig = requireItemConfig(agentConfig, session, body.items[0], "input")
@@ -1317,7 +1355,7 @@ app.openapi(runsPOSTRoute, async (c) => {
     ).returning();
   });
 
-  const updatedSession = await requireSession(body.sessionId, auth);
+  const updatedSession = await requireSession(body.sessionId);
   const newRun = getLastRun(updatedSession)!;
 
   return c.json(newRun, 201);
@@ -1343,15 +1381,16 @@ const runsPATCHRoute = createRoute({
 })
 
 app.openapi(runsPATCHRoute, async (c) => {
-  const auth = await requireUserOrApiKey(c.req.raw.headers);
+  const principal = await authn(c.req.raw.headers)
 
   const { run_id } = c.req.param()
   const body = await c.req.valid('json')
 
-  const run = await requireRun(run_id)
+  const run = await requireRun(run_id);
+  const session = await requireSession(run.sessionId);
 
-  const session_id = run.sessionId;
-  const session = await requireSession(session_id, auth);
+  authorize(principal, { action: "end-user:update", endUser: session.endUser });
+
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
 
@@ -1382,7 +1421,7 @@ app.openapi(runsPATCHRoute, async (c) => {
     if (body.items) {
       await tx.insert(sessionItems).values(
         body.items?.map(item => ({
-          sessionId: session_id,
+          sessionId: session.id,
           content: item,
           runId: run.id
         }))
@@ -1397,7 +1436,7 @@ app.openapi(runsPATCHRoute, async (c) => {
     }).where(eq(runs.id, run.id));
   });
 
-  const updatedSession = await requireSession(session_id, auth);
+  const updatedSession = await requireSession(session.id);
   const newRun = getLastRun(updatedSession)!;
 
   return c.json(newRun, 201);
@@ -1427,14 +1466,15 @@ const runWatchRoute = createRoute({
 
 
 app.openapi(runWatchRoute, async (c) => {
-  const auth = await requireUserOrApiKey(c.req.raw.headers);
+  const principal = await authn(c.req.raw.headers);
 
   const { run_id } = c.req.param()
-
   const run = await requireRun(run_id)
   const session_id = run.sessionId;
+  const session = await requireSession(session_id)
 
-  const session = await requireSession(session_id, auth)
+  authorize(principal, { action: "end-user:read", endUser: session.endUser });
+
   const lastRun = getLastRun(session)
 
   return streamSSE(c, async (stream) => {
@@ -1461,7 +1501,7 @@ app.openapi(runWatchRoute, async (c) => {
      * Soon we'll need to create a proper messaging, when some LLM API will be streaming characters then even NOTIFY/LISTEN won't make it performance-wise.
      */
     while (running) {
-      const session = await requireSession(session_id, auth)
+      const session = await requireSession(session_id)
       const lastRun = getLastRun(session)
 
       if (!lastRun) {
@@ -1973,7 +2013,8 @@ const itemSeenRoute = createRoute({
 })
 
 app.openapi(itemSeenRoute, async (c) => {
-  const auth = await requireUserOrApiKey(c.req.raw.headers);
+  const principal = await authn(c.req.raw.headers)
+  const userPrincipal = requireUserPrincipal(principal);
 
   const { sessionId, itemId } = c.req.param()
 
@@ -1981,7 +2022,7 @@ app.openapi(itemSeenRoute, async (c) => {
     lastReadEventId: sql`${inboxItems.lastNotifiableEventId}`,
     updatedAt: new Date().toISOString(),
   }).where(and(
-    eq(inboxItems.userId, auth.user.id),
+    eq(inboxItems.userId, userPrincipal.session.user.id),
     eq(inboxItems.sessionId, sessionId),
     eq(inboxItems.sessionItemId, itemId),
   ))
@@ -2049,16 +2090,17 @@ const commentsPOSTRoute = createRoute({
 
 
 app.openapi(commentsPOSTRoute, async (c) => {
-  const authSession = await requireAuthSession(c.req.raw.headers);
+  const principal = await authn(c.req.raw.headers)
+  const userPrincipal = requireUserPrincipal(principal);
 
   const body = await c.req.valid('json')
   const { sessionId, itemId } = c.req.param()
 
-  const session = await requireSession(sessionId, { type: 'user', session: authSession })
+  const session = await requireSession(sessionId)
   const item = await requireSessionItem(session, itemId);
 
   await db.transaction(async (tx) => {
-    await createComment(tx, session, item, authSession.user, body.comment ?? null);
+    await createComment(tx, session, item, userPrincipal.session.user, body.comment ?? null);
   })
 
   return c.json({}, 201);
@@ -2085,15 +2127,16 @@ const commentsDELETERoute = createRoute({
 })
 
 app.openapi(commentsDELETERoute, async (c) => {
-  const authSession = await requireAuthSession(c.req.raw.headers);
+  const principal = await authn(c.req.raw.headers)
+  const userPrincipal = requireUserPrincipal(principal);
 
   const { commentId, sessionId, itemId } = c.req.param()
-  const session = await requireSession(sessionId, { type: 'user', session: authSession })
+  const session = await requireSession(sessionId)
   const item = await requireSessionItem(session, itemId);
-  const commentMessage = await requireCommentMessageFromUser(item, commentId, authSession.user);
+  const commentMessage = await requireCommentMessageFromUser(item, commentId, userPrincipal.session.user);
 
   await db.transaction(async (tx) => {
-    await deleteComment(tx, session, item, commentMessage.id, authSession.user);
+    await deleteComment(tx, session, item, commentMessage.id, userPrincipal.session.user);
   });
   return c.json({}, 200);
 })
@@ -2122,14 +2165,15 @@ const commentsPUTRoute = createRoute({
 })
 
 app.openapi(commentsPUTRoute, async (c) => {
-  const authSession = await requireAuthSession(c.req.raw.headers);
+  const principal = await authn(c.req.raw.headers)
+  const userPrincipal = requireUserPrincipal(principal);
 
   const { sessionId, itemId, commentId } = c.req.param()
   const body = await c.req.valid('json')
 
-  const session = await requireSession(sessionId, { type: 'user', session: authSession })
+  const session = await requireSession(sessionId)
   const item = await requireSessionItem(session, itemId)
-  const commentMessage = await requireCommentMessageFromUser(item, commentId, authSession.user);
+  const commentMessage = await requireCommentMessageFromUser(item, commentId, userPrincipal.session.user);
 
   await db.transaction(async (tx) => {
     try {
@@ -2167,18 +2211,19 @@ const scoresGETRoute = createRoute({
 })
 
 app.openapi(scoresGETRoute, async (c) => {
-  const authSession = await requireAuthSession(c.req.raw.headers);
+  const principal = await authn(c.req.raw.headers)
+  const userPrincipal = requireUserPrincipal(principal);
 
   const { sessionId, itemId } = c.req.param()
 
-  const session = await requireSession(sessionId, { type: 'user', session: authSession })
+  const session = await requireSession(sessionId)
   const item = await requireSessionItem(session, itemId);
 
   // Get all scores for this item created by the current user
   const itemScores = await db.query.scores.findMany({
     where: and(
       eq(scores.sessionItemId, itemId),
-      eq(scores.createdBy, authSession.user.id),
+      eq(scores.createdBy, userPrincipal.session.user.id),
       isNull(scores.deletedAt)
     )
   });
@@ -2216,13 +2261,14 @@ const scoresPUTRoute = createRoute({
 })
 
 app.openapi(scoresPUTRoute, async (c) => {
-  const authSession = await requireAuthSession(c.req.raw.headers);
+  const principal = await authn(c.req.raw.headers)
+  const userPrincipal = requireUserPrincipal(principal);
 
   const { sessionId, itemId } = c.req.param()
   const inputScores = await c.req.valid('json');
 
   const config = await requireConfig()
-  const session = await requireSession(sessionId, { type: 'user', session: authSession })
+  const session = await requireSession(sessionId)
   const item = await requireSessionItem(session, itemId);
 
   const agentConfig = requireAgentConfig(config, session.agent);
@@ -2239,7 +2285,7 @@ app.openapi(scoresPUTRoute, async (c) => {
         where: and(
           eq(scores.sessionItemId, itemId),
           eq(scores.name, name),
-          eq(scores.createdBy, authSession.user.id),
+          eq(scores.createdBy, userPrincipal.session.user.id),
           isNull(scores.deletedAt)
         )
       });
@@ -2247,7 +2293,7 @@ app.openapi(scoresPUTRoute, async (c) => {
       // delete
       if (value === null || value === undefined) {
         if (existingScore) {
-          await deleteComment(tx, session, item, existingScore.commentId, authSession.user);
+          await deleteComment(tx, session, item, existingScore.commentId, userPrincipal.session.user);
           await tx.delete(scores)
             // .set({
             //   deletedAt: new Date().toISOString(),
@@ -2280,13 +2326,13 @@ app.openapi(scoresPUTRoute, async (c) => {
         }
         // create
         else {
-          const commentMessage = await createComment(tx, session, item, authSession.user, null);
+          const commentMessage = await createComment(tx, session, item, userPrincipal.session.user, null);
           await tx.insert(scores).values({
             sessionItemId: itemId,
             name,
             value,
             commentId: commentMessage.id,
-            createdBy: authSession.user.id,
+            createdBy: userPrincipal.session.user.id,
           });
         }
       }
@@ -2311,7 +2357,8 @@ const usersGETRoute = createRoute({
 })
 
 app.openapi(usersGETRoute, async (c) => {
-  await requireAuthSession(c.req.raw.headers);
+  const principal = await authn(c.req.raw.headers)
+  const userPrincipal = requireUserPrincipal(principal);
 
   const userRows = await db.select().from(users);
 
@@ -2344,7 +2391,8 @@ const userPOSTRoute = createRoute({
 })
 
 app.openapi(userPOSTRoute, async (c) => {
-  await requireAuthSession(c.req.raw.headers, { admin: true });
+  const principal = await authn(c.req.raw.headers)
+  authorize(principal, { action: "admin" });
 
   const { userId } = c.req.param()
   const body = await c.req.valid('json')
@@ -2375,7 +2423,8 @@ const userDELETERoute = createRoute({
 })
 
 app.openapi(userDELETERoute, async (c) => {
-  await requireAuthSession(c.req.raw.headers, { admin: true });
+  const principal = await authn(c.req.raw.headers)
+  authorize(principal, { action: "admin" });
 
   const { userId } = c.req.param()
 
@@ -2404,11 +2453,14 @@ const invitationsPOSTRoute = createRoute({
 
 
 app.openapi(invitationsPOSTRoute, async (c) => {
-  const session = await requireAuthSession(c.req.raw.headers, { admin: true });
+  const principal = await authn(c.req.raw.headers)
+  authorize(principal, { action: "admin" });
+
+  const inviterId = requireUserId(principal);
 
   const body = await c.req.valid('json')
 
-  await createInvitation(body.email, body.role, session.user.id);
+  await createInvitation(body.email, body.role, inviterId);
 
   // Get the created invitation to return it
   const pendingInvitations = await getPendingInvitations();
@@ -2432,7 +2484,8 @@ const invitationsGETRoute = createRoute({
 })
 
 app.openapi(invitationsGETRoute, async (c) => {
-  await requireAuthSession(c.req.raw.headers, { admin: true });
+  const principal = await authn(c.req.raw.headers)
+  authorize(principal, { action: "admin" });
 
   const pendingInvitations = await getPendingInvitations();
   return c.json(pendingInvitations, 200);
@@ -2455,7 +2508,8 @@ const invitationDELETERoute = createRoute({
 })
 
 app.openapi(invitationDELETERoute, async (c) => {
-  await requireAuthSession(c.req.raw.headers, { admin: true });
+  const principal = await authn(c.req.raw.headers)
+  authorize(principal, { action: "admin" });
 
   const { id } = c.req.param()
 
@@ -2498,7 +2552,8 @@ const emailsGETRoute = createRoute({
 })
 
 app.openapi(emailsGETRoute, async (c) => {
-  await requireAuthSession(c.req.raw.headers, { admin: true });
+  const principal = await authn(c.req.raw.headers)
+  authorize(principal, { action: "admin" });
 
   const emailRows = await db
     .select({
@@ -2526,7 +2581,8 @@ const emailDetailGETRoute = createRoute({
 })
 
 app.openapi(emailDetailGETRoute, async (c) => {
-  await requireAuthSession(c.req.raw.headers, { admin: true });
+  const principal = await authn(c.req.raw.headers)
+  authorize(principal, { action: "admin" });
 
   const { id } = c.req.param()
   const emailRow = await db.query.emails.findFirst({ where: eq(emails.id, id) })
@@ -2544,7 +2600,8 @@ const configsGETRoute = createRoute({
 })
 
 app.openapi(configsGETRoute, async (c) => {
-  await requireAuthSession(c.req.raw.headers)
+  const principal = await authn(c.req.raw.headers)
+  authorize(principal, { action: "config" });
 
   const configRows = await db.select().from(configs).orderBy(desc(configs.createdAt)).limit(1)
   if (configRows.length === 0) {
@@ -2565,12 +2622,15 @@ const configsPOSTRoute = createRoute({
 })
 
 app.openapi(configsPOSTRoute, async (c) => {
-  const session = await requireAuthSession(c.req.raw.headers, { admin: true })
+  const principal = await authn(c.req.raw.headers)
+  authorize(principal, { action: "config" });
+  const userId = requireUserId(principal);
+
   const body = await c.req.valid('json')
 
   const [newSchema] = await db.insert(configs).values({
     config: body.config,
-    createdBy: session.user.id,
+    createdBy: userId,
   }).returning()
 
   return c.json(newSchema, 200)
