@@ -339,9 +339,24 @@ describe('API', () => {
       }))
     })
     
-    // TODO - update metadata!!! (PATCH /api/sessions/{session_id})
-
-
+    // TODO - update metadata!!! (PATCH /api/sessions/{session_id}) -> only metadata should be allowed. New endpoint must be added.
   })
+
+  // TODO - run scenarios:
+  // - creating run `in_progress` - wrong / correct sessionId (do not explicitly give status, default is in progress)
+  // - creating run `in_progress` - check `history`, `lastRun`, `state`
+  // - creating run `in_progress` - no input item (error)
+  // - creating run `in_progress` - check status after (in progress)
+  // - creating run `in_progress` - metadata (scenarios from above like in session, literally identical)
+  // - updating run while `in_progress` (with new items)
+  // - updating run while `in_progress` - `state`
+  // - updating run while `in_progress` (with updated metadata)
+  // - closing run successfully
+  // - closing run with failure (failReason, status)
+  // - modifying run after completion (fail or complete): cannot add items, metadata CAN be updated, status can't be changed -> all the not allowed operations should be tested
+  // - failReason can be only set on failed runs
+  // - versioning tests!!! (all the scenarios)
+  // - permissions (providing endUserToken which suggests the session is not owned by the user). It should be fail.
+
 });
 
