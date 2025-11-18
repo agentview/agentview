@@ -8,6 +8,8 @@ import {
   type RunUpdate,
   type SessionCreate,
   RunBodySchema,
+  type Config,
+  type ConfigCreate,
 } from './apiTypes'
 
 import { type AgentViewErrorBody, type AgentViewErrorDetails, AgentViewError } from './AgentViewError'
@@ -34,7 +36,7 @@ export class AgentView {
   private async request<T>(
     method: string,
     path: string,
-    body: any,
+    body?: any,
     endUserToken?: string
   ): Promise<T> {
     const headers: HeadersInit = {
@@ -105,6 +107,14 @@ export class AgentView {
   async updateEndUser(options: EndUserCreate & EndUserTokenOptions & { id: string }): Promise<EndUser> {
     const { endUserToken, id, ...body } = options;
     return await this.request<EndUser>('PUT', `/api/end-users/${id}`, body, endUserToken)
+  }
+
+  async __getConfig(): Promise<Config> {
+    return await this.request<Config>('GET', `/api/config`)
+  }
+
+  async __updateConfig(body: ConfigCreate): Promise<Config> {
+    return await this.request<Config>('PUT', `/api/config`, body)
   }
 }
 

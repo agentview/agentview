@@ -1,4 +1,5 @@
 import z from 'zod'
+import { BaseConfigSchema } from './configTypes'
 
 
 export const EndUserSchema = z.object({
@@ -203,6 +204,8 @@ export type Config = z.infer<typeof ConfigSchema>
 export const ConfigCreateSchema = ConfigSchema.pick({
     config: true,
 })
+
+export type ConfigCreate = z.infer<typeof ConfigCreateSchema>
 
 export const UserSchema = z.object({
     id: z.string(),

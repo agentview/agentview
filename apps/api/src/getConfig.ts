@@ -30,11 +30,16 @@ function parseSessionItem(item: z.infer<typeof BaseSessionItemConfigSchema>): Ba
     }
 }
 
-export async function getConfig() {
+export async function getConfigRow() {
   const configRows = await db.select().from(configs).orderBy(desc(configs.createdAt)).limit(1)
   if (configRows.length === 0) {
     return undefined;
   }
 
-  return parseConfig(configRows[0].config as z.infer<typeof BaseConfigSchema>)
+  const configRow = configRows[0]
+
+  return {
+    ...configRow,
+    config: parseConfig(configRow.config as z.infer<typeof BaseConfigSchema>)
+  }
 }

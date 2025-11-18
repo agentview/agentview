@@ -13,12 +13,12 @@ export const BaseConfigSchema = z.object({
     agents: z.array(z.object({
         name: z.string(),
         url: z.string(),
-        context: z.any().nullable(),
+        metadata: z.any().optional(),
         runs: z.array(z.object({
             input: BaseSessionItemConfigSchema,
             output: BaseSessionItemConfigSchema,
             steps: z.array(BaseSessionItemConfigSchema).nullable(),
-        })),
+        })).optional(),
     })).optional(),
 })
 

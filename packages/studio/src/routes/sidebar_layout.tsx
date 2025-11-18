@@ -37,7 +37,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { authClient } from "~/lib/auth-client";
 import { SessionContext } from "~/lib/SessionContext";
 import { apiFetch } from "~/lib/apiFetch";
-import { createOrUpdateConfig } from "~/lib/remoteConfig";
+import { updateRemoteConfig } from "~/lib/remoteConfig";
 import { config } from "~/config";
 import { type User, allowedSessionLists } from "~/lib/shared/apiTypes";
 import { Button } from "~/components/ui/button";
@@ -63,7 +63,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const agent = getCurrentAgent(request);
 
-  await createOrUpdateConfig(); // update schema on every page load
+  await updateRemoteConfig(config); // update schema on every page load
 
   const membersResponse = await apiFetch<User[]>('/api/users');
 

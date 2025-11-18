@@ -4,10 +4,10 @@ import type { RouteObject } from "react-router";
 
 import { Header, HeaderTitle } from "~/components/header";
 import { Button } from "~/components/ui/button";
-import { createOrUpdateConfig } from "~/lib/remoteConfig";
+import { getRemoteConfig } from "~/lib/remoteConfig";
 
 async function loader() {
-  return { config: await createOrUpdateConfig() };
+  return { config: await getRemoteConfig() };
 }
 
 function Component() {

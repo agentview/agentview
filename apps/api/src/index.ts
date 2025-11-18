@@ -23,8 +23,8 @@ import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
 import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type EndUser } from './shared/apiTypes'
-import { getConfig } from './getConfig'
-import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig } from './shared/configTypes'
+import { getConfigRow } from './getConfig'
+import { type BaseAgentViewConfig, type BaseAgentConfig, type BaseSessionItemConfig, type BaseScoreConfig, BaseConfigSchema } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
 import { getUsersCount } from './users'
 import { updateInboxes } from './updateInboxes'
@@ -34,6 +34,7 @@ import packageJson from '../package.json'
 import type { Transaction } from './types'
 import { normalizeItemSchema } from './shared/configUtils'
 import { findItemConfig } from './shared/configUtils'
+import { equalJSON } from './shared/equalJSON'
 
 console.log("Migrating database...");
 await migrate(db, { migrationsFolder: './drizzle' });
@@ -290,11 +291,11 @@ function requireUserId(principal: Principal) {
 // CONFIG HELPERS
 
 async function requireConfig() {
-  const config = await getConfig()
-  if (!config) {
+  const configRow = await getConfigRow()
+  if (!configRow) {
     throw new HTTPException(404, { message: "Config not found" });
   }
-  return config
+  return configRow.config
 }
 
 function requireAgentConfig(config: BaseAgentViewConfig, name: string) {
@@ -676,7 +677,7 @@ const publicMeRoute = createRoute({
 app.openapi(publicMeRoute, async (c) => {
   const principal = await authnEndUser(c.req.raw.headers)
   const endUser = principal.endUser;
-  
+
   await authorize(principal, { action: "end-user:read", endUser })
   return c.json(endUser, 200);
 })
@@ -2112,49 +2113,60 @@ app.openapi(emailDetailGETRoute, async (c) => {
 
 /* --------- SCHEMAS ---------   */
 
-const configsGETRoute = createRoute({
+const configGETRoute = createRoute({
   method: 'get',
-  path: '/api/dev/configs/current',
+  path: '/api/config',
   responses: {
     200: response_data(ConfigSchema.nullable()),
   },
 })
 
-app.openapi(configsGETRoute, async (c) => {
+app.openapi(configGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   authorize(principal, { action: "config" });
 
-  const configRows = await db.select().from(configs).orderBy(desc(configs.createdAt)).limit(1)
-  if (configRows.length === 0) {
-    return c.json(null, 200)
-  }
-  return c.json(configRows[0], 200)
+  const configRow = await getConfigRow();
+  return c.json(configRow, 200)
 })
 
-const configsPOSTRoute = createRoute({
-  method: 'post',
-  path: '/api/dev/configs',
+const configPutRoute = createRoute({
+  method: 'put',
+  path: '/api/config',
   request: {
     body: body(ConfigCreateSchema)
   },
   responses: {
     200: response_data(ConfigSchema),
+    400: response_error(),
   },
 })
 
-app.openapi(configsPOSTRoute, async (c) => {
+app.openapi(configPutRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   authorize(principal, { action: "config" });
   const userId = requireUserId(principal);
 
   const body = await c.req.valid('json')
+  const configRow = await getConfigRow()
 
-  const [newSchema] = await db.insert(configs).values({
-    config: body.config,
+  const parseResult = BaseConfigSchema.safeParse(body.config)
+  if (!parseResult.success) {
+    return c.json({ message: "Invalid config", code: 'parse.schema', details: parseResult.error.issues }, 400);
+  }
+
+  const config = parseResult.data;
+
+  // @ts-ignore
+  if (configRow && equalJSON(configRow.config, config)) {
+    return c.json(configRow, 200)
+  }
+
+  const [newConfigRow] = await db.insert(configs).values({
+    config,
     createdBy: userId,
   }).returning()
 
-  return c.json(newSchema, 200)
+  return c.json(newConfigRow, 200)
 })
 
 

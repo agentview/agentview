@@ -1,11 +1,10 @@
+import type { AgentViewConfig } from "~/types";
 import { apiFetch } from "./apiFetch";
 import { serializeBaseConfig } from "./baseConfigHelpers";
 import { getBaseConfig } from "./baseConfigHelpers";
-import { equalJSON } from "./equalJSON";
-import { config } from "~/config";
 
 export async function getRemoteConfig() {
-    const response = await apiFetch(`/api/dev/configs/current`);
+    const response = await apiFetch(`/api/config`);
 
     if (!response.ok) {
         throw response.error;
@@ -14,8 +13,8 @@ export async function getRemoteConfig() {
     return response.data;
 }
 
-export async function updateRemoteConfig() {
-    const response = await apiFetch(`/api/dev/configs`, {
+export async function updateRemoteConfig(config: AgentViewConfig) {
+    const response = await apiFetch(`/api/config`, {
         method: "POST",
         body: {
             config: serializeBaseConfig(getBaseConfig(config))
@@ -27,18 +26,4 @@ export async function updateRemoteConfig() {
     }
 
     return response.data;
-}
-
-export async function createOrUpdateConfig() {
-    const remoteConfigRow = await getRemoteConfig();
-
-    const remoteConfig = remoteConfigRow?.config ?? null;
-    const currentConfig = serializeBaseConfig(getBaseConfig(config));
-
-    if (!equalJSON(remoteConfig, currentConfig)) {
-        console.log('Config change detected! Updating config...')
-        return await updateRemoteConfig();
-    }
-
-    return remoteConfigRow;
 }

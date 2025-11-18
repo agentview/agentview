@@ -175,8 +175,43 @@ describe('API', () => {
       })
     })
   })
-});
 
+  describe("configs", () => {
+
+    test("works", async () => {
+      const CONFIG = { agents: [{ name: "test", url: "https://test.com" }] };
+
+      let configRow = await av.__updateConfig({ config: CONFIG })
+      expect(configRow.config).toEqual(CONFIG);
+
+      configRow = await av.__getConfig();
+      expect(configRow.config).toEqual(CONFIG);
+
+      const CONFIG_2 = { agents: [{ name: "test2", url: "https://test2.com" }] };
+
+      configRow = await av.__updateConfig({ config: CONFIG_2 })
+      expect(configRow.config).toEqual(CONFIG_2);
+
+      configRow = await av.__getConfig();
+      expect(configRow.config).toEqual(CONFIG_2);
+    })
+
+    test("non-config fields are stripped", async () => {
+      let configRow = await av.__updateConfig({ config: { agents: [], animal: "cat" } })
+      expect(configRow.config).toEqual({ agents: []});
+
+      configRow = await av.__getConfig();
+      expect(configRow.config).toEqual({ agents: [] });
+    })
+
+    test("invalid config throws", async () => {
+      await expect(av.__updateConfig({ config: { agents: 100 } })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 400,
+        message: expect.any(String),
+      }))
+    })
+  })
+});
 
 
 // Generate a random UUID (v4) for testing
