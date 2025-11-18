@@ -152,11 +152,11 @@ export type RunWithCollaboration = z.infer<typeof RunWithCollaborationSchema>
 
 export const SessionBaseSchema = z.object({
     id: z.string(),
+    agent: z.string(),
     handle: z.string(),
     createdAt: z.iso.date(),
     updatedAt: z.iso.date(),
     metadata: z.record(z.string(), z.any()).nullable(),
-    agent: z.string(),
     endUser: EndUserSchema,
     endUserId: z.string(), // potential bloat
 })
@@ -175,10 +175,9 @@ export type Session = z.infer<typeof SessionSchema>
 export type SessionWithCollaboration = z.infer<typeof SessionWithCollaborationSchema>
 
 
-export const SessionCreateSchema = SessionBaseSchema.pick({
-    agent: true,
-    metadata: true,
-}).extend({
+export const SessionCreateSchema = z.object({
+    agent: z.string(),
+    metadata: z.record(z.string(), z.any()).nullable().optional(),
     endUserId: z.string().optional(),
     endUserExternalId: z.string().optional(),
 })

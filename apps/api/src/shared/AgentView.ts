@@ -13,6 +13,7 @@ import {
 } from './apiTypes'
 
 import { type AgentViewErrorBody, type AgentViewErrorDetails, AgentViewError } from './AgentViewError'
+import { makeObjectSerializable } from './configUtils'
 
 
 export interface AgentViewOptions {
@@ -114,7 +115,7 @@ export class AgentView {
   }
 
   async __updateConfig(body: ConfigCreate): Promise<Config> {
-    return await this.request<Config>('PUT', `/api/config`, body)
+    return await this.request<Config>('PUT', `/api/config`, makeObjectSerializable(body))
   }
 }
 

@@ -30,7 +30,7 @@ export async function fetchSessions(session_id?: string, tx?: Transaction): Prom
   const sessionRows = await (tx || db).query.sessions.findMany({
     where,
     with: {
-      client: true,
+      endUser: true,
       runs: {
         columns: {
           id: true,
@@ -68,10 +68,10 @@ export async function fetchSessions(session_id?: string, tx?: Transaction): Prom
     handle: row.handleNumber.toString() + (row.handleSuffix ?? ""),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-    context: row.context,
+    metadata: row.metadata,
     agent: row.agent,
-    client: row.client,
-    clientId: row.client.id,
+    endUser: row.endUser,
+    endUserId: row.endUser.id,
     runs: row.runs,
   })) as SessionWithCollaboration[];
 }

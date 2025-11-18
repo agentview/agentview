@@ -1,6 +1,7 @@
 import { describe, it, test, expect, beforeAll } from 'vitest'
 import { AgentView, AgentViewClient } from './AgentView'
 import type { EndUser } from './apiTypes';
+import { z } from 'zod';
 
 const apiKey = 'cTlvHJzNQqFwgUaXJwhQCgnxUaYPYrgnjLDkapomgcAHRKoyutJpvVJACaBCUWoT'
 const apiUrl = 'http://localhost:8080'
@@ -140,7 +141,7 @@ describe('API', () => {
   })
 
   describe("PUBLIC API", () => {
-    
+
     describe("get me", () => {
 
       test("works for existing users", async () => {
@@ -198,7 +199,7 @@ describe('API', () => {
 
     test("non-config fields are stripped", async () => {
       let configRow = await av.__updateConfig({ config: { agents: [], animal: "cat" } })
-      expect(configRow.config).toEqual({ agents: []});
+      expect(configRow.config).toEqual({ agents: [] });
 
       configRow = await av.__getConfig();
       expect(configRow.config).toEqual({ agents: [] });
@@ -210,6 +211,91 @@ describe('API', () => {
         message: expect.any(String),
       }))
     })
+  })
+
+
+  describe("sessions", async () => {
+
+    beforeAll(async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+    })
+
+    test("create", async () => {
+      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      expect(session).toMatchObject({
+        agent: "test",
+        metadata: null,
+        runs: [],
+        endUser: {
+          id: initEndUser1.id,
+          externalId: EXTERNAL_ID_1,
+          isShared: false,
+          token: initEndUser1.token,
+        }
+      })
+    })
+
+    test("create - fails at wrong agent", async () => {
+      await expect(av.createSession({ agent: "wrong_agent", endUserId: initEndUser1.id })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 404,
+        message: expect.any(String),
+      }))
+    })
+
+    test("create / with known metadata / saved", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { product_id: z.string() } }] } })
+
+      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id, metadata: { product_id: "123" } })
+      expect(session).toMatchObject({
+        agent: "test",
+        metadata: {
+          product_id: "123",
+        }
+      })
+    })
+
+    test("create / with known metadata + allowUnknownMetadata=false / saved", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { product_id: z.string() }, allowUnknownMetadata: false }] } })
+
+      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id, metadata: { product_id: "123" } })
+      expect(session).toMatchObject({
+        agent: "test",
+        metadata: {
+          product_id: "123",
+        }
+      })
+    })
+
+    test("create / with unknown metadata / saved", async () => {
+      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id, metadata: { product_id: "123" } })
+      expect(session).toMatchObject({
+        agent: "test",
+        metadata: {
+          product_id: "123",
+        }
+      })
+    })
+
+    test.only("create / with unknown metadata + allowUnknownMetadata=false / failed", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", allowUnknownMetadata: false }] } })
+
+      await expect(av.createSession({ agent: "test", endUserId: initEndUser1.id, metadata: { product_id: "123" } })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 422,
+        message: expect.any(String),
+      }))
+    })
+
+    test("create / with incompatible metadata / fails", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { product_id: z.string() } }] } })
+
+      await expect(av.createSession({ agent: "test", endUserId: initEndUser1.id, metadata: { product_id: 123 } })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 422,
+        message: expect.any(String),
+      }))
+    })
+
+
+
   })
 });
 

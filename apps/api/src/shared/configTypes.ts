@@ -14,6 +14,7 @@ export const BaseConfigSchema = z.object({
         name: z.string(),
         url: z.string(),
         metadata: z.any().optional(),
+        allowUnknownMetadata: z.boolean().optional(),
         runs: z.array(z.object({
             input: BaseSessionItemConfigSchema,
             output: BaseSessionItemConfigSchema,
@@ -25,21 +26,14 @@ export const BaseConfigSchema = z.object({
 export interface BaseScoreConfig {
     name: string;
     schema: z.ZodType;
-    options?: any
 }
 
-export type SessionItemSchema = Record<string, z.ZodType | string> | z.ZodObject;
-
-export type SessionItemSchemaKey = {
-    [key: string]: string | null | SessionItemSchemaKey;
-};
+export type ExtendedSchema = Record<string, z.ZodType | string> | z.ZodObject;
 
 export interface BaseSessionItemConfig<TScoreConfig extends BaseScoreConfig = BaseScoreConfig> {
-    schema: SessionItemSchema;
-    // resultOf?: SessionItemSchemaKey;
+    schema: ExtendedSchema;
     scores?: TScoreConfig[];
     callResult?: BaseSessionItemConfig<TScoreConfig>;
-    // callId?: string | { call: string, result: string }
 }
 
 export interface BaseRunConfig<TSessionItemConfig extends BaseSessionItemConfig = BaseSessionItemConfig, TSessionInputItemConfig extends BaseSessionItemConfig = BaseSessionItemConfig> {
@@ -51,7 +45,8 @@ export interface BaseRunConfig<TSessionItemConfig extends BaseSessionItemConfig 
 export interface BaseAgentConfig<TRunConfig extends BaseRunConfig = BaseRunConfig> {
     name: string;
     url: string;
-    metadata?: z.ZodTypeAny;
+    metadata?: ExtendedSchema;
+    allowUnknownMetadata?: boolean;
     runs?: TRunConfig[];
 }
 

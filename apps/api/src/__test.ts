@@ -1,52 +1,61 @@
 import "dotenv/config";
-import { auth } from "./auth";
+import { z } from "zod";
 
-const response = await auth.api.signInEmail({
-  returnHeaders: true,
-  body: {
-      email: "admin@admin.com",
-      password: "blablabla"
-  }
-})
+const schema = z.looseObject({
+  name: z.string(),
+  age: z.number(),
+});
 
-const cookie = response.headers.get("set-cookie")!.split(";")[0];
-const headers = new Headers();
-headers.set("Cookie", cookie);
+console.log(schema.parse({ name: "John", age: 30, dupa: 8 }));
 
+// import { auth } from "./auth";
 
-// const session = await auth.api.getSession({
-//   headers
+// const response = await auth.api.signInEmail({
+//   returnHeaders: true,
+//   body: {
+//       email: "admin@admin.com",
+//       password: "blablabla"
+//   }
 // })
 
-// console.log(session);
+// const cookie = response.headers.get("set-cookie")!.split(";")[0];
+// const headers = new Headers();
+// headers.set("Cookie", cookie);
 
-// // const user = response.user;
-// // const userId = user.id;
 
-// const data = await auth.api.createApiKey({
-//   body: {
-//       name: 'xxx',
-//       expiresIn: 60 * 60 * 24 * 365
-//   },
+// // const session = await auth.api.getSession({
+// //   headers
+// // })
+
+// // console.log(session);
+
+// // // const user = response.user;
+// // // const userId = user.id;
+
+// // const data = await auth.api.createApiKey({
+// //   body: {
+// //       name: 'xxx',
+// //       expiresIn: 60 * 60 * 24 * 365
+// //   },
+// //   headers
+// // });
+
+// // console.log(data);
+
+
+// const data2 = await auth.api.listApiKeys({
 //   headers
 // });
 
-// console.log(data);
+// console.log("--------------------------------");
+// console.log(data2);
 
+// const data3 = await auth.api.getApiKey({
+//   query: {
+//     id: data2[0].id, // required
+//   },
+//   headers
+// })
+// console.log("--------------------------------");
 
-const data2 = await auth.api.listApiKeys({
-  headers
-});
-
-console.log("--------------------------------");
-console.log(data2);
-
-const data3 = await auth.api.getApiKey({
-  query: {
-    id: data2[0].id, // required
-  },
-  headers
-})
-console.log("--------------------------------");
-
-console.log(data3);
+// console.log(data3);

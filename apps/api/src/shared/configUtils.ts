@@ -1,5 +1,5 @@
 import type { Session } from "./apiTypes";
-import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig, SessionItemSchema, SessionItemSchemaKey } from "./configTypes";
+import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig, ExtendedSchema } from "./configTypes";
 import { z, ZodString } from "zod";
 import { getAllSessionItems } from "./sessionUtils";
 
@@ -105,8 +105,9 @@ export function findItemConfig<T extends BaseAgentConfig, SessionT extends Sessi
     return result.itemConfig;
 }
 
-function getCallIdKey(inputSchema: SessionItemSchema): any | undefined {
-    const schema = normalizeItemSchema(inputSchema);
+
+function getCallIdKey(inputSchema: ExtendedSchema): any | undefined {
+    const schema = normalizeExtendedSchema(inputSchema);
     const shape = schema.shape;
     for (const [key, value] of Object.entries(shape)) {
         const meta = value.meta();
@@ -123,14 +124,14 @@ function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension
     const matches: T[] = [];
 
     for (const itemConfig of itemConfigs) {
-        const schema = normalizeItemSchema(itemConfig.schema);
+        const schema = normalizeExtendedSchema(itemConfig.schema);
 
         if (schema.safeParse(content).success) {
             matches.push(itemConfig);
         }
         
         if (itemConfig.callResult) {
-            const callResultSchema = normalizeItemSchema(itemConfig.callResult.schema);
+            const callResultSchema = normalizeExtendedSchema(itemConfig.callResult.schema);
             if (!callResultSchema.safeParse(content).success) {
                 continue;
             }
@@ -162,157 +163,86 @@ function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension
     }
 
     return matches;
-
-    // for (const itemConfig of itemConfigs) {
-    //     const schema = normalizeItemSchema(itemConfig.schema);
-
-    //     if (schema.safeParse(content).success) {
-    //         matches.push(itemConfig);
-    //     }
-
-    //     if (itemConfig.callResult) {
-    //         const callResultSchema = normalizeItemSchema(itemConfig.callResult.schema);
-    //         if (!callResultSchema.safeParse(content).success) {
-    //             continue;
-    //         }
-
-    //         const callIdKey = getCallIdKey(itemConfig.schema) ?? "__aaa__";
-    //         const resultIdKey = getCallIdKey(itemConfig.callResult.schema) ?? "__bbb__";
-
-    //         for (let i = prevItems.length - 1; i >= 0; i--) {
-    //             const prevItem = prevItems[i];
-    //             if (schema.safeParse(prevItem).success && prevItem[callIdKey] === content[callIdKey]) { // if both keys are `undefined`, first match.
-    //                 matches.push(itemConfig.callResult as T);
-    //                 break;
-    //             }
-    //         }
-    //     }
-    // }
-    // return matches;
 }
 
-// function matchItemConfigs<T extends BaseSessionItemConfig>(itemConfigs: T[], content: any): T[] {
-//     console.log("<<<<< MATCH ITEM CONFIGS >>>>>")
-//     console.log("CONTENT:", content)
-//     // return matchItemConfigsRaw(itemConfigs, content);
+export function normalizeExtendedSchema(extendedSchema?: ExtendedSchema, allowUnknownKeys: boolean = true): z.ZodObject {
+    let schema: z.ZodObject;
 
-//      // find all matching items first
-//     const rawMatches = matchItemConfigsRaw(itemConfigs, content);
-
-//     // split them into normal matches and call results
-//     const normalMatches = rawMatches.filter(c => !c.resultOf);
-//     const callResultMatches = rawMatches.filter(c => c.resultOf);
-
-//     const matches: T[] = normalMatches;
-
-//     // for call results we must check caller match too
-//     for (const itemConfig of callResultMatches) {
-        
-
-
-//         const callItemConfigs = itemConfigs.filter(c => {
-//             if (c.resultOf) {
-//                 return false;
-//             }
-//             console.log('---');
-//             console.log('key1', getSchemaKey(c.schema));
-//             console.log('key2', getSchemaKey(itemConfig.resultOf!));
-//             const result = keysMatch(getSchemaKey(c.schema), getSchemaKey(itemConfig.resultOf!))
-//             console.log('result: ', result);
-//             return result;
-//         });
-//         console.log('num: ', callItemConfigs.length);
-
-//         if (callItemConfigs.length === 0) {
-//             console.warn("resultOf error: no call matched");
-//         }
-//         else if (callItemConfigs.length > 1) {
-//             console.warn("resultOf error: more than 1 call matched");
-//         }
-//         else {
-//             matches.push({
-//                 ...itemConfig,
-//                 call: callItemConfigs[0],
-//             });
-//         }
-//     }
-
-//     console.log("MATCHES", matches)
-
-//     return matches;
-// }
-
-// function matchItemConfigsRaw<T extends BaseSessionItemConfig>(itemConfigs: T[], content: any): T[] {
-//     const matches: T[] = [];
-//     for (const itemConfig of itemConfigs) {
-//         if (normalizeItemSchema(itemConfig.schema).safeParse(content).success) {
-//             matches.push(itemConfig);
-//         }
-//     }
-//     return matches;
-// }
-
-
-export function normalizeItemSchema(schema: SessionItemSchema): z.ZodObject {
-    if (schema instanceof z.ZodType) {
-        if (schema instanceof z.ZodObject) {
-            return schema;
-        }
+    if (!extendedSchema) {
+        schema = z.object({});
     }
-    else if (typeof schema === "object") {
+    else if (extendedSchema instanceof z.ZodType && extendedSchema instanceof z.ZodObject) {
+        schema = extendedSchema;
+    }
+    else if (typeof extendedSchema === "object" && extendedSchema !== null && !Array.isArray(extendedSchema)) {
         const shape: Record<string, any> = {};
-        for (const [key, val] of Object.entries(schema)) {
+        for (const [key, val] of Object.entries(extendedSchema)) {
             if (typeof val === "string") {
                 shape[key] = z.literal(val);
             } else {
                 shape[key] = val;
             }
         }
-        return z.object(shape);
+        schema = z.object(shape);
     }
-    throw new Error("Invalid schema, must be z.ZodObject or object");
+    else {
+        throw new Error("Invalid schema, must be z.ZodObject or object");
+    }
+
+    if (allowUnknownKeys) {
+        return schema.loose();
+    }
+    else {
+        return schema.strict();
+    }
 }
 
-
-// export function getSchemaKey(schema: SessionItemSchema): SessionItemSchemaKey {
-//     const normalizedSchema = normalizeItemSchema(schema);
-
-//     const result: SessionItemSchemaKey = {};
-    
-//     for (const [key, value] of Object.entries(normalizedSchema.shape)) {
-//         if (value instanceof z.ZodOptional) {
-//             continue;
-//         }
-
-//         if (value instanceof z.ZodLiteral && typeof value.value === "string") {
-//             result[key] = value.value;
-//         }
-//         else if (value instanceof z.ZodObject) {
-//             result[key] = getSchemaKey(value.shape);
-//         }
-//         else {
-//             result[key] = null;
-//         }
-//     }
-    
-//     return result;
-// }
-
-
-// function keysMatch(schemaKey1: SessionItemSchemaKey, schemaKey2: SessionItemSchemaKey): boolean {
-//     for (const [key, value] of Object.entries(schemaKey2)) {
-//         if (schemaKey1[key] === undefined) {
-//             return false;
-//         }
-
-//         if (typeof value === "object" && value !== null && typeof schemaKey1[key] === "object" && schemaKey1[key] !== null) {
-//             if (!keysMatch(schemaKey1[key], value)) {
-//                 return false;
-//             }
-//         }
-//         else if (value !== schemaKey1[key]) {
-//             return false;
-//         }
-//     }
-//     return true;
-// }
+// 1. remove functions and react components
+// 2. convert zod schemas to json schemas
+export function makeObjectSerializable(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+  
+    // Handle Zod schemas
+    if (obj instanceof z.ZodType) {
+      return z.toJSONSchema(obj);
+    }
+  
+    // Handle arrays
+    if (Array.isArray(obj)) {
+      return obj.map(makeObjectSerializable);
+    }
+  
+    // Handle objects
+    if (typeof obj === "object") {
+      const result: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (isFunction(value) || isReactComponent(value)) {
+          continue;
+        }
+        result[key] = makeObjectSerializable(value);
+      }
+      return result;
+    }
+  
+    // Primitives
+    return obj;
+  }
+  
+  // Helper function to check if a value is a React component
+  function isReactComponent(value: any): boolean {
+    return typeof value === 'function' && (
+      value.displayName ||
+      value.name?.startsWith('React') ||
+      value.$$typeof === Symbol.for('react.element') ||
+      value.$$typeof === Symbol.for('react.memo') ||
+      value.$$typeof === Symbol.for('react.forward_ref')
+    );
+  }
+  
+  // Helper function to check if a value is a function (excluding React components)
+  function isFunction(value: any): boolean {
+    return typeof value === 'function' && !isReactComponent(value);
+  }
+  

@@ -1,9 +1,9 @@
 import type { SessionItemConfig } from "~/types";
-import { normalizeItemSchema } from "./shared/configUtils";
+import { normalizeExtendedSchema } from "./shared/configUtils";
 import { z } from "zod";
 
 export function runDefaultName(itemConfig: SessionItemConfig) {
-    const schema = normalizeItemSchema(itemConfig.schema);
+    const schema = normalizeExtendedSchema(itemConfig.schema);
     
     // Get the shape of the schema to inspect field definitions
     const shape = schema.shape;

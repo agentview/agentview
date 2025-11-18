@@ -22,8 +22,8 @@ import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, RunSchema, SessionItemSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type EndUser } from './shared/apiTypes'
-import { getConfigRow } from './getConfig'
+import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, RunSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type EndUser } from './shared/apiTypes'
+import { getConfigRow, getParsedConfig } from './getConfig'
 import { type BaseAgentViewConfig, type BaseAgentConfig, type BaseSessionItemConfig, type BaseScoreConfig, BaseConfigSchema } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
 import { getUsersCount } from './users'
@@ -32,8 +32,7 @@ import { isInboxItemUnread } from './inboxItems'
 import { findEndUser, createEndUser } from './endUsers'
 import packageJson from '../package.json'
 import type { Transaction } from './types'
-import { normalizeItemSchema } from './shared/configUtils'
-import { findItemConfig } from './shared/configUtils'
+import { findItemConfig, normalizeExtendedSchema } from './shared/configUtils'
 import { equalJSON } from './shared/equalJSON'
 
 console.log("Migrating database...");
@@ -291,11 +290,11 @@ function requireUserId(principal: Principal) {
 // CONFIG HELPERS
 
 async function requireConfig() {
-  const configRow = await getConfigRow()
-  if (!configRow) {
+  const parsedConfig = await getParsedConfig()
+  if (!parsedConfig) {
     throw new HTTPException(404, { message: "Config not found" });
   }
-  return configRow.config
+  return parsedConfig
 }
 
 function requireAgentConfig(config: BaseAgentViewConfig, name: string) {
@@ -1084,7 +1083,7 @@ const sessionsPOSTRoute = createRoute({
   },
   responses: {
     201: response_data(SessionSchema),
-    400: response_error()
+    422: response_error()
   },
 })
 
@@ -1118,16 +1117,15 @@ app.openapi(sessionsPOSTRoute, async (c) => {
 
   authorize(principal, { action: "end-user:update", endUser });
 
-  // Validate context against the schema
-  if (agentConfig.metadata) {
-    try {
-      agentConfig.metadata.parse(body.metadata);
-    } catch (error: unknown) {
-      if (error instanceof z.ZodError) {
-        return c.json({ message: "Error parsing the session context.", code: 'parse.schema', details: error.issues }, 400);
-      }
-      throw new Error("Unreachable");
-    }
+  /**
+   * METADATA
+   */
+  console.log('-----')
+  console.log('body.metadata', body.metadata);
+  const parsedMetadata = normalizeExtendedSchema(agentConfig.metadata, agentConfig.allowUnknownMetadata ?? true).safeParse(body.metadata ?? {});
+  console.log('parsedMetadata', parsedMetadata);
+  if (!parsedMetadata.success) {
+    return c.json({ message: "Error parsing the session context.", code: 'parse.schema', issues: parsedMetadata.error.issues }, 422);
   }
 
   const newSession = await db.transaction(async (tx) => {
@@ -1143,7 +1141,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     const [newSessionRow] = await tx.insert(sessions).values({
       handleNumber: newHandleNumber,
       handleSuffix: handleSuffix,
-      metadata: body.metadata,
+      metadata: parsedMetadata.data,
       agent: body.agent,
       endUserId: endUser.id
     }).returning();
@@ -1161,7 +1159,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     if (!newSession) {
       throw new Error("[Internal Error] Session not found");
     }
-
+  
     await updateInboxes(tx, event, newSession, null);
     return newSession;
   });
