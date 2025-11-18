@@ -164,4 +164,8 @@ export class AgentViewClient {
   async getMe(): Promise<EndUser> {
     return await this.request<EndUser>('GET', `/api/public/me`)
   }
+
+  async getSession(options: { id: string }): Promise<SessionWithCollaboration> {
+    return await this.request<SessionWithCollaboration>('GET', `/api/public/sessions/${options.id}`)
+  }
 }

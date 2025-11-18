@@ -325,6 +325,12 @@ function requireScoreConfig(itemConfig: ReturnType<typeof requireItemConfig>, sc
 
 // DATA HELPERS
 
+function requireUUID(id: string) {
+  if (!isUUID(id)) {
+    throw new HTTPException(404, { message: "Not found" });
+  }
+}
+
 async function requireSession(sessionId: string) {
   const session = await fetchSession(sessionId)
   if (!session) {
@@ -686,7 +692,7 @@ const endUserGETRoute = createRoute({
   path: '/api/end-users/{id}',
   request: {
     params: z.object({
-      id: z.uuid(),
+      id: z.string(),
     }),
   },
   responses: {
@@ -699,6 +705,7 @@ app.openapi(endUserGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
   const { id } = c.req.param()
+  requireUUID(id);
   const endUser = await requireEndUser({ id })
 
   await authorize(principal, { action: "end-user:read", endUser })
@@ -1021,7 +1028,7 @@ const sessionGETRoute = createRoute({
   path: '/api/sessions/{session_id}',
   request: {
     params: z.object({
-      sessionId: z.string(),
+      session_id: z.string(),
     }),
   },
   responses: {
@@ -1033,6 +1040,8 @@ const sessionGETRoute = createRoute({
 app.openapi(sessionGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const { session_id } = c.req.param()
+  requireUUID(session_id);
+
   const session = await requireSession(session_id);
   await authorize(principal, { action: "end-user:read", endUser: session.endUser });
 
@@ -1045,7 +1054,7 @@ const publicSessionGETRoute = createRoute({
   tags: ['public'],
   request: {
     params: z.object({
-      sessionId: z.string(),
+      session_id: z.string(),
     }),
   },
   responses: {
@@ -1058,6 +1067,8 @@ app.openapi(publicSessionGETRoute, async (c) => {
   const principal = await authnEndUser(c.req.raw.headers)
 
   const { session_id } = c.req.param()
+  requireUUID(session_id);
+
   const session = await requireSession(session_id);
   authorize(principal, { action: "end-user:read", endUser: session.endUser });
 
@@ -1125,7 +1136,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
   const parsedMetadata = normalizeExtendedSchema(agentConfig.metadata, agentConfig.allowUnknownMetadata ?? true).safeParse(body.metadata ?? {});
   console.log('parsedMetadata', parsedMetadata);
   if (!parsedMetadata.success) {
-    return c.json({ message: "Error parsing the session context.", code: 'parse.schema', issues: parsedMetadata.error.issues }, 422);
+    return c.json({ message: "Error parsing the session metadata.", code: 'parse.schema', issues: parsedMetadata.error.issues }, 422);
   }
 
   const newSession = await db.transaction(async (tx) => {

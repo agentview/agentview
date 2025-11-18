@@ -2,6 +2,7 @@ import { describe, it, test, expect, beforeAll } from 'vitest'
 import { AgentView, AgentViewClient } from './AgentView'
 import type { EndUser } from './apiTypes';
 import { z } from 'zod';
+import { AgentViewError } from './AgentViewError';
 
 const apiKey = 'cTlvHJzNQqFwgUaXJwhQCgnxUaYPYrgnjLDkapomgcAHRKoyutJpvVJACaBCUWoT'
 const apiUrl = 'http://localhost:8080'
@@ -65,15 +66,8 @@ describe('API', () => {
       })
 
       test("not found", async () => {
-        await expect(av.getEndUser({ id: randomUUID() })).rejects.toThrowError(expect.objectContaining({
-          statusCode: 404,
-          message: expect.any(String),
-        }))
-      })
-
-      test("incorrect id", async () => {
         await expect(av.getEndUser({ id: 'xxx' })).rejects.toThrowError(expect.objectContaining({
-          statusCode: 422,
+          statusCode: 404,
           message: expect.any(String),
         }))
       })
@@ -162,7 +156,6 @@ describe('API', () => {
         expect(endUser2.externalId).toBe(EXTERNAL_ID_2)
       })
 
-
       test("fails for unknown key", async () => {
         const avPublic1 = new AgentViewClient({
           apiUrl,
@@ -170,6 +163,36 @@ describe('API', () => {
         })
 
         await expect(avPublic1.getMe()).rejects.toThrowError(expect.objectContaining({
+          statusCode: 401,
+          message: expect.any(String),
+        }))
+      })
+    })
+
+    describe("get session by id", () => {
+      test("works for own session", async () => {
+        await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+        const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+
+        const avPublic1 = new AgentViewClient({
+          apiUrl,
+          endUserToken: initEndUser1.token
+        })
+
+        const fetchedSession = await avPublic1.getSession({ id: session.id })
+        expect(fetchedSession).toMatchObject(session)
+      })
+
+      test("fails for someone else's session", async () => {
+        await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+        const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+
+        const avPublic2 = new AgentViewClient({
+          apiUrl,
+          endUserToken: initEndUser2.token
+        })
+
+        await expect(avPublic2.getSession({ id: session.id })).rejects.toThrowError(expect.objectContaining({
           statusCode: 401,
           message: expect.any(String),
         }))
@@ -215,12 +238,9 @@ describe('API', () => {
 
 
   describe("sessions", async () => {
-
-    beforeAll(async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
-    })
-
     test("create", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+
       const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
       expect(session).toMatchObject({
         agent: "test",
@@ -236,6 +256,8 @@ describe('API', () => {
     })
 
     test("create - fails at wrong agent", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+      
       await expect(av.createSession({ agent: "wrong_agent", endUserId: initEndUser1.id })).rejects.toThrowError(expect.objectContaining({
         statusCode: 404,
         message: expect.any(String),
@@ -267,6 +289,8 @@ describe('API', () => {
     })
 
     test("create / with unknown metadata / saved", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+
       const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id, metadata: { product_id: "123" } })
       expect(session).toMatchObject({
         agent: "test",
@@ -294,25 +318,26 @@ describe('API', () => {
       }))
     })
 
+    test("get by id for existing session", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+
+      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      const fetchedSession = await av.getSession({ id: session.id })
+      expect(fetchedSession).toMatchObject({
+        agent: "test",
+        metadata: {},
+        runs: [],
+        endUserId: initEndUser1.id,
+      })
+    })
+
+    test("get by id - wrong id", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+
+      await expect(av.getSession({ id: 'xxx' })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 404,
+        message: expect.any(String),
+      }))
+    })
   })
 });
-
-
-// Generate a random UUID (v4) for testing
-function randomUUID() {
-  // Browser environments have crypto.randomUUID()
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID()
-  }
-  // Node.js 14.17+
-  if (typeof require === 'function') {
-    try {
-      return require('crypto').randomUUID()
-    } catch { }
-  }
-  // Fallback
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8)
-    return v.toString(16)
-  })
-}

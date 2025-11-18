@@ -14,6 +14,10 @@ export class AgentViewError extends Error {
         this.statusCode = statusCode
         this.details = details
     }
+
+    toString() {
+        return `AgentViewError: ${this.message} (status: ${this.statusCode})${this.details ? `, details: ${JSON.stringify(this.details)}` : ''}`;
+    }
 }
 
 export type AgentViewErrorBody = AgentViewErrorDetails & {
