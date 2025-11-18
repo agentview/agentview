@@ -663,6 +663,24 @@ app.openapi(endUserMe, async (c) => {
   return c.json(endUser, 200);
 })
 
+const publicMeRoute = createRoute({
+  method: 'get',
+  path: '/api/public/me',
+  tags: ['public'],
+  responses: {
+    200: response_data(EndUserSchema),
+    404: response_error()
+  },
+})
+
+app.openapi(publicMeRoute, async (c) => {
+  const principal = await authnEndUser(c.req.raw.headers)
+  const endUser = principal.endUser;
+  
+  await authorize(principal, { action: "end-user:read", endUser })
+  return c.json(endUser, 200);
+})
+
 const endUserGETRoute = createRoute({
   method: 'get',
   path: '/api/end-users/{id}',

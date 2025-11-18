@@ -15,7 +15,7 @@ import { type AgentViewErrorBody, type AgentViewErrorDetails, AgentViewError } f
 
 export interface AgentViewOptions {
   apiUrl: string
-  apiKey?: string
+  apiKey: string
 }
 
 export type EndUserTokenOptions = {
@@ -24,16 +24,11 @@ export type EndUserTokenOptions = {
 
 export class AgentView {
   private apiUrl: string
-  private apiKey?: string
-  private endUserToken?: string
+  private apiKey: string
 
   constructor(options: AgentViewOptions) {
     this.apiUrl = options.apiUrl.replace(/\/$/, '') // remove trailing slash
     this.apiKey = options.apiKey
-
-    if (!this.apiKey && !this.endUserToken) {
-      throw new Error('Either apiKey or endUserToken must be provided')
-    }
   }
 
   private async request<T>(
@@ -50,11 +45,7 @@ export class AgentView {
       headers['X-End-User-Token'] = endUserToken;
     }
 
-    if (this.apiKey) {
-      headers['Authorization'] = `Bearer ${this.apiKey}`
-    } else if (this.endUserToken) {
-      headers['Authorization'] = `Bearer ${this.endUserToken}`
-    }
+    headers['Authorization'] = `Bearer ${this.apiKey}`
 
     const response = await fetch(`${this.apiUrl}${path}`, {
       method,
@@ -117,3 +108,49 @@ export class AgentView {
   }
 }
 
+
+
+export interface AgentViewClientOptions {
+  apiUrl: string
+  endUserToken: string
+}
+
+export class AgentViewClient {
+  private apiUrl: string
+  private endUserToken: string
+
+  constructor(options: AgentViewClientOptions) {
+    this.apiUrl = options.apiUrl.replace(/\/$/, '') // remove trailing slash
+    this.endUserToken = options.endUserToken
+  }
+
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: any
+  ): Promise<T> {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    }
+
+    headers['X-End-User-Token'] = this.endUserToken;
+
+    const response = await fetch(`${this.apiUrl}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    })
+
+    if (!response.ok) {
+      const errorBody: AgentViewErrorBody = await response.json()
+      const { message, ...details } = errorBody;
+      throw new AgentViewError(message ?? "Unknown error", response.status, details)
+    }
+
+    return await response.json()
+  }
+
+  async getMe(): Promise<EndUser> {
+    return await this.request<EndUser>('GET', `/api/public/me`)
+  }
+}
