@@ -117,7 +117,7 @@ function createSession(items: any[]): Session {
         handle: '1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        context: {},
+        metadata: {},
         agent: 'test',
         endUser: {
             id: '1',

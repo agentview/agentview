@@ -1,58 +1,35 @@
-import type { 
-  Session, 
-  SessionWithCollaboration, 
-  EndUser, 
-  EndUserCreate,
-  Run,
-  RunCreate,
-  RunUpdate,
-  SessionCreate,
+import { 
+  type Session, 
+  type SessionWithCollaboration, 
+  type EndUser, 
+  type EndUserCreate,
+  type Run,
+  type RunCreate,
+  type RunUpdate,
+  type SessionCreate,
+  RunBodySchema,
 } from './apiTypes'
 
-export interface AgentViewErrorResponse {
-  message: string
-  code?: string
-  details?: any
-  [key: string]: any
-}
+import { type AgentViewErrorBody, type AgentViewErrorDetails, AgentViewError } from './AgentViewError'
 
-export class AgentViewError extends Error {
-  body: AgentViewErrorResponse
-  statusCode: number
-
-  constructor(body: AgentViewErrorResponse, statusCode: number) {
-    super(body.message)
-    this.name = 'AgentViewError'
-    this.body = body
-    this.statusCode = statusCode
-  }
-}
 
 export interface AgentViewOptions {
   apiUrl: string
   apiKey?: string
-  endUserToken?: string
-  agent: string
-  version: string
 }
 
 export type EndUserTokenOptions = {
-    endUserToken?: string
+  endUserToken?: string
 }
 
 export class AgentView {
   private apiUrl: string
   private apiKey?: string
   private endUserToken?: string
-  private agent: string
-  private version: string
 
   constructor(options: AgentViewOptions) {
     this.apiUrl = options.apiUrl.replace(/\/$/, '') // remove trailing slash
     this.apiKey = options.apiKey
-    this.endUserToken = options.endUserToken
-    this.agent = options.agent
-    this.version = options.version
 
     if (!this.apiKey && !this.endUserToken) {
       throw new Error('Either apiKey or endUserToken must be provided')
@@ -86,15 +63,9 @@ export class AgentView {
     })
 
     if (!response.ok) {
-      let errorBody: AgentViewErrorResponse
-      try {
-        errorBody = await response.json()
-      } catch {
-        errorBody = {
-          message: `HTTP ${response.status}: ${response.statusText}`,
-        }
-      }
-      throw new AgentViewError(errorBody, response.status)
+      const errorBody: AgentViewErrorBody = await response.json()
+      const { message, ...details } = errorBody;
+      throw new AgentViewError(message ?? "Unknown error", response.status, details)
     }
 
     return await response.json()
@@ -110,9 +81,9 @@ export class AgentView {
     return await this.request<SessionWithCollaboration>('GET', `/api/sessions/${id}`, undefined, endUserToken)
   }
 
-  async createRun(options: Omit<RunCreate, 'version'> & EndUserTokenOptions): Promise<Run> {
+  async createRun(options: RunCreate & EndUserTokenOptions): Promise<Run> {
     const { endUserToken, ...body } = options;
-    return await this.request<Run>('POST', `/api/runs`, { ...body, version: { version: this.version } }, endUserToken)
+    return await this.request<Run>('POST', `/api/runs`, body, endUserToken)
   }
 
   async updateRun(options: RunUpdate & EndUserTokenOptions & { id: string }): Promise<Run> {
@@ -128,6 +99,16 @@ export class AgentView {
   async getEndUser(options: { id: string } & EndUserTokenOptions): Promise<EndUser> {
     const { endUserToken, id } = options;
     return await this.request<EndUser>('GET', `/api/end-users/${id}`, undefined, endUserToken)
+  }
+
+  async getEndUserByExternalId(options: { externalId: string } & EndUserTokenOptions): Promise<EndUser> {
+    const { endUserToken, externalId } = options;
+    return await this.request<EndUser>('GET', `/api/end-users/by-external-id/${externalId}`, undefined, endUserToken)
+  }
+
+  async getEndUserMe(options: {} & EndUserTokenOptions): Promise<EndUser> {
+    const { endUserToken } = options;
+    return await this.request<EndUser>('GET', `/api/end-users/me`, undefined, endUserToken)
   }
 
   async updateEndUser(options: EndUserCreate & EndUserTokenOptions & { id: string }): Promise<EndUser> {

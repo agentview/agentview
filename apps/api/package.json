@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && tsc",
     "clear-db": "tsx scripts/clear-db.ts",
     "test-db": "tsx scripts/test-db.ts",
-    "docker:build": "tsx scripts/docker-build.ts"
+    "docker:build": "tsx scripts/docker-build.ts",
+    "test": "vitest"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.0",

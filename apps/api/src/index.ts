@@ -99,12 +99,14 @@ async function getBetterAuthSession(headers: Headers) { // this function exists 
   return;
 }
 
-async function getApiKey(id: string) { // this function exists just for type inference below
-  return await auth.api.getApiKey({
-    query: {
-      id,
+async function verifyAndGetKey(bearer: string) { // this function exists just for type inference below
+  const maybeApiKey = await auth.api.verifyApiKey({
+    body: {
+      key: bearer,
     },
   })
+
+  return maybeApiKey?.key;
 }
 
 type UserPrincipal = {
@@ -115,7 +117,7 @@ type UserPrincipal = {
 
 type ApiKeyPrincipal = {
   type: 'apiKey',
-  apiKey: NonNullable<Awaited<ReturnType<typeof getApiKey>>>,
+  apiKey: NonNullable<Awaited<ReturnType<typeof verifyAndGetKey>>>,
   endUser?: EndUser // narrowing down scope
 }
 
@@ -164,24 +166,19 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
     return { type: 'user', session: userSession, endUser }
   }
 
+
+  // API Keys
   const bearer = extractBearerToken(headers)
 
   if (bearer) {
-    // API Keys
-    const maybeApiKey = await auth.api.verifyApiKey({
+    const { valid, error, key } = await auth.api.verifyApiKey({
       body: {
         key: bearer,
       },
     })
 
-    if (maybeApiKey?.valid === true && !maybeApiKey.error && maybeApiKey.key) {
-      const apiKey = await auth.api.getApiKey({
-        query: {
-          id: maybeApiKey.key.id,
-        },
-      })
-
-      return { type: 'apiKey', apiKey, endUser }
+    if (valid === true && !error && key) {
+      return { type: 'apiKey', apiKey: key, endUser }
     }
   }
 
@@ -273,9 +270,9 @@ function authorize(principal: Principal, action: Action) {
     if (principal.type === 'apiKey' || principal.type === 'user') { // TODO: fixme!!! Just api key!
       return true;
     }
-
-    throw new HTTPException(401, { message: "Unauthorized" });
   }
+
+  throw new HTTPException(401, { message: "Unauthorized" });
 }
 
 // Can call this function after authorise safely
@@ -376,7 +373,6 @@ async function requireCommentMessageFromUser(item: SessionItemWithCollaboration,
 
   return comment
 }
-
 
 
 /* --------- COMMENT OPERATIONS --------- */
@@ -631,6 +627,11 @@ app.openapi(endUsersPOSTRoute, async (c) => {
   const userId = requireUserId(principal);
   const body = await c.req.valid('json')
 
+  const existingUserWithExternalId = body.externalId ? await findEndUser({ externalId: body.externalId }) : null;
+  if (existingUserWithExternalId) {
+    throw new HTTPException(400, { message: "End user with this external ID already exists" });
+  }
+
   const newEndUser = await createEndUser({
     simulatedBy: userId,
     isShared: body.isShared,
@@ -640,12 +641,51 @@ app.openapi(endUsersPOSTRoute, async (c) => {
   return c.json(newEndUser, 201);
 })
 
+
+const endUserMe = createRoute({
+  method: 'get',
+  path: '/api/end-users/me',
+  responses: {
+    200: response_data(EndUserSchema),
+    404: response_error()
+  },
+})
+
+app.openapi(endUserMe, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+  const endUser = principal.endUser;
+
+
+  console.log('--------------------------------')
+  console.log(principal)
+
+
+  if (!endUser) {
+    throw new HTTPException(400, { message: "You must provide an end user token to access this endpoint." });
+  }
+
+  await authorize(principal, { action: "end-user:read", endUser })
+  return c.json(endUser, 200);
+})
+
+const apiEndUsersPUTRoute = createRoute({
+  method: 'put',
+  path: '/api/end-users/{id}',
+  request: {
+    body: body(EndUserCreateSchema)
+  },
+  responses: {
+    200: response_data(EndUserSchema)
+  },
+})
+
+
 const endUserGETRoute = createRoute({
   method: 'get',
   path: '/api/end-users/{id}',
   request: {
     params: z.object({
-      id: z.string(),
+      id: z.uuid(),
     }),
   },
   responses: {
@@ -665,15 +705,29 @@ app.openapi(endUserGETRoute, async (c) => {
   return c.json(endUser, 200);
 })
 
-const apiEndUsersPUTRoute = createRoute({
-  method: 'put',
-  path: '/api/end-users/{id}',
+const endUserByExternalIdGETRoute = createRoute({
+  method: 'get',
+  path: '/api/end-users/by-external-id/{external_id}',
   request: {
-    body: body(EndUserCreateSchema)
+    params: z.object({
+      external_id: z.string(),
+    }),
   },
   responses: {
-    200: response_data(EndUserSchema)
+    200: response_data(EndUserSchema),
+    404: response_error()
   },
+})
+
+app.openapi(endUserByExternalIdGETRoute, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+
+  const { external_id } = c.req.param()
+  const endUser = await requireEndUser({ externalId: external_id })
+
+  await authorize(principal, { action: "end-user:read", endUser })
+
+  return c.json(endUser, 200);
 })
 
 app.openapi(apiEndUsersPUTRoute, async (c) => {
@@ -1198,12 +1252,14 @@ app.openapi(runsPOSTRoute, async (c) => {
 
   /** VERSION CHECKING **/
 
-  const parsedVersion = parseVersion(body.version.version);
+  const version = typeof body.version === 'string' ? { version: body.version } : body.version;
+
+  const parsedVersion = parseVersion(version.version);
   if (!parsedVersion) {
     throw new HTTPException(400, { message: "Invalid version number format. Should be like '1.2.3'" });
   }
 
-  if (lastRun?.version && !lastRun.version.env && !body.version.env) { // if previous version and current version exist and are not suffixed, check for compatibility
+  if (lastRun?.version && !lastRun.version.env && !version.env) { // if previous version and current version exist and are not suffixed, check for compatibility
     const lastVersionParsed = parseVersion(lastRun.version.version);
 
     if (lastVersionParsed?.major !== parsedVersion?.major || lastVersionParsed?.minor !== parsedVersion?.minor) {
@@ -1215,12 +1271,11 @@ app.openapi(runsPOSTRoute, async (c) => {
     }
   }
 
-  const [version] = await db.insert(versions).values({
-    version: body.version.version,
-    env: body.version.env || 'dev',
-    metadata: body.version.metadata,
+  const [versionRow] = await db.insert(versions).values({
+    version: version.version,
+    env: version.env || 'dev',
+    metadata: version.metadata,
   }).onConflictDoNothing().returning();
-
 
   // Create run and items
   await db.transaction(async (tx) => {
@@ -1228,7 +1283,7 @@ app.openapi(runsPOSTRoute, async (c) => {
     const [newRun] = await tx.insert(runs).values({
       sessionId: body.sessionId,
       status: body.status ?? 'in_progress',
-      versionId: version.id,
+      versionId: versionRow.id,
       metadata: body.metadata,
     }).returning();
 

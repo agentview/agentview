@@ -21,7 +21,6 @@ export type DisplayProperty<TInputArgs = any> = {
   value: (args: TInputArgs) => React.ReactNode;
 }
 
-
 export type FormComponentProps<TSchema extends z.ZodTypeAny> = {
   value?: z.infer<TSchema> | undefined, 
   submit: (value: z.infer<TSchema> | null) => void,

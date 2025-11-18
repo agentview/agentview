@@ -8,6 +8,7 @@ export const EndUserSchema = z.object({
     updatedAt: z.iso.date(),
     simulatedBy: z.string().nullable(),
     isShared: z.boolean(),
+    token: z.string(),
 })
 
 export type EndUser = z.infer<typeof EndUserSchema>
@@ -121,7 +122,7 @@ export const RunSchema = z.object({
 export const RunCreateSchema = z.object({
     sessionId: z.string(),
     items: z.array(z.record(z.string(), z.any())).min(1),
-    version: VersionCreateSchema,
+    version: z.union([VersionCreateSchema, z.string()]),
     metadata: z.record(z.string(), z.any()).optional(),
     status: z.enum(['in_progress', 'completed', 'failed']).optional(),
     state: z.any().optional(),

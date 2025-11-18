@@ -31,8 +31,7 @@ async function action({
   if (actionType === "generate") {
     // Create new API key
     const response = await authClient.apiKey.create({
-      name: "main",
-      expiresIn: 60 * 60 * 24 * 365, // 1 year
+      name: "main"
     });
 
     if (response.error) {
@@ -63,8 +62,7 @@ async function action({
 
     // Create new API key
     const createResponse = await authClient.apiKey.create({
-      name: "main",
-      expiresIn: 60 * 60 * 24 * 365, // 1 year
+      name: "main"
     });
 
     if (createResponse.error) {

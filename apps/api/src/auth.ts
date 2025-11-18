@@ -25,7 +25,14 @@ export const auth = betterAuth({
     },
     plugins: [
         admin(),
-        apiKey()
+        apiKey({
+            keyExpiration: {
+                defaultExpiresIn: 60 * 60 * 24 * 365
+            },
+            rateLimit: {
+                enabled: false // for now
+            }
+        })
     ],
     hooks: {
         before: createAuthMiddleware(async (ctx) => {
