@@ -1,103 +1,144 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, test, expect, beforeAll } from 'vitest'
 import { AgentView } from './AgentView'
+import type { EndUser } from './apiTypes';
 
 const av = new AgentView({
   apiUrl: 'http://localhost:8080',
   apiKey: 'cTlvHJzNQqFwgUaXJwhQCgnxUaYPYrgnjLDkapomgcAHRKoyutJpvVJACaBCUWoT',
 })
 
-describe('api', () => {
+describe('API', () => {
+  let endUser1: EndUser
+  let endUser2: EndUser
+  const EXTERNAL_ID_1 = Math.random().toString(36).slice(2)
+  const EXTERNAL_ID_2 = Math.random().toString(36).slice(2)
 
-  it('should handle end users', async () => {
-    const EXTERNAL_ID_1 = Math.random().toString(36).slice(2)
-    const EXTERNAL_ID_2 = Math.random().toString(36).slice(2)
+  beforeAll(async () => {
+    endUser1 = await av.createEndUser({ externalId: EXTERNAL_ID_1 })
+    endUser2 = await av.createEndUser({ externalId: EXTERNAL_ID_2 })
 
-
-    // Creating users
-    let endUser1 = await av.createEndUser({ externalId: EXTERNAL_ID_1 })
     expect(endUser1).toBeDefined()
     expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
 
-    let endUser2 = await av.createEndUser({ externalId: EXTERNAL_ID_2, })
     expect(endUser2).toBeDefined()
     expect(endUser2.externalId).toBe(EXTERNAL_ID_2)
+  })
 
-    // verify whther you can't create another one with the same external id
-    await expect(av.createEndUser({
-      externalId: EXTERNAL_ID_1,
-    })).rejects.toThrowError(expect.objectContaining({
-      statusCode: 400,
-      message: expect.any(String),
-    }))
-
-    // does get by id work
-    endUser1 = await av.getEndUser({ id: endUser1.id })
-    expect(endUser1).toBeDefined()
-    expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
-
-    endUser2 = await av.getEndUser({ id: endUser2.id })
-    expect(endUser2).toBeDefined()
-    expect(endUser2.externalId).toBe(EXTERNAL_ID_2)
-
-    await expect(av.getEndUser({ id: randomUUID() })).rejects.toThrowError(expect.objectContaining({
-      statusCode: 404,
-      message: expect.any(String),
-    }))
-
-    await expect(av.getEndUser({ id: 'xxx' })).rejects.toThrowError(expect.objectContaining({
-      statusCode: 422,
-      message: expect.any(String),
-    }))
-
-    // does get by external id work
-    endUser1 = await av.getEndUserByExternalId({ externalId: EXTERNAL_ID_1 })
-    expect(endUser1).toBeDefined()
-    expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
-
-    endUser2 = await av.getEndUserByExternalId({ externalId: EXTERNAL_ID_2 })
-    expect(endUser2).toBeDefined()
-    expect(endUser2.externalId).toBe(EXTERNAL_ID_2)
-
-    await expect(av.getEndUserByExternalId({ externalId: 'unknown_external_id' })).rejects.toThrowError(expect.objectContaining({
-      statusCode: 404,
-      message: expect.any(String),
-    }))
-
-
-    // With end user token, user only have access to his own...
-    endUser1 = await av.getEndUser({
-      id: endUser1.id,
-      endUserToken: endUser1.token,
+  describe("end users", () => {
+    test("creating another user with the same external id should fail", async () => {
+      await expect(av.createEndUser({ externalId: EXTERNAL_ID_1 })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 400,
+        message: expect.any(String),
+      }))
     })
 
-    expect(endUser1).toBeDefined()
-    expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
+    test("update works", async () => {
+      const EXTERNAL_ID = Math.random().toString(36).slice(2);
+      const NEW_EXTERNAL_ID = EXTERNAL_ID + '1';
 
-    // ...but not someone else
-    await expect(av.getEndUser({
-      id: endUser2.id,
-      endUserToken: endUser1.token,
-    })).rejects.toThrowError(expect.objectContaining({
-      statusCode: 401,
-      message: expect.any(String),
-    }))
+      const endUser = await av.createEndUser({ externalId: EXTERNAL_ID, isShared: false })
+      let updatedEndUser = await av.updateEndUser({ id: endUser.id, externalId: NEW_EXTERNAL_ID, isShared: true })
+      expect(updatedEndUser).toBeDefined()
+      expect(updatedEndUser.externalId).toBe(NEW_EXTERNAL_ID)
+      expect(updatedEndUser.isShared).toBe(true)
 
-    // get "me" works
-    endUser1 = await av.getEndUserMe({ endUserToken: endUser1.token })
-    expect(endUser1).toBeDefined()
-    expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
+      updatedEndUser = await av.getEndUser({ id: endUser.id })
+      expect(updatedEndUser).toBeDefined()
+      expect(updatedEndUser.externalId).toBe(NEW_EXTERNAL_ID)
+      expect(updatedEndUser.isShared).toBe(true)
+    })
 
-    endUser2 = await av.getEndUserMe({ endUserToken: endUser2.token })
-    expect(endUser2).toBeDefined()
-    expect(endUser2.externalId).toBe(EXTERNAL_ID_2)
+    describe("get by id", () => {
 
-    await expect(av.getEndUserMe({ // throws for bad token
-      endUserToken: 'xxx',
-    })).rejects.toThrowError(expect.objectContaining({
-      statusCode: 404,
-      message: expect.any(String),
-    }))
+      test("existing ids", async () => {
+        await av.getEndUser({ id: endUser1.id })
+        expect(endUser1).toBeDefined()
+        expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
+
+        await av.getEndUser({ id: endUser2.id })
+        expect(endUser2).toBeDefined()
+        expect(endUser2.externalId).toBe(EXTERNAL_ID_2)
+      })
+
+      test("not found", async () => {
+        await expect(av.getEndUser({ id: randomUUID() })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 404,
+          message: expect.any(String),
+        }))
+      })
+
+      test("incorrect id", async () => {
+        await expect(av.getEndUser({ id: 'xxx' })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 422,
+          message: expect.any(String),
+        }))
+      })
+
+
+      test("succeeeds when scoped with own token", async () => {
+        await expect(av.getEndUser({ id: endUser1.id, endUserToken: endUser1.token }))
+        expect(endUser1).toBeDefined()
+        expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
+      })
+
+      test("fails when scoped with another user's token", async () => {
+        await expect(av.getEndUser({ id: endUser1.id, endUserToken: endUser2.token })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 401,
+          message: expect.any(String),
+        }))
+      })
+    })
+
+    describe("get by external id", () => {
+      test("existing external ids", async () => {
+        await av.getEndUserByExternalId({ externalId: EXTERNAL_ID_1 })
+        expect(endUser1).toBeDefined()
+        expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
+      })
+
+      test("not found", async () => {
+        await expect(av.getEndUserByExternalId({ externalId: 'unknown_external_id' })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 404,
+          message: expect.any(String),
+        }))
+      })
+
+      test("succeeeds when scoped with own token", async () => {
+        await av.getEndUserByExternalId({ externalId: EXTERNAL_ID_1, endUserToken: endUser1.token })
+        expect(endUser1).toBeDefined()
+        expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
+      })
+
+      test("fails when scoped with another user's token", async () => {
+        await expect(av.getEndUserByExternalId({ externalId: EXTERNAL_ID_1, endUserToken: endUser2.token })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 401,
+          message: expect.any(String),
+        }))
+      })
+    })
+
+    describe("get me", () => {
+      test("works", async () => {
+        endUser1 = await av.getEndUserMe({ endUserToken: endUser1.token })
+        expect(endUser1).toBeDefined()
+        expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
+
+        endUser2 = await av.getEndUserMe({ endUserToken: endUser2.token })
+        expect(endUser2).toBeDefined()
+        expect(endUser2.externalId).toBe(EXTERNAL_ID_2)
+      })
+
+      test("fails for bad token", async () => {
+        await expect(av.getEndUserMe({ endUserToken: 'xxx' })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 404,
+          message: expect.any(String),
+        }))
+      })
+    })
   })
+
+
+
 });
 
 

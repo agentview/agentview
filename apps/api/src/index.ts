@@ -655,11 +655,6 @@ app.openapi(endUserMe, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const endUser = principal.endUser;
 
-
-  console.log('--------------------------------')
-  console.log(principal)
-
-
   if (!endUser) {
     throw new HTTPException(400, { message: "You must provide an end user token to access this endpoint." });
   }
@@ -667,18 +662,6 @@ app.openapi(endUserMe, async (c) => {
   await authorize(principal, { action: "end-user:read", endUser })
   return c.json(endUser, 200);
 })
-
-const apiEndUsersPUTRoute = createRoute({
-  method: 'put',
-  path: '/api/end-users/{id}',
-  request: {
-    body: body(EndUserCreateSchema)
-  },
-  responses: {
-    200: response_data(EndUserSchema)
-  },
-})
-
 
 const endUserGETRoute = createRoute({
   method: 'get',
@@ -729,6 +712,18 @@ app.openapi(endUserByExternalIdGETRoute, async (c) => {
 
   return c.json(endUser, 200);
 })
+
+const apiEndUsersPUTRoute = createRoute({
+  method: 'put',
+  path: '/api/end-users/{id}',
+  request: {
+    body: body(EndUserCreateSchema)
+  },
+  responses: {
+    200: response_data(EndUserSchema)
+  },
+})
+
 
 app.openapi(apiEndUsersPUTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
