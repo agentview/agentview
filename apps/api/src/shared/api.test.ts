@@ -224,7 +224,7 @@ describe('API', () => {
       const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
       expect(session).toMatchObject({
         agent: "test",
-        metadata: null,
+        metadata: {},
         runs: [],
         endUser: {
           id: initEndUser1.id,
@@ -276,7 +276,7 @@ describe('API', () => {
       })
     })
 
-    test.only("create / with unknown metadata + allowUnknownMetadata=false / failed", async () => {
+    test("create / with unknown metadata + allowUnknownMetadata=false / failed", async () => {
       await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", allowUnknownMetadata: false }] } })
 
       await expect(av.createSession({ agent: "test", endUserId: initEndUser1.id, metadata: { product_id: "123" } })).rejects.toThrowError(expect.objectContaining({
@@ -293,8 +293,6 @@ describe('API', () => {
         message: expect.any(String),
       }))
     })
-
-
 
   })
 });
