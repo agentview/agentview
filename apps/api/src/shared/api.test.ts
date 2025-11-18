@@ -236,7 +236,6 @@ describe('API', () => {
     })
   })
 
-
   describe("sessions", async () => {
     test("create", async () => {
       await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
@@ -339,5 +338,10 @@ describe('API', () => {
         message: expect.any(String),
       }))
     })
+    
+    // TODO - update metadata!!! (PATCH /api/sessions/{session_id})
+
+
   })
 });
+

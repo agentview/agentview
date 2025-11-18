@@ -1131,10 +1131,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
   /**
    * METADATA
    */
-  console.log('-----')
-  console.log('body.metadata', body.metadata);
   const parsedMetadata = normalizeExtendedSchema(agentConfig.metadata, agentConfig.allowUnknownMetadata ?? true).safeParse(body.metadata ?? {});
-  console.log('parsedMetadata', parsedMetadata);
   if (!parsedMetadata.success) {
     return c.json({ message: "Error parsing the session metadata.", code: 'parse.schema', issues: parsedMetadata.error.issues }, 422);
   }
