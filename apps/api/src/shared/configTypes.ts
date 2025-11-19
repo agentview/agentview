@@ -1,34 +1,12 @@
 import { z } from "zod";
 
-export const BaseSessionItemConfigSchema = z.object({
-    schema: z.any(),
-    resultOf: z.any().optional(),
-    scores: z.array(z.object({
-        name: z.string(),
-        schema: z.any(),
-    })).optional(),
-});
-
-export const BaseConfigSchema = z.object({
-    agents: z.array(z.object({
-        name: z.string(),
-        url: z.string(),
-        metadata: z.any().optional(),
-        allowUnknownMetadata: z.boolean().optional(),
-        runs: z.array(z.object({
-            input: BaseSessionItemConfigSchema,
-            output: BaseSessionItemConfigSchema,
-            steps: z.array(BaseSessionItemConfigSchema).nullable(),
-        })).optional(),
-    })).optional(),
-})
-
 export interface BaseScoreConfig {
     name: string;
     schema: z.ZodType;
 }
 
-export type ExtendedSchema = Record<string, z.ZodType | string> | z.ZodObject;
+export type Metadata = Record<string, z.ZodType>;
+export type ExtendedSchema = Record<string, z.ZodType | string> | z.ZodType;
 
 export interface BaseSessionItemConfig<TScoreConfig extends BaseScoreConfig = BaseScoreConfig> {
     schema: ExtendedSchema;
@@ -40,14 +18,19 @@ export interface BaseRunConfig<TSessionItemConfig extends BaseSessionItemConfig 
     input: TSessionInputItemConfig;
     output: TSessionItemConfig;
     steps?: TSessionItemConfig[];
+    metadata?: Metadata;
+    allowUnknownMetadata?: boolean;
 }
 
 export interface BaseAgentConfig<TRunConfig extends BaseRunConfig = BaseRunConfig> {
     name: string;
     url: string;
-    metadata?: ExtendedSchema;
+    metadata?: Metadata;
     allowUnknownMetadata?: boolean;
     runs?: TRunConfig[];
+    allowUnknownRuns?: boolean;
+    allowUnknownSteps?: boolean;
+    allowUnknownItemKeys?: boolean;
 }
 
 export type BaseAgentViewConfig<TAgentConfig extends BaseAgentConfig = BaseAgentConfig> = {

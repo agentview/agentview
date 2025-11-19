@@ -3,6 +3,9 @@ import { apiFetch } from "./apiFetch";
 import { makeObjectSerializable, normalizeExtendedSchema } from "./shared/configUtils";
 import type { BaseAgentViewConfig, BaseScoreConfig, BaseSessionItemConfig } from "./shared/configTypes";
 
+
+// TODO: this code could use SDK
+
 export async function getRemoteConfig() {
     const response = await apiFetch(`/api/config`);
 

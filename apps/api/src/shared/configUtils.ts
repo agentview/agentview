@@ -1,5 +1,5 @@
 import type { Session } from "./apiTypes";
-import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig, ExtendedSchema } from "./configTypes";
+import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig, ExtendedSchema, Metadata } from "./configTypes";
 import { z, ZodString } from "zod";
 import { getAllSessionItems } from "./sessionUtils";
 
@@ -165,6 +165,44 @@ function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension
     return matches;
 }
 
+export function metadataToSchema(metadata?: Metadata, allowUnknownKeys: boolean = true): z.ZodObject {
+    let schema = z.object(metadata ?? {});
+
+    if (allowUnknownKeys) {
+        return schema.loose();
+    }
+    else {
+        return schema.strict();
+    }
+}
+
+export function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: boolean = true, inputMetadata: Record<string, any>, existingMetadata: Record<string, any> | undefined | null) : any {
+    let schema = z.object(metadataConfig ?? {});
+    if (allowUnknownKeys) {
+        schema = schema.loose();
+    }
+
+    const metadata = {
+        ...(existingMetadata ?? {}),
+        ...(inputMetadata ?? {}),
+    }
+
+    // delete old values
+    for (const [key, value] of Object.entries(metadata)) {
+        if (value === null || value === undefined) {
+            delete metadata[key];
+        }
+    }
+
+    return schema.safeParse(metadata);
+}
+
+
+
+
+
+
+
 export function normalizeExtendedSchema(extendedSchema?: ExtendedSchema, allowUnknownKeys: boolean = true): z.ZodObject {
     let schema: z.ZodObject;
 
@@ -177,10 +215,17 @@ export function normalizeExtendedSchema(extendedSchema?: ExtendedSchema, allowUn
     else if (typeof extendedSchema === "object" && extendedSchema !== null && !Array.isArray(extendedSchema)) {
         const shape: Record<string, any> = {};
         for (const [key, val] of Object.entries(extendedSchema)) {
-            if (typeof val === "string") {
-                shape[key] = z.literal(val);
-            } else {
+            if (val instanceof z.ZodType) {
                 shape[key] = val;
+            }
+            else if (typeof val === "string") {
+                shape[key] = z.literal(val);
+            }
+            else if (typeof val === "number" || typeof val === "boolean" || val === null) {
+                shape[key] = z.literal(val);
+            }
+            else {
+                shape[key] = z.any();
             }
         }
         schema = z.object(shape);

@@ -1,13 +1,26 @@
 import "dotenv/config";
 import { z } from "zod";
+import { convertJsonSchemaToZod } from 'zod-from-json-schema';
 
 const schema = z.looseObject({
   name: z.string(),
   age: z.number(),
+  test: z.object({
+    foo: z.string(),
+    bar: z.number(),
+  })
 });
 
-console.log(schema.parse({ name: "John", age: 30, dupa: 8 }));
+// console.log(schema.parse({ name: "John", age: 30, test: { foo: "baz", bar: 123, xxx: 123 } }));
 
+// const schema2 = convertJsonSchemaToZod(z.toJSONSchema(schema));
+
+// console.log(schema2.parse({ name: "John", age: 30, test: { foo: "baz", bar: 123, xxx: 123 } }));
+
+const schema2 = convertJsonSchemaToZod(z.toJSONSchema(schema));
+
+
+// console.log(z.toJSONSchema(convertJsonSchemaToZod(schema)))
 // import { auth } from "./auth";
 
 // const response = await auth.api.signInEmail({

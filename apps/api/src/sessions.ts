@@ -27,6 +27,10 @@ export async function fetchSessions(session_id?: string, tx?: Transaction): Prom
 
   })();
 
+  if (session_id && where === undefined) {
+    return [];
+  }
+
   const sessionRows = await (tx || db).query.sessions.findMany({
     where,
     with: {
@@ -63,7 +67,7 @@ export async function fetchSessions(session_id?: string, tx?: Transaction): Prom
     }
   });
 
-  return sessionRows.map((row) => ({
+  return await Promise.all(sessionRows.map(async (row) => ({
     id: row.id,
     handle: row.handleNumber.toString() + (row.handleSuffix ?? ""),
     createdAt: row.createdAt,
@@ -73,7 +77,8 @@ export async function fetchSessions(session_id?: string, tx?: Transaction): Prom
     endUser: row.endUser,
     endUserId: row.endUser.id,
     runs: row.runs,
-  })) as SessionWithCollaboration[];
+    state: await fetchSessionState(row.id, tx),
+  }))) as SessionWithCollaboration[];
 }
 
 export async function fetchSession(session_id: string, tx?: Transaction): Promise<SessionWithCollaboration | undefined> {

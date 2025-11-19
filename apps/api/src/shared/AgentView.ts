@@ -7,6 +7,7 @@ import {
   type RunCreate,
   type RunUpdate,
   type SessionCreate,
+  type SessionUpdate,
   RunBodySchema,
   type Config,
   type ConfigCreate,
@@ -73,6 +74,11 @@ export class AgentView {
   async getSession(options: { id: string } & EndUserTokenOptions): Promise<SessionWithCollaboration> {
     const { endUserToken, id } = options;
     return await this.request<SessionWithCollaboration>('GET', `/api/sessions/${id}`, undefined, endUserToken)
+  }
+
+  async updateSession(options: { id: string } & SessionUpdate & EndUserTokenOptions): Promise<SessionWithCollaboration> {
+    const { endUserToken, id, ...body } = options;
+    return await this.request<SessionWithCollaboration>('PATCH', `/api/sessions/${id}`, body, endUserToken)
   }
 
   async createRun(options: RunCreate & EndUserTokenOptions): Promise<Run> {

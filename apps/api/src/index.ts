@@ -22,9 +22,9 @@ import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, RunSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type EndUser } from './shared/apiTypes'
-import { getConfigRow, getParsedConfig } from './getConfig'
-import { type BaseAgentViewConfig, type BaseAgentConfig, type BaseSessionItemConfig, type BaseScoreConfig, BaseConfigSchema } from './shared/configTypes'
+import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, SessionUpdateSchema, RunSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type EndUser } from './shared/apiTypes'
+import { getConfigRow, BaseConfigSchema } from './getConfig'
+import { type BaseAgentViewConfig, type BaseAgentConfig, type BaseSessionItemConfig, type BaseScoreConfig, type Metadata } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
 import { getUsersCount } from './users'
 import { updateInboxes } from './updateInboxes'
@@ -32,8 +32,9 @@ import { isInboxItemUnread } from './inboxItems'
 import { findEndUser, createEndUser } from './endUsers'
 import packageJson from '../package.json'
 import type { Transaction } from './types'
-import { findItemConfig, normalizeExtendedSchema } from './shared/configUtils'
+import { findItemAndRunConfig, findItemConfig, makeObjectSerializable, normalizeExtendedSchema } from './shared/configUtils'
 import { equalJSON } from './shared/equalJSON'
+import { AgentViewError } from './shared/AgentViewError'
 
 console.log("Migrating database...");
 await migrate(db, { migrationsFolder: './drizzle' });
@@ -56,7 +57,10 @@ export const app = new OpenAPIHono({
 
 app.onError((error, c) => {
   console.error(error)
-  if (error instanceof BetterAuthAPIError) {
+  if (error instanceof AgentViewError) {
+    return c.json({ message: error.message, code: error.details?.code, issues: error.details?.issues }, error.statusCode as any);
+  }
+  else if (error instanceof BetterAuthAPIError) {
     return c.json(error.body, error.statusCode as any); // "as any" because error.statusCode is "number" and hono expects some numeric literal union 
   }
   else if (error instanceof DrizzleQueryError) {
@@ -290,11 +294,17 @@ function requireUserId(principal: Principal) {
 // CONFIG HELPERS
 
 async function requireConfig() {
-  const parsedConfig = await getParsedConfig()
-  if (!parsedConfig) {
+  const configRow = await getConfigRow()
+  if (!configRow) {
     throw new HTTPException(404, { message: "Config not found" });
   }
-  return parsedConfig
+
+  return BaseConfigSchema.parse(configRow.config)
+  // const parsedConfig = await getParsedConfig()
+  // if (!parsedConfig) {
+  //   throw new HTTPException(404, { message: "Config not found" });
+  // }
+  // return parsedConfig
 }
 
 function requireAgentConfig(config: BaseAgentViewConfig, name: string) {
@@ -378,6 +388,33 @@ async function requireCommentMessageFromUser(item: SessionItemWithCollaboration,
   }
 
   return comment
+}
+
+function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: boolean = true, inputMetadata: Record<string, any>, existingMetadata: Record<string, any> | undefined | null) : any {
+  let schema = z.object(metadataConfig ?? {});
+  if (allowUnknownKeys) {
+      schema = schema.loose();
+  } else {
+    schema = schema.strict();
+  }
+
+  const metadata = {
+      ...(existingMetadata ?? {}),
+      ...(inputMetadata ?? {}),
+  }
+
+  // delete old values
+  for (const [key, value] of Object.entries(metadata)) {
+      if (value === null || value === undefined) {
+          delete metadata[key];
+      }
+  }
+
+  const result = schema.safeParse(metadata);
+  if (!result.success) {
+    throw new AgentViewError("Error parsing the session metadata.", 422, { code: 'parse.schema', issues: result.error.issues });
+  }
+  return result.data;
 }
 
 
@@ -1048,6 +1085,49 @@ app.openapi(sessionGETRoute, async (c) => {
   return c.json(session, 200);
 })
 
+const sessionPATCHRoute = createRoute({
+  method: 'patch',
+  path: '/api/sessions/{session_id}',
+  request: {
+    params: z.object({
+      session_id: z.string(),
+    }),
+    body: body(SessionUpdateSchema),
+  },
+  responses: {
+    200: response_data(SessionWithCollaborationSchema),
+    401: response_error(),
+    404: response_error(),
+    422: response_error(),
+  },
+})
+
+app.openapi(sessionPATCHRoute, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+  const { session_id } = c.req.param()
+  requireUUID(session_id);
+
+  const body = await c.req.valid('json')
+  const session = await requireSession(session_id);
+  authorize(principal, { action: "end-user:update", endUser: session.endUser });
+
+  const config = await requireConfig()
+  const agentConfig = await requireAgentConfig(config, session.agent)
+
+  const parsedMetadata = normalizeExtendedSchema(agentConfig.metadata, agentConfig.allowUnknownMetadata ?? true).safeParse(body.metadata ?? {});
+  if (!parsedMetadata.success) {
+    return c.json({ message: "Error parsing the session metadata.", code: 'parse.schema', issues: parsedMetadata.error.issues }, 422);
+  }
+
+  await db.update(sessions).set({
+    metadata: parsedMetadata.data,
+    updatedAt: new Date().toISOString(),
+  }).where(eq(sessions.id, session_id));
+
+  const updatedSession = await requireSession(session_id);
+  return c.json(updatedSession, 200);
+})
+
 const publicSessionGETRoute = createRoute({
   method: 'get',
   path: '/api/public/sessions/{session_id}',
@@ -1131,10 +1211,13 @@ app.openapi(sessionsPOSTRoute, async (c) => {
   /**
    * METADATA
    */
-  const parsedMetadata = normalizeExtendedSchema(agentConfig.metadata, agentConfig.allowUnknownMetadata ?? true).safeParse(body.metadata ?? {});
-  if (!parsedMetadata.success) {
-    return c.json({ message: "Error parsing the session metadata.", code: 'parse.schema', issues: parsedMetadata.error.issues }, 422);
-  }
+  const metadata = parseMetadata(agentConfig.metadata, agentConfig.allowUnknownMetadata, body.metadata ?? {}, {});
+
+
+
+
+
+
 
   const newSession = await db.transaction(async (tx) => {
     const handleSuffix = endUser.simulatedBy ? "s" : "";
@@ -1149,7 +1232,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     const [newSessionRow] = await tx.insert(sessions).values({
       handleNumber: newHandleNumber,
       handleSuffix: handleSuffix,
-      metadata: parsedMetadata.data,
+      metadata: metadata,
       agent: body.agent,
       endUserId: endUser.id
     }).returning();
@@ -1223,14 +1306,70 @@ function parseVersion(version: string): { major: number, minor: number, patch: n
   return { major, minor, patch };
 }
 
+function parseItemSchema(schema: any, value: any, allowUnknownItemKeys: boolean, context: string) {
+  const result = normalizeExtendedSchema(schema, allowUnknownItemKeys).safeParse(value);
+  if (!result.success) {
+    throw new HTTPException(422, { message: `${context} validation failed.`, cause: result.error.issues as any });
+  }
+  return result.data;
+}
+
+
+function validateRunMetadata(runConfig: ReturnType<typeof findItemAndRunConfig>["runConfig"] | undefined, metadata: any) {
+  if (metadata === undefined) {
+    return metadata;
+  }
+
+  const allowUnknown = runConfig?.allowUnknownMetadata ?? true;
+  const parsedMetadata = normalizeExtendedSchema(runConfig?.metadata, allowUnknown).safeParse(metadata ?? {});
+  if (!parsedMetadata.success) {
+    throw new HTTPException(422, { message: "Error parsing the run metadata." });
+  }
+  return parsedMetadata.data;
+}
+
+function validateItemsForRun(agentConfig: ReturnType<typeof requireAgentConfig>, session: Session, runConfig: any | undefined, newItems: any[], status: 'in_progress' | 'completed' | 'failed', options?: { allowUnknownSteps?: boolean, allowUnknownItemKeys?: boolean }) {
+  if (newItems.length === 0) {
+    return;
+  }
+
+  const allowUnknownSteps = options?.allowUnknownSteps ?? true;
+  const allowUnknownItemKeys = options?.allowUnknownItemKeys ?? true;
+
+  const itemsToCheck = [...newItems];
+  const hasOutput = status !== 'in_progress';
+  const output = hasOutput ? itemsToCheck.pop() : undefined;
+
+  // validate steps
+  for (const item of itemsToCheck) {
+    if (!runConfig) {
+      if (!allowUnknownSteps) {
+        throw new HTTPException(422, { message: "Step item not allowed." });
+      }
+      continue;
+    }
+    const matchedStep = findItemAndRunConfig(agentConfig, session, item, "step");
+    if (!matchedStep && !allowUnknownSteps) {
+      throw new HTTPException(422, { message: "Step item not allowed." });
+    }
+    if (matchedStep?.itemConfig) {
+      parseItemSchema(matchedStep.itemConfig.schema, item, allowUnknownItemKeys, "Run step");
+    }
+  }
+
+  if (output) {
+    if (!runConfig) {
+      return;
+    }
+    parseItemSchema(runConfig.output.schema, output, allowUnknownItemKeys, "Run output");
+  }
+}
+
 
 const runsPOSTRoute = createRoute({
   method: 'post',
   path: '/api/runs',
   request: {
-    params: z.object({
-      session_id: z.string(),
-    }),
     body: body(RunCreateSchema)
   },
   responses: {
@@ -1250,25 +1389,41 @@ app.openapi(runsPOSTRoute, async (c) => {
 
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
-  const itemConfig = requireItemConfig(agentConfig, session, body.items[0], "input")
 
+  const allowUnknownRuns = agentConfig.allowUnknownRuns ?? true;
+  const allowUnknownSteps = agentConfig.allowUnknownSteps ?? true;
+  const allowUnknownItemKeys = agentConfig.allowUnknownItemKeys ?? true;
+
+  const inputItem = body.items[0];
+  const runMatch = findItemAndRunConfig(agentConfig, session, inputItem, "input");
+  const runConfig = runMatch?.runConfig;
+
+  const effectiveRunMatch = runMatch ?? (agentConfig.runs && agentConfig.runs.length === 1 ? { runConfig: agentConfig.runs[0], itemConfig: agentConfig.runs[0].input, itemType: "input" as const } : undefined);
+
+  if (!effectiveRunMatch && !allowUnknownRuns) {
+    throw new HTTPException(422, { message: "Input item not allowed." });
+  }
+
+  if (effectiveRunMatch?.itemConfig) {
+    parseItemSchema(effectiveRunMatch.itemConfig.schema, inputItem, allowUnknownItemKeys, "Run input");
+  }
+
+  const status = body.status ?? 'in_progress';
+
+  if (body.failReason && status !== 'failed') {
+    throw new HTTPException(400, { message: "failReason can only be set when status is 'failed'." });
+  }
+
+  validateItemsForRun(agentConfig, session, effectiveRunMatch?.runConfig, body.items.slice(1), status, { allowUnknownSteps, allowUnknownItemKeys });
+
+  const parsedMetadata = validateRunMetadata(effectiveRunMatch?.runConfig, body.metadata);
   const lastRun = getLastRun(session)
 
   if (lastRun?.status === 'in_progress') {
-    return new HTTPException(400, { message: `Can't create a run because session has already a run in progress.` });
+    throw new HTTPException(400, { message: `Can't create a run because session has already a run in progress.` });
   }
 
   /** ITEMS VALIDATION **/
-
-  // TODO!!!!
-
-
-  /** METADATA VALIDATION **/
-
-  // TODO!!!!
-
-  /** STATE **/
-
 
   /** VERSION CHECKING **/
 
@@ -1279,14 +1434,14 @@ app.openapi(runsPOSTRoute, async (c) => {
     throw new HTTPException(400, { message: "Invalid version number format. Should be like '1.2.3'" });
   }
 
-  if (lastRun?.version && !lastRun.version.env && !version.env) { // if previous version and current version exist and are not suffixed, check for compatibility
+  if (lastRun?.version) { // compare semantic versions when previous version exists
     const lastVersionParsed = parseVersion(lastRun.version.version);
 
     if (lastVersionParsed?.major !== parsedVersion?.major || lastVersionParsed?.minor !== parsedVersion?.minor) {
       throw new HTTPException(400, { message: "Cannot continue a session with a different major or minor version." });
     }
 
-    if (lastVersionParsed?.patch < parsedVersion?.patch) {
+    if (lastVersionParsed?.patch > parsedVersion?.patch) {
       throw new HTTPException(400, { message: "Cannot continue a session with a smaller patch version." });
     }
   }
@@ -1297,14 +1452,22 @@ app.openapi(runsPOSTRoute, async (c) => {
     metadata: version.metadata,
   }).onConflictDoNothing().returning();
 
+  const resolvedVersionId = versionRow?.id ?? (await db.query.versions.findFirst({
+    where: and(eq(versions.version, version.version), eq(versions.env, version.env || 'dev')),
+  }))?.id;
+
+  if (!resolvedVersionId) {
+    throw new HTTPException(400, { message: "Unable to resolve version id." });
+  }
+
   // Create run and items
   await db.transaction(async (tx) => {
 
     const [newRun] = await tx.insert(runs).values({
       sessionId: body.sessionId,
-      status: body.status ?? 'in_progress',
-      versionId: versionRow.id,
-      metadata: body.metadata,
+      status,
+      versionId: resolvedVersionId,
+      metadata: parsedMetadata,
     }).returning();
 
     await tx.insert(sessionItems).values(
@@ -1314,6 +1477,15 @@ app.openapi(runsPOSTRoute, async (c) => {
         runId: newRun.id,
       }))
     ).returning();
+
+    if (body.state !== undefined) {
+      await tx.insert(sessionItems).values({
+        sessionId: body.sessionId,
+        content: body.state,
+        runId: newRun.id,
+        isState: true,
+      })
+    }
   });
 
   const updatedSession = await requireSession(body.sessionId);
@@ -1354,28 +1526,47 @@ app.openapi(runsPATCHRoute, async (c) => {
 
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
+  const allowUnknownRuns = agentConfig.allowUnknownRuns ?? true;
+  const allowUnknownSteps = agentConfig.allowUnknownSteps ?? true;
+  const allowUnknownItemKeys = agentConfig.allowUnknownItemKeys ?? true;
+  const runWithItems = session.runs.find((r) => r.id === run.id);
+  const inputItem = runWithItems?.items?.[0];
+
+  const runMatch = inputItem ? findItemAndRunConfig(agentConfig, session, inputItem.id ?? inputItem.content, "input") : undefined;
+  const runConfig = runMatch?.runConfig;
+  const effectiveRunMatch = runMatch ?? (agentConfig.runs && agentConfig.runs.length === 1 ? { runConfig: agentConfig.runs[0], itemConfig: agentConfig.runs[0].input, itemType: "input" as const } : undefined);
+
+  if (!effectiveRunMatch && !allowUnknownRuns) {
+    throw new HTTPException(422, { message: "Input item not allowed." });
+  }
 
   // prevent wrong status changes
   if (body.status && (run.status === 'failed' || run.status === 'completed') && body.status !== run.status) {
     throw new HTTPException(400, { message: `Cannot change the status of a completed or failed run.` });
   }
 
-  /**
-   * ITEMS VALIDATION
-   */
+  const targetStatus = body.status ?? run.status;
 
-  // TODO!!!!
+  if (body.failReason && targetStatus !== 'failed') {
+    throw new HTTPException(400, { message: "failReason can only be set when status is 'failed'." });
+  }
 
-  /**
-   * METADATA VALIDATION
-   */
+  if ((run.status === 'failed' || run.status === 'completed') && body.items?.length) {
+    throw new HTTPException(400, { message: "Cannot add items to a finished run." });
+  }
 
-  const justCompleted = body.status === 'completed' && run.status !== 'completed';
-  const justFailed = body.status === 'failed' && run.status !== 'failed';
+  if (body.items?.length) {
+    validateItemsForRun(agentConfig, session, effectiveRunMatch?.runConfig, body.items, targetStatus as any, { allowUnknownSteps, allowUnknownItemKeys });
+  }
+
+  const parsedMetadata = body.metadata !== undefined ? validateRunMetadata(effectiveRunMatch?.runConfig, body.metadata) : run.metadata;
+
+  const justCompleted = targetStatus === 'completed' && run.status !== 'completed';
+  const justFailed = targetStatus === 'failed' && run.status !== 'failed';
   const justFinished = justCompleted || justFailed;
 
-  const newStatus = body.status ?? run.status;
-  const newFailReason = newStatus === 'failed' ? body.failReason : run.failReason; // ignore fail reason for non-failed statuses
+  const newStatus = targetStatus;
+  const newFailReason = newStatus === 'failed' ? (body.failReason ?? run.failReason) : run.failReason; // ignore fail reason for non-failed statuses
   const finishedAt = justFinished ? new Date().toISOString() : run.finishedAt;
 
   await db.transaction(async (tx) => {
@@ -1391,10 +1582,19 @@ app.openapi(runsPATCHRoute, async (c) => {
 
     await tx.update(runs).set({
       status: newStatus,
-      metadata: body.metadata,
+      metadata: parsedMetadata,
       failReason: newFailReason,
       finishedAt: finishedAt,
     }).where(eq(runs.id, run.id));
+
+    if (body.state !== undefined) {
+      await tx.insert(sessionItems).values({
+        sessionId: session.id,
+        content: body.state,
+        runId: run.id,
+        isState: true,
+      })
+    }
   });
 
   const updatedSession = await requireSession(session.id);
@@ -2148,27 +2348,29 @@ const configPutRoute = createRoute({
 })
 
 app.openapi(configPutRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
+const principal = await authn(c.req.raw.headers)
   authorize(principal, { action: "config" });
   const userId = requireUserId(principal);
 
   const body = await c.req.valid('json')
   const configRow = await getConfigRow()
 
-  const parseResult = BaseConfigSchema.safeParse(body.config)
-  if (!parseResult.success) {
-    return c.json({ message: "Invalid config", code: 'parse.schema', details: parseResult.error.issues }, 400);
+  // validate & parse body.config
+  const { data, success, error } = BaseConfigSchema.safeParse(body.config)
+  if (!success) {
+    return c.json({ message: "Invalid config", code: 'parse.schema', details: error.issues }, 400);
   }
 
-  const config = parseResult.data;
+  // let's serialize again. After parse & serialize we stripped all the omitted values. Only now we can compare the original and the parsed config.
+  const newConfig = makeObjectSerializable(data)
 
   // @ts-ignore
-  if (configRow && equalJSON(configRow.config, config)) {
+  if (configRow && equalJSON(configRow.config, newConfig)) {
     return c.json(configRow, 200)
   }
 
   const [newConfigRow] = await db.insert(configs).values({
-    config,
+    config: newConfig,
     createdBy: userId,
   }).returning()
 

@@ -1,5 +1,4 @@
 import z from 'zod'
-import { BaseConfigSchema } from './configTypes'
 
 
 export const EndUserSchema = z.object({
@@ -113,7 +112,7 @@ export const RunSchema = z.object({
     status: z.string(),
     failReason: z.any().nullable(),
     version: VersionSchema.nullable(),
-    metadata: z.any().nullable(),
+    metadata: z.record(z.string(), z.any()).nullable(),
     items: z.array(SessionItemSchema),
 
     sessionId: z.string(), // potential bloat
@@ -159,6 +158,7 @@ export const SessionBaseSchema = z.object({
     metadata: z.record(z.string(), z.any()).nullable(),
     endUser: EndUserSchema,
     endUserId: z.string(), // potential bloat
+    state: z.any().nullable().optional(),
 })
 
 export type SessionBase = z.infer<typeof SessionBaseSchema>
@@ -183,6 +183,12 @@ export const SessionCreateSchema = z.object({
 })
 
 export type SessionCreate = z.infer<typeof SessionCreateSchema>
+
+export const SessionUpdateSchema = z.object({
+    metadata: SessionCreateSchema.shape.metadata.unwrap(),
+})
+
+export type SessionUpdate = z.infer<typeof SessionUpdateSchema>
 
 export const ScoreCreateSchema = ScoreSchema.pick({
     sessionItemId: true,
