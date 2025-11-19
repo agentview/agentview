@@ -11,6 +11,8 @@ const schema = z.looseObject({
   })
 });
 
+console.log(z.toJSONSchema(z.optional(z.string())));
+
 // console.log(schema.parse({ name: "John", age: 30, test: { foo: "baz", bar: 123, xxx: 123 } }));
 
 // const schema2 = convertJsonSchemaToZod(z.toJSONSchema(schema));

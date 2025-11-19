@@ -177,7 +177,7 @@ export type SessionWithCollaboration = z.infer<typeof SessionWithCollaborationSc
 
 export const SessionCreateSchema = z.object({
     agent: z.string(),
-    metadata: z.record(z.string(), z.any()).nullable().optional(),
+    metadata: z.record(z.string(), z.any()).optional(),
     endUserId: z.string().optional(),
     endUserExternalId: z.string().optional(),
 })

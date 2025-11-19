@@ -5,60 +5,108 @@ import { convertJsonSchemaToZod } from 'zod-from-json-schema';
 import type { BaseAgentViewConfig, BaseScoreConfig, BaseSessionItemConfig } from "./shared/configTypes";
 import { z, ZodObject, ZodType } from "zod";
 
-const JsonSchemaToZod = z.record(z.string(), z.any()).superRefine((value, ctx) => {
+const JsonSchema = z.record(z.string(), z.any()).superRefine((value, ctx) => {
     const valid = isJSONSchema(value)
     if (!valid) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Invalid JSON Schema format",
-      });
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Invalid JSON Schema format",
+        });
     }
-  }).transform((schema) => convertJsonSchemaToZod(schema))
-
-
-const ExtendedSchema = z.union([
-    JsonSchemaToZod, 
-    z.record(z.string(), z.union([JsonSchemaToZod, z.string()]))
-]);
-
-const BaseSessionItemConfigSchema = z.object({
-    schema: ExtendedSchema,
-    scores: z.array(z.object({
-        name: z.string(),
-        schema: JsonSchemaToZod,
-    })).optional(),
 });
 
-const BaseSessionItemConfigSchemaWithTools = BaseSessionItemConfigSchema.extend({
-    callResult: BaseSessionItemConfigSchema.optional(),
-});
+const JsonSchemaToZod = JsonSchema.transform((schema) => convertJsonSchemaToZod(schema))
 
-export const BaseConfigSchema = z.object({
-    agents: z.array(z.object({
-        name: z.string(),
-        url: z.string(),
-        metadata: z.record(z.string(), JsonSchemaToZod).optional(),
-        allowUnknownMetadata: z.boolean().optional(),
-        allowUnknownRuns: z.boolean().optional(),
-        allowUnknownSteps: z.boolean().optional(),
-        allowUnknownItemKeys: z.boolean().optional(),
-        runs: z.array(z.object({
-            input: BaseSessionItemConfigSchema,
-            output: BaseSessionItemConfigSchema,
-            steps: z.array(BaseSessionItemConfigSchemaWithTools).optional(),
-            metadata: z.record(z.string(), JsonSchemaToZod).optional(),
-            allowUnknownMetadata: z.boolean().optional(),
+
+
+// const ExtendedSchema = z.union([
+//     JsonSchemaToZod,
+//     z.record(z.string(), z.union([JsonSchemaToZod, z.string()]))
+// ]);
+
+// const BaseSessionItemConfigSchema = z.object({
+//     schema: ExtendedSchema,
+//     scores: z.array(z.object({
+//         name: z.string(),
+//         schema: JsonSchemaToZod,
+//     })).optional(),
+// });
+
+// const BaseSessionItemConfigSchemaWithTools = BaseSessionItemConfigSchema.extend({
+//     callResult: BaseSessionItemConfigSchema.optional(),
+// });
+
+// export const BaseConfigSchema = z.object({
+//     agents: z.array(z.object({
+//         name: z.string(),
+//         url: z.string(),
+//         metadata: z.record(z.string(), JsonSchemaToZod).optional(),
+//         allowUnknownMetadata: z.boolean().optional(),
+//         allowUnknownRuns: z.boolean().optional(),
+//         allowUnknownSteps: z.boolean().optional(),
+//         allowUnknownItemKeys: z.boolean().optional(),
+//         runs: z.array(z.object({
+//             input: BaseSessionItemConfigSchema,
+//             output: BaseSessionItemConfigSchema,
+//             steps: z.array(BaseSessionItemConfigSchemaWithTools).optional(),
+//             metadata: z.record(z.string(), JsonSchemaToZod).optional(),
+//             allowUnknownMetadata: z.boolean().optional(),
+//         })).optional(),
+//     })).optional(),
+// })
+
+function baseConfigSchema<T extends z.ZodType>(jsonSchemaSchema: T) {
+    const ExtendedSchema = z.union([
+        jsonSchemaSchema,
+        z.record(z.string(), z.union([jsonSchemaSchema, z.string()]))
+    ]);
+    
+    const BaseSessionItemConfigSchema = z.object({
+        schema: ExtendedSchema,
+        scores: z.array(z.object({
+            name: z.string(),
+            schema: jsonSchemaSchema,
         })).optional(),
-    })).optional(),
-})
-
-function parseConfig(config: z.infer<typeof BaseConfigSchema>): BaseAgentViewConfig {
-    return BaseConfigSchema.parse(config)
+    });
+    
+    const BaseSessionItemConfigSchemaWithTools = BaseSessionItemConfigSchema.extend({
+        callResult: BaseSessionItemConfigSchema.optional(),
+    });
+    
+    return z.object({
+        agents: z.array(z.object({
+            name: z.string(),
+            url: z.string(),
+            metadata: z.record(z.string(), jsonSchemaSchema).optional(),
+            allowUnknownMetadata: z.boolean().optional(),
+            allowUnknownRuns: z.boolean().optional(),
+            allowUnknownSteps: z.boolean().optional(),
+            allowUnknownItemKeys: z.boolean().optional(),
+            runs: z.array(z.object({
+                input: BaseSessionItemConfigSchema,
+                output: BaseSessionItemConfigSchema,
+                steps: z.array(BaseSessionItemConfigSchemaWithTools).optional(),
+                metadata: z.record(z.string(), jsonSchemaSchema).optional(),
+                allowUnknownMetadata: z.boolean().optional(),
+            })).optional(),
+        })).optional(),
+    })
 }
+
+export const BaseConfigSchema = baseConfigSchema(JsonSchema)
+export const BaseConfigSchemaToZod = baseConfigSchema(JsonSchemaToZod)
+
 
 function isJSONSchema(value: any): boolean { // temporarily simple check
     return typeof value === 'object' && value !== null && '$schema' in value;
 }
+
+
+
+// function parseConfig(config: z.infer<typeof BaseConfigSchema>): BaseAgentViewConfig {
+//     return BaseConfigSchemaToZod.parse(config)
+// }
+
 
 
 // function parseSessionItem(item: z.infer<typeof BaseSessionItemConfigSchema>): BaseSessionItemConfig<BaseScoreConfig> {

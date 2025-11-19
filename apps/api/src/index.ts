@@ -23,7 +23,7 @@ import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
 import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, SessionUpdateSchema, RunSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type EndUser } from './shared/apiTypes'
-import { getConfigRow, BaseConfigSchema } from './getConfig'
+import { getConfigRow, BaseConfigSchema, BaseConfigSchemaToZod } from './getConfig'
 import { type BaseAgentViewConfig, type BaseAgentConfig, type BaseSessionItemConfig, type BaseScoreConfig, type Metadata } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
 import { getUsersCount } from './users'
@@ -157,7 +157,7 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
   let endUser: EndUser | undefined;
 
   const token = extractEndUserToken(headers)
-  if (token) {  
+  if (token) {
     endUser = await findEndUser({ token });
     if (!endUser) {
       throw new HTTPException(404, { message: "User from X-End-User-Token not found." });
@@ -293,13 +293,13 @@ function requireUserId(principal: Principal) {
 
 // CONFIG HELPERS
 
-async function requireConfig() {
+async function requireConfig(): Promise<BaseAgentViewConfig> {
   const configRow = await getConfigRow()
   if (!configRow) {
     throw new HTTPException(404, { message: "Config not found" });
   }
 
-  return BaseConfigSchema.parse(configRow.config)
+  return BaseConfigSchemaToZod.parse(configRow.config)
   // const parsedConfig = await getParsedConfig()
   // if (!parsedConfig) {
   //   throw new HTTPException(404, { message: "Config not found" });
@@ -390,28 +390,36 @@ async function requireCommentMessageFromUser(item: SessionItemWithCollaboration,
   return comment
 }
 
-function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: boolean = true, inputMetadata: Record<string, any>, existingMetadata: Record<string, any> | undefined | null) : any {
+function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: boolean = true, inputMetadata: Record<string, any>, existingMetadata: Record<string, any> | undefined | null): any {
   let schema = z.object(metadataConfig ?? {});
   if (allowUnknownKeys) {
-      schema = schema.loose();
+    schema = schema.loose();
   } else {
     schema = schema.strict();
   }
 
+  const emptyNullMetadata = Object.fromEntries(
+    Object.keys(metadataConfig ?? {}).map((key) => [key, null])
+  );
+
   const metadata = {
-      ...(existingMetadata ?? {}),
-      ...(inputMetadata ?? {}),
+    ...emptyNullMetadata, // default nulls
+    ...(existingMetadata ?? {}), // existing metadata overrides nulls
+    ...(inputMetadata ?? {}), // input overrides existing metadata
   }
 
-  // delete old values
-  for (const [key, value] of Object.entries(metadata)) {
-      if (value === null || value === undefined) {
-          delete metadata[key];
-      }
-  }
+  // // undefined values 
+  // for (const [key, value] of Object.entries(metadata)) {
+  //   if (value === undefined) {
+  //      metadata[key] = null;
+  //   }
+  // }
+
+  // console.log('metadata', metadata);
 
   const result = schema.safeParse(metadata);
   if (!result.success) {
+    console.log('issues', result.error.issues);
     throw new AgentViewError("Error parsing the session metadata.", 422, { code: 'parse.schema', issues: result.error.issues });
   }
   return result.data;
@@ -1114,13 +1122,15 @@ app.openapi(sessionPATCHRoute, async (c) => {
   const config = await requireConfig()
   const agentConfig = await requireAgentConfig(config, session.agent)
 
-  const parsedMetadata = normalizeExtendedSchema(agentConfig.metadata, agentConfig.allowUnknownMetadata ?? true).safeParse(body.metadata ?? {});
-  if (!parsedMetadata.success) {
-    return c.json({ message: "Error parsing the session metadata.", code: 'parse.schema', issues: parsedMetadata.error.issues }, 422);
-  }
+  const metadata = parseMetadata(agentConfig.metadata, agentConfig.allowUnknownMetadata ?? true, body.metadata, session.metadata);
+
+  // const parsedMetadata = normalizeExtendedSchema(agentConfig.metadata, agentConfig.allowUnknownMetadata ?? true).safeParse(body.metadata ?? {});
+  // if (!parsedMetadata.success) {
+  //   return c.json({ message: "Error parsing the session metadata.", code: 'parse.schema', issues: parsedMetadata.error.issues }, 422);
+  // }
 
   await db.update(sessions).set({
-    metadata: parsedMetadata.data,
+    metadata,
     updatedAt: new Date().toISOString(),
   }).where(eq(sessions.id, session_id));
 
@@ -1250,7 +1260,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     if (!newSession) {
       throw new Error("[Internal Error] Session not found");
     }
-  
+
     await updateInboxes(tx, event, newSession, null);
     return newSession;
   });
@@ -2348,12 +2358,14 @@ const configPutRoute = createRoute({
 })
 
 app.openapi(configPutRoute, async (c) => {
-const principal = await authn(c.req.raw.headers)
+  const principal = await authn(c.req.raw.headers)
   authorize(principal, { action: "config" });
   const userId = requireUserId(principal);
 
   const body = await c.req.valid('json')
   const configRow = await getConfigRow()
+
+  console.log('------------- 1 -------------');
 
   // validate & parse body.config
   const { data, success, error } = BaseConfigSchema.safeParse(body.config)
@@ -2361,16 +2373,24 @@ const principal = await authn(c.req.raw.headers)
     return c.json({ message: "Invalid config", code: 'parse.schema', details: error.issues }, 400);
   }
 
-  // let's serialize again. After parse & serialize we stripped all the omitted values. Only now we can compare the original and the parsed config.
-  const newConfig = makeObjectSerializable(data)
+  // console.log('------------- 2 -------------');
+
+  // console.log(JSON.stringify(data, null, 2));
+
+  // // let's serialize again. After parse & serialize we stripped all the omitted values. Only now we can compare the original and the parsed config.
+  // const newConfig = makeObjectSerializable(data)
+
+  // console.log('------------- 3 -------------');
+
+  // console.log(JSON.stringify(newConfig, null, 2));
 
   // @ts-ignore
-  if (configRow && equalJSON(configRow.config, newConfig)) {
+  if (configRow && equalJSON(configRow.config, data)) {
     return c.json(configRow, 200)
   }
 
   const [newConfigRow] = await db.insert(configs).values({
-    config: newConfig,
+    config: data,
     createdBy: userId,
   }).returning()
 

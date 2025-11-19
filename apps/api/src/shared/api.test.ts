@@ -276,6 +276,19 @@ describe('API', () => {
       })
     })
 
+    test("create / optional & nullable metadata / all saved as null", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { x: z.nullable(z.string()), y: z.nullable(z.number()) } }] } })
+
+      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      expect(session).toMatchObject({
+        agent: "test",
+        metadata: {
+          x: null,
+          y: null,
+        }
+      })
+    })
+
     test("create / with known metadata + allowUnknownMetadata=false / saved", async () => {
       await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { product_id: z.string() }, allowUnknownMetadata: false }] } })
 
@@ -340,17 +353,43 @@ describe('API', () => {
       }))
     })
     
-    test("update metadata only", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { product_id: z.string() }, allowUnknownMetadata: false }] } })
+    test("update metadata", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false }] } })
 
-      const session = await av.createSession({ agent: "test", metadata: { product_id: "A" }, endUserId: initEndUser1.id })
+      const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, endUserId: initEndUser1.id })
       
-      const updated = await av.updateSession({ id: session.id, metadata: { product_id: "B" } })
-      expect(updated.metadata).toEqual({ product_id: "B" })
+      const updated = await av.updateSession({ id: session.id, metadata: { field1: "B", field2: 1 } })
+      expect(updated.metadata).toEqual({ field1: "B", field2: 1 })
 
       const fetched = await av.getSession({ id: session.id })
-      expect(fetched.metadata).toEqual({ product_id: "B" })
+      expect(fetched.metadata).toEqual({ field1: "B", field2: 1 })
     })
+
+    test("update metadata - partial update", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false }] } })
+
+      const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, endUserId: initEndUser1.id })
+      
+      const updated = await av.updateSession({ id: session.id, metadata: { field1: "B" } })
+      expect(updated.metadata).toEqual({ field1: "B", field2: 0 })
+
+      const fetched = await av.getSession({ id: session.id })
+      expect(fetched.metadata).toEqual({ field1: "B", field2: 0 })
+    })
+
+    test("update metadata - make field null", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { field1: z.string(), field2: z.number().nullable() }, allowUnknownMetadata: false }] } })
+
+      const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, endUserId: initEndUser1.id })
+      
+      const updated = await av.updateSession({ id: session.id, metadata: { field2: null } })
+      expect(updated.metadata).toEqual({ field1: "A", field2: null })
+
+      const fetched = await av.getSession({ id: session.id })
+      expect(fetched.metadata).toEqual({ field1: "A", field2: null })
+    })
+
+
 
     test("update metadata only - validation enforced", async () => {
       await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { product_id: z.string() }, allowUnknownMetadata: false }] } })
