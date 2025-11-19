@@ -17,7 +17,7 @@ export function requireAgentConfig<T extends BaseAgentViewConfig>(config: T, age
 
 type SessionItemExtension = { __type: "input" | "output" | "step", toolCallContent?: any }
 
-export function findItemAndRunConfig<T extends BaseAgentConfig, SessionT extends Session>(agentConfig: T, session: SessionT, contentOrId: string | Record<string, any>, itemType?: "input" | "output" | "step") {
+export function findItemAndRunConfig<T extends BaseAgentConfig, SessionT extends Session>(agentConfig: T, session: SessionT, contentOrId: string | Record<string, any>, itemType?: "input" | "output" | "step", looseMatching: boolean = true) {
     // console.log("--------------------------------")
     type RunT = NonNullable<T["runs"]>[number];
     type ItemConfigT = RunT["output"] & SessionItemExtension; // output type is the same as step type, we also ignore input type difference for now 
@@ -60,7 +60,7 @@ export function findItemAndRunConfig<T extends BaseAgentConfig, SessionT extends
             availableItemConfigs.push(...(runConfig.steps?.map((step) => ({ ...step, __type: "step" as const })) ?? []));
         }
 
-        const matchedItemConfigs = matchItemConfigs(availableItemConfigs, newContent, prevContent);
+        const matchedItemConfigs = matchItemConfigs(availableItemConfigs, newContent, prevContent, looseMatching);
         if (matchedItemConfigs.length > 0) {
             matches.push({
                 runConfig,
@@ -97,8 +97,8 @@ export function findItemAndRunConfig<T extends BaseAgentConfig, SessionT extends
 }
 
 
-export function findItemConfig<T extends BaseAgentConfig, SessionT extends Session>(agentConfig: T, session: SessionT, contentOrId: string | object, itemType?: "input" | "output" | "step") {
-    const result = findItemAndRunConfig(agentConfig, session, contentOrId, itemType);
+export function findItemConfig<T extends BaseAgentConfig, SessionT extends Session>(agentConfig: T, session: SessionT, contentOrId: string | object, itemType?: "input" | "output" | "step", looseMatching: boolean = true) {
+    const result = findItemAndRunConfig(agentConfig, session, contentOrId, itemType, looseMatching);
     if (!result) {
         return undefined;
     }
@@ -120,11 +120,11 @@ function getCallIdKey(inputSchema: ExtendedSchema): any | undefined {
     return undefined;
 }
 
-function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension>(itemConfigs: T[], content: Record<string, any>, prevItems: Record<string, any>[]): T[] {
+function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension>(itemConfigs: T[], content: Record<string, any>, prevItems: Record<string, any>[], looseMatching: boolean = true): T[] {
     const matches: T[] = [];
 
     for (const itemConfig of itemConfigs) {
-        const schema = normalizeExtendedSchema(itemConfig.schema);
+        const schema = normalizeExtendedSchema(itemConfig.schema, looseMatching);
 
         if (schema.safeParse(content).success) {
             matches.push(itemConfig);
@@ -165,45 +165,21 @@ function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension
     return matches;
 }
 
-export function metadataToSchema(metadata?: Metadata, allowUnknownKeys: boolean = true): z.ZodObject {
-    let schema = z.object(metadata ?? {});
+// export function metadataToSchema(metadata?: Metadata, allowUnknownKeys: boolean = true): z.ZodObject {
+//     let schema = z.object(metadata ?? {});
 
-    if (allowUnknownKeys) {
-        return schema.loose();
-    }
-    else {
-        return schema.strict();
-    }
-}
-
-export function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: boolean = true, inputMetadata: Record<string, any>, existingMetadata: Record<string, any> | undefined | null) : any {
-    let schema = z.object(metadataConfig ?? {});
-    if (allowUnknownKeys) {
-        schema = schema.loose();
-    }
-
-    const metadata = {
-        ...(existingMetadata ?? {}),
-        ...(inputMetadata ?? {}),
-    }
-
-    // delete old values
-    for (const [key, value] of Object.entries(metadata)) {
-        if (value === null || value === undefined) {
-            delete metadata[key];
-        }
-    }
-
-    return schema.safeParse(metadata);
-}
+//     if (allowUnknownKeys) {
+//         return schema.loose();
+//     }
+//     else {
+//         return schema.strict();
+//     }
+// }
 
 
 
 
-
-
-
-export function normalizeExtendedSchema(extendedSchema?: ExtendedSchema, allowUnknownKeys: boolean = true): z.ZodObject {
+export function normalizeExtendedSchema(extendedSchema?: ExtendedSchema, looseMatching: boolean = true): z.ZodObject {
     let schema: z.ZodObject;
 
     if (!extendedSchema) {
@@ -234,7 +210,7 @@ export function normalizeExtendedSchema(extendedSchema?: ExtendedSchema, allowUn
         throw new Error("Invalid schema, must be z.ZodObject or object");
     }
 
-    if (allowUnknownKeys) {
+    if (looseMatching) {
         return schema.loose();
     }
     else {

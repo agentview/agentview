@@ -389,8 +389,6 @@ describe('API', () => {
       expect(fetched.metadata).toEqual({ field1: "A", field2: null })
     })
 
-
-
     test("update metadata only - validation enforced", async () => {
       await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { product_id: z.string() }, allowUnknownMetadata: false }] } })
 

@@ -1316,8 +1316,8 @@ function parseVersion(version: string): { major: number, minor: number, patch: n
   return { major, minor, patch };
 }
 
-function parseItemSchema(schema: any, value: any, allowUnknownItemKeys: boolean, context: string) {
-  const result = normalizeExtendedSchema(schema, allowUnknownItemKeys).safeParse(value);
+function parseItemSchema(schema: any, value: any, looseMatching: boolean, context: string) {
+  const result = normalizeExtendedSchema(schema, looseMatching).safeParse(value);
   if (!result.success) {
     throw new HTTPException(422, { message: `${context} validation failed.`, cause: result.error.issues as any });
   }
@@ -1325,18 +1325,18 @@ function parseItemSchema(schema: any, value: any, allowUnknownItemKeys: boolean,
 }
 
 
-function validateRunMetadata(runConfig: ReturnType<typeof findItemAndRunConfig>["runConfig"] | undefined, metadata: any) {
-  if (metadata === undefined) {
-    return metadata;
-  }
+// function validateRunMetadata(runConfig: ReturnType<typeof findItemAndRunConfig>["runConfig"] | undefined, metadata: any) {
+//   if (metadata === undefined) {
+//     return metadata;
+//   }
 
-  const allowUnknown = runConfig?.allowUnknownMetadata ?? true;
-  const parsedMetadata = normalizeExtendedSchema(runConfig?.metadata, allowUnknown).safeParse(metadata ?? {});
-  if (!parsedMetadata.success) {
-    throw new HTTPException(422, { message: "Error parsing the run metadata." });
-  }
-  return parsedMetadata.data;
-}
+//   const allowUnknown = runConfig?.allowUnknownMetadata ?? true;
+//   const parsedMetadata = normalizeExtendedSchema(runConfig?.metadata, allowUnknown).safeParse(metadata ?? {});
+//   if (!parsedMetadata.success) {
+//     throw new HTTPException(422, { message: "Error parsing the run metadata." });
+//   }
+//   return parsedMetadata.data;
+// }
 
 function validateItemsForRun(agentConfig: ReturnType<typeof requireAgentConfig>, session: Session, runConfig: any | undefined, newItems: any[], status: 'in_progress' | 'completed' | 'failed', options?: { allowUnknownSteps?: boolean, allowUnknownItemKeys?: boolean }) {
   if (newItems.length === 0) {
@@ -1400,40 +1400,93 @@ app.openapi(runsPOSTRoute, async (c) => {
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
 
-  const allowUnknownRuns = agentConfig.allowUnknownRuns ?? true;
-  const allowUnknownSteps = agentConfig.allowUnknownSteps ?? true;
-  const allowUnknownItemKeys = agentConfig.allowUnknownItemKeys ?? true;
-
-  const inputItem = body.items[0];
-  const runMatch = findItemAndRunConfig(agentConfig, session, inputItem, "input");
-  const runConfig = runMatch?.runConfig;
-
-  const effectiveRunMatch = runMatch ?? (agentConfig.runs && agentConfig.runs.length === 1 ? { runConfig: agentConfig.runs[0], itemConfig: agentConfig.runs[0].input, itemType: "input" as const } : undefined);
-
-  if (!effectiveRunMatch && !allowUnknownRuns) {
-    throw new HTTPException(422, { message: "Input item not allowed." });
-  }
-
-  if (effectiveRunMatch?.itemConfig) {
-    parseItemSchema(effectiveRunMatch.itemConfig.schema, inputItem, allowUnknownItemKeys, "Run input");
-  }
-
   const status = body.status ?? 'in_progress';
 
   if (body.failReason && status !== 'failed') {
     throw new HTTPException(400, { message: "failReason can only be set when status is 'failed'." });
   }
 
-  validateItemsForRun(agentConfig, session, effectiveRunMatch?.runConfig, body.items.slice(1), status, { allowUnknownSteps, allowUnknownItemKeys });
-
-  const parsedMetadata = validateRunMetadata(effectiveRunMatch?.runConfig, body.metadata);
   const lastRun = getLastRun(session)
 
   if (lastRun?.status === 'in_progress') {
     throw new HTTPException(400, { message: `Can't create a run because session has already a run in progress.` });
   }
 
+  const allowUnknownRuns = agentConfig.allowUnknownRuns ?? true;
+  const allowUnknownSteps = agentConfig.allowUnknownSteps ?? true;
+  const allowUnknownItemKeys = agentConfig.allowUnknownItemKeys ?? true;
+  const looseMatching = allowUnknownItemKeys;
+
+  /** FIND RUN **/
+  const inputMatch = findItemAndRunConfig(agentConfig, session, inputItem, "input", looseMatching);
+  const runConfig = inputMatch?.runConfig;
+
+
+
+  
   /** ITEMS VALIDATION **/
+  const inputRequired = true; // because it's POST
+  const outputRequired = status === 'completed'; // only when finished
+
+  if (inputRequired && outputRequired && body.items.length < 2) {
+    throw new HTTPException(400, { message: "At least 2 items are required (input and output)." });
+  }
+  else if (inputRequired && body.items.length === 1) {
+    throw new HTTPException(400, { message: "At least 1 item is required (input item)." });
+  }
+  else if (outputRequired && body.items.length === 0) {
+    throw new HTTPException(400, { message: "At least 1 item is required (output item)." });
+  }
+
+  const inputItem : Record<string, any> | undefined = inputRequired ? body.items[0] : undefined;
+  const outputItem : Record<string, any> | undefined = outputRequired ? body.items[body.items.length - 1] : undefined;
+  const stepItems : Record<string, any>[] = body.items.slice(inputRequired ? 1 : 0, outputRequired ? -1 : undefined);
+
+
+  if (inputItem) {
+    const inputItemConfig = findItemConfig(agentConfig, session, inputItem, "input", looseMatching);
+    if (!inputItemConfig) {
+      throw new AgentViewError("Couldn't find a matching input item.", 422, { item: inputItem });
+    }
+  }
+
+  if (outputItem) {
+    const outputItemConfig = findItemConfig(agentConfig, session, outputItem, "output", looseMatching);
+    if (!outputItemConfig) {
+      throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
+    }
+  }
+
+  for (const stepItem of stepItems) {
+    const stepItemConfig = findItemConfig(agentConfig, session, stepItem, "step", looseMatching);
+    if (!stepItemConfig && !allowUnknownSteps) {
+      throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
+    }
+  }
+
+  // input & run
+  const inputMatch = findItemAndRunConfig(agentConfig, session, inputItem, "input", looseMatching);
+  const runConfig = inputMatch?.runConfig;
+
+  if (!runConfig && !allowUnknownRuns) {
+    throw new HTTPException(422, { message: "Couldn't find a run for the input item." }); // this validates input item too
+  }
+
+  // steps
+  if (!allowUnknownSteps) {
+    for (const stepItem of stepItems) {
+      const stepMatch = findItemAndRunConfig(agentConfig, session, stepItem, "step", looseMatching);
+      if (!stepMatch) {
+        throw new AgentViewError("Step item not allowed.", 422, { item: stepItem });
+      }
+    }
+  }
+
+
+  /** METADATA **/
+
+  const metadata = runConfig ? parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, {}) : body.metadata;
+
 
   /** VERSION CHECKING **/
 
@@ -1456,28 +1509,21 @@ app.openapi(runsPOSTRoute, async (c) => {
     }
   }
 
-  const [versionRow] = await db.insert(versions).values({
-    version: version.version,
-    env: version.env || 'dev',
-    metadata: version.metadata,
-  }).onConflictDoNothing().returning();
-
-  const resolvedVersionId = versionRow?.id ?? (await db.query.versions.findFirst({
-    where: and(eq(versions.version, version.version), eq(versions.env, version.env || 'dev')),
-  }))?.id;
-
-  if (!resolvedVersionId) {
-    throw new HTTPException(400, { message: "Unable to resolve version id." });
-  }
 
   // Create run and items
   await db.transaction(async (tx) => {
 
+    const [versionRow] = await db.insert(versions).values({
+      version: version.version,
+      env: version.env || 'dev',
+      metadata: version.metadata,
+    }).onConflictDoNothing().returning();
+
     const [newRun] = await tx.insert(runs).values({
       sessionId: body.sessionId,
       status,
-      versionId: resolvedVersionId,
-      metadata: parsedMetadata,
+      versionId: versionRow.id,
+      metadata,
     }).returning();
 
     await tx.insert(sessionItems).values(

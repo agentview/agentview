@@ -126,6 +126,7 @@ function createSession(items: any[]): Session {
             updatedAt: new Date().toISOString(),
             simulatedBy: null,
             isShared: false,
+            token: 'xxx'
         },
         endUserId: 'xxx',
         runs: [
