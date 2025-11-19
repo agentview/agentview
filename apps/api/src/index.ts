@@ -24,7 +24,7 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
 import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, SessionUpdateSchema, RunSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type EndUser } from './shared/apiTypes'
 import { getConfigRow, BaseConfigSchema, BaseConfigSchemaToZod } from './getConfig'
-import { type BaseAgentViewConfig, type BaseAgentConfig, type BaseSessionItemConfig, type BaseScoreConfig, type Metadata } from './shared/configTypes'
+import { type BaseAgentViewConfig, type BaseAgentConfig, type BaseSessionItemConfig, type BaseScoreConfig, type Metadata, type BaseRunConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
 import { getUsersCount } from './users'
 import { updateInboxes } from './updateInboxes'
@@ -1390,6 +1390,48 @@ const runsPOSTRoute = createRoute({
 })
 
 
+// function validateRunItems() {
+//   const inputRequired = true; // because it's POST
+//   const outputRequired = status === 'completed'; // only when finished
+
+//   if (inputRequired && outputRequired && body.items.length < 2) {
+//     throw new HTTPException(400, { message: "At least 2 items are required (input and output)." });
+//   }
+//   else if (inputRequired && body.items.length === 1) {
+//     throw new HTTPException(400, { message: "At least 1 item is required (input item)." });
+//   }
+//   else if (outputRequired && body.items.length === 0) {
+//     throw new HTTPException(400, { message: "At least 1 item is required (output item)." });
+//   }
+
+//   const inputItem: Record<string, any> | undefined = inputRequired ? body.items[0] : undefined;
+//   const outputItem: Record<string, any> | undefined = outputRequired ? body.items[body.items.length - 1] : undefined;
+//   const stepItems: Record<string, any>[] = body.items.slice(inputRequired ? 1 : 0, outputRequired ? -1 : undefined);
+
+//   if (inputItem) {
+//     const inputItemConfig = findItemConfig(agentConfig, session, inputItem, "input", looseMatching);
+//     if (!inputItemConfig) {
+//       throw new AgentViewError("Couldn't find a matching input item.", 422, { item: inputItem });
+//     }
+//   }
+
+//   if (outputItem) {
+//     const outputItemConfig = findItemConfig(agentConfig, session, outputItem, "output", looseMatching);
+//     if (!outputItemConfig) {
+//       throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
+//     }
+//   }
+
+//   for (const stepItem of stepItems) {
+//     const stepItemConfig = findItemConfig(agentConfig, session, stepItem, "step", looseMatching);
+//     if (!stepItemConfig && !allowUnknownSteps) {
+//       throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
+//     }
+//   }
+// }
+
+
+
 app.openapi(runsPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const body = await c.req.valid('json')
@@ -1417,70 +1459,76 @@ app.openapi(runsPOSTRoute, async (c) => {
   const allowUnknownItemKeys = agentConfig.allowUnknownItemKeys ?? true;
   const looseMatching = allowUnknownItemKeys;
 
-  /** FIND RUN **/
-  const inputMatch = findItemAndRunConfig(agentConfig, session, inputItem, "input", looseMatching);
-  const runConfig = inputMatch?.runConfig;
+  /** FIND RUN AND VALIDATE INPUT ITEM **/
 
-
-
-  
-  /** ITEMS VALIDATION **/
-  const inputRequired = true; // because it's POST
-  const outputRequired = status === 'completed'; // only when finished
-
-  if (inputRequired && outputRequired && body.items.length < 2) {
-    throw new HTTPException(400, { message: "At least 2 items are required (input and output)." });
-  }
-  else if (inputRequired && body.items.length === 1) {
-    throw new HTTPException(400, { message: "At least 1 item is required (input item)." });
-  }
-  else if (outputRequired && body.items.length === 0) {
-    throw new HTTPException(400, { message: "At least 1 item is required (output item)." });
-  }
-
-  const inputItem : Record<string, any> | undefined = inputRequired ? body.items[0] : undefined;
-  const outputItem : Record<string, any> | undefined = outputRequired ? body.items[body.items.length - 1] : undefined;
-  const stepItems : Record<string, any>[] = body.items.slice(inputRequired ? 1 : 0, outputRequired ? -1 : undefined);
-
-
-  if (inputItem) {
-    const inputItemConfig = findItemConfig(agentConfig, session, inputItem, "input", looseMatching);
-    if (!inputItemConfig) {
-      throw new AgentViewError("Couldn't find a matching input item.", 422, { item: inputItem });
-    }
-  }
-
-  if (outputItem) {
-    const outputItemConfig = findItemConfig(agentConfig, session, outputItem, "output", looseMatching);
-    if (!outputItemConfig) {
-      throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
-    }
-  }
-
-  for (const stepItem of stepItems) {
-    const stepItemConfig = findItemConfig(agentConfig, session, stepItem, "step", looseMatching);
-    if (!stepItemConfig && !allowUnknownSteps) {
-      throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
-    }
-  }
-
-  // input & run
-  const inputMatch = findItemAndRunConfig(agentConfig, session, inputItem, "input", looseMatching);
+  const inputMatch = findItemAndRunConfig(agentConfig, session, body.items[0], "input", looseMatching);
   const runConfig = inputMatch?.runConfig;
 
   if (!runConfig && !allowUnknownRuns) {
-    throw new HTTPException(422, { message: "Couldn't find a run for the input item." }); // this validates input item too
+    throw new AgentViewError("Couldn't find a run for the input item.", 422, { item: body.items[0] }); // this validates input item too
   }
 
-  // steps
-  if (!allowUnknownSteps) {
+  /** ITEMS VALIDATION **/
+
+  if (runConfig) { // validate only if runconfig exists, we do not validate for unknown runs
+    const inputRequired = true; // because it's POST
+    const outputRequired = status === 'completed'; // only when finished
+
+    if (inputRequired && outputRequired && body.items.length < 2) {
+      throw new HTTPException(400, { message: "At least 2 items are required (input and output)." });
+    }
+    else if (inputRequired && body.items.length === 1) {
+      throw new HTTPException(400, { message: "At least 1 item is required (input item)." });
+    }
+    else if (outputRequired && body.items.length === 0) {
+      throw new HTTPException(400, { message: "At least 1 item is required (output item)." });
+    }
+
+    const inputItem: Record<string, any> | undefined = inputRequired ? body.items[0] : undefined;
+    const outputItem: Record<string, any> | undefined = outputRequired ? body.items[body.items.length - 1] : undefined;
+    const stepItems: Record<string, any>[] = body.items.slice(inputRequired ? 1 : 0, outputRequired ? -1 : undefined);
+
+    if (inputItem) {
+      const inputItemConfig = findItemConfig(agentConfig, session, inputItem, "input", looseMatching);
+      if (!inputItemConfig) {
+        throw new AgentViewError("Couldn't find a matching input item.", 422, { item: inputItem });
+      }
+    }
+
+    if (outputItem) {
+      const outputItemConfig = findItemConfig(agentConfig, session, outputItem, "output", looseMatching);
+      if (!outputItemConfig) {
+        throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
+      }
+    }
+
     for (const stepItem of stepItems) {
-      const stepMatch = findItemAndRunConfig(agentConfig, session, stepItem, "step", looseMatching);
-      if (!stepMatch) {
-        throw new AgentViewError("Step item not allowed.", 422, { item: stepItem });
+      const stepItemConfig = findItemConfig(agentConfig, session, stepItem, "step", looseMatching);
+      if (!stepItemConfig && !allowUnknownSteps) {
+        throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
       }
     }
   }
+
+
+
+  // // input & run
+  // const inputMatch = findItemAndRunConfig(agentConfig, session, inputItem, "input", looseMatching);
+  // const runConfig = inputMatch?.runConfig;
+
+  // if (!runConfig && !allowUnknownRuns) {
+  //   throw new HTTPException(422, { message: "Couldn't find a run for the input item." }); // this validates input item too
+  // }
+
+  // // steps
+  // if (!allowUnknownSteps) {
+  //   for (const stepItem of stepItems) {
+  //     const stepMatch = findItemAndRunConfig(agentConfig, session, stepItem, "step", looseMatching);
+  //     if (!stepMatch) {
+  //       throw new AgentViewError("Step item not allowed.", 422, { item: stepItem });
+  //     }
+  //   }
+  // }
 
 
   /** METADATA **/
