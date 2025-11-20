@@ -1341,59 +1341,42 @@ function parseItemSchema(schema: any, value: any, looseMatching: boolean, contex
 //   return parsedMetadata.data;
 // }
 
-function validateItemsForRun(agentConfig: ReturnType<typeof requireAgentConfig>, session: Session, runConfig: any | undefined, newItems: any[], status: 'in_progress' | 'completed' | 'failed', options?: { allowUnknownSteps?: boolean, allowUnknownItemKeys?: boolean }) {
-  if (newItems.length === 0) {
-    return;
-  }
+// function validateItemsForRun(agentConfig: ReturnType<typeof requireAgentConfig>, session: Session, runConfig: any | undefined, newItems: any[], status: 'in_progress' | 'completed' | 'failed', options?: { allowUnknownSteps?: boolean, allowUnknownItemKeys?: boolean }) {
+//   if (newItems.length === 0) {
+//     return;
+//   }
 
-  const allowUnknownSteps = options?.allowUnknownSteps ?? true;
-  const allowUnknownItemKeys = options?.allowUnknownItemKeys ?? true;
+//   const allowUnknownSteps = options?.allowUnknownSteps ?? true;
+//   const allowUnknownItemKeys = options?.allowUnknownItemKeys ?? true;
 
-  const itemsToCheck = [...newItems];
-  const hasOutput = status !== 'in_progress';
-  const output = hasOutput ? itemsToCheck.pop() : undefined;
+//   const itemsToCheck = [...newItems];
+//   const hasOutput = status !== 'in_progress';
+//   const output = hasOutput ? itemsToCheck.pop() : undefined;
 
-  // validate steps
-  for (const item of itemsToCheck) {
-    if (!runConfig) {
-      if (!allowUnknownSteps) {
-        throw new HTTPException(422, { message: "Step item not allowed." });
-      }
-      continue;
-    }
-    const matchedStep = findItemAndRunConfig(agentConfig, session, item, "step");
-    if (!matchedStep && !allowUnknownSteps) {
-      throw new HTTPException(422, { message: "Step item not allowed." });
-    }
-    if (matchedStep?.itemConfig) {
-      parseItemSchema(matchedStep.itemConfig.schema, item, allowUnknownItemKeys, "Run step");
-    }
-  }
+//   // validate steps
+//   for (const item of itemsToCheck) {
+//     if (!runConfig) {
+//       if (!allowUnknownSteps) {
+//         throw new HTTPException(422, { message: "Step item not allowed." });
+//       }
+//       continue;
+//     }
+//     const matchedStep = findItemAndRunConfig(agentConfig, session, item, "step");
+//     if (!matchedStep && !allowUnknownSteps) {
+//       throw new HTTPException(422, { message: "Step item not allowed." });
+//     }
+//     if (matchedStep?.itemConfig) {
+//       parseItemSchema(matchedStep.itemConfig.schema, item, allowUnknownItemKeys, "Run step");
+//     }
+//   }
 
-  if (output) {
-    if (!runConfig) {
-      return;
-    }
-    parseItemSchema(runConfig.output.schema, output, allowUnknownItemKeys, "Run output");
-  }
-}
-
-
-const runsPOSTRoute = createRoute({
-  method: 'post',
-  path: '/api/runs',
-  request: {
-    body: body(RunCreateSchema)
-  },
-  responses: {
-    201: response_data(RunSchema),
-    400: response_error(),
-    404: response_error()
-  },
-})
-
-
-
+//   if (output) {
+//     if (!runConfig) {
+//       return;
+//     }
+//     parseItemSchema(runConfig.output.schema, output, allowUnknownItemKeys, "Run output");
+//   }
+// }
 
 function validateRunItem(args: {
   runConfig: BaseRunConfig,
@@ -1422,55 +1405,69 @@ function validateRunItem(args: {
   }
 }
 
+function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: 'in_progress' | 'completed' | 'failed', looseMatching: boolean) {
 
-// type RunState = Pick<Run, "status" | "failReason" | "finishedAt"> & { items: any[] };
+  /** Validate last item **/
+  let stepItems: any[] = [];
 
-// function processRunStep(agentConfig: BaseAgentConfig, runConfig: BaseRunConfig, run: RunState, item: any, status?: 'in_progress' | 'completed' | 'failed', failReason?: any) : RunState {
-//   const looseMatching = agentConfig.allowUnknownItemKeys ?? true;
-//   const allowUnknownSteps = agentConfig.allowUnknownSteps ?? true;
+  if (status === "completed") { // last item must exist and must be output
+    if (items.length === 0) {
+      throw new AgentViewError("Run set as 'completed' must have at least 2 items, input and output.", 422);
+    }
 
-//   const outputItemConfig = findItemConfig(runConfig, run.items, item, "output", looseMatching)
-//   const stepItemConfig = findItemConfig(runConfig, run.items, item, "step", looseMatching)
+    const outputItem = items[items.length - 1];
+    stepItems = items.slice(1, -1);
 
-//   // Validate fail reason
-//   if (!(failReason && status === "failed" && run.status !== "failed")) {
-//     throw new AgentViewError("failReason can only be set when status is 'failed'.", 400);
-//   }
+    const outputItemConfig = findItemConfig(runConfig, [], outputItem, "output", looseMatching);
+    if (!outputItemConfig) {
+      throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
+    }
+  }
+  else if (status === "failed") { // last item, if exists, should be either step or output
+    if (items.length === 0) {
+      stepItems = items;
+    }
+    else {
+      const lastItem = items[items.length - 1];
+      stepItems = items.slice(1, -1);
 
-//   if (run.status === "in_progress") {
-//     if (status === "completed") {
-//       if (!outputItemConfig) {
-//         throw new AgentViewError("Couldn't find a matching output item.", 422, { item });
-//       }
-//       if (failReason) {
-//         throw new AgentViewError("failReason can only be set when status is 'failed'.", 422, { item });
-//       }
-//     }
-//     else if (status === "failed") {
-//       if (!outputItemConfig && !stepItemConfig && !allowUnknownSteps) {
-//         throw new AgentViewError("Couldn't find a matching item.", 422, { item });
-//       }
-//     }
-//     else if (status === undefined) {
-//       if (!stepItemConfig && !allowUnknownSteps) {
-//         throw new AgentViewError("Couldn't find a matching item.", 422, { item });
-//       }
-//       if (failReason) {
-//         throw new AgentViewError("failReason can only be set when status is 'failed'.", 422, { item });
-//       }
-//     }
-//   }
-//   else if (run.status === "completed") {
-//     if (status !== "completed") {
-//       throw new AgentViewError("Cannot change the status of a completed run.", 422, { item });
-//     }
-//   }
-//   else if (run.status === "failed") {
-//     if (status !== "failed") {
-//       throw new AgentViewError("Cannot change the status of a failed run.", 422, { item });
-//     }
-//   }
-// }
+      // last item must be either step or output
+      const lastItemOutputConfig = findItemConfig(runConfig, [], lastItem, "output", looseMatching);
+      const lastItemStepConfig = findItemConfig(runConfig, [], lastItem, "step", looseMatching);
+      if (!lastItemOutputConfig && !lastItemStepConfig) {
+        throw new AgentViewError("Last item must be either step or output.", 422, { item: lastItem });
+      }
+    }
+  }
+  else {
+    stepItems = items;
+  }
+
+  /* Validate step items */
+  for (const stepItem of stepItems) {
+    const stepItemConfig = findItemConfig(runConfig, [], stepItem, "step", looseMatching);
+    if (!stepItemConfig) {
+      throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
+    }
+  }
+}
+
+
+
+
+const runsPOSTRoute = createRoute({
+  method: 'post',
+  path: '/api/runs',
+  request: {
+    body: body(RunCreateSchema)
+  },
+  responses: {
+    201: response_data(RunSchema),
+    400: response_error(),
+    404: response_error()
+  },
+})
+
 
 app.openapi(runsPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
@@ -1484,47 +1481,12 @@ app.openapi(runsPOSTRoute, async (c) => {
 
   const lastRun = getLastRun(session)
 
+  /** Only one in_progress run is allowed per session **/
   if (lastRun?.status === 'in_progress') {
     throw new HTTPException(400, { message: `Can't create a run because session has already a run in progress.` });
   }
 
-  const looseMatching = agentConfig.allowUnknownItemKeys ?? true;
-
-  const [inputItem, ...nonInputItems] = body.items;
-
-  /** FIND RUN AND VALIDATE INPUT ITEM **/
-  const runConfig = requireRunConfig(agentConfig, inputItem, looseMatching);
-  
-  /** NON-INPUT ITEMS VALIDATION **/
-
-  for (let index = 0; index < nonInputItems.length; index++) {
-    const nonInputItem = nonInputItems[index];
-    const isLastItem = nonInputItems.length - 1 === index;
-
-    validateRunItem({
-      runConfig,
-      item: nonInputItem,
-      previousItems: [], // to fix
-      mustBeOutput: isLastItem && body.status === 'completed',
-      allowUnknownSteps: agentConfig.allowUnknownSteps ?? true,
-      looseMatching,
-    });
-  }
-
-  /** METADATA **/
-  const metadata = parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, {})
-
-  /** STATUS, FINISHED_AT, FAIL_REASON */
-  const status = body.status ?? 'in_progress';
-  const failReason = body.failReason ?? null;
-
-  if (failReason && status !== 'failed') {
-    throw new AgentViewError("failReason can only be set when status is 'failed'.", 400);
-  }
-
-  const finishedAt = (status === 'completed' || status === 'failed') ? new Date().toISOString() : null;
-
-  /** VERSION CHECKING **/
+  /** Version compatibility checking **/
   const version = typeof body.version === 'string' ? { version: body.version } : body.version;
 
   const parsedVersion = parseVersion(version.version);
@@ -1543,6 +1505,32 @@ app.openapi(runsPOSTRoute, async (c) => {
       throw new HTTPException(400, { message: "Cannot continue a session with a smaller patch version." });
     }
   }
+
+  /** Validate input item **/
+  if (body.items.length === 0) {
+    throw new AgentViewError("New run must have at least 1 item, input.", 422);
+  }
+  const [inputItem, ...items] = body.items;
+  const looseMatching = agentConfig.allowUnknownItemKeys ?? true;
+
+  const runConfig = requireRunConfig(agentConfig, inputItem, looseMatching);
+
+  /** Validate rest items **/
+  validateNonInputItems(runConfig, items, body.status ?? 'in_progress', looseMatching);
+
+  /** Metadata **/
+  const metadata = parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, {})
+
+  /** STATUS, FINISHED_AT, FAIL_REASON */
+  const status = body.status ?? 'in_progress';
+  const failReason = body.failReason ?? null;
+
+  if (failReason && status !== 'failed') {
+    throw new AgentViewError("failReason can only be set when status is 'failed'.", 400);
+  }
+
+  const finishedAt = (status === 'completed' || status === 'failed') ? new Date().toISOString() : null;
+
 
   // Create run and items
   await db.transaction(async (tx) => {
@@ -1593,7 +1581,7 @@ app.openapi(runsPOSTRoute, async (c) => {
 
 
 
-const runsPATCHRoute = createRoute({
+const runPATCHRoute = createRoute({
   method: 'patch',
   path: '/api/runs/{run_id}',
   request: {
@@ -1609,7 +1597,7 @@ const runsPATCHRoute = createRoute({
   },
 })
 
-app.openapi(runsPATCHRoute, async (c) => {
+app.openapi(runPATCHRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
   const { run_id } = c.req.param()
@@ -1625,32 +1613,20 @@ app.openapi(runsPATCHRoute, async (c) => {
 
   const looseMatching = agentConfig.allowUnknownItemKeys ?? true;
 
-  /** FIND RUN AND VALIDATE INPUT ITEM **/
+  /** Find matching run **/
   const inputItem = run.items[0].content;
   const runConfig = requireRunConfig(agentConfig, inputItem, looseMatching);
 
-  /** VALIDATE ITEMS */
+  /** Validate items */
   const items = body.items ?? [];
-  
-  if (items.length > 0 && (run.status === "completed" || run.status === "failed")) {
+
+  if (items.length > 0 && run.status !== 'in_progress') {
     throw new AgentViewError("Cannot add items to a finished run.", 400);
   }
 
-  for (let index = 0; index < items.length; index++) {
-    const item = items[index];
-    const isLastItem = items.length - 1 === index;
+  validateNonInputItems(runConfig, items, body.status ?? 'in_progress', looseMatching);
 
-    validateRunItem({
-      runConfig,
-      item,
-      previousItems: [], // to fix
-      mustBeOutput: isLastItem && body.status === 'completed',
-      allowUnknownSteps: agentConfig.allowUnknownSteps ?? true,
-      looseMatching,
-    });
-  }
-
-  /** METADATA **/
+  /** Metadata **/
   const metadata = parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, run.metadata ?? {});
 
   /** STATUS, FINISHED_AT, FAIL_REASON */

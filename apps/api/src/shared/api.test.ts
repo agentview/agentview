@@ -444,10 +444,6 @@ describe('API', () => {
       await av.__updateConfig({ config: { agents: [{ ...baseAgentConfig, ...agentOverrides }] } })
     }
 
-    const createSession = async () => {
-      return await av.createSession({ agent: "test", endUserId: initEndUser1.id })
-    }
-
     test("creating run - wrong sessionId", async () => {
       await updateConfig()
 
@@ -457,35 +453,66 @@ describe('API', () => {
       }))
     })
 
-    /** FINISHED RUN **/
+    /** 
+     * RUN STATES TESTS 
+     * 
+     * This is automated set of test cases where we test automatically different courses of actions in terms of runs.
+     * 
+     * - status -> relates to the status change in last run
+     **/
 
-    // every case can be failed / completed
-
-    const baseTestCases2: any = [
+    const baseTestCases : Array<{ title: string, items: any[], status: ("in_progress" | "completed" | "failed")[], error?: number | null }> = [
       {
         title: "just input & output",
         items: [baseInput, baseOutput],
-        status: ["completed", "failed"]
+        status: ["completed", "failed"],
+        error: null
       },
       {
         title: "input, 2 items, output",
         items: [baseInput, baseStep, baseStep, baseOutput],
-        status: ["completed", "failed"]
+        status: ["completed", "failed"],
+        error: null
+      },
+      {
+        title: "input, 2 items, output",
+        items: [baseInput, baseStep, baseStep, baseOutput],
+        status: ["in_progress"],
+        error: 422
       },
       {
         title: "input, 2 steps, no output",
         items: [baseInput, baseStep, baseStep],
-        status: ["failed"]
+        status: ["failed"],
+        error: null
       },
-      // {
-      //   title: "input, 2 items, no output",
-      //   items: [baseInput, baseStep, baseStep],
-      //   status: ["completed"],
-      //   error: 422
-      // }
+      {
+        title: "input, 2 items, no output",
+        items: [baseInput, baseStep, baseStep],
+        status: ["completed"],
+        error: 422
+      },
+      {
+        title: "single item completed",
+        items: [baseInput],
+        status: ["completed"],
+        error: 422
+      },
+      {
+        title: "single item",
+        items: [baseInput],
+        status: ["completed"],
+        error: 422
+      },
+      {
+        title: "single item",
+        items: [baseInput],
+        status: ["failed"],
+        error: null
+      }
     ]
 
-    for (const testCase of baseTestCases2) {
+    for (const testCase of baseTestCases) {
 
       const splits = [
         {
@@ -513,51 +540,94 @@ describe('API', () => {
       for (const split of splits) {
         for (const status of testCase.status) {
 
-          test.only(`${testCase.title} / ${split.title} / ${status}`, async () => {
+          test.only(`${testCase.title} / ${split.title} / ${status} -> ${testCase.error ? `error ${testCase.error}` : "ok"}`, async () => {
             await updateConfig()
             const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
 
             let run: Run | undefined;
-            let totalItems = 0;
+            let previousItemCount = 0;
 
             for (const iteration of split.iterations) {
               const isLast = iteration === split.iterations[split.iterations.length - 1];
               const isFirst = iteration === split.iterations[0];
-              totalItems += iteration.length;
+
+              let expectedStatus : string;
+              let expectedHasFinishedAt : boolean;
+              let promise: any;
 
               if (isFirst && isLast) {
-                const promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status });
-
-                if (testCase.error) {
-                  await expect(av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status })).rejects.toThrowError(expect.objectContaining({
-                    statusCode: 422,
-                    message: expect.any(String),
-                  }))
-                } else {
-                  run = await av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status })
-                  expect(run.status).toBe(status)
-                  expect(run.items.length).toEqual(totalItems)
-                  expect(run.finishedAt).toBeTruthy()
-                }
-
+                promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status });
+                expectedStatus = status;
+                expectedHasFinishedAt = true;
               } else if (isFirst) {
-                run = await av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0" })
-                expect(run.status).toBe("in_progress")
-                expect(run.items.length).toEqual(totalItems)
-                expect(run.finishedAt).toBeNull()
-
+                promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0" })
+                expectedStatus = "in_progress";
+                expectedHasFinishedAt = false;
               } else if (isLast) {
-                run = await av.updateRun({ id: run!.id, items: iteration, status })
-                expect(run.status).toBe(status)
-                expect(run.items.length).toEqual(totalItems)
-                expect(run.finishedAt).toBeTruthy()
-
+                promise = av.updateRun({ id: run!.id, items: iteration, status })
+                expectedStatus = status;
+                expectedHasFinishedAt = true;
               } else {
-                run = await av.updateRun({ id: run!.id, items: iteration })
-                expect(run.status).toBe("in_progress")
-                expect(run.items.length).toEqual(totalItems)
-                expect(run.finishedAt).toBeNull()
+                promise = av.updateRun({ id: run!.id, items: iteration })
+                expectedStatus = "in_progress";
+                expectedHasFinishedAt = false;
               }
+
+              if (testCase.error && isLast) {
+                await expect(promise).rejects.toThrowError(expect.objectContaining({
+                  statusCode: testCase.error,
+                  message: expect.any(String),
+                }))
+                // TODO: check history length!!! Should not be updated
+              }
+              else {
+                run = await promise! as Run;
+                expect(run.status).toBe(expectedStatus)
+                expect(run.items.length).toEqual(previousItemCount + iteration.length)
+
+                if (expectedHasFinishedAt) {
+                  expect(run.finishedAt).toBeTruthy()
+                } else {
+                  expect(run.finishedAt).toBeNull()
+                }
+              }
+
+              previousItemCount += iteration.length;
+
+
+              // if (isFirst && isLast) {
+              //   promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status });
+
+              //   if (testCase.error) {
+              //     await expect(av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status })).rejects.toThrowError(expect.objectContaining({
+              //       statusCode: 422,
+              //       message: expect.any(String),
+              //     }))
+              //   } else {
+              //     run = await av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status })
+              //     expect(run.status).toBe(status)
+              //     expect(run.items.length).toEqual(totalItems)
+              //     expect(run.finishedAt).toBeTruthy()
+              //   }
+
+              // } else if (isFirst) {
+              //   run = await av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0" })
+              //   expect(run.status).toBe("in_progress")
+              //   expect(run.items.length).toEqual(totalItems)
+              //   expect(run.finishedAt).toBeNull()
+
+              // } else if (isLast) {
+              //   run = await av.updateRun({ id: run!.id, items: iteration, status })
+              //   expect(run.status).toBe(status)
+              //   expect(run.items.length).toEqual(totalItems)
+              //   expect(run.finishedAt).toBeTruthy()
+
+              // } else {
+              //   run = await av.updateRun({ id: run!.id, items: iteration })
+              //   expect(run.status).toBe("in_progress")
+              //   expect(run.items.length).toEqual(totalItems)
+              //   expect(run.finishedAt).toBeNull()
+              // }
             }
 
           })

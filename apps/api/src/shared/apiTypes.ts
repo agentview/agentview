@@ -121,7 +121,7 @@ export const RunSchema = z.object({
 
 export const RunCreateSchema = z.object({
     sessionId: z.string(),
-    items: z.array(z.record(z.string(), z.any())).min(1),
+    items: z.array(z.record(z.string(), z.any())),
     version: z.union([VersionCreateSchema, z.string()]),
     metadata: z.record(z.string(), z.any()).optional(),
     status: z.enum(['in_progress', 'completed', 'failed']).optional(),
