@@ -1,7 +1,8 @@
-import type { Session } from "./apiTypes";
-import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig, ExtendedSchema, Metadata } from "./configTypes";
+import type { Run, Session } from "./apiTypes";
+import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig, ExtendedSchema, Metadata, BaseRunConfig } from "./configTypes";
 import { z, ZodString } from "zod";
 import { getAllSessionItems } from "./sessionUtils";
+import { AgentViewError } from "./AgentViewError";
 
 export function requireAgentConfig<T extends BaseAgentViewConfig>(config: T, agentName: string): NonNullable<T["agents"]>[number] {
     const agentConfig = config.agents?.find((agent) => agent.name === agentName);
@@ -11,22 +12,48 @@ export function requireAgentConfig<T extends BaseAgentViewConfig>(config: T, age
     return agentConfig;
 }
 
+
+export function findMatchingRunConfigs<T extends BaseAgentConfig>(agentConfig: T, inputItemContent: any, looseMatching: boolean = true) {
+    let matchingRunConfigs: BaseRunConfig[] = [];
+
+    for (const runConfig of agentConfig.runs ?? []) {
+        const inputItemSchema = normalizeExtendedSchema(runConfig.input.schema, looseMatching);
+
+        if (inputItemSchema.safeParse(inputItemContent).success) {
+            matchingRunConfigs.push(runConfig);
+        }
+    }
+
+    return matchingRunConfigs;
+}
+
+export function requireRunConfig<T extends BaseAgentConfig>(agentConfig: T, inputItemContent: any, looseMatching: boolean = true) {
+    const matchingRunConfigs = findMatchingRunConfigs(agentConfig, inputItemContent, looseMatching);
+    if (matchingRunConfigs.length === 0) {
+        throw new AgentViewError(`No run config found for input item content.`, 422, { item: inputItemContent });
+    }
+    else if (matchingRunConfigs.length > 1) {
+        throw new AgentViewError(`More than 1 run config found for input item content.`, 422, { item: inputItemContent });
+    }
+
+    return matchingRunConfigs[0]
+}
+
+
 // two possible inputs:
 // - session (items history) + new item (not yet in session) -> we assume it goes last, all items are previous items
 // - session (items history) + item id -> concrete item, we find it and try to find the config
 
 type SessionItemExtension = { __type: "input" | "output" | "step", toolCallContent?: any }
 
-export function findItemAndRunConfig<T extends BaseAgentConfig, SessionT extends Session>(agentConfig: T, session: SessionT, contentOrId: string | Record<string, any>, itemType?: "input" | "output" | "step", looseMatching: boolean = true) {
+export function findItemConfig<T extends BaseRunConfig, RunT extends BaseRunConfig>(runConfig: T, items: any[], contentOrId: string | Record<string, any>, itemType?: "input" | "output" | "step", looseMatching: boolean = true) {
     // console.log("--------------------------------")
-    type RunT = NonNullable<T["runs"]>[number];
+    // type RunT = NonNullable<T["runs"]>[number];
     type ItemConfigT = RunT["output"] & SessionItemExtension; // output type is the same as step type, we also ignore input type difference for now 
 
     // existing session id
     let newContent: Record<string, any>;
     let prevContent: Record<string, any>[]
-    
-    const items = getAllSessionItems(session, { activeOnly: true });
 
     if (typeof contentOrId === "string") {
         const itemIndex = items.findIndex((item) => item.id === contentOrId);
@@ -42,32 +69,19 @@ export function findItemAndRunConfig<T extends BaseAgentConfig, SessionT extends
         prevContent = items.map((item) => item.content);
     }
 
-    const matches : Array<{ 
-        runConfig: RunT, 
-        itemConfigs: ItemConfigT[]
-    }> = []
+    const availableItemConfigs: ItemConfigT[] = [];
 
-    for (const runConfig of agentConfig.runs ?? []) {
-        const availableItemConfigs: ItemConfigT[] = [];
-
-        if (!itemType || itemType === "input") {
-            availableItemConfigs.push({ ...runConfig.input, __type: "input" });
-        }
-        if (!itemType || itemType === "output") {
-            availableItemConfigs.push({ ...runConfig.output, __type: "output" });
-        }
-        if (!itemType || itemType === "step") {
-            availableItemConfigs.push(...(runConfig.steps?.map((step) => ({ ...step, __type: "step" as const })) ?? []));
-        }
-
-        const matchedItemConfigs = matchItemConfigs(availableItemConfigs, newContent, prevContent, looseMatching);
-        if (matchedItemConfigs.length > 0) {
-            matches.push({
-                runConfig,
-                itemConfigs: matchedItemConfigs,
-            });
-        }
+    if (!itemType || itemType === "input") {
+        availableItemConfigs.push({ ...runConfig.input, __type: "input" });
     }
+    if (!itemType || itemType === "output") {
+        availableItemConfigs.push({ ...runConfig.output, __type: "output" });
+    }
+    if (!itemType || itemType === "step") {
+        availableItemConfigs.push(...(runConfig.steps?.map((step) => ({ ...step, __type: "step" as const })) ?? []));
+    }
+
+    const matches = matchItemConfigs(availableItemConfigs, newContent, prevContent, looseMatching);
 
     if (matches.length === 0) {
         return undefined;
@@ -79,30 +93,8 @@ export function findItemAndRunConfig<T extends BaseAgentConfig, SessionT extends
         return undefined;
     }
 
-    const runConfig = matches[0].runConfig;
-    const itemConfigs = matches[0].itemConfigs;
-
-    if (itemConfigs.length === 0) {
-        return undefined;
-    }
-    else if (itemConfigs.length > 1) {
-        console.warn(`More than 1 item was matched for the item content.`);
-        console.warn('Item content', newContent);
-        console.warn('Matches', matches[0])
-        return undefined;
-    }
-
-    const { __type, toolCallContent, ...itemConfig } = itemConfigs[0];
-    return { runConfig, itemConfig, itemType: __type, toolCallContent };
-}
-
-
-export function findItemConfig<T extends BaseAgentConfig, SessionT extends Session>(agentConfig: T, session: SessionT, contentOrId: string | object, itemType?: "input" | "output" | "step", looseMatching: boolean = true) {
-    const result = findItemAndRunConfig(agentConfig, session, contentOrId, itemType, looseMatching);
-    if (!result) {
-        return undefined;
-    }
-    return result.itemConfig;
+    const { __type, toolCallContent, ...itemConfig } = matches[0];
+    return { itemConfig, itemType: __type, toolCallContent };
 }
 
 

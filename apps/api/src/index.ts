@@ -22,7 +22,7 @@ import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, SessionUpdateSchema, RunSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type EndUser } from './shared/apiTypes'
+import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, SessionUpdateSchema, RunSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type EndUser, type Run } from './shared/apiTypes'
 import { getConfigRow, BaseConfigSchema, BaseConfigSchemaToZod } from './getConfig'
 import { type BaseAgentViewConfig, type BaseAgentConfig, type BaseSessionItemConfig, type BaseScoreConfig, type Metadata, type BaseRunConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
@@ -32,7 +32,7 @@ import { isInboxItemUnread } from './inboxItems'
 import { findEndUser, createEndUser } from './endUsers'
 import packageJson from '../package.json'
 import type { Transaction } from './types'
-import { findItemAndRunConfig, findItemConfig, makeObjectSerializable, normalizeExtendedSchema } from './shared/configUtils'
+import { findItemConfig, makeObjectSerializable, normalizeExtendedSchema, requireRunConfig } from './shared/configUtils'
 import { equalJSON } from './shared/equalJSON'
 import { AgentViewError } from './shared/AgentViewError'
 
@@ -1221,11 +1221,8 @@ app.openapi(sessionsPOSTRoute, async (c) => {
   /**
    * METADATA
    */
+
   const metadata = parseMetadata(agentConfig.metadata, agentConfig.allowUnknownMetadata, body.metadata ?? {}, {});
-
-
-
-
 
 
 
@@ -1430,6 +1427,32 @@ const runsPOSTRoute = createRoute({
 //   }
 // }
 
+function validateRunItem(args: {
+  runConfig: BaseRunConfig,
+  item: any,
+  previousItems: any[],
+  mustBeOutput: boolean,
+  allowUnknownSteps: boolean,
+  looseMatching: boolean,
+}) {
+  const { runConfig, item, previousItems, mustBeOutput, allowUnknownSteps, looseMatching } = args;
+
+  const outputItemConfig = findItemConfig(runConfig, previousItems, item, "output", looseMatching);
+
+  if (mustBeOutput && !outputItemConfig) {
+    throw new AgentViewError("Couldn't find a matching output item.", 422, { item: item });
+  }
+
+  if (allowUnknownSteps) {
+    return;
+  }
+
+  const stepItemConfig = findItemConfig(runConfig, previousItems, item, "step", looseMatching);
+
+  if (!stepItemConfig && !outputItemConfig) {
+    throw new AgentViewError("Couldn't find a matching step item.", 422, { item: item });
+  }
+}
 
 
 app.openapi(runsPOSTRoute, async (c) => {
@@ -1442,102 +1465,62 @@ app.openapi(runsPOSTRoute, async (c) => {
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
 
-  const status = body.status ?? 'in_progress';
-
-  if (body.failReason && status !== 'failed') {
-    throw new HTTPException(400, { message: "failReason can only be set when status is 'failed'." });
-  }
-
   const lastRun = getLastRun(session)
 
   if (lastRun?.status === 'in_progress') {
     throw new HTTPException(400, { message: `Can't create a run because session has already a run in progress.` });
   }
 
-  const allowUnknownRuns = agentConfig.allowUnknownRuns ?? true;
-  const allowUnknownSteps = agentConfig.allowUnknownSteps ?? true;
-  const allowUnknownItemKeys = agentConfig.allowUnknownItemKeys ?? true;
-  const looseMatching = allowUnknownItemKeys;
+  const looseMatching = agentConfig.allowUnknownItemKeys ?? true;
+
+  const [inputItem, ...nonInputItems] = body.items;
 
   /** FIND RUN AND VALIDATE INPUT ITEM **/
-
-  const inputMatch = findItemAndRunConfig(agentConfig, session, body.items[0], "input", looseMatching);
-  const runConfig = inputMatch?.runConfig;
-
-  if (!runConfig && !allowUnknownRuns) {
-    throw new AgentViewError("Couldn't find a run for the input item.", 422, { item: body.items[0] }); // this validates input item too
-  }
-
+  const runConfig = requireRunConfig(agentConfig, inputItem, looseMatching);
+  
   /** ITEMS VALIDATION **/
 
-  if (runConfig) { // validate only if runconfig exists, we do not validate for unknown runs
-    const inputRequired = true; // because it's POST
-    const outputRequired = status === 'completed'; // only when finished
+  for (let index = 0; index < nonInputItems.length; index++) {
+    const nonInputItem = nonInputItems[index];
+    const isLastItem = nonInputItems.length - 1 === index;
 
-    if (inputRequired && outputRequired && body.items.length < 2) {
-      throw new HTTPException(400, { message: "At least 2 items are required (input and output)." });
-    }
-    else if (inputRequired && body.items.length === 1) {
-      throw new HTTPException(400, { message: "At least 1 item is required (input item)." });
-    }
-    else if (outputRequired && body.items.length === 0) {
-      throw new HTTPException(400, { message: "At least 1 item is required (output item)." });
-    }
-
-    const inputItem: Record<string, any> | undefined = inputRequired ? body.items[0] : undefined;
-    const outputItem: Record<string, any> | undefined = outputRequired ? body.items[body.items.length - 1] : undefined;
-    const stepItems: Record<string, any>[] = body.items.slice(inputRequired ? 1 : 0, outputRequired ? -1 : undefined);
-
-    if (inputItem) {
-      const inputItemConfig = findItemConfig(agentConfig, session, inputItem, "input", looseMatching);
-      if (!inputItemConfig) {
-        throw new AgentViewError("Couldn't find a matching input item.", 422, { item: inputItem });
-      }
-    }
-
-    if (outputItem) {
-      const outputItemConfig = findItemConfig(agentConfig, session, outputItem, "output", looseMatching);
-      if (!outputItemConfig) {
-        throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
-      }
-    }
-
-    for (const stepItem of stepItems) {
-      const stepItemConfig = findItemConfig(agentConfig, session, stepItem, "step", looseMatching);
-      if (!stepItemConfig && !allowUnknownSteps) {
-        throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
-      }
-    }
+    validateRunItem({
+      runConfig,
+      item: nonInputItem,
+      previousItems: [], // to fix
+      mustBeOutput: isLastItem && body.status === 'completed',
+      allowUnknownSteps: agentConfig.allowUnknownSteps ?? true,
+      looseMatching,
+    });
   }
-
-
-
-  // // input & run
-  // const inputMatch = findItemAndRunConfig(agentConfig, session, inputItem, "input", looseMatching);
-  // const runConfig = inputMatch?.runConfig;
-
-  // if (!runConfig && !allowUnknownRuns) {
-  //   throw new HTTPException(422, { message: "Couldn't find a run for the input item." }); // this validates input item too
-  // }
-
-  // // steps
-  // if (!allowUnknownSteps) {
-  //   for (const stepItem of stepItems) {
-  //     const stepMatch = findItemAndRunConfig(agentConfig, session, stepItem, "step", looseMatching);
-  //     if (!stepMatch) {
-  //       throw new AgentViewError("Step item not allowed.", 422, { item: stepItem });
-  //     }
-  //   }
-  // }
-
 
   /** METADATA **/
 
   const metadata = runConfig ? parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, {}) : body.metadata;
 
+  /** STATUS, FINISHED_AT, FAIL_REASON */
+
+  const previousFailReason = null;
+  const previousStatus = null;
+  const previousFinishedAt = null;
+
+  const targetStatus = body.status ?? 'in_progress';
+
+  if (targetStatus !== 'failed' && body.failReason) {
+    throw new HTTPException(400, { message: "failReason can only be set when status is 'failed'." });
+  }
+
+  const justCompleted = targetStatus === 'completed' && previousStatus !== 'completed';
+  const justFailed = targetStatus === 'failed' && previousStatus !== 'failed';
+  const justFinished = justCompleted || justFailed;
+
+  const newStatus = targetStatus;
+  const newFailReason = newStatus === 'failed' ? (body.failReason ?? previousFailReason) : previousFailReason // ignore fail reason for non-failed statuses
+  const newFinishedAt = justFinished ? new Date().toISOString() : previousFinishedAt;
+
 
   /** VERSION CHECKING **/
-
+  
   const version = typeof body.version === 'string' ? { version: body.version } : body.version;
 
   const parsedVersion = parseVersion(version.version);
@@ -1561,15 +1544,21 @@ app.openapi(runsPOSTRoute, async (c) => {
   // Create run and items
   await db.transaction(async (tx) => {
 
-    const [versionRow] = await db.insert(versions).values({
+    const env = version.env || 'dev';
+
+    await db.insert(versions).values({
       version: version.version,
-      env: version.env || 'dev',
+      env,
       metadata: version.metadata,
-    }).onConflictDoNothing().returning();
+    }).onConflictDoNothing();
+
+    const [versionRow] = await tx.select().from(versions).where(and(eq(versions.version, version.version), eq(versions.env, env))).limit(1);
 
     const [newRun] = await tx.insert(runs).values({
       sessionId: body.sessionId,
-      status,
+      status: newStatus,
+      failReason: newFailReason,
+      finishedAt: newFinishedAt,
       versionId: versionRow.id,
       metadata,
     }).returning();
@@ -2458,8 +2447,6 @@ app.openapi(configPutRoute, async (c) => {
 
   const body = await c.req.valid('json')
   const configRow = await getConfigRow()
-
-  console.log('------------- 1 -------------');
 
   // validate & parse body.config
   const { data, success, error } = BaseConfigSchema.safeParse(body.config)

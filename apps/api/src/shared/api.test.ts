@@ -1,6 +1,6 @@
 import { describe, it, test, expect, beforeAll } from 'vitest'
 import { AgentView, AgentViewClient } from './AgentView'
-import type { EndUser } from './apiTypes';
+import type { EndUser, Run } from './apiTypes';
 import { z } from 'zod';
 import { AgentViewError } from './AgentViewError';
 
@@ -257,7 +257,7 @@ describe('API', () => {
 
     test("create - fails at wrong agent", async () => {
       await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
-      
+
       await expect(av.createSession({ agent: "wrong_agent", endUserId: initEndUser1.id })).rejects.toThrowError(expect.objectContaining({
         statusCode: 404,
         message: expect.any(String),
@@ -343,7 +343,7 @@ describe('API', () => {
         endUserId: initEndUser1.id,
       })
     })
-    
+
     test("get by id - wrong id", async () => {
       await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
 
@@ -352,12 +352,12 @@ describe('API', () => {
         message: expect.any(String),
       }))
     })
-    
+
     test("update metadata", async () => {
       await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false }] } })
 
       const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, endUserId: initEndUser1.id })
-      
+
       const updated = await av.updateSession({ id: session.id, metadata: { field1: "B", field2: 1 } })
       expect(updated.metadata).toEqual({ field1: "B", field2: 1 })
 
@@ -369,7 +369,7 @@ describe('API', () => {
       await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false }] } })
 
       const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, endUserId: initEndUser1.id })
-      
+
       const updated = await av.updateSession({ id: session.id, metadata: { field1: "B" } })
       expect(updated.metadata).toEqual({ field1: "B", field2: 0 })
 
@@ -381,7 +381,7 @@ describe('API', () => {
       await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { field1: z.string(), field2: z.number().nullable() }, allowUnknownMetadata: false }] } })
 
       const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, endUserId: initEndUser1.id })
-      
+
       const updated = await av.updateSession({ id: session.id, metadata: { field2: null } })
       expect(updated.metadata).toEqual({ field1: "A", field2: null })
 
@@ -418,316 +418,522 @@ describe('API', () => {
   // - permissions (providing endUserToken which suggests the session is not owned by the user). It should be fail.
   // - items validation!!! (all the scenarios)
 
-  // describe("runs", () => {
-  //   const baseAgentConfig = {
-  //     name: "test",
-  //     url: "https://test.com",
-  //     allowUnknownRuns: false,
-  //     allowUnknownSteps: false,
-  //     allowUnknownItemKeys: false,
-  //     runs: [
-  //       {
-  //         input: { schema: { type: z.literal("message"), role: z.literal("user"), content: z.string() } },
-  //         steps: [{ schema: { type: z.literal("reasoning"), content: z.string() } }],
-  //         output: { schema: { type: z.literal("message"), role: z.literal("assistant"), content: z.string() } },
-  //         metadata: { trace_id: z.string() },
-  //         allowUnknownMetadata: false,
-  //       }
-  //     ]
-  //   }
-
-  //   const baseInput = { type: "message", role: "user", content: "Hello" }
-  //   const baseOutput = { type: "message", role: "assistant", content: "Hi there" }
-  //   const baseStep = { type: "reasoning", content: "Thinking..." }
-
-  //   const updateConfig = async (agentOverrides: Partial<typeof baseAgentConfig> = {}) => {
-  //     await av.__updateConfig({ config: { agents: [{ ...baseAgentConfig, ...agentOverrides }] } })
-  //   }
-
-  //   const createSession = async () => {
-  //     return await av.createSession({ agent: "test", endUserId: initEndUser1.id })
-  //   }
-
-  //   test("creating run - wrong sessionId", async () => {
-  //     await updateConfig()
-
-  //     await expect(av.createRun({ sessionId: 'non-existing', items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
-  //       statusCode: 404,
-  //       message: expect.any(String),
-  //     }))
-  //   })
-
-  //   test("creating run in progress populates history, lastRun and state", async () => {
-  //     await updateConfig()
-  //     const session = await createSession()
-
-  //     const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", state: { step: 1 } })
-  //     expect(run.status).toBe("in_progress")
-
-  //     const fetched = await av.getSession({ id: session.id })
-  //     const items = fetched.runs.flatMap((r) => r.items.map((i) => i.content))
-  //     expect(items).toEqual([baseInput])
-  //     expect(fetched.runs[fetched.runs.length - 1].id).toBe(run.id)
-  //     expect(fetched.state).toEqual({ step: 1 })
-  //   })
-
-  //   test("creating run requires at least one item", async () => {
-  //     await updateConfig()
-  //     const session = await createSession()
-
-  //     await expect(av.createRun({ sessionId: session.id, items: [], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
-  //       statusCode: 422,
-  //       message: expect.any(String),
-  //     }))
-  //   })
-
-  //   test("run defaults to in_progress status", async () => {
-  //     await updateConfig()
-  //     const session = await createSession()
-
-  //     const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-  //     expect(run.status).toBe("in_progress")
-  //   })
-
-  //   test("run metadata validated and stored", async () => {
-  //     await updateConfig()
-  //     const session = await createSession()
-
-  //     const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { trace_id: "abc" } })
-  //     expect(run.metadata).toEqual({ trace_id: "abc" })
-
-  //     await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { wrong: "x" } })).rejects.toThrowError(expect.objectContaining({
-  //       statusCode: 422,
-  //       message: expect.any(String),
-  //     }))
-  //   })
-
-  //   test("updating in-progress run appends items and updates state/metadata", async () => {
-  //     await updateConfig()
-  //     const session = await createSession()
-
-  //     const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { trace_id: "abc" } })
-  //     const updated = await av.updateRun({ id: run.id, items: [baseStep], state: { step: 2 }, metadata: { trace_id: "def" } })
-
-  //     expect(updated.items.map((i) => i.content)).toEqual([baseInput, baseStep])
-  //     expect(updated.metadata).toEqual({ trace_id: "def" })
-
-  //     const fetched = await av.getSession({ id: session.id })
-  //     expect(fetched.state).toEqual({ step: 2 })
-  //   })
-
-  //   test("closing run successfully", async () => {
-  //     await updateConfig()
-  //     const session = await createSession()
-
-  //     const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-  //     const updated = await av.updateRun({ id: run.id, items: [baseOutput], status: "completed" })
-
-  //     expect(updated.status).toBe("completed")
-  //     expect(updated.finishedAt).toBeTruthy()
-  //     expect(updated.items.map((i) => i.content)).toEqual([baseInput, baseOutput])
-  //   })
-
-  //   test("closing run with failure", async () => {
-  //     await updateConfig()
-  //     const session = await createSession()
-
-  //     const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-  //     const updated = await av.updateRun({ id: run.id, status: "failed", failReason: { message: "boom" } })
-
-  //     expect(updated.status).toBe("failed")
-  //     expect(updated.failReason).toEqual({ message: "boom" })
-  //     expect(updated.finishedAt).toBeTruthy()
-  //   })
-
-  //   test("cannot add items or change status after completion, metadata can be updated", async () => {
-  //     await updateConfig()
-  //     const session = await createSession()
-
-  //     const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-  //     const completed = await av.updateRun({ id: run.id, items: [baseOutput], status: "completed", metadata: { trace_id: "abc" } })
-  //     expect(completed.status).toBe("completed")
-
-  //     await expect(av.updateRun({ id: run.id, items: [baseStep] })).rejects.toThrowError(expect.objectContaining({
-  //       statusCode: 400,
-  //       message: expect.any(String),
-  //     }))
-
-  //     await expect(av.updateRun({ id: run.id, status: "failed" })).rejects.toThrowError(expect.objectContaining({
-  //       statusCode: 400,
-  //       message: expect.any(String),
-  //     }))
-
-  //     const withMetadata = await av.updateRun({ id: run.id, metadata: { trace_id: "def" } })
-  //     expect(withMetadata.metadata).toEqual({ trace_id: "def" })
-  //   })
-
-  //   test("failReason can be set only on failed runs", async () => {
-  //     await updateConfig()
-  //     const session = await createSession()
-
-  //     const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-
-  //     await expect(av.updateRun({ id: run.id, items: [baseOutput], status: "completed", failReason: { message: "oops" } })).rejects.toThrowError(expect.objectContaining({
-  //       statusCode: 400,
-  //       message: expect.any(String),
-  //     }))
-  //   })
-
-  //   test("version compatibility enforced", async () => {
-  //     await updateConfig()
-  //     const session = await createSession()
-
-  //     const run1 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.3" })
-  //     await av.updateRun({ id: run1.id, items: [baseOutput], status: "completed" })
-
-  //     // higher patch works
-  //     const run2 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.4" })
-  //     await av.updateRun({ id: run2.id, items: [baseOutput], status: "completed" })
-
-  //     // smaller patch fails
-  //     await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.2" })).rejects.toThrowError(expect.objectContaining({
-  //       statusCode: 400,
-  //       message: expect.any(String),
-  //     }))
-
-  //     // different minor fails
-  //     await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.3.0" })).rejects.toThrowError(expect.objectContaining({
-  //       statusCode: 400,
-  //       message: expect.any(String),
-  //     }))
-  //   })
-
-  //   test("cannot create new run while previous is in progress", async () => {
-  //     await updateConfig()
-  //     const session = await createSession()
-
-  //     await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-
-  //     await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
-  //       statusCode: 400,
-  //       message: expect.any(String),
-  //     }))
-  //   })
-
-  //   test("allows unknown runs/steps/items by default", async () => {
-  //     await av.__updateConfig({ config: { agents: [{ name: "loose", url: "https://test.com" }] } })
-  //     const session = await av.createSession({ agent: "loose", endUserId: initEndUser1.id })
-
-  //     const run = await av.createRun({ sessionId: session.id, items: [{ foo: "bar" }], version: "9.9.9" })
-  //     expect(run.status).toBe("in_progress")
-  //   })
-
-  //   test("endUserToken scoped permissions", async () => {
-  //     await updateConfig()
-  //     const session = await createSession()
-
-  //     await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", endUserToken: initEndUser2.token })).rejects.toThrowError(expect.objectContaining({
-  //       statusCode: 401,
-  //       message: expect.any(String),
-  //     }))
-  //   })
-
-  //   test("items validation respects schema", async () => {
-  //     await updateConfig()
-  //     const session = await createSession()
-
-  //     // wrong input
-  //     await expect(av.createRun({ sessionId: session.id, items: [{ type: "message", content: "no role" }], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
-  //       statusCode: 422,
-  //       message: expect.any(String),
-  //     }))
-
-  //     const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-
-  //     // wrong step
-  //     await expect(av.updateRun({ id: run.id, items: [{ type: "other", content: "fail" }] })).rejects.toThrowError(expect.objectContaining({
-  //       statusCode: 422,
-  //       message: expect.any(String),
-  //     }))
-
-  //     // wrong output
-  //     await expect(av.updateRun({ id: run.id, items: [{ type: "message", role: "assistant", extra: "???", content: "ok" }], status: "completed" })).rejects.toThrowError(expect.objectContaining({
-  //       statusCode: 422,
-  //       message: expect.any(String),
-  //     }))
-  //   })
-
-  //   describe("items validation with defaults (allow unknown)", () => {
-  //     const looseConfig = {
-  //       name: "loose",
-  //       url: "https://test.com",
-  //       runs: [
-  //         {
-  //           input: { schema: { type: z.literal("message"), role: z.literal("user"), content: z.string() } },
-  //           steps: [{ schema: { type: z.literal("reasoning"), content: z.string() } }],
-  //           output: { schema: { type: z.literal("message"), role: z.literal("assistant"), content: z.string() } },
-  //         }
-  //       ]
-  //     };
-
-  //     const input = { type: "message", role: "user", content: "hi" };
-
-  //     test("unknown keys allowed but known keys still validated (input/step/output)", async () => {
-  //       await av.__updateConfig({ config: { agents: [looseConfig] } })
-  //       const session = await av.createSession({ agent: "loose", endUserId: initEndUser1.id })
-
-  //       // wrong type for known key -> fail even though unknown allowed
-  //       await expect(av.createRun({ sessionId: session.id, items: [{ ...input, content: 123 }], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
-  //         statusCode: 422,
-  //         message: expect.any(String),
-  //       }))
-
-  //       // unknown key on input -> allowed
-  //       const run = await av.createRun({ sessionId: session.id, items: [{ ...input, extra: "x" }], version: "1.0.0" })
-  //       expect(run.items[0].content.extra).toBe("x")
-
-  //       // unknown key on step -> allowed
-  //       const runWithStep = await av.updateRun({ id: run.id, items: [{ type: "reasoning", content: "thinking", foo: "bar" }] })
-  //       expect(runWithStep.items[1].content.foo).toBe("bar")
-
-  //       // unknown key on output -> allowed
-  //       const completed = await av.updateRun({ id: run.id, items: [{ type: "message", role: "assistant", content: "ok", bar: "baz" }], status: "completed" })
-  //       expect(completed.items[2].content.bar).toBe("baz")
-  //     })
-  //   })
-
-  //   describe("run metadata validation allowUnknownMetadata", () => {
-  //     test("known key correct type passes, unknown key allowed by default", async () => {
-  //       await av.__updateConfig({ config: { agents: [{ name: "meta", url: "https://test.com", runs: [{ input: { schema: {} }, output: { schema: {} } }], metadata: { trace_id: z.string() } }] } })
-  //       const session = await av.createSession({ agent: "meta", endUserId: initEndUser1.id })
-
-  //       const run = await av.createRun({ sessionId: session.id, items: [{ any: "thing" }], version: "1.0.0", metadata: { trace_id: "abc", extra: "x" } })
-  //       expect(run.metadata).toEqual({ trace_id: "abc", extra: "x" })
-  //     })
-
-  //     test("unknown metadata key rejected when allowUnknownMetadata=false", async () => {
-  //       await av.__updateConfig({ config: { agents: [{ name: "meta-strict", url: "https://test.com", allowUnknownMetadata: false, runs: [{ input: { schema: {} }, output: { schema: {} }, allowUnknownMetadata: false, metadata: { trace_id: z.string() } }] }] } })
-  //       const session = await av.createSession({ agent: "meta-strict", endUserId: initEndUser1.id })
-
-  //       await expect(av.createRun({ sessionId: session.id, items: [{ any: "thing" }], version: "1.0.0", metadata: { trace_id: "abc", extra: "x" } })).rejects.toThrowError(expect.objectContaining({
-  //         statusCode: 422,
-  //         message: expect.any(String),
-  //       }))
-  //     })
-  //   })
-
-  //   test("allowUnknownRuns true allows unmatched input", async () => {
-  //     await av.__updateConfig({ config: { agents: [{ name: "unknown-runs", url: "https://test.com", allowUnknownRuns: true, runs: [{ input: { schema: { type: z.literal("message") } }, output: { schema: {} } }] }] } })
-  //     const session = await av.createSession({ agent: "unknown-runs", endUserId: initEndUser1.id })
-
-  //     const run = await av.createRun({ sessionId: session.id, items: [{ type: "not-matching" }], version: "1.0.0" })
-  //     expect(run.status).toBe("in_progress")
-  //   })
-
-  //   test("allowUnknownSteps true allows unexpected step shapes", async () => {
-  //     await av.__updateConfig({ config: { agents: [{ name: "unknown-steps", url: "https://test.com", runs: [{ input: { schema: { type: z.literal("message"), role: z.literal("user"), content: z.string() } }, steps: [{ schema: { type: z.literal("reasoning"), content: z.string() } }], output: { schema: { type: z.literal("message"), role: z.literal("assistant"), content: z.string() } } }] }] } })
-  //     const session = await av.createSession({ agent: "unknown-steps", endUserId: initEndUser1.id })
-
-  //     const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-
-  //     const updated = await av.updateRun({ id: run.id, items: [{ type: "custom_step", foo: "bar" }], status: "completed" })
-  //     expect(updated.items[1].content.foo).toBe("bar")
-  //   })
-  // })
+  describe("runs", () => {
+    const baseAgentConfig = {
+      name: "test",
+      url: "https://test.com",
+      allowUnknownRuns: false,
+      allowUnknownSteps: false,
+      allowUnknownItemKeys: false,
+      runs: [
+        {
+          input: { schema: { type: z.literal("message"), role: z.literal("user"), content: z.string() } },
+          steps: [{ schema: { type: z.literal("reasoning"), content: z.string() } }],
+          output: { schema: { type: z.literal("message"), role: z.literal("assistant"), content: z.string() } },
+          // metadata: { trace_id: z.string() },
+          allowUnknownMetadata: false,
+        }
+      ]
+    }
+
+    const baseInput = { type: "message", role: "user", content: "Hello" }
+    const baseOutput = { type: "message", role: "assistant", content: "Hi there" }
+    const baseStep = { type: "reasoning", content: "Thinking..." }
+
+    const updateConfig = async (agentOverrides: Partial<typeof baseAgentConfig> = {}) => {
+      await av.__updateConfig({ config: { agents: [{ ...baseAgentConfig, ...agentOverrides }] } })
+    }
+
+    const createSession = async () => {
+      return await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+    }
+
+    test("creating run - wrong sessionId", async () => {
+      await updateConfig()
+
+      await expect(av.createRun({ sessionId: 'non-existing', items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 404,
+        message: expect.any(String),
+      }))
+    })
+
+    /** FINISHED RUN **/
+
+    // every case can be failed / completed
+
+    const baseTestCases2: any = [
+      // {
+      //   title: "just input & output",
+      //   items: [baseInput, baseOutput],
+      //   status: ["completed", "failed"]
+      // },
+      {
+        title: "input, 2 items, output",
+        items: [baseInput, baseStep, baseStep, baseOutput],
+        status: ["completed", "failed"]
+      },
+      // {
+      //   title: "input, 2 steps, no output",
+      //   items: [baseInput, baseStep, baseStep],
+      //   status: ["failed"]
+      // },
+      // {
+      //   title: "input, 2 items, no output",
+      //   items: [baseInput, baseStep, baseStep],
+      //   status: ["completed"],
+      //   error: 422
+      // }
+    ]
+
+    for (const testCase of baseTestCases2) {
+
+      const splits = [
+        // {
+        //   title: "each item separate",
+        //   iterations: testCase.items.map((item: any) => [item]),
+        // },
+        {
+          title: "all at once",
+          iterations: [testCase.items],
+        }
+      ]
+
+      if (testCase.items.length > 2) {
+        // splits.push({
+        //   title: "input + second -> the rest",
+        //   iterations: [[testCase.items[0], testCase.items[1], ...testCase.items.slice(2)]],
+        // })
+
+        // splits.push({
+        //   title: "all but last -> last",
+        //   iterations: [testCase.items.slice(0, -1), testCase.items[testCase.items.length - 1]],
+        // })
+      }
+
+      for (const split of splits) {
+        for (const status of testCase.status) {
+
+          test.only(`${testCase.title} / ${split.title} / ${status}`, async () => {
+            await updateConfig()
+            const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+
+            let run: Run | undefined;
+            let totalItems = 0;
+
+            for (const iteration of split.iterations) {
+              const isLast = iteration === split.iterations[split.iterations.length - 1];
+              const isFirst = iteration === split.iterations[0];
+              totalItems += iteration.length;
+
+              if (isFirst && isLast) {
+                run = await av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status })
+                expect(run.status).toBe(status)
+                expect(run.items.length).toEqual(totalItems)
+                expect(run.finishedAt).toBeTruthy()
+
+              } else if (isFirst) {
+                run = await av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0" })
+                expect(run.status).toBe("in_progress")
+                expect(run.items.length).toEqual(totalItems)
+                expect(run.finishedAt).toBeNull()
+
+              } else if (isLast) {
+                run = await av.updateRun({ id: run!.id, items: iteration, status })
+                expect(run.status).toBe(status)
+                expect(run.items.length).toEqual(totalItems)
+                expect(run.finishedAt).toBeTruthy()
+
+              } else {
+                run = await av.updateRun({ id: run!.id, items: iteration })
+                expect(run.status).toBe("in_progress")
+                expect(run.items.length).toEqual(totalItems)
+                expect(run.finishedAt).toBeNull()
+              }
+            }
+
+          })
+        }
+      }
+
+    }
+
+
+    // test("creating finished run / items correct / status completed", async () => {
+    //   await updateConfig()
+
+    //   const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput, baseStep, baseStep, baseOutput], version: "1.0.0", status: "completed" })
+
+    //   expect(run.status).toBe("completed")
+    //   expect(run.items.length).toEqual(4)
+    //   expect(run.finishedAt).toBeTruthy()
+    //   expect(run.failReason).toBeNull()
+    // })
+
+    // test("creating finished run / items correct / status completed + failReason -> throws!", async () => {
+    //   await updateConfig()
+
+    //   const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+
+    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput, baseStep, baseStep, baseOutput], version: "1.0.0", status: "completed", failReason: { message: "boom" } })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 400,
+    //     message: expect.any(String),
+    //   }))
+    // })
+
+    // test("creating finished run / items correct / status failed", async () => {
+    //   await updateConfig()
+
+    //   const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput, baseStep, baseStep], version: "1.0.0", status: "failed", failReason: { message: "boom" } })
+
+    //   expect(run.status).toBe("failed")
+    //   expect(run.items.length).toEqual(3)
+    //   expect(run.finishedAt).toBeTruthy()
+    //   expect(run.failReason).toEqual({ message: "boom" })
+    // })
+
+    // test("creating finished run / incorrect input item / status completed -> throws", async () => {
+    //   await updateConfig()
+
+    //   const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+
+    //   await expect(av.createRun({ sessionId: session.id, items: [{ dog: 10 }, baseStep, baseStep, baseOutput], version: "1.0.0", status: "completed" })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 422,
+    //     message: expect.any(String),
+    //   }))
+    // })
+
+    // test("creating finished run / incorrect step item / status completed -> throws", async () => {
+    //   await updateConfig()
+
+    //   const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+
+    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput, { dog: 5 }, baseOutput], version: "1.0.0", status: "completed" })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 422,
+    //     message: expect.any(String),
+    //   }))
+    // })
+
+    // test("creating finished run / incorrect output / status completed -> throws", async () => {
+    //   await updateConfig()
+
+    //   const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+
+    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput, baseStep, { cat: 100 }], version: "1.0.0", status: "completed" })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 422,
+    //     message: expect.any(String),
+    //   }))
+    // })
+
+
+    // test("creating run / incorrect output / status completed -> throws", async () => {
+    //   await updateConfig()
+
+    //   const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+
+    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput, baseStep, { cat: 100 }], version: "1.0.0", status: "completed" })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 422,
+    //     message: expect.any(String),
+    //   }))
+    // })
+
+
+
+
+
+
+
+
+
+    // TODO: automate those tests. When we have ARRAY, we can automatically generate tests for permutations!!! Like all items at once, or by single item etc.
+    // Do updateRun that uses exactly the same logic as createRun. Like TOTALLY the same logic.
+    // Correct the other test file!
+    // Test tool calls!!! 
+
+
+
+
+
+
+    // in_progress run
+
+    test("creating run - at least one item is required", async () => {
+      await updateConfig()
+
+      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+
+      await expect(av.createRun({ sessionId: session.id, items: [], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 422,
+        message: expect.any(String),
+      }))
+    })
+
+    test("new run defaults to in_progress status", async () => {
+      await updateConfig()
+
+      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      console.log("session", session.id);
+
+      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+      expect(run.status).toBe("in_progress")
+    })
+
+
+
+    // test("creating run in progress populates history, lastRun and state", async () => {
+    //   await updateConfig()
+    //   const session = await createSession()
+
+    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", state: { step: 1 } })
+    //   expect(run.status).toBe("in_progress")
+
+    //   const fetched = await av.getSession({ id: session.id })
+    //   const items = fetched.runs.flatMap((r) => r.items.map((i) => i.content))
+    //   expect(items).toEqual([baseInput])
+    //   expect(fetched.runs[fetched.runs.length - 1].id).toBe(run.id)
+    //   expect(fetched.state).toEqual({ step: 1 })
+    // })
+
+    // test("run metadata validated and stored", async () => {
+    //   await updateConfig()
+    //   const session = await createSession()
+
+    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { trace_id: "abc" } })
+    //   expect(run.metadata).toEqual({ trace_id: "abc" })
+
+    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { wrong: "x" } })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 422,
+    //     message: expect.any(String),
+    //   }))
+    // })
+
+    // test("updating in-progress run appends items and updates state/metadata", async () => {
+    //   await updateConfig()
+    //   const session = await createSession()
+
+    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { trace_id: "abc" } })
+    //   const updated = await av.updateRun({ id: run.id, items: [baseStep], state: { step: 2 }, metadata: { trace_id: "def" } })
+
+    //   expect(updated.items.map((i) => i.content)).toEqual([baseInput, baseStep])
+    //   expect(updated.metadata).toEqual({ trace_id: "def" })
+
+    //   const fetched = await av.getSession({ id: session.id })
+    //   expect(fetched.state).toEqual({ step: 2 })
+    // })
+
+    // test("closing run successfully", async () => {
+    //   await updateConfig()
+    //   const session = await createSession()
+
+    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+    //   const updated = await av.updateRun({ id: run.id, items: [baseOutput], status: "completed" })
+
+    //   expect(updated.status).toBe("completed")
+    //   expect(updated.finishedAt).toBeTruthy()
+    //   expect(updated.items.map((i) => i.content)).toEqual([baseInput, baseOutput])
+    // })
+
+    // test("closing run with failure", async () => {
+    //   await updateConfig()
+    //   const session = await createSession()
+
+    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+    //   const updated = await av.updateRun({ id: run.id, status: "failed", failReason: { message: "boom" } })
+
+    //   expect(updated.status).toBe("failed")
+    //   expect(updated.failReason).toEqual({ message: "boom" })
+    //   expect(updated.finishedAt).toBeTruthy()
+    // })
+
+    // test("cannot add items or change status after completion, metadata can be updated", async () => {
+    //   await updateConfig()
+    //   const session = await createSession()
+
+    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+    //   const completed = await av.updateRun({ id: run.id, items: [baseOutput], status: "completed", metadata: { trace_id: "abc" } })
+    //   expect(completed.status).toBe("completed")
+
+    //   await expect(av.updateRun({ id: run.id, items: [baseStep] })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 400,
+    //     message: expect.any(String),
+    //   }))
+
+    //   await expect(av.updateRun({ id: run.id, status: "failed" })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 400,
+    //     message: expect.any(String),
+    //   }))
+
+    //   const withMetadata = await av.updateRun({ id: run.id, metadata: { trace_id: "def" } })
+    //   expect(withMetadata.metadata).toEqual({ trace_id: "def" })
+    // })
+
+    // test("failReason can be set only on failed runs", async () => {
+    //   await updateConfig()
+    //   const session = await createSession()
+
+    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+
+    //   await expect(av.updateRun({ id: run.id, items: [baseOutput], status: "completed", failReason: { message: "oops" } })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 400,
+    //     message: expect.any(String),
+    //   }))
+    // })
+
+    // test("version compatibility enforced", async () => {
+    //   await updateConfig()
+    //   const session = await createSession()
+
+    //   const run1 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.3" })
+    //   await av.updateRun({ id: run1.id, items: [baseOutput], status: "completed" })
+
+    //   // higher patch works
+    //   const run2 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.4" })
+    //   await av.updateRun({ id: run2.id, items: [baseOutput], status: "completed" })
+
+    //   // smaller patch fails
+    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.2" })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 400,
+    //     message: expect.any(String),
+    //   }))
+
+    //   // different minor fails
+    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.3.0" })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 400,
+    //     message: expect.any(String),
+    //   }))
+    // })
+
+    // test("cannot create new run while previous is in progress", async () => {
+    //   await updateConfig()
+    //   const session = await createSession()
+
+    //   await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+
+    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 400,
+    //     message: expect.any(String),
+    //   }))
+    // })
+
+    // test("allows unknown runs/steps/items by default", async () => {
+    //   await av.__updateConfig({ config: { agents: [{ name: "loose", url: "https://test.com" }] } })
+    //   const session = await av.createSession({ agent: "loose", endUserId: initEndUser1.id })
+
+    //   const run = await av.createRun({ sessionId: session.id, items: [{ foo: "bar" }], version: "9.9.9" })
+    //   expect(run.status).toBe("in_progress")
+    // })
+
+    // test("endUserToken scoped permissions", async () => {
+    //   await updateConfig()
+    //   const session = await createSession()
+
+    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", endUserToken: initEndUser2.token })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 401,
+    //     message: expect.any(String),
+    //   }))
+    // })
+
+    // test("items validation respects schema", async () => {
+    //   await updateConfig()
+    //   const session = await createSession()
+
+    //   // wrong input
+    //   await expect(av.createRun({ sessionId: session.id, items: [{ type: "message", content: "no role" }], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 422,
+    //     message: expect.any(String),
+    //   }))
+
+    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+
+    //   // wrong step
+    //   await expect(av.updateRun({ id: run.id, items: [{ type: "other", content: "fail" }] })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 422,
+    //     message: expect.any(String),
+    //   }))
+
+    //   // wrong output
+    //   await expect(av.updateRun({ id: run.id, items: [{ type: "message", role: "assistant", extra: "???", content: "ok" }], status: "completed" })).rejects.toThrowError(expect.objectContaining({
+    //     statusCode: 422,
+    //     message: expect.any(String),
+    //   }))
+    // })
+
+    // describe("items validation with defaults (allow unknown)", () => {
+    //   const looseConfig = {
+    //     name: "loose",
+    //     url: "https://test.com",
+    //     runs: [
+    //       {
+    //         input: { schema: { type: z.literal("message"), role: z.literal("user"), content: z.string() } },
+    //         steps: [{ schema: { type: z.literal("reasoning"), content: z.string() } }],
+    //         output: { schema: { type: z.literal("message"), role: z.literal("assistant"), content: z.string() } },
+    //       }
+    //     ]
+    //   };
+
+    //   const input = { type: "message", role: "user", content: "hi" };
+
+    //   test("unknown keys allowed but known keys still validated (input/step/output)", async () => {
+    //     await av.__updateConfig({ config: { agents: [looseConfig] } })
+    //     const session = await av.createSession({ agent: "loose", endUserId: initEndUser1.id })
+
+    //     // wrong type for known key -> fail even though unknown allowed
+    //     await expect(av.createRun({ sessionId: session.id, items: [{ ...input, content: 123 }], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
+    //       statusCode: 422,
+    //       message: expect.any(String),
+    //     }))
+
+    //     // unknown key on input -> allowed
+    //     const run = await av.createRun({ sessionId: session.id, items: [{ ...input, extra: "x" }], version: "1.0.0" })
+    //     expect(run.items[0].content.extra).toBe("x")
+
+    //     // unknown key on step -> allowed
+    //     const runWithStep = await av.updateRun({ id: run.id, items: [{ type: "reasoning", content: "thinking", foo: "bar" }] })
+    //     expect(runWithStep.items[1].content.foo).toBe("bar")
+
+    //     // unknown key on output -> allowed
+    //     const completed = await av.updateRun({ id: run.id, items: [{ type: "message", role: "assistant", content: "ok", bar: "baz" }], status: "completed" })
+    //     expect(completed.items[2].content.bar).toBe("baz")
+    //   })
+    // })
+
+    // describe("run metadata validation allowUnknownMetadata", () => {
+    //   test("known key correct type passes, unknown key allowed by default", async () => {
+    //     await av.__updateConfig({ config: { agents: [{ name: "meta", url: "https://test.com", runs: [{ input: { schema: {} }, output: { schema: {} } }], metadata: { trace_id: z.string() } }] } })
+    //     const session = await av.createSession({ agent: "meta", endUserId: initEndUser1.id })
+
+    //     const run = await av.createRun({ sessionId: session.id, items: [{ any: "thing" }], version: "1.0.0", metadata: { trace_id: "abc", extra: "x" } })
+    //     expect(run.metadata).toEqual({ trace_id: "abc", extra: "x" })
+    //   })
+
+    //   test("unknown metadata key rejected when allowUnknownMetadata=false", async () => {
+    //     await av.__updateConfig({ config: { agents: [{ name: "meta-strict", url: "https://test.com", allowUnknownMetadata: false, runs: [{ input: { schema: {} }, output: { schema: {} }, allowUnknownMetadata: false, metadata: { trace_id: z.string() } }] }] } })
+    //     const session = await av.createSession({ agent: "meta-strict", endUserId: initEndUser1.id })
+
+    //     await expect(av.createRun({ sessionId: session.id, items: [{ any: "thing" }], version: "1.0.0", metadata: { trace_id: "abc", extra: "x" } })).rejects.toThrowError(expect.objectContaining({
+    //       statusCode: 422,
+    //       message: expect.any(String),
+    //     }))
+    //   })
+    // })
+
+    // test("allowUnknownRuns true allows unmatched input", async () => {
+    //   await av.__updateConfig({ config: { agents: [{ name: "unknown-runs", url: "https://test.com", allowUnknownRuns: true, runs: [{ input: { schema: { type: z.literal("message") } }, output: { schema: {} } }] }] } })
+    //   const session = await av.createSession({ agent: "unknown-runs", endUserId: initEndUser1.id })
+
+    //   const run = await av.createRun({ sessionId: session.id, items: [{ type: "not-matching" }], version: "1.0.0" })
+    //   expect(run.status).toBe("in_progress")
+    // })
+
+    // test("allowUnknownSteps true allows unexpected step shapes", async () => {
+    //   await av.__updateConfig({ config: { agents: [{ name: "unknown-steps", url: "https://test.com", runs: [{ input: { schema: { type: z.literal("message"), role: z.literal("user"), content: z.string() } }, steps: [{ schema: { type: z.literal("reasoning"), content: z.string() } }], output: { schema: { type: z.literal("message"), role: z.literal("assistant"), content: z.string() } } }] }] } })
+    //   const session = await av.createSession({ agent: "unknown-steps", endUserId: initEndUser1.id })
+
+    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+
+    //   const updated = await av.updateRun({ id: run.id, items: [{ type: "custom_step", foo: "bar" }], status: "completed" })
+    //   expect(updated.items[1].content.foo).toBe("bar")
+    // })
+  })
 });
