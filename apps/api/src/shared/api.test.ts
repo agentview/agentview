@@ -593,41 +593,6 @@ describe('API', () => {
               }
 
               previousItemCount += iteration.length;
-
-
-              // if (isFirst && isLast) {
-              //   promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status });
-
-              //   if (testCase.error) {
-              //     await expect(av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status })).rejects.toThrowError(expect.objectContaining({
-              //       statusCode: 422,
-              //       message: expect.any(String),
-              //     }))
-              //   } else {
-              //     run = await av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status })
-              //     expect(run.status).toBe(status)
-              //     expect(run.items.length).toEqual(totalItems)
-              //     expect(run.finishedAt).toBeTruthy()
-              //   }
-
-              // } else if (isFirst) {
-              //   run = await av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0" })
-              //   expect(run.status).toBe("in_progress")
-              //   expect(run.items.length).toEqual(totalItems)
-              //   expect(run.finishedAt).toBeNull()
-
-              // } else if (isLast) {
-              //   run = await av.updateRun({ id: run!.id, items: iteration, status })
-              //   expect(run.status).toBe(status)
-              //   expect(run.items.length).toEqual(totalItems)
-              //   expect(run.finishedAt).toBeTruthy()
-
-              // } else {
-              //   run = await av.updateRun({ id: run!.id, items: iteration })
-              //   expect(run.status).toBe("in_progress")
-              //   expect(run.items.length).toEqual(totalItems)
-              //   expect(run.finishedAt).toBeNull()
-              // }
             }
 
           })

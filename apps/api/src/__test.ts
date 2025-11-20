@@ -3,6 +3,7 @@ import { z } from "zod";
 import { convertJsonSchemaToZod } from 'zod-from-json-schema';
 
 const schema = z.looseObject({
+  type: z.literal("test"),
   name: z.string(),
   age: z.number(),
   test: z.object({
@@ -11,7 +12,9 @@ const schema = z.looseObject({
   })
 });
 
-console.log(z.toJSONSchema(z.optional(z.string())));
+console.log(schema.shape);
+
+// console.log(z.toJSONSchema(z.optional(z.string())));
 
 // console.log(schema.parse({ name: "John", age: 30, test: { foo: "baz", bar: 123, xxx: 123 } }));
 
@@ -19,7 +22,7 @@ console.log(z.toJSONSchema(z.optional(z.string())));
 
 // console.log(schema2.parse({ name: "John", age: 30, test: { foo: "baz", bar: 123, xxx: 123 } }));
 
-const schema2 = convertJsonSchemaToZod(z.toJSONSchema(schema));
+// const schema2 = convertJsonSchemaToZod(z.toJSONSchema(schema));
 
 
 // console.log(z.toJSONSchema(convertJsonSchemaToZod(schema)))
