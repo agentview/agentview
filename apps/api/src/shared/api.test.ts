@@ -407,7 +407,6 @@ describe('API', () => {
   // - tool calls
   // - validateSteps
 
-
   describe("runs", () => {
     
     const baseInput = { type: "message", role: "user", content: "Hello" }
@@ -506,9 +505,7 @@ describe('API', () => {
     /** 
      * RUN STATES TESTS 
      * 
-     * This is automated set of test cases where we test automatically different courses of actions in terms of runs.
-     * 
-     * - status -> relates to the status change in last run
+     * This is automated set of test cases where we test different scenarios of runs.
      **/
 
     const baseTestCases : Array<{ title: string, scenarios: any[], lastRunStatus: ("in_progress" | "completed" | "failed" | undefined)[], error?: number | null, validateItems?: boolean, strictMatching?: boolean }> = [
