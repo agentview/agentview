@@ -427,9 +427,9 @@ describe('API', () => {
       allowUnknownItemKeys: false,
       runs: [
         {
-          input: { schema: { type: z.literal("message"), role: z.literal("user"), content: z.string() } },
-          steps: [{ schema: { type: z.literal("reasoning"), content: z.string() } }],
-          output: { schema: { type: z.literal("message"), role: z.literal("assistant"), content: z.string() } },
+          input: { schema: z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() }) },
+          steps: [{ schema: z.looseObject({ type: z.literal("reasoning"), content: z.string() }) }],
+          output: { schema: z.looseObject({ type: z.literal("message"), role: z.literal("assistant"), content: z.string() }) },
           // metadata: { trace_id: z.string() },
           allowUnknownMetadata: false,
         }

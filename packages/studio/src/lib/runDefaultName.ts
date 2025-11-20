@@ -1,12 +1,10 @@
 import type { SessionItemConfig } from "~/types";
-import { normalizeExtendedSchema } from "./shared/configUtils";
 import { z } from "zod";
 
-export function runDefaultName(itemConfig: SessionItemConfig) {
-    const schema = normalizeExtendedSchema(itemConfig.schema);
-    
+export function runDefaultName(itemConfig: SessionItemConfig) {   
+
     // Get the shape of the schema to inspect field definitions
-    const shape = schema.shape;
+    const shape = itemConfig.schema.shape; // fixme: shape might not be here
     
     // Check if fields are string literals (z.literal instances)
     const hasTypeLiteral = shape.type instanceof z.ZodLiteral;

@@ -17,9 +17,7 @@ export function findMatchingRunConfigs<T extends BaseAgentConfig>(agentConfig: T
     let matchingRunConfigs: BaseRunConfig[] = [];
 
     for (const runConfig of agentConfig.runs ?? []) {
-        const inputItemSchema = normalizeExtendedSchema(runConfig.input.schema, looseMatching);
-
-        if (inputItemSchema.safeParse(inputItemContent).success) {
+        if (runConfig.input.schema.safeParse(inputItemContent).success) {
             matchingRunConfigs.push(runConfig);
         }
     }
@@ -99,10 +97,10 @@ export function findItemConfig<T extends BaseRunConfig, RunT extends BaseRunConf
 
 
 function getCallIdKey(inputSchema: ExtendedSchema): any | undefined {
-    const schema = normalizeExtendedSchema(inputSchema);
-    const shape = schema.shape;
+    const shape = inputSchema.shape;
+
     for (const [key, value] of Object.entries(shape)) {
-        const meta = value.meta();
+        const meta = value.meta(); // fixme: it could be any type, even without shape
 
         // @ts-ignore
         if (meta?.callId === true) {
@@ -116,15 +114,12 @@ function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension
     const matches: T[] = [];
 
     for (const itemConfig of itemConfigs) {
-        const schema = normalizeExtendedSchema(itemConfig.schema, looseMatching);
-
-        if (schema.safeParse(content).success) {
+        if (itemConfig.schema.safeParse(content).success) {
             matches.push(itemConfig);
         }
         
         if (itemConfig.callResult) {
-            const callResultSchema = normalizeExtendedSchema(itemConfig.callResult.schema);
-            if (!callResultSchema.safeParse(content).success) {
+            if (!itemConfig.callResult.schema.safeParse(content).success) {
                 continue;
             }
 
@@ -143,7 +138,7 @@ function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension
                 //     break;
                 // }
 
-                if (schema.safeParse(prevItem).success && prevItem[callIdKey] === content[resultIdKey]) { // if both keys are `undefined`, first match.
+                if (itemConfig.schema.safeParse(prevItem).success && prevItem[callIdKey] === content[resultIdKey]) { // if both keys are `undefined`, first match.
                     matches.push({
                         ...itemConfig.callResult,
                         toolCallContent: prevItem,
@@ -171,44 +166,44 @@ function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension
 
 
 
-export function normalizeExtendedSchema(extendedSchema?: ExtendedSchema, looseMatching: boolean = true): z.ZodObject {
-    let schema: z.ZodObject;
+// export function normalizeExtendedSchema(extendedSchema?: ExtendedSchema, looseMatching: boolean = true): z.ZodObject {
+//     let schema: z.ZodObject;
 
-    if (!extendedSchema) {
-        schema = z.object({});
-    }
-    else if (extendedSchema instanceof z.ZodType && extendedSchema instanceof z.ZodObject) {
-        schema = extendedSchema;
-    }
-    else if (typeof extendedSchema === "object" && extendedSchema !== null && !Array.isArray(extendedSchema)) {
-        const shape: Record<string, any> = {};
-        for (const [key, val] of Object.entries(extendedSchema)) {
-            if (val instanceof z.ZodType) {
-                shape[key] = val;
-            }
-            else if (typeof val === "string") {
-                shape[key] = z.literal(val);
-            }
-            else if (typeof val === "number" || typeof val === "boolean" || val === null) {
-                shape[key] = z.literal(val);
-            }
-            else {
-                shape[key] = z.any();
-            }
-        }
-        schema = z.object(shape);
-    }
-    else {
-        throw new Error("Invalid schema, must be z.ZodObject or object");
-    }
+//     if (!extendedSchema) {
+//         schema = z.object({});
+//     }
+//     else if (extendedSchema instanceof z.ZodType && extendedSchema instanceof z.ZodObject) {
+//         schema = extendedSchema;
+//     }
+//     else if (typeof extendedSchema === "object" && extendedSchema !== null && !Array.isArray(extendedSchema)) {
+//         const shape: Record<string, any> = {};
+//         for (const [key, val] of Object.entries(extendedSchema)) {
+//             if (val instanceof z.ZodType) {
+//                 shape[key] = val;
+//             }
+//             else if (typeof val === "string") {
+//                 shape[key] = z.literal(val);
+//             }
+//             else if (typeof val === "number" || typeof val === "boolean" || val === null) {
+//                 shape[key] = z.literal(val);
+//             }
+//             else {
+//                 shape[key] = z.any();
+//             }
+//         }
+//         schema = z.object(shape);
+//     }
+//     else {
+//         throw new Error("Invalid schema, must be z.ZodObject or object");
+//     }
 
-    if (looseMatching) {
-        return schema.loose();
-    }
-    else {
-        return schema.strict();
-    }
-}
+//     if (looseMatching) {
+//         return schema.loose();
+//     }
+//     else {
+//         return schema.strict();
+//     }
+// }
 
 // 1. remove functions and react components
 // 2. convert zod schemas to json schemas

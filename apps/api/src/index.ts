@@ -32,7 +32,7 @@ import { isInboxItemUnread } from './inboxItems'
 import { findEndUser, createEndUser } from './endUsers'
 import packageJson from '../package.json'
 import type { Transaction } from './types'
-import { findItemConfig, makeObjectSerializable, normalizeExtendedSchema, requireRunConfig } from './shared/configUtils'
+import { findItemConfig, requireRunConfig } from './shared/configUtils'
 import { equalJSON } from './shared/equalJSON'
 import { AgentViewError } from './shared/AgentViewError'
 
@@ -1130,10 +1130,6 @@ app.openapi(sessionPATCHRoute, async (c) => {
 
   const metadata = parseMetadata(agentConfig.metadata, agentConfig.allowUnknownMetadata ?? true, body.metadata, session.metadata);
 
-  // const parsedMetadata = normalizeExtendedSchema(agentConfig.metadata, agentConfig.allowUnknownMetadata ?? true).safeParse(body.metadata ?? {});
-  // if (!parsedMetadata.success) {
-  //   return c.json({ message: "Error parsing the session metadata.", code: 'parse.schema', issues: parsedMetadata.error.issues }, 422);
-  // }
 
   await db.update(sessions).set({
     metadata,
@@ -1317,92 +1313,6 @@ function parseVersion(version: string): { major: number, minor: number, patch: n
   const major = Number(m[1]), minor = Number(m[2]), patch = Number(m[3]);
   if (Number.isNaN(major) || Number.isNaN(minor) || Number.isNaN(patch)) return undefined;
   return { major, minor, patch };
-}
-
-function parseItemSchema(schema: any, value: any, looseMatching: boolean, context: string) {
-  const result = normalizeExtendedSchema(schema, looseMatching).safeParse(value);
-  if (!result.success) {
-    throw new HTTPException(422, { message: `${context} validation failed.`, cause: result.error.issues as any });
-  }
-  return result.data;
-}
-
-
-// function validateRunMetadata(runConfig: ReturnType<typeof findItemAndRunConfig>["runConfig"] | undefined, metadata: any) {
-//   if (metadata === undefined) {
-//     return metadata;
-//   }
-
-//   const allowUnknown = runConfig?.allowUnknownMetadata ?? true;
-//   const parsedMetadata = normalizeExtendedSchema(runConfig?.metadata, allowUnknown).safeParse(metadata ?? {});
-//   if (!parsedMetadata.success) {
-//     throw new HTTPException(422, { message: "Error parsing the run metadata." });
-//   }
-//   return parsedMetadata.data;
-// }
-
-// function validateItemsForRun(agentConfig: ReturnType<typeof requireAgentConfig>, session: Session, runConfig: any | undefined, newItems: any[], status: 'in_progress' | 'completed' | 'failed', options?: { allowUnknownSteps?: boolean, allowUnknownItemKeys?: boolean }) {
-//   if (newItems.length === 0) {
-//     return;
-//   }
-
-//   const allowUnknownSteps = options?.allowUnknownSteps ?? true;
-//   const allowUnknownItemKeys = options?.allowUnknownItemKeys ?? true;
-
-//   const itemsToCheck = [...newItems];
-//   const hasOutput = status !== 'in_progress';
-//   const output = hasOutput ? itemsToCheck.pop() : undefined;
-
-//   // validate steps
-//   for (const item of itemsToCheck) {
-//     if (!runConfig) {
-//       if (!allowUnknownSteps) {
-//         throw new HTTPException(422, { message: "Step item not allowed." });
-//       }
-//       continue;
-//     }
-//     const matchedStep = findItemAndRunConfig(agentConfig, session, item, "step");
-//     if (!matchedStep && !allowUnknownSteps) {
-//       throw new HTTPException(422, { message: "Step item not allowed." });
-//     }
-//     if (matchedStep?.itemConfig) {
-//       parseItemSchema(matchedStep.itemConfig.schema, item, allowUnknownItemKeys, "Run step");
-//     }
-//   }
-
-//   if (output) {
-//     if (!runConfig) {
-//       return;
-//     }
-//     parseItemSchema(runConfig.output.schema, output, allowUnknownItemKeys, "Run output");
-//   }
-// }
-
-function validateRunItem(args: {
-  runConfig: BaseRunConfig,
-  item: any,
-  previousItems: any[],
-  mustBeOutput: boolean,
-  allowUnknownSteps: boolean,
-  looseMatching: boolean,
-}) {
-  const { runConfig, item, previousItems, mustBeOutput, allowUnknownSteps, looseMatching } = args;
-
-  const outputItemConfig = findItemConfig(runConfig, previousItems, item, "output", looseMatching);
-
-  if (mustBeOutput && !outputItemConfig) {
-    throw new AgentViewError("Couldn't find a matching output item.", 422, { item: item });
-  }
-
-  if (allowUnknownSteps) {
-    return;
-  }
-
-  const stepItemConfig = findItemConfig(runConfig, previousItems, item, "step", looseMatching);
-
-  if (!stepItemConfig && !outputItemConfig) {
-    throw new AgentViewError("Couldn't find a matching step item.", 422, { item: item });
-  }
 }
 
 function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: 'in_progress' | 'completed' | 'failed', looseMatching: boolean) {
