@@ -401,38 +401,26 @@ describe('API', () => {
     })
   })
 
-  // TODO - run scenarios:
-  // - creating run `in_progress` - wrong / correct sessionId (do not explicitly give status, default is in progress)
-  // - creating run `in_progress` - check `history`, `lastRun`, `state`
-  // - creating run `in_progress` - no input item (error)
-  // - creating run `in_progress` - check status after (in progress)
-  // - creating run `in_progress` - metadata (scenarios from above like in session, literally identical)
-  // - updating run while `in_progress` (with new items)
-  // - updating run while `in_progress` - `state`
-  // - updating run while `in_progress` (with updated metadata)
-  // - closing run successfully
-  // - closing run with failure (failReason, status)
-  // - modifying run after completion (fail or complete): cannot add items, metadata CAN be updated, status can't be changed -> all the not allowed operations should be tested
-  // - failReason can be only set on failed runs
-  // - versioning tests!!! (all the scenarios)
-  // - permissions (providing endUserToken which suggests the session is not owned by the user). It should be fail.
-  // - items validation!!! (all the scenarios)
+  // TODO:
+  // - do state, and check it properly (shoudl be in enhanced session):
+  // - metadata (check if allow for changing AFTER completion)
+  // - tool calls
+  // - validateSteps
+
 
   describe("runs", () => {
     
-
     const baseInput = { type: "message", role: "user", content: "Hello" }
     const baseOutput = { type: "message", role: "assistant", content: "Hi there" }
     const baseStep = { type: "reasoning", content: "Thinking..." }
 
-    const baseInputExt = { type: "message", role: "user", content: "Hello", extraField: "extra" }
-    const baseOutputExt = { type: "message", role: "assistant", content: "Hi there", extraField: "extra" }
-    const baseStepExt = { type: "reasoning", content: "Thinking...", extraField: "extra" }
+    const baseInputExt = { type: "message", role: "user", content: "Hello", __extraField: "extra" }
+    const baseOutputExt = { type: "message", role: "assistant", content: "Hi there", __extraField: "extra" }
+    const baseStepExt = { type: "reasoning", content: "Thinking...", __extraField: "extra" }
 
     const wrongInput = { type: "message", role: "user", content: 100 }
     const wrongStep = { type: "reasoning", content: 100 }
     const wrongOutput = { type: "message", role: "assistant", content: 100 }
-
 
     const updateConfig = async (options: { strictMatching?: boolean } = {}) => {
 
@@ -444,7 +432,6 @@ describe('API', () => {
         inputSchema = inputSchema.strict();
         stepSchema = stepSchema.strict();
         outputSchema = outputSchema.strict();
-        console.log("strict models!!!");
       }
 
       const config = {
@@ -458,7 +445,7 @@ describe('API', () => {
                 steps: [{ schema: stepSchema }],
                 output: { schema: outputSchema },
                 // metadata: { trace_id: z.string() },
-                allowUnknownMetadata: false,
+                // allowUnknownMetadata: false,
               }
             ]
           }
@@ -468,11 +455,50 @@ describe('API', () => {
       await av.__updateConfig({ config })
     }
 
-    test("creating run - wrong sessionId", async () => {
+    test("creating run with non-existing sessionId", async () => {
       await updateConfig()
 
       await expect(av.createRun({ sessionId: 'non-existing', items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
         statusCode: 404,
+        message: expect.any(String),
+      }))
+    })
+
+    test("updating run with non-existing run id", async () => {
+      await updateConfig()
+
+      await expect(av.updateRun({ id: 'non-existing', items: [baseOutput] })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 404,
+        message: expect.any(String),
+      }))
+    })
+
+    test("creating run without items", async () => {
+      await updateConfig()
+
+      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      await expect(av.createRun({ sessionId: session.id, items: [], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 422,
+        message: expect.any(String),
+      }))
+    })
+
+    test("new run defaults to in_progress status", async () => {
+      await updateConfig()
+
+      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+      expect(run.status).toBe("in_progress")
+    })
+
+    test("cannot create new run while previous is in progress", async () => {
+      await updateConfig()
+      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+
+      await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+
+      await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 400,
         message: expect.any(String),
       }))
     })
@@ -556,7 +582,7 @@ describe('API', () => {
 
       // Validation
       {
-        title: "items with extra fields for loose matching",
+        title: "loose matching -> extra fields saved",
         scenarios: [
           [ [baseInputExt, baseStepExt, baseStepExt, baseOutputExt] ],
           [ [baseInputExt], [baseStepExt], [baseStepExt], [baseOutputExt] ],
@@ -566,24 +592,19 @@ describe('API', () => {
         lastRunStatus: ["completed", "failed"],
         error: null
       },
-
-
-      // TODO
-      // {
-      //   title: "items with extra fields for strict matching",
-      //   strictMatching: true,
-      //   scenarios: [
-      //     [ [baseInput], [baseStepExt] ],
-      //     // [ [baseInput], [baseStep, baseStep], [baseOutputExt] ],
-      //     // [ [baseInput, baseStep, baseStep, baseOutputExt] ],
-      //   ],
-      //   lastRunStatus: ["completed", "failed"],
-      //   error: 422
-      // },
-
-
       {
-        title: "wrong input item",
+        title: "strict matching -> extra fields trimmed",
+        strictMatching: true,
+        scenarios: [
+          [ [baseInputExt, baseOutputExt] ],
+          [ [baseInput], [baseStep, baseStep], [baseOutputExt] ],
+          [ [baseInput, baseStep, baseStep, baseOutputExt] ],
+        ],
+        lastRunStatus: ["completed"],
+        error: null
+      },
+      {
+        title: "incorrect input item",
         scenarios: [
           [ [wrongInput] ],
           [ [wrongInput, baseStep] ],
@@ -593,7 +614,7 @@ describe('API', () => {
         error: 422
       },
       {
-        title: "wrong output item",
+        title: "incorrect output item",
         scenarios: [
           [ [baseInput, baseStep, wrongOutput] ],
           [ [baseInput], [baseStep], [wrongOutput] ],
@@ -603,14 +624,14 @@ describe('API', () => {
         error: 422
       },
       {
-        title: "wrong output item",
+        title: "incorrect output item",
         scenarios: [
           [ [baseInput, baseStep, wrongOutput] ],
           [ [baseInput], [baseStep], [wrongOutput] ],
           [ [baseInput], [baseStep, wrongOutput] ],
         ],
         lastRunStatus: ["failed"],
-        error: null // In "failed" status and no steps validation we can't assume it was finished run, so output item might be a treated as a step item
+        error: null // when there is no step validation and status becomes "failed", we don't know if the last item was output or step
       }
     ]
 
@@ -620,16 +641,15 @@ describe('API', () => {
         counter++;
 
         for (const lastRunStatus of testCase.lastRunStatus) {
-
           const title = `${testCase.title} / run ${counter} / ${lastRunStatus} -> ${testCase.error ? `error ${testCase.error}` : "ok"}`
 
-          test.only(title, async () => {
+          test(title, async () => {
             await updateConfig({ strictMatching: testCase.strictMatching });
 
             const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
 
             let run: Run | undefined;
-            let previousItemCount = 0;
+            let expected_history : any[] = [];
 
             for (const iteration of scenario) {
               const isLast = iteration === scenario[scenario.length - 1];
@@ -662,406 +682,165 @@ describe('API', () => {
                   statusCode: testCase.error,
                   message: expect.any(String),
                 }))
-                // TODO: check history length!!! Should not be updated
+
+                const { history, lastRun } = await av.getSession({ id: session.id });
+                expect(deepCompare(history, expected_history)).toBe(true)
+
+                if (lastRun) {
+                  expect(lastRun.status).toBe("in_progress")
+                }
               }
               else {
                 run = await promise! as Run;
                 expect(run.status).toBe(expectedStatus)
-                expect(run.items.length).toEqual(previousItemCount + iteration.length)
 
                 if (expectedHasFinishedAt) {
                   expect(run.finishedAt).toBeTruthy()
                 } else {
                   expect(run.finishedAt).toBeNull()
                 }
+
+                if (testCase.strictMatching) {
+                  expected_history = [...expected_history, ...removeDoubleUnderscoreKeys(iteration)]; // for strict matching we expect all the extra fields to be trimmed, we represent them as __{field}
+                }
+                else {
+                  expected_history = [...expected_history, ...iteration];
+                }
+
+                const { lastRun, history } = await av.getSession({ id: session.id });
+                expect(deepCompare(history, expected_history)).toBe(true)
+
+                expect(lastRun?.status).toBe(expectedStatus)
               }
-
-              previousItemCount += iteration.length;
             }
-
           })
         }
       }
-
     }
 
 
-    // test("creating finished run / items correct / status completed", async () => {
-    //   await updateConfig()
-
-    //   const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
-    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput, baseStep, baseStep, baseOutput], version: "1.0.0", status: "completed" })
-
-    //   expect(run.status).toBe("completed")
-    //   expect(run.items.length).toEqual(4)
-    //   expect(run.finishedAt).toBeTruthy()
-    //   expect(run.failReason).toBeNull()
-    // })
-
-    // test("creating finished run / items correct / status completed + failReason -> throws!", async () => {
-    //   await updateConfig()
-
-    //   const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
-
-    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput, baseStep, baseStep, baseOutput], version: "1.0.0", status: "completed", failReason: { message: "boom" } })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 400,
-    //     message: expect.any(String),
-    //   }))
-    // })
-
-    // test("creating finished run / items correct / status failed", async () => {
-    //   await updateConfig()
-
-    //   const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
-    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput, baseStep, baseStep], version: "1.0.0", status: "failed", failReason: { message: "boom" } })
-
-    //   expect(run.status).toBe("failed")
-    //   expect(run.items.length).toEqual(3)
-    //   expect(run.finishedAt).toBeTruthy()
-    //   expect(run.failReason).toEqual({ message: "boom" })
-    // })
-
-    // test("creating finished run / incorrect input item / status completed -> throws", async () => {
-    //   await updateConfig()
-
-    //   const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
-
-    //   await expect(av.createRun({ sessionId: session.id, items: [{ dog: 10 }, baseStep, baseStep, baseOutput], version: "1.0.0", status: "completed" })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 422,
-    //     message: expect.any(String),
-    //   }))
-    // })
-
-    // test("creating finished run / incorrect step item / status completed -> throws", async () => {
-    //   await updateConfig()
-
-    //   const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
-
-    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput, { dog: 5 }, baseOutput], version: "1.0.0", status: "completed" })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 422,
-    //     message: expect.any(String),
-    //   }))
-    // })
-
-    // test("creating finished run / incorrect output / status completed -> throws", async () => {
-    //   await updateConfig()
-
-    //   const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
-
-    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput, baseStep, { cat: 100 }], version: "1.0.0", status: "completed" })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 422,
-    //     message: expect.any(String),
-    //   }))
-    // })
-
-
-    // test("creating run / incorrect output / status completed -> throws", async () => {
-    //   await updateConfig()
-
-    //   const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
-
-    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput, baseStep, { cat: 100 }], version: "1.0.0", status: "completed" })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 422,
-    //     message: expect.any(String),
-    //   }))
-    // })
-
-
-
-
-
-
-
-
-
-    // TODO: automate those tests. When we have ARRAY, we can automatically generate tests for permutations!!! Like all items at once, or by single item etc.
-    // Do updateRun that uses exactly the same logic as createRun. Like TOTALLY the same logic.
-    // Correct the other test file!
-    // Test tool calls!!! 
-
-
-
-
-
-
-    // in_progress run
-
-    test("creating run - at least one item is required", async () => {
+    test("cannot add items or change status after completion", async () => {
       await updateConfig()
-
       const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
 
-      await expect(av.createRun({ sessionId: session.id, items: [], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 422,
+      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+      const completed = await av.updateRun({ id: run.id, items: [baseOutput], status: "completed", metadata: { trace_id: "abc" } })
+      expect(completed.status).toBe("completed")
+
+      await expect(av.updateRun({ id: run.id, items: [baseStep] })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 400,
+        message: expect.any(String),
+      }))
+
+      await expect(av.updateRun({ id: run.id, status: "failed" })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 400,
+        message: expect.any(String),
+      }))
+
+    })
+
+    test("failReason can be set only on failed runs", async () => {
+      await updateConfig()
+      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+
+      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+
+      const failReason = { message: "oops" }
+
+      await expect(av.updateRun({ id: run.id, items: [baseStep], failReason })).rejects.toThrowError(expect.objectContaining({statusCode: 400,
+        message: expect.any(String),
+      }))
+      
+      await expect(av.updateRun({ id: run.id, items: [baseOutput], failReason, status: "completed" })).rejects.toThrowError(expect.objectContaining({statusCode: 400,
+        message: expect.any(String),
+      }))
+
+      const updated = await av.updateRun({ id: run.id, items: [baseOutput], status: "failed", failReason })
+      expect(updated.failReason).toEqual(failReason)
+    })
+
+    test("version compatibility enforced", async () => {
+      await updateConfig()
+      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+
+      const run1 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.3" })
+      await av.updateRun({ id: run1.id, items: [baseOutput], status: "completed" })
+
+      // higher patch works
+      const run2 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.4" })
+      await av.updateRun({ id: run2.id, items: [baseOutput], status: "completed" })
+
+      // smaller patch fails
+      await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.2" })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 400,
+        message: expect.any(String),
+      }))
+
+      // different minor fails
+      await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.3.0" })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 400,
         message: expect.any(String),
       }))
     })
 
-    test("new run defaults to in_progress status", async () => {
+    test("endUserToken scoped permissions", async () => {
       await updateConfig()
-
       const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
-      console.log("session", session.id);
 
-      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-      expect(run.status).toBe("in_progress")
+      await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", endUserToken: initEndUser2.token })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 401,
+        message: expect.any(String),
+      }))
     })
 
-
-
-    // test("creating run in progress populates history, lastRun and state", async () => {
-    //   await updateConfig()
-    //   const session = await createSession()
-
-    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", state: { step: 1 } })
-    //   expect(run.status).toBe("in_progress")
-
-    //   const fetched = await av.getSession({ id: session.id })
-    //   const items = fetched.runs.flatMap((r) => r.items.map((i) => i.content))
-    //   expect(items).toEqual([baseInput])
-    //   expect(fetched.runs[fetched.runs.length - 1].id).toBe(run.id)
-    //   expect(fetched.state).toEqual({ step: 1 })
-    // })
-
-    // test("run metadata validated and stored", async () => {
-    //   await updateConfig()
-    //   const session = await createSession()
-
-    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { trace_id: "abc" } })
-    //   expect(run.metadata).toEqual({ trace_id: "abc" })
-
-    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { wrong: "x" } })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 422,
-    //     message: expect.any(String),
-    //   }))
-    // })
-
-    // test("updating in-progress run appends items and updates state/metadata", async () => {
-    //   await updateConfig()
-    //   const session = await createSession()
-
-    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { trace_id: "abc" } })
-    //   const updated = await av.updateRun({ id: run.id, items: [baseStep], state: { step: 2 }, metadata: { trace_id: "def" } })
-
-    //   expect(updated.items.map((i) => i.content)).toEqual([baseInput, baseStep])
-    //   expect(updated.metadata).toEqual({ trace_id: "def" })
-
-    //   const fetched = await av.getSession({ id: session.id })
-    //   expect(fetched.state).toEqual({ step: 2 })
-    // })
-
-    // test("closing run successfully", async () => {
-    //   await updateConfig()
-    //   const session = await createSession()
-
-    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-    //   const updated = await av.updateRun({ id: run.id, items: [baseOutput], status: "completed" })
-
-    //   expect(updated.status).toBe("completed")
-    //   expect(updated.finishedAt).toBeTruthy()
-    //   expect(updated.items.map((i) => i.content)).toEqual([baseInput, baseOutput])
-    // })
-
-    // test("closing run with failure", async () => {
-    //   await updateConfig()
-    //   const session = await createSession()
-
-    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-    //   const updated = await av.updateRun({ id: run.id, status: "failed", failReason: { message: "boom" } })
-
-    //   expect(updated.status).toBe("failed")
-    //   expect(updated.failReason).toEqual({ message: "boom" })
-    //   expect(updated.finishedAt).toBeTruthy()
-    // })
-
-    // test("cannot add items or change status after completion, metadata can be updated", async () => {
-    //   await updateConfig()
-    //   const session = await createSession()
-
-    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-    //   const completed = await av.updateRun({ id: run.id, items: [baseOutput], status: "completed", metadata: { trace_id: "abc" } })
-    //   expect(completed.status).toBe("completed")
-
-    //   await expect(av.updateRun({ id: run.id, items: [baseStep] })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 400,
-    //     message: expect.any(String),
-    //   }))
-
-    //   await expect(av.updateRun({ id: run.id, status: "failed" })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 400,
-    //     message: expect.any(String),
-    //   }))
-
-    //   const withMetadata = await av.updateRun({ id: run.id, metadata: { trace_id: "def" } })
-    //   expect(withMetadata.metadata).toEqual({ trace_id: "def" })
-    // })
-
-    // test("failReason can be set only on failed runs", async () => {
-    //   await updateConfig()
-    //   const session = await createSession()
-
-    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-
-    //   await expect(av.updateRun({ id: run.id, items: [baseOutput], status: "completed", failReason: { message: "oops" } })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 400,
-    //     message: expect.any(String),
-    //   }))
-    // })
-
-    // test("version compatibility enforced", async () => {
-    //   await updateConfig()
-    //   const session = await createSession()
-
-    //   const run1 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.3" })
-    //   await av.updateRun({ id: run1.id, items: [baseOutput], status: "completed" })
-
-    //   // higher patch works
-    //   const run2 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.4" })
-    //   await av.updateRun({ id: run2.id, items: [baseOutput], status: "completed" })
-
-    //   // smaller patch fails
-    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.2" })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 400,
-    //     message: expect.any(String),
-    //   }))
-
-    //   // different minor fails
-    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.3.0" })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 400,
-    //     message: expect.any(String),
-    //   }))
-    // })
-
-    // test("cannot create new run while previous is in progress", async () => {
-    //   await updateConfig()
-    //   const session = await createSession()
-
-    //   await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-
-    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 400,
-    //     message: expect.any(String),
-    //   }))
-    // })
-
-    // test("allows unknown runs/steps/items by default", async () => {
-    //   await av.__updateConfig({ config: { agents: [{ name: "loose", url: "https://test.com" }] } })
-    //   const session = await av.createSession({ agent: "loose", endUserId: initEndUser1.id })
-
-    //   const run = await av.createRun({ sessionId: session.id, items: [{ foo: "bar" }], version: "9.9.9" })
-    //   expect(run.status).toBe("in_progress")
-    // })
-
-    // test("endUserToken scoped permissions", async () => {
-    //   await updateConfig()
-    //   const session = await createSession()
-
-    //   await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", endUserToken: initEndUser2.token })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 401,
-    //     message: expect.any(String),
-    //   }))
-    // })
-
-    // test("items validation respects schema", async () => {
-    //   await updateConfig()
-    //   const session = await createSession()
-
-    //   // wrong input
-    //   await expect(av.createRun({ sessionId: session.id, items: [{ type: "message", content: "no role" }], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 422,
-    //     message: expect.any(String),
-    //   }))
-
-    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-
-    //   // wrong step
-    //   await expect(av.updateRun({ id: run.id, items: [{ type: "other", content: "fail" }] })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 422,
-    //     message: expect.any(String),
-    //   }))
-
-    //   // wrong output
-    //   await expect(av.updateRun({ id: run.id, items: [{ type: "message", role: "assistant", extra: "???", content: "ok" }], status: "completed" })).rejects.toThrowError(expect.objectContaining({
-    //     statusCode: 422,
-    //     message: expect.any(String),
-    //   }))
-    // })
-
-    // describe("items validation with defaults (allow unknown)", () => {
-    //   const looseConfig = {
-    //     name: "loose",
-    //     url: "https://test.com",
-    //     runs: [
-    //       {
-    //         input: { schema: { type: z.literal("message"), role: z.literal("user"), content: z.string() } },
-    //         steps: [{ schema: { type: z.literal("reasoning"), content: z.string() } }],
-    //         output: { schema: { type: z.literal("message"), role: z.literal("assistant"), content: z.string() } },
-    //       }
-    //     ]
-    //   };
-
-    //   const input = { type: "message", role: "user", content: "hi" };
-
-    //   test("unknown keys allowed but known keys still validated (input/step/output)", async () => {
-    //     await av.__updateConfig({ config: { agents: [looseConfig] } })
-    //     const session = await av.createSession({ agent: "loose", endUserId: initEndUser1.id })
-
-    //     // wrong type for known key -> fail even though unknown allowed
-    //     await expect(av.createRun({ sessionId: session.id, items: [{ ...input, content: 123 }], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
-    //       statusCode: 422,
-    //       message: expect.any(String),
-    //     }))
-
-    //     // unknown key on input -> allowed
-    //     const run = await av.createRun({ sessionId: session.id, items: [{ ...input, extra: "x" }], version: "1.0.0" })
-    //     expect(run.items[0].content.extra).toBe("x")
-
-    //     // unknown key on step -> allowed
-    //     const runWithStep = await av.updateRun({ id: run.id, items: [{ type: "reasoning", content: "thinking", foo: "bar" }] })
-    //     expect(runWithStep.items[1].content.foo).toBe("bar")
-
-    //     // unknown key on output -> allowed
-    //     const completed = await av.updateRun({ id: run.id, items: [{ type: "message", role: "assistant", content: "ok", bar: "baz" }], status: "completed" })
-    //     expect(completed.items[2].content.bar).toBe("baz")
-    //   })
-    // })
-
-    // describe("run metadata validation allowUnknownMetadata", () => {
-    //   test("known key correct type passes, unknown key allowed by default", async () => {
-    //     await av.__updateConfig({ config: { agents: [{ name: "meta", url: "https://test.com", runs: [{ input: { schema: {} }, output: { schema: {} } }], metadata: { trace_id: z.string() } }] } })
-    //     const session = await av.createSession({ agent: "meta", endUserId: initEndUser1.id })
-
-    //     const run = await av.createRun({ sessionId: session.id, items: [{ any: "thing" }], version: "1.0.0", metadata: { trace_id: "abc", extra: "x" } })
-    //     expect(run.metadata).toEqual({ trace_id: "abc", extra: "x" })
-    //   })
-
-    //   test("unknown metadata key rejected when allowUnknownMetadata=false", async () => {
-    //     await av.__updateConfig({ config: { agents: [{ name: "meta-strict", url: "https://test.com", allowUnknownMetadata: false, runs: [{ input: { schema: {} }, output: { schema: {} }, allowUnknownMetadata: false, metadata: { trace_id: z.string() } }] }] } })
-    //     const session = await av.createSession({ agent: "meta-strict", endUserId: initEndUser1.id })
-
-    //     await expect(av.createRun({ sessionId: session.id, items: [{ any: "thing" }], version: "1.0.0", metadata: { trace_id: "abc", extra: "x" } })).rejects.toThrowError(expect.objectContaining({
-    //       statusCode: 422,
-    //       message: expect.any(String),
-    //     }))
-    //   })
-    // })
-
-    // test("allowUnknownRuns true allows unmatched input", async () => {
-    //   await av.__updateConfig({ config: { agents: [{ name: "unknown-runs", url: "https://test.com", allowUnknownRuns: true, runs: [{ input: { schema: { type: z.literal("message") } }, output: { schema: {} } }] }] } })
-    //   const session = await av.createSession({ agent: "unknown-runs", endUserId: initEndUser1.id })
-
-    //   const run = await av.createRun({ sessionId: session.id, items: [{ type: "not-matching" }], version: "1.0.0" })
-    //   expect(run.status).toBe("in_progress")
-    // })
-
-    // test("allowUnknownSteps true allows unexpected step shapes", async () => {
-    //   await av.__updateConfig({ config: { agents: [{ name: "unknown-steps", url: "https://test.com", runs: [{ input: { schema: { type: z.literal("message"), role: z.literal("user"), content: z.string() } }, steps: [{ schema: { type: z.literal("reasoning"), content: z.string() } }], output: { schema: { type: z.literal("message"), role: z.literal("assistant"), content: z.string() } } }] }] } })
-    //   const session = await av.createSession({ agent: "unknown-steps", endUserId: initEndUser1.id })
-
-    //   const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-
-    //   const updated = await av.updateRun({ id: run.id, items: [{ type: "custom_step", foo: "bar" }], status: "completed" })
-    //   expect(updated.items[1].content.foo).toBe("bar")
-    // })
   })
 });
+
+
+/** Quick JSON.parse-based deep compare, ignores order of keys in objects */
+function deepCompare(a: any, b: any): boolean {
+  // simple primitives and types
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+  if (a === null || b === null) return a === b;
+
+  // arrays
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (!deepCompare(a[i], b[i])) return false;
+    }
+    return true;
+  }
+
+  // plain objects
+  if (typeof a === "object" && typeof b === "object") {
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+    if (aKeys.length !== bKeys.length) return false;
+    for (const key of aKeys) {
+      if (!bKeys.includes(key)) return false;
+      if (!deepCompare(a[key], b[key])) return false;
+    }
+    return true;
+  }
+
+  // fallback
+  return false;
+}
+
+
+function removeDoubleUnderscoreKeys(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(removeDoubleUnderscoreKeys);
+  } else if (obj && typeof obj === 'object') {
+    const result: any = {};
+    for (const key of Object.keys(obj)) {
+      if (!key.startsWith('__')) {
+        result[key] = removeDoubleUnderscoreKeys(obj[key]);
+      }
+    }
+    return result;
+  }
+  return obj;
+}

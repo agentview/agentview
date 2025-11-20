@@ -42,7 +42,7 @@ export function requireRunConfig<T extends BaseAgentConfig>(agentConfig: T, inpu
 // - session (items history) + new item (not yet in session) -> we assume it goes last, all items are previous items
 // - session (items history) + item id -> concrete item, we find it and try to find the config
 
-type SessionItemExtension = { __type: "input" | "output" | "step", toolCallContent?: any }
+type SessionItemExtension = { __type: "input" | "output" | "step", content?: any, toolCallContent?: any }
 
 export function findItemConfig<T extends BaseRunConfig, RunT extends BaseRunConfig>(runConfig: T, items: any[], contentOrId: string | Record<string, any>, itemType?: "input" | "output" | "step", looseMatching: boolean = true) {
     // console.log("--------------------------------")
@@ -79,7 +79,7 @@ export function findItemConfig<T extends BaseRunConfig, RunT extends BaseRunConf
         availableItemConfigs.push(...(runConfig.steps?.map((step) => ({ ...step, __type: "step" as const })) ?? []));
     }
 
-    const matches = matchItemConfigs(availableItemConfigs, newContent, prevContent, looseMatching);
+    const matches = matchItemConfigs(availableItemConfigs, newContent, prevContent);
 
     if (matches.length === 0) {
         return undefined;
@@ -91,8 +91,8 @@ export function findItemConfig<T extends BaseRunConfig, RunT extends BaseRunConf
         return undefined;
     }
 
-    const { __type, toolCallContent, ...itemConfig } = matches[0];
-    return { itemConfig, itemType: __type, toolCallContent };
+    const { __type, content, toolCallContent, ...itemConfig } = matches[0];
+    return { itemConfig, itemType: __type, content, toolCallContent };
 }
 
 
@@ -110,12 +110,13 @@ function getCallIdKey(inputSchema: ExtendedSchema): any | undefined {
     return undefined;
 }
 
-function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension>(itemConfigs: T[], content: Record<string, any>, prevItems: Record<string, any>[], looseMatching: boolean = true): T[] {
+function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension>(itemConfigs: T[], content: Record<string, any>, prevItems: Record<string, any>[]): T[] {
     const matches: T[] = [];
 
     for (const itemConfig of itemConfigs) {
-        if (itemConfig.schema.safeParse(content).success) {
-            matches.push(itemConfig);
+        const { success, data } = itemConfig.schema.safeParse(content);
+        if (success) {
+            matches.push({ ...itemConfig, content: data });
         }
         
         if (itemConfig.callResult) {
@@ -138,9 +139,11 @@ function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension
                 //     break;
                 // }
 
-                if (itemConfig.schema.safeParse(prevItem).success && prevItem[callIdKey] === content[resultIdKey]) { // if both keys are `undefined`, first match.
+                const { success, data } = itemConfig.schema.safeParse(prevItem);
+                if (success && prevItem[callIdKey] === content[resultIdKey]) { // if both keys are `undefined`, first match.
                     matches.push({
                         ...itemConfig.callResult,
+                        content: data,
                         toolCallContent: prevItem,
                     } as T);
                     break;

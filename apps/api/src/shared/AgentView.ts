@@ -1,6 +1,5 @@
 import { 
   type Session, 
-  type SessionWithCollaboration, 
   type EndUser, 
   type EndUserCreate,
   type Run,
@@ -16,6 +15,8 @@ import {
 import { type AgentViewErrorBody, type AgentViewErrorDetails, AgentViewError } from './AgentViewError'
 import { makeObjectSerializable } from './configUtils'
 
+import { getLastRun, getAllSessionItems } from './sessionUtils'
+
 
 export interface AgentViewOptions {
   apiUrl: string
@@ -24,6 +25,14 @@ export interface AgentViewOptions {
 
 export type EndUserTokenOptions = {
   endUserToken?: string
+}
+
+function enhanceSession(session: Session) {
+  return {
+    ...session,
+    lastRun: getLastRun(session),
+    history: getAllSessionItems(session).map((item) => item.content),
+  }
 }
 
 export class AgentView {
@@ -66,19 +75,19 @@ export class AgentView {
     return await response.json()
   }
 
-  async createSession(options: SessionCreate & EndUserTokenOptions): Promise<Session> {
+  async createSession(options: SessionCreate & EndUserTokenOptions) {
     const { endUserToken, ...body } = options;
-    return await this.request<Session>('POST', `/api/sessions`, body, endUserToken)
+    return enhanceSession(await this.request<Session>('POST', `/api/sessions`, body, endUserToken))
   }
 
-  async getSession(options: { id: string } & EndUserTokenOptions): Promise<SessionWithCollaboration> {
+  async getSession(options: { id: string } & EndUserTokenOptions) {
     const { endUserToken, id } = options;
-    return await this.request<SessionWithCollaboration>('GET', `/api/sessions/${id}`, undefined, endUserToken)
+    return enhanceSession(await this.request<Session>('GET', `/api/sessions/${id}`, undefined, endUserToken))
   }
 
-  async updateSession(options: { id: string } & SessionUpdate & EndUserTokenOptions): Promise<SessionWithCollaboration> {
+  async updateSession(options: { id: string } & SessionUpdate & EndUserTokenOptions) {
     const { endUserToken, id, ...body } = options;
-    return await this.request<SessionWithCollaboration>('PATCH', `/api/sessions/${id}`, body, endUserToken)
+    return enhanceSession(await this.request<Session>('PATCH', `/api/sessions/${id}`, body, endUserToken))
   }
 
   async createRun(options: RunCreate & EndUserTokenOptions): Promise<Run> {
@@ -171,7 +180,7 @@ export class AgentViewClient {
     return await this.request<EndUser>('GET', `/api/public/me`)
   }
 
-  async getSession(options: { id: string }): Promise<SessionWithCollaboration> {
-    return await this.request<SessionWithCollaboration>('GET', `/api/public/sessions/${options.id}`)
+  async getSession(options: { id: string }) {
+    return enhanceSession(await this.request<Session>('GET', `/api/public/sessions/${options.id}`))
   }
 }

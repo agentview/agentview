@@ -426,7 +426,7 @@ function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: b
   const result = schema.safeParse(metadata);
   if (!result.success) {
     console.log('issues', result.error.issues);
-    throw new AgentViewError("Error parsing the session metadata.", 422, { code: 'parse.schema', issues: result.error.issues });
+    throw new AgentViewError("Error parsing the metadata.", 422, { code: 'parse.schema', issues: result.error.issues });
   }
   return result.data;
 }
@@ -1316,8 +1316,10 @@ function parseVersion(version: string): { major: number, minor: number, patch: n
 }
 
 function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: 'in_progress' | 'completed' | 'failed') {
-
   const validateSteps = false;
+
+  const stepItemsParsed : any[] = [];
+  let lastItemParsed : any;
   
   /** Validate last item **/
   let stepItems: any[] = [];
@@ -1328,11 +1330,14 @@ function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: '
     }
 
     const outputItem = items[items.length - 1];
-    stepItems = items.slice(1, -1);
+    stepItems = items.slice(0, -1);
 
     const outputItemConfig = findItemConfig(runConfig, [], outputItem, "output");
     if (!outputItemConfig) {
       throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
+    }
+    else {
+      lastItemParsed = outputItemConfig.content;
     }
   }
   else if (status === "failed") { // last item, if exists, should be either step or output
@@ -1341,12 +1346,23 @@ function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: '
     }
     else {
       const lastItem = items[items.length - 1];
-      stepItems = items.slice(1, -1);
+      stepItems = items.slice(0, -1);
 
-      // last item must be either step or output
-      const lastItemOutputConfig = findItemConfig(runConfig, [], lastItem, "output");
+      // last item must be either step or output. We first try to match step, if not successful then output
       const lastItemStepConfig = findItemConfig(runConfig, [], lastItem, "step");
-      if (validateSteps && !lastItemOutputConfig && !lastItemStepConfig) {
+      const lastItemOutputConfig = findItemConfig(runConfig, [], lastItem, "output");
+
+      if (lastItemStepConfig) {
+        lastItemParsed = lastItemStepConfig.content;
+      }
+      else if (lastItemOutputConfig) {
+        lastItemParsed = lastItemOutputConfig.content;
+      }
+      else if (!validateSteps) {
+        // we don't validate steps, so if no match, then we assume it's unknown step
+        lastItemParsed = lastItem;
+      }
+      else {
         throw new AgentViewError("Last item must be either step or output.", 422, { item: lastItem });
       }
     }
@@ -1361,7 +1377,12 @@ function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: '
     if (!stepItemConfig) {
       throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
     }
+    else {
+      stepItemsParsed.push(stepItemConfig.content);
+    }
   }
+
+  return lastItemParsed ? [...stepItemsParsed, lastItemParsed] : stepItemsParsed;
 }
 
 
@@ -1422,13 +1443,17 @@ app.openapi(runsPOSTRoute, async (c) => {
   if (body.items.length === 0) {
     throw new AgentViewError("New run must have at least 1 item, input.", 422);
   }
-  const [inputItem, ...items] = body.items;
+  const [inputItem, ...nonInputItems] = body.items;
   const looseMatching = agentConfig.allowUnknownItemKeys ?? true;
 
   const runConfig = requireRunConfig(agentConfig, inputItem, looseMatching);
 
+  const parsedInput = [runConfig.input.schema.parse(inputItem)] // must be true, because of line above
+
   /** Validate rest items **/
-  validateNonInputItems(runConfig, items, body.status ?? 'in_progress');
+  const parsedNonInputItems = validateNonInputItems(runConfig, nonInputItems, body.status ?? 'in_progress');
+
+  const parsedItems = [...parsedInput, ...parsedNonInputItems];
 
   /** Metadata **/
   const metadata = parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, {})
@@ -1467,7 +1492,7 @@ app.openapi(runsPOSTRoute, async (c) => {
     }).returning();
 
     await tx.insert(sessionItems).values(
-      body.items.map(item => ({
+      parsedItems.map(item => ({
         sessionId: body.sessionId,
         content: item,
         runId: newRun.id,
@@ -1513,6 +1538,8 @@ app.openapi(runPATCHRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
   const { run_id } = c.req.param()
+  requireUUID(run_id);
+
   const body = await c.req.valid('json')
 
   const run = await requireRun(run_id);
@@ -1536,12 +1563,16 @@ app.openapi(runPATCHRoute, async (c) => {
     throw new AgentViewError("Cannot add items to a finished run.", 400);
   }
 
-  validateNonInputItems(runConfig, items, body.status ?? 'in_progress', looseMatching);
+  const parsedItems = validateNonInputItems(runConfig, items, body.status ?? 'in_progress');
 
   /** Metadata **/
   const metadata = parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, run.metadata ?? {});
 
   /** STATUS, FINISHED_AT, FAIL_REASON */
+  if (run.status !== 'in_progress' && body.status && body.status !== run.status) {
+    throw new AgentViewError("Cannot change the status of a finished run.", 400);
+  }
+  
   const status = body.status ?? 'in_progress';
   const failReason = body.failReason ?? null;
 
@@ -1596,9 +1627,9 @@ app.openapi(runPATCHRoute, async (c) => {
   // const finishedAt = justFinished ? new Date().toISOString() : run.finishedAt;
 
   await db.transaction(async (tx) => {
-    if (body.items) {
+    if (parsedItems.length > 0) {
       await tx.insert(sessionItems).values(
-        body.items?.map(item => ({
+        parsedItems?.map(item => ({
           sessionId: session.id,
           content: item,
           runId: run.id
