@@ -1315,8 +1315,10 @@ function parseVersion(version: string): { major: number, minor: number, patch: n
   return { major, minor, patch };
 }
 
-function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: 'in_progress' | 'completed' | 'failed', looseMatching: boolean) {
+function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: 'in_progress' | 'completed' | 'failed') {
 
+  const validateSteps = false;
+  
   /** Validate last item **/
   let stepItems: any[] = [];
 
@@ -1328,7 +1330,7 @@ function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: '
     const outputItem = items[items.length - 1];
     stepItems = items.slice(1, -1);
 
-    const outputItemConfig = findItemConfig(runConfig, [], outputItem, "output", looseMatching);
+    const outputItemConfig = findItemConfig(runConfig, [], outputItem, "output");
     if (!outputItemConfig) {
       throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
     }
@@ -1342,9 +1344,9 @@ function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: '
       stepItems = items.slice(1, -1);
 
       // last item must be either step or output
-      const lastItemOutputConfig = findItemConfig(runConfig, [], lastItem, "output", looseMatching);
-      const lastItemStepConfig = findItemConfig(runConfig, [], lastItem, "step", looseMatching);
-      if (!lastItemOutputConfig && !lastItemStepConfig) {
+      const lastItemOutputConfig = findItemConfig(runConfig, [], lastItem, "output");
+      const lastItemStepConfig = findItemConfig(runConfig, [], lastItem, "step");
+      if (validateSteps && !lastItemOutputConfig && !lastItemStepConfig) {
         throw new AgentViewError("Last item must be either step or output.", 422, { item: lastItem });
       }
     }
@@ -1355,7 +1357,7 @@ function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: '
 
   /* Validate step items */
   for (const stepItem of stepItems) {
-    const stepItemConfig = findItemConfig(runConfig, [], stepItem, "step", looseMatching);
+    const stepItemConfig = findItemConfig(runConfig, [], stepItem, "step");
     if (!stepItemConfig) {
       throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
     }
@@ -1426,7 +1428,7 @@ app.openapi(runsPOSTRoute, async (c) => {
   const runConfig = requireRunConfig(agentConfig, inputItem, looseMatching);
 
   /** Validate rest items **/
-  validateNonInputItems(runConfig, items, body.status ?? 'in_progress', looseMatching);
+  validateNonInputItems(runConfig, items, body.status ?? 'in_progress');
 
   /** Metadata **/
   const metadata = parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, {})

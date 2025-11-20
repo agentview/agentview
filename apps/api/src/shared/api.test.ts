@@ -419,29 +419,53 @@ describe('API', () => {
   // - items validation!!! (all the scenarios)
 
   describe("runs", () => {
-    const baseAgentConfig = {
-      name: "test",
-      url: "https://test.com",
-      allowUnknownRuns: false,
-      allowUnknownSteps: false,
-      allowUnknownItemKeys: false,
-      runs: [
-        {
-          input: { schema: z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() }) },
-          steps: [{ schema: z.looseObject({ type: z.literal("reasoning"), content: z.string() }) }],
-          output: { schema: z.looseObject({ type: z.literal("message"), role: z.literal("assistant"), content: z.string() }) },
-          // metadata: { trace_id: z.string() },
-          allowUnknownMetadata: false,
-        }
-      ]
-    }
+    
 
     const baseInput = { type: "message", role: "user", content: "Hello" }
     const baseOutput = { type: "message", role: "assistant", content: "Hi there" }
     const baseStep = { type: "reasoning", content: "Thinking..." }
 
-    const updateConfig = async (agentOverrides: Partial<typeof baseAgentConfig> = {}) => {
-      await av.__updateConfig({ config: { agents: [{ ...baseAgentConfig, ...agentOverrides }] } })
+    const baseInputExt = { type: "message", role: "user", content: "Hello", extraField: "extra" }
+    const baseOutputExt = { type: "message", role: "assistant", content: "Hi there", extraField: "extra" }
+    const baseStepExt = { type: "reasoning", content: "Thinking...", extraField: "extra" }
+
+    const wrongInput = { type: "message", role: "user", content: 100 }
+    const wrongStep = { type: "reasoning", content: 100 }
+    const wrongOutput = { type: "message", role: "assistant", content: 100 }
+
+
+    const updateConfig = async (options: { strictMatching?: boolean } = {}) => {
+
+      let inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() })
+      let stepSchema = z.looseObject({ type: z.literal("reasoning"), content: z.string() })
+      let outputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("assistant"), content: z.string() })
+
+      if (options.strictMatching) {
+        inputSchema = inputSchema.strict();
+        stepSchema = stepSchema.strict();
+        outputSchema = outputSchema.strict();
+        console.log("strict models!!!");
+      }
+
+      const config = {
+        agents: [
+          {
+            name: "test",
+            url: "https://test.com",
+            runs: [
+              {
+                input: { schema: inputSchema },
+                steps: [{ schema: stepSchema }],
+                output: { schema: outputSchema },
+                // metadata: { trace_id: z.string() },
+                allowUnknownMetadata: false,
+              }
+            ]
+          }
+        ]
+      }
+
+      await av.__updateConfig({ config })
     }
 
     test("creating run - wrong sessionId", async () => {
@@ -461,111 +485,171 @@ describe('API', () => {
      * - status -> relates to the status change in last run
      **/
 
-    const baseTestCases : Array<{ title: string, items: any[], status: ("in_progress" | "completed" | "failed")[], error?: number | null }> = [
+    const baseTestCases : Array<{ title: string, scenarios: any[], lastRunStatus: ("in_progress" | "completed" | "failed" | undefined)[], error?: number | null, validateItems?: boolean, strictMatching?: boolean }> = [
       {
         title: "just input & output",
-        items: [baseInput, baseOutput],
-        status: ["completed", "failed"],
+        scenarios: [
+          [ [baseInput, baseOutput] ],
+          [ [baseInput], [baseOutput] ]
+        ],
+        lastRunStatus: ["completed", "failed"],
         error: null
       },
       {
         title: "input, 2 items, output",
-        items: [baseInput, baseStep, baseStep, baseOutput],
-        status: ["completed", "failed"],
+        scenarios: [
+          [ [baseInput, baseStep, baseStep, baseOutput] ],
+          [ [baseInput], [baseStep], [baseStep], [baseOutput] ],
+          [ [baseInput], [baseStep, baseStep], [baseOutput] ],
+          [ [baseInput], [baseStep, baseStep, baseOutput] ],
+        ],
+        lastRunStatus: ["completed", "failed"],
         error: null
       },
       {
         title: "input, 2 items, output",
-        items: [baseInput, baseStep, baseStep, baseOutput],
-        status: ["in_progress"],
+        scenarios: [
+          [ [baseInput, baseStep, baseStep, baseOutput] ],
+          [ [baseInput], [baseStep], [baseStep], [baseOutput] ],
+          [ [baseInput], [baseStep, baseStep], [baseOutput] ],
+          [ [baseInput], [baseStep, baseStep, baseOutput] ],
+        ],
+        lastRunStatus: [undefined],
         error: 422
       },
       {
         title: "input, 2 steps, no output",
-        items: [baseInput, baseStep, baseStep],
-        status: ["failed"],
+        scenarios: [
+          [ [baseInput, baseStep, baseStep] ],
+          [ [baseInput], [baseStep], [baseStep] ],
+          [ [baseInput], [baseStep, baseStep] ],
+        ],
+        lastRunStatus: ["failed"],
         error: null
       },
       {
         title: "input, 2 items, no output",
-        items: [baseInput, baseStep, baseStep],
-        status: ["completed"],
-        error: 422
-      },
-      {
-        title: "single item completed",
-        items: [baseInput],
-        status: ["completed"],
-        error: 422
-      },
-      {
-        title: "single item",
-        items: [baseInput],
-        status: ["completed"],
+        scenarios: [
+          [ [baseInput, baseStep, baseStep] ],
+          [ [baseInput], [baseStep], [baseStep] ],
+          [ [baseInput], [baseStep, baseStep] ],
+        ],
+        lastRunStatus: ["completed"],
         error: 422
       },
       {
         title: "single item",
-        items: [baseInput],
-        status: ["failed"],
+        scenarios: [
+          [ [baseInput] ],
+        ],
+        lastRunStatus: ["completed"],
+        error: 422
+      },
+      {
+        title: "single item",
+        scenarios: [
+          [ [baseInput] ],
+        ],
+        lastRunStatus: ["failed"],
         error: null
+      },
+
+      // Validation
+      {
+        title: "items with extra fields for loose matching",
+        scenarios: [
+          [ [baseInputExt, baseStepExt, baseStepExt, baseOutputExt] ],
+          [ [baseInputExt], [baseStepExt], [baseStepExt], [baseOutputExt] ],
+          [ [baseInputExt], [baseStepExt, baseStepExt], [baseOutputExt] ],
+          [ [baseInputExt], [baseStepExt, baseStepExt, baseOutputExt] ],
+        ],
+        lastRunStatus: ["completed", "failed"],
+        error: null
+      },
+
+
+      // TODO
+      // {
+      //   title: "items with extra fields for strict matching",
+      //   strictMatching: true,
+      //   scenarios: [
+      //     [ [baseInput], [baseStepExt] ],
+      //     // [ [baseInput], [baseStep, baseStep], [baseOutputExt] ],
+      //     // [ [baseInput, baseStep, baseStep, baseOutputExt] ],
+      //   ],
+      //   lastRunStatus: ["completed", "failed"],
+      //   error: 422
+      // },
+
+
+      {
+        title: "wrong input item",
+        scenarios: [
+          [ [wrongInput] ],
+          [ [wrongInput, baseStep] ],
+          [ [wrongInput, baseStep, baseStep, baseOutput] ]
+        ],
+        lastRunStatus: ["completed", "failed"],
+        error: 422
+      },
+      {
+        title: "wrong output item",
+        scenarios: [
+          [ [baseInput, baseStep, wrongOutput] ],
+          [ [baseInput], [baseStep], [wrongOutput] ],
+          [ [baseInput], [baseStep, wrongOutput] ],
+        ],
+        lastRunStatus: ["completed"],
+        error: 422
+      },
+      {
+        title: "wrong output item",
+        scenarios: [
+          [ [baseInput, baseStep, wrongOutput] ],
+          [ [baseInput], [baseStep], [wrongOutput] ],
+          [ [baseInput], [baseStep, wrongOutput] ],
+        ],
+        lastRunStatus: ["failed"],
+        error: null // In "failed" status and no steps validation we can't assume it was finished run, so output item might be a treated as a step item
       }
     ]
 
     for (const testCase of baseTestCases) {
+      let counter = 0;
+      for (const scenario of testCase.scenarios) {
+        counter++;
 
-      const splits = [
-        {
-          title: "each item separate",
-          iterations: testCase.items.map((item: any) => [item]),
-        },
-        {
-          title: "all at once",
-          iterations: [testCase.items],
-        }
-      ]
+        for (const lastRunStatus of testCase.lastRunStatus) {
 
-      if (testCase.items.length > 2) {
-        splits.push({
-          title: "input + second, then the rest",
-          iterations: [[testCase.items[0], testCase.items[1]], testCase.items.slice(2)],
-        })
+          const title = `${testCase.title} / run ${counter} / ${lastRunStatus} -> ${testCase.error ? `error ${testCase.error}` : "ok"}`
 
-        splits.push({
-          title: "all but last, then last",
-          iterations: [testCase.items.slice(0, -1), [testCase.items[testCase.items.length - 1]]],
-        })
-      }
+          test.only(title, async () => {
+            await updateConfig({ strictMatching: testCase.strictMatching });
 
-      for (const split of splits) {
-        for (const status of testCase.status) {
-
-          test.only(`${testCase.title} / ${split.title} / ${status} -> ${testCase.error ? `error ${testCase.error}` : "ok"}`, async () => {
-            await updateConfig()
             const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
 
             let run: Run | undefined;
             let previousItemCount = 0;
 
-            for (const iteration of split.iterations) {
-              const isLast = iteration === split.iterations[split.iterations.length - 1];
-              const isFirst = iteration === split.iterations[0];
+            for (const iteration of scenario) {
+              const isLast = iteration === scenario[scenario.length - 1];
+              const isFirst = iteration === scenario[0];
 
               let expectedStatus : string;
               let expectedHasFinishedAt : boolean;
               let promise: any;
 
               if (isFirst && isLast) {
-                promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status });
-                expectedStatus = status;
+                promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status: lastRunStatus });
+                expectedStatus = lastRunStatus ?? "in_progress";
                 expectedHasFinishedAt = true;
               } else if (isFirst) {
                 promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0" })
                 expectedStatus = "in_progress";
                 expectedHasFinishedAt = false;
               } else if (isLast) {
-                promise = av.updateRun({ id: run!.id, items: iteration, status })
-                expectedStatus = status;
+                promise = av.updateRun({ id: run!.id, items: iteration, status: lastRunStatus })
+                expectedStatus = lastRunStatus ?? "in_progress";
                 expectedHasFinishedAt = true;
               } else {
                 promise = av.updateRun({ id: run!.id, items: iteration })

@@ -2,17 +2,44 @@ import "dotenv/config";
 import { z } from "zod";
 import { convertJsonSchemaToZod } from 'zod-from-json-schema';
 
-const schema = z.looseObject({
-  type: z.literal("test"),
-  name: z.string(),
-  age: z.number(),
-  test: z.object({
-    foo: z.string(),
-    bar: z.number(),
-  })
-});
+const schemaDefault = z.object({
+  foo: z.string(),
+  bar: z.number(),
+})
 
-console.log(schema.shape);
+console.log("\n\n----- default -----")
+const jsonSchemaDefault = z.toJSONSchema(schemaDefault)
+console.log("jsonSchema", jsonSchemaDefault);
+const schemaDefault2 = convertJsonSchemaToZod(jsonSchemaDefault)
+console.log(schemaDefault2.parse({ foo: "baz", bar: 123, dupa: 8 }));
+
+
+console.log("\n----- loose -----")
+const jsonSchemaLoose = z.toJSONSchema(schemaDefault.loose())
+console.log("jsonSchema", jsonSchemaLoose);
+const schemaLoose2 = convertJsonSchemaToZod(jsonSchemaLoose)
+console.log(schemaLoose2.parse({ foo: "baz", bar: 123, dupa: 8 }));
+
+
+console.log("\n----- strict -----")
+const jsonSchemaStrict = z.toJSONSchema(schemaDefault.strict())
+console.log("jsonSchema", jsonSchemaStrict);
+const schemaStrict2 = convertJsonSchemaToZod(jsonSchemaStrict)
+console.log(schemaStrict2.parse({ foo: "baz", bar: 123, dupa: 8 }));
+
+
+
+// const schema = z.looseObject({
+//   type: z.literal("test"),
+//   name: z.string(),
+//   age: z.number(),
+//   test: z.object({
+//     foo: z.string(),
+//     bar: z.number(),
+//   })
+// });
+
+// console.log(schema.shape);
 
 // console.log(z.toJSONSchema(z.optional(z.string())));
 
