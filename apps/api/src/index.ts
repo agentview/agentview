@@ -45,6 +45,7 @@ export const app = new OpenAPIHono({
   // custom error handler for zod validation errors
   defaultHook: (result, c) => {
     if (!result.success) {
+      console.log('Validation Error', result.error.issues);
       return c.json({
         message: 'Validation error',
         issues: result.error.issues
@@ -58,7 +59,9 @@ export const app = new OpenAPIHono({
 app.onError((error, c) => {
   console.error(error)
   if (error instanceof AgentViewError) {
-    return c.json({ message: error.message, code: error.details?.code, issues: error.details?.issues }, error.statusCode as any);
+    const payload = { message: error.message, code: error.details?.code, issues: error.details?.issues }
+    console.log('AgentViewError', error.statusCode, payload);
+    return c.json(payload, error.statusCode as any);
   }
   else if (error instanceof BetterAuthAPIError) {
     return c.json(error.body, error.statusCode as any); // "as any" because error.statusCode is "number" and hono expects some numeric literal union 
@@ -353,6 +356,9 @@ async function requireSession(sessionId: string) {
 async function requireRun(runId: string) {
   const run = await db.query.runs.findFirst({
     where: eq(runs.id, runId),
+    with: {
+      items: true,
+    },
   });
   if (!run) {
     throw new HTTPException(404, { message: "Run not found" });
@@ -1387,45 +1393,7 @@ const runsPOSTRoute = createRoute({
 })
 
 
-// function validateRunItems() {
-//   const inputRequired = true; // because it's POST
-//   const outputRequired = status === 'completed'; // only when finished
 
-//   if (inputRequired && outputRequired && body.items.length < 2) {
-//     throw new HTTPException(400, { message: "At least 2 items are required (input and output)." });
-//   }
-//   else if (inputRequired && body.items.length === 1) {
-//     throw new HTTPException(400, { message: "At least 1 item is required (input item)." });
-//   }
-//   else if (outputRequired && body.items.length === 0) {
-//     throw new HTTPException(400, { message: "At least 1 item is required (output item)." });
-//   }
-
-//   const inputItem: Record<string, any> | undefined = inputRequired ? body.items[0] : undefined;
-//   const outputItem: Record<string, any> | undefined = outputRequired ? body.items[body.items.length - 1] : undefined;
-//   const stepItems: Record<string, any>[] = body.items.slice(inputRequired ? 1 : 0, outputRequired ? -1 : undefined);
-
-//   if (inputItem) {
-//     const inputItemConfig = findItemConfig(agentConfig, session, inputItem, "input", looseMatching);
-//     if (!inputItemConfig) {
-//       throw new AgentViewError("Couldn't find a matching input item.", 422, { item: inputItem });
-//     }
-//   }
-
-//   if (outputItem) {
-//     const outputItemConfig = findItemConfig(agentConfig, session, outputItem, "output", looseMatching);
-//     if (!outputItemConfig) {
-//       throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
-//     }
-//   }
-
-//   for (const stepItem of stepItems) {
-//     const stepItemConfig = findItemConfig(agentConfig, session, stepItem, "step", looseMatching);
-//     if (!stepItemConfig && !allowUnknownSteps) {
-//       throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
-//     }
-//   }
-// }
 
 function validateRunItem(args: {
   runConfig: BaseRunConfig,
@@ -1455,6 +1423,55 @@ function validateRunItem(args: {
 }
 
 
+// type RunState = Pick<Run, "status" | "failReason" | "finishedAt"> & { items: any[] };
+
+// function processRunStep(agentConfig: BaseAgentConfig, runConfig: BaseRunConfig, run: RunState, item: any, status?: 'in_progress' | 'completed' | 'failed', failReason?: any) : RunState {
+//   const looseMatching = agentConfig.allowUnknownItemKeys ?? true;
+//   const allowUnknownSteps = agentConfig.allowUnknownSteps ?? true;
+
+//   const outputItemConfig = findItemConfig(runConfig, run.items, item, "output", looseMatching)
+//   const stepItemConfig = findItemConfig(runConfig, run.items, item, "step", looseMatching)
+
+//   // Validate fail reason
+//   if (!(failReason && status === "failed" && run.status !== "failed")) {
+//     throw new AgentViewError("failReason can only be set when status is 'failed'.", 400);
+//   }
+
+//   if (run.status === "in_progress") {
+//     if (status === "completed") {
+//       if (!outputItemConfig) {
+//         throw new AgentViewError("Couldn't find a matching output item.", 422, { item });
+//       }
+//       if (failReason) {
+//         throw new AgentViewError("failReason can only be set when status is 'failed'.", 422, { item });
+//       }
+//     }
+//     else if (status === "failed") {
+//       if (!outputItemConfig && !stepItemConfig && !allowUnknownSteps) {
+//         throw new AgentViewError("Couldn't find a matching item.", 422, { item });
+//       }
+//     }
+//     else if (status === undefined) {
+//       if (!stepItemConfig && !allowUnknownSteps) {
+//         throw new AgentViewError("Couldn't find a matching item.", 422, { item });
+//       }
+//       if (failReason) {
+//         throw new AgentViewError("failReason can only be set when status is 'failed'.", 422, { item });
+//       }
+//     }
+//   }
+//   else if (run.status === "completed") {
+//     if (status !== "completed") {
+//       throw new AgentViewError("Cannot change the status of a completed run.", 422, { item });
+//     }
+//   }
+//   else if (run.status === "failed") {
+//     if (status !== "failed") {
+//       throw new AgentViewError("Cannot change the status of a failed run.", 422, { item });
+//     }
+//   }
+// }
+
 app.openapi(runsPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const body = await c.req.valid('json')
@@ -1478,7 +1495,7 @@ app.openapi(runsPOSTRoute, async (c) => {
   /** FIND RUN AND VALIDATE INPUT ITEM **/
   const runConfig = requireRunConfig(agentConfig, inputItem, looseMatching);
   
-  /** ITEMS VALIDATION **/
+  /** NON-INPUT ITEMS VALIDATION **/
 
   for (let index = 0; index < nonInputItems.length; index++) {
     const nonInputItem = nonInputItems[index];
@@ -1495,32 +1512,19 @@ app.openapi(runsPOSTRoute, async (c) => {
   }
 
   /** METADATA **/
-
-  const metadata = runConfig ? parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, {}) : body.metadata;
+  const metadata = parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, {})
 
   /** STATUS, FINISHED_AT, FAIL_REASON */
+  const status = body.status ?? 'in_progress';
+  const failReason = body.failReason ?? null;
 
-  const previousFailReason = null;
-  const previousStatus = null;
-  const previousFinishedAt = null;
-
-  const targetStatus = body.status ?? 'in_progress';
-
-  if (targetStatus !== 'failed' && body.failReason) {
-    throw new HTTPException(400, { message: "failReason can only be set when status is 'failed'." });
+  if (failReason && status !== 'failed') {
+    throw new AgentViewError("failReason can only be set when status is 'failed'.", 400);
   }
 
-  const justCompleted = targetStatus === 'completed' && previousStatus !== 'completed';
-  const justFailed = targetStatus === 'failed' && previousStatus !== 'failed';
-  const justFinished = justCompleted || justFailed;
-
-  const newStatus = targetStatus;
-  const newFailReason = newStatus === 'failed' ? (body.failReason ?? previousFailReason) : previousFailReason // ignore fail reason for non-failed statuses
-  const newFinishedAt = justFinished ? new Date().toISOString() : previousFinishedAt;
-
+  const finishedAt = (status === 'completed' || status === 'failed') ? new Date().toISOString() : null;
 
   /** VERSION CHECKING **/
-  
   const version = typeof body.version === 'string' ? { version: body.version } : body.version;
 
   const parsedVersion = parseVersion(version.version);
@@ -1540,7 +1544,6 @@ app.openapi(runsPOSTRoute, async (c) => {
     }
   }
 
-
   // Create run and items
   await db.transaction(async (tx) => {
 
@@ -1556,9 +1559,9 @@ app.openapi(runsPOSTRoute, async (c) => {
 
     const [newRun] = await tx.insert(runs).values({
       sessionId: body.sessionId,
-      status: newStatus,
-      failReason: newFailReason,
-      finishedAt: newFinishedAt,
+      status,
+      failReason,
+      finishedAt,
       versionId: versionRow.id,
       metadata,
     }).returning();
@@ -1619,48 +1622,90 @@ app.openapi(runsPATCHRoute, async (c) => {
 
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
-  const allowUnknownRuns = agentConfig.allowUnknownRuns ?? true;
-  const allowUnknownSteps = agentConfig.allowUnknownSteps ?? true;
-  const allowUnknownItemKeys = agentConfig.allowUnknownItemKeys ?? true;
-  const runWithItems = session.runs.find((r) => r.id === run.id);
-  const inputItem = runWithItems?.items?.[0];
 
-  const runMatch = inputItem ? findItemAndRunConfig(agentConfig, session, inputItem.id ?? inputItem.content, "input") : undefined;
-  const runConfig = runMatch?.runConfig;
-  const effectiveRunMatch = runMatch ?? (agentConfig.runs && agentConfig.runs.length === 1 ? { runConfig: agentConfig.runs[0], itemConfig: agentConfig.runs[0].input, itemType: "input" as const } : undefined);
+  const looseMatching = agentConfig.allowUnknownItemKeys ?? true;
 
-  if (!effectiveRunMatch && !allowUnknownRuns) {
-    throw new HTTPException(422, { message: "Input item not allowed." });
+  /** FIND RUN AND VALIDATE INPUT ITEM **/
+  const inputItem = run.items[0].content;
+  const runConfig = requireRunConfig(agentConfig, inputItem, looseMatching);
+
+  /** VALIDATE ITEMS */
+  const items = body.items ?? [];
+  
+  if (items.length > 0 && (run.status === "completed" || run.status === "failed")) {
+    throw new AgentViewError("Cannot add items to a finished run.", 400);
   }
 
-  // prevent wrong status changes
-  if (body.status && (run.status === 'failed' || run.status === 'completed') && body.status !== run.status) {
-    throw new HTTPException(400, { message: `Cannot change the status of a completed or failed run.` });
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index];
+    const isLastItem = items.length - 1 === index;
+
+    validateRunItem({
+      runConfig,
+      item,
+      previousItems: [], // to fix
+      mustBeOutput: isLastItem && body.status === 'completed',
+      allowUnknownSteps: agentConfig.allowUnknownSteps ?? true,
+      looseMatching,
+    });
   }
 
-  const targetStatus = body.status ?? run.status;
+  /** METADATA **/
+  const metadata = parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, run.metadata ?? {});
 
-  if (body.failReason && targetStatus !== 'failed') {
-    throw new HTTPException(400, { message: "failReason can only be set when status is 'failed'." });
+  /** STATUS, FINISHED_AT, FAIL_REASON */
+  const status = body.status ?? 'in_progress';
+  const failReason = body.failReason ?? null;
+
+  if (failReason && status !== 'failed') {
+    throw new AgentViewError("failReason can only be set when status is 'failed'.", 400);
   }
 
-  if ((run.status === 'failed' || run.status === 'completed') && body.items?.length) {
-    throw new HTTPException(400, { message: "Cannot add items to a finished run." });
-  }
+  const finishedAt = run.finishedAt ?? ((status === 'completed' || status === 'failed') ? new Date().toISOString() : null);
 
-  if (body.items?.length) {
-    validateItemsForRun(agentConfig, session, effectiveRunMatch?.runConfig, body.items, targetStatus as any, { allowUnknownSteps, allowUnknownItemKeys });
-  }
 
-  const parsedMetadata = body.metadata !== undefined ? validateRunMetadata(effectiveRunMatch?.runConfig, body.metadata) : run.metadata;
+  // const allowUnknownRuns = agentConfig.allowUnknownRuns ?? true;
+  // const allowUnknownSteps = agentConfig.allowUnknownSteps ?? true;
+  // const allowUnknownItemKeys = agentConfig.allowUnknownItemKeys ?? true;
+  // const runWithItems = session.runs.find((r) => r.id === run.id);
+  // const inputItem = runWithItems?.items?.[0];
 
-  const justCompleted = targetStatus === 'completed' && run.status !== 'completed';
-  const justFailed = targetStatus === 'failed' && run.status !== 'failed';
-  const justFinished = justCompleted || justFailed;
+  // const runMatch = inputItem ? findItemAndRunConfig(agentConfig, session, inputItem.id ?? inputItem.content, "input") : undefined;
+  // const runConfig = runMatch?.runConfig;
+  // const effectiveRunMatch = runMatch ?? (agentConfig.runs && agentConfig.runs.length === 1 ? { runConfig: agentConfig.runs[0], itemConfig: agentConfig.runs[0].input, itemType: "input" as const } : undefined);
 
-  const newStatus = targetStatus;
-  const newFailReason = newStatus === 'failed' ? (body.failReason ?? run.failReason) : run.failReason; // ignore fail reason for non-failed statuses
-  const finishedAt = justFinished ? new Date().toISOString() : run.finishedAt;
+  // if (!effectiveRunMatch && !allowUnknownRuns) {
+  //   throw new HTTPException(422, { message: "Input item not allowed." });
+  // }
+
+  // // prevent wrong status changes
+  // if (body.status && (run.status === 'failed' || run.status === 'completed') && body.status !== run.status) {
+  //   throw new HTTPException(400, { message: `Cannot change the status of a completed or failed run.` });
+  // }
+
+  // const targetStatus = body.status ?? run.status;
+
+  // if (body.failReason && targetStatus !== 'failed') {
+  //   throw new HTTPException(400, { message: "failReason can only be set when status is 'failed'." });
+  // }
+
+  // if ((run.status === 'failed' || run.status === 'completed') && body.items?.length) {
+  //   throw new HTTPException(400, { message: "Cannot add items to a finished run." });
+  // }
+
+  // if (body.items?.length) {
+  //   validateItemsForRun(agentConfig, session, effectiveRunMatch?.runConfig, body.items, targetStatus as any, { allowUnknownSteps, allowUnknownItemKeys });
+  // }
+
+  // const parsedMetadata = body.metadata !== undefined ? validateRunMetadata(effectiveRunMatch?.runConfig, body.metadata) : run.metadata;
+
+  // const justCompleted = targetStatus === 'completed' && run.status !== 'completed';
+  // const justFailed = targetStatus === 'failed' && run.status !== 'failed';
+  // const justFinished = justCompleted || justFailed;
+
+  // const newStatus = targetStatus;
+  // const newFailReason = newStatus === 'failed' ? (body.failReason ?? run.failReason) : run.failReason; // ignore fail reason for non-failed statuses
+  // const finishedAt = justFinished ? new Date().toISOString() : run.finishedAt;
 
   await db.transaction(async (tx) => {
     if (body.items) {
@@ -1674,10 +1719,10 @@ app.openapi(runsPATCHRoute, async (c) => {
     }
 
     await tx.update(runs).set({
-      status: newStatus,
-      metadata: parsedMetadata,
-      failReason: newFailReason,
-      finishedAt: finishedAt,
+      status,
+      metadata,
+      failReason,
+      finishedAt,
     }).where(eq(runs.id, run.id));
 
     if (body.state !== undefined) {

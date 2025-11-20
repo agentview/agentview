@@ -462,21 +462,21 @@ describe('API', () => {
     // every case can be failed / completed
 
     const baseTestCases2: any = [
-      // {
-      //   title: "just input & output",
-      //   items: [baseInput, baseOutput],
-      //   status: ["completed", "failed"]
-      // },
+      {
+        title: "just input & output",
+        items: [baseInput, baseOutput],
+        status: ["completed", "failed"]
+      },
       {
         title: "input, 2 items, output",
         items: [baseInput, baseStep, baseStep, baseOutput],
         status: ["completed", "failed"]
       },
-      // {
-      //   title: "input, 2 steps, no output",
-      //   items: [baseInput, baseStep, baseStep],
-      //   status: ["failed"]
-      // },
+      {
+        title: "input, 2 steps, no output",
+        items: [baseInput, baseStep, baseStep],
+        status: ["failed"]
+      },
       // {
       //   title: "input, 2 items, no output",
       //   items: [baseInput, baseStep, baseStep],
@@ -488,10 +488,10 @@ describe('API', () => {
     for (const testCase of baseTestCases2) {
 
       const splits = [
-        // {
-        //   title: "each item separate",
-        //   iterations: testCase.items.map((item: any) => [item]),
-        // },
+        {
+          title: "each item separate",
+          iterations: testCase.items.map((item: any) => [item]),
+        },
         {
           title: "all at once",
           iterations: [testCase.items],
@@ -499,15 +499,15 @@ describe('API', () => {
       ]
 
       if (testCase.items.length > 2) {
-        // splits.push({
-        //   title: "input + second -> the rest",
-        //   iterations: [[testCase.items[0], testCase.items[1], ...testCase.items.slice(2)]],
-        // })
+        splits.push({
+          title: "input + second, then the rest",
+          iterations: [[testCase.items[0], testCase.items[1]], testCase.items.slice(2)],
+        })
 
-        // splits.push({
-        //   title: "all but last -> last",
-        //   iterations: [testCase.items.slice(0, -1), testCase.items[testCase.items.length - 1]],
-        // })
+        splits.push({
+          title: "all but last, then last",
+          iterations: [testCase.items.slice(0, -1), [testCase.items[testCase.items.length - 1]]],
+        })
       }
 
       for (const split of splits) {
@@ -526,10 +526,19 @@ describe('API', () => {
               totalItems += iteration.length;
 
               if (isFirst && isLast) {
-                run = await av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status })
-                expect(run.status).toBe(status)
-                expect(run.items.length).toEqual(totalItems)
-                expect(run.finishedAt).toBeTruthy()
+                const promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status });
+
+                if (testCase.error) {
+                  await expect(av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status })).rejects.toThrowError(expect.objectContaining({
+                    statusCode: 422,
+                    message: expect.any(String),
+                  }))
+                } else {
+                  run = await av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status })
+                  expect(run.status).toBe(status)
+                  expect(run.items.length).toEqual(totalItems)
+                  expect(run.finishedAt).toBeTruthy()
+                }
 
               } else if (isFirst) {
                 run = await av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0" })
