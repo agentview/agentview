@@ -203,6 +203,11 @@ export const sessionRelations = relations(sessions, ({ many, one }) => ({
     references: [endUsers.id],
   }),
   inboxItems: many(inboxItems),
+
+  // state: one(sessionItems, {
+  //   fields: [sessions.id],
+  //   references: [sessionItems.sessionId],
+  // }),
 }));
 
 export const endUserRelations = relations(endUsers, ({ many, one }) => ({
@@ -237,7 +242,7 @@ export const runRelations = relations(runs, ({ one, many }) => ({
     fields: [runs.versionId],
     references: [versions.id],
   }),
-  items: many(sessionItems)
+  items: many(sessionItems),
 }));
 
 export const sessionItemsRelations = relations(sessionItems, ({ one, many }) => ({

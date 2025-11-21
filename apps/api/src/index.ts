@@ -17,7 +17,7 @@ import { isUUID } from './isUUID'
 import { extractMentions } from './utils'
 import { auth } from './auth'
 import { createInvitation, cancelInvitation, getPendingInvitations, getValidInvitation } from './invitations'
-import { fetchSession, fetchSessionState } from './sessions'
+import { fetchSession } from './sessions'
 import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
@@ -1565,10 +1565,15 @@ app.openapi(runPATCHRoute, async (c) => {
 
   const parsedItems = validateNonInputItems(runConfig, items, body.status ?? 'in_progress');
 
+  /** State */
+  if (body.state !== undefined && run.status !== 'in_progress') {
+    throw new AgentViewError("Cannot set state to a finished run.", 422);
+  }
+
   /** Metadata **/
   const metadata = parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, run.metadata ?? {});
 
-  /** STATUS, FINISHED_AT, FAIL_REASON */
+  /** Status, finished at, failReason */
   if (run.status !== 'in_progress' && body.status && body.status !== run.status) {
     throw new AgentViewError("Cannot change the status of a finished run.", 400);
   }

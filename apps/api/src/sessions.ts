@@ -5,33 +5,25 @@ import type { Transaction } from "./types";
 import { isUUID } from "./isUUID";
 import type { SessionWithCollaboration } from "./shared/apiTypes";
 
-export async function fetchSessions(session_id?: string, tx?: Transaction): Promise<SessionWithCollaboration[]> {
-  const where = (() => {
-    if (!session_id) {
+export async function fetchSession(session_id: string, tx?: Transaction): Promise<SessionWithCollaboration | undefined> {
+  let where : ReturnType<typeof eq> | undefined;
+
+  if (isUUID(session_id)) { // id
+    where = eq(sessions.id, session_id);
+  }
+  else { // handle
+    const match = session_id.match(/^(\d+)(.*)$/);
+    if (match) {
+      const handleNumber = parseInt(match[1], 10);
+      const handleSuffix = match[2] || "";
+      where = and(eq(sessions.handleNumber, handleNumber), eq(sessions.handleSuffix, handleSuffix));
+    }
+    else {
       return undefined;
     }
-    else if (isUUID(session_id)) { // id
-      return eq(sessions.id, session_id);
-    }
-    else { // handle
-      const match = session_id.match(/^(\d+)(.*)$/);
-      if (match) {
-        const handleNumber = parseInt(match[1], 10);
-        const handleSuffix = match[2] || "";
-        return and(
-          eq(sessions.handleNumber, handleNumber),
-          eq(sessions.handleSuffix, handleSuffix)
-        );
-      }
-    }
-
-  })();
-
-  if (session_id && where === undefined) {
-    return [];
   }
-
-  const sessionRows = await (tx || db).query.sessions.findMany({
+  
+  const row = await (tx || db).query.sessions.findFirst({
     where,
     with: {
       endUser: true,
@@ -51,7 +43,7 @@ export async function fetchSessions(session_id?: string, tx?: Transaction): Prom
           version: true,
           items: {
             orderBy: (sessionItem, { asc }) => [asc(sessionItem.createdAt)],
-            where: (sessionItem, { ne }) => ne(sessionItem.isState, true),
+            where: (sessionItem, { eq }) => eq(sessionItem.isState, false),
             with: {
               commentMessages: {
                 orderBy: (commentMessages, { asc }) => [asc(commentMessages.createdAt)],
@@ -67,7 +59,13 @@ export async function fetchSessions(session_id?: string, tx?: Transaction): Prom
     }
   });
   
-  return sessionRows.map((row) => ({
+  if (!row) {
+    return undefined;
+  }
+
+  const state = await fetchSessionState(session_id, tx);
+
+  return {
     id: row.id,
     handle: row.handleNumber.toString() + (row.handleSuffix ?? ""),
     createdAt: row.createdAt,
@@ -77,8 +75,21 @@ export async function fetchSessions(session_id?: string, tx?: Transaction): Prom
     endUser: row.endUser,
     endUserId: row.endUser.id,
     runs: row.runs.filter((run, index) => run.status !== "failed" || index === row.runs.length - 1),
-    state: {} // todo: fixme
-  })) as SessionWithCollaboration[];
+    state//: null,//row.states[row.states.length - 1]?.content ?? null // todo: fixme
+  } as SessionWithCollaboration;
+
+  // return sessionRows.map((row) => ({
+  //   id: row.id,
+  //   handle: row.handleNumber.toString() + (row.handleSuffix ?? ""),
+  //   createdAt: row.createdAt,
+  //   updatedAt: row.updatedAt,
+  //   metadata: row.metadata,
+  //   agent: row.agent,
+  //   endUser: row.endUser,
+  //   endUserId: row.endUser.id,
+  //   runs: row.runs.filter((run, index) => run.status !== "failed" || index === row.runs.length - 1),
+  //   state: null,//row.states[row.states.length - 1]?.content ?? null // todo: fixme
+  // })) as SessionWithCollaboration[];
 
   // return await Promise.all(sessionRows.map(async (row) => ({
   //   id: row.id,
@@ -94,17 +105,17 @@ export async function fetchSessions(session_id?: string, tx?: Transaction): Prom
   // }))) as SessionWithCollaboration[];
 }
 
-export async function fetchSession(session_id: string, tx?: Transaction): Promise<SessionWithCollaboration | undefined> {
-  const sessions = await fetchSessions(session_id, tx)
+// export async function fetchSession(session_id: string, tx?: Transaction): Promise<SessionWithCollaboration | undefined> {
+//   const sessions = await fetchSessions(session_id, tx)
 
-  if (sessions.length === 0) {
-    return undefined;
-  }
+//   if (sessions.length === 0) {
+//     return undefined;
+//   }
 
-  return sessions[0]
-}
+//   return sessions[0]
+// }
 
-export async function fetchSessionState(session_id: string, tx?: Transaction) {
+async function fetchSessionState(session_id: string, tx?: Transaction) {
   // Fetch the latest __state__ session item by createdAt descending
   const stateItem = await (tx || db).query.sessionItems.findFirst({
     where: and(eq(sessionItems.sessionId, session_id), eq(sessionItems.isState, true)),

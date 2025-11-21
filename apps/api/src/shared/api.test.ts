@@ -338,8 +338,6 @@ describe('API', () => {
       }))
     })
 
-
-
     test("history and lastRun are generated correctly as new runs are created", async () => {
       await updateConfig()
       
@@ -370,6 +368,40 @@ describe('API', () => {
       expect(session.history).toEqual([baseInput, baseOutput, baseInput, baseStep, baseOutput])
       expect(session.lastRun?.id).toBe(run3.id)
     })
+
+    test("state works properly", async () => {
+      await updateConfig()
+      
+      let session = await createSession()
+      expect(session.state).toBeNull();
+
+      // First run, check 
+      let run1 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+      session = await av.getSession({ id: session.id })
+      expect(session.state).toEqual(null)
+
+      run1 = await av.updateRun({ id: run1.id, items: [baseOutput], status: "completed", state: { x: 1 } })
+      session = await av.getSession({ id: session.id })
+      expect(session.state).toEqual({ x: 1 })
+
+      // Second run, failed
+      let run2 = await av.createRun({ sessionId: session.id, items: [baseInput, baseStep, baseOutput], status: "failed", version: "1.0.0", state: { x: 2 } })
+      session = await av.getSession({ id: session.id })
+      expect(session.state).toEqual({ x: 2 })
+
+      // Retry, successful
+      let run3 = await av.createRun({ sessionId: session.id, items: [baseInput, baseStep, baseOutput], status: "completed", version: "1.0.0", state: { x: 3 } })
+      session = await av.getSession({ id: session.id })
+      expect(session.state).toEqual({ x: 3 })
+
+      // can't change state after run is completed
+      await expect(av.updateRun({ id: run3.id, state: { x: 4 } })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 422,
+        message: expect.any(String),
+      }))
+    })
+
+
 
     // METADATA TESTS
     test("create / with known metadata / saved", async () => {
@@ -489,8 +521,8 @@ describe('API', () => {
   })
 
   // TODO:
-  // - do state, and check it properly (should be in enhanced session):
   // - tool calls (fix configUtils.test)
+  // - ORDER OF SESSION ITEMS!!!
 
   describe("runs", () => {
     test("creating run with non-existing sessionId", async () => {

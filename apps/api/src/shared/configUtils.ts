@@ -44,7 +44,7 @@ export function requireRunConfig<T extends BaseAgentConfig>(agentConfig: T, inpu
 
 type SessionItemExtension = { __type: "input" | "output" | "step", content?: any, toolCallContent?: any }
 
-export function findItemConfig<T extends BaseRunConfig, RunT extends BaseRunConfig>(runConfig: T, items: any[], contentOrId: string | Record<string, any>, itemType?: "input" | "output" | "step", looseMatching: boolean = true) {
+export function findItemConfig<T extends BaseRunConfig, RunT extends BaseRunConfig>(runConfig: T, items: any[], contentOrId: string | Record<string, any>, itemType?: "input" | "output" | "step") {
     // console.log("--------------------------------")
     // type RunT = NonNullable<T["runs"]>[number];
     type ItemConfigT = RunT["output"] & SessionItemExtension; // output type is the same as step type, we also ignore input type difference for now 
