@@ -4,7 +4,7 @@ import type { EndUser, Run } from './apiTypes';
 import { z } from 'zod';
 import { AgentViewError } from './AgentViewError';
 
-const apiKey = 'cTlvHJzNQqFwgUaXJwhQCgnxUaYPYrgnjLDkapomgcAHRKoyutJpvVJACaBCUWoT'
+const apiKey = 'QnUveLvkStSMbjRCCzfbkBtlngakfLLoHFyaARUroWvTPoqALxxpZSPRuYIUMGbR'
 const apiUrl = 'http://localhost:8080'
 
 const av = new AgentView({

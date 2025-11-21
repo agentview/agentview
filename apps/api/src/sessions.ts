@@ -22,7 +22,7 @@ export async function fetchSession(session_id: string, tx?: Transaction): Promis
       return undefined;
     }
   }
-  
+
   const row = await (tx || db).query.sessions.findFirst({
     where,
     with: {
@@ -42,7 +42,7 @@ export async function fetchSession(session_id: string, tx?: Transaction): Promis
         with: {
           version: true,
           items: {
-            orderBy: (sessionItem, { asc }) => [asc(sessionItem.createdAt)],
+            orderBy: (sessionItem, { asc }) => [asc(sessionItem.sortOrder)],
             where: (sessionItem, { eq }) => eq(sessionItem.isState, false),
             with: {
               commentMessages: {
