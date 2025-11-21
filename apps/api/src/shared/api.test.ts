@@ -264,6 +264,32 @@ describe('API', () => {
       }))
     })
 
+
+    test("get by id for existing session", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+
+      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      const fetchedSession = await av.getSession({ id: session.id })
+      expect(fetchedSession).toMatchObject({
+        agent: "test",
+        metadata: {},
+        runs: [],
+        endUserId: initEndUser1.id,
+      })
+    })
+
+    test("get by id - wrong id", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+
+      await expect(av.getSession({ id: 'xxx' })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 404,
+        message: expect.any(String),
+      }))
+    })
+
+
+
+    
     test("create / with known metadata / saved", async () => {
       await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { product_id: z.string() } }] } })
 
@@ -331,27 +357,6 @@ describe('API', () => {
       }))
     })
 
-    test("get by id for existing session", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
-
-      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
-      const fetchedSession = await av.getSession({ id: session.id })
-      expect(fetchedSession).toMatchObject({
-        agent: "test",
-        metadata: {},
-        runs: [],
-        endUserId: initEndUser1.id,
-      })
-    })
-
-    test("get by id - wrong id", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
-
-      await expect(av.getSession({ id: 'xxx' })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 404,
-        message: expect.any(String),
-      }))
-    })
 
     test("update metadata", async () => {
       await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false }] } })
@@ -404,8 +409,9 @@ describe('API', () => {
   // TODO:
   // - do state, and check it properly (shoudl be in enhanced session):
   // - metadata (check if allow for changing AFTER completion)
-  // - tool calls
+  // - tool calls (fix configUtils.test)
   // - validateSteps
+  // - test history and lastRun (whether history keeps only items from valid runs)
 
   describe("runs", () => {
     

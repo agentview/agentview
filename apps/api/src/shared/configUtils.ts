@@ -1,5 +1,5 @@
 import type { Run, Session } from "./apiTypes";
-import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig, ExtendedSchema, Metadata, BaseRunConfig } from "./configTypes";
+import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig, Metadata, BaseRunConfig } from "./configTypes";
 import { z, ZodString } from "zod";
 import { getAllSessionItems } from "./sessionUtils";
 import { AgentViewError } from "./AgentViewError";
