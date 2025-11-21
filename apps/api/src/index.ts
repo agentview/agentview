@@ -686,7 +686,7 @@ app.openapi(endUsersPOSTRoute, async (c) => {
 
   const existingUserWithExternalId = body.externalId ? await findEndUser({ externalId: body.externalId }) : null;
   if (existingUserWithExternalId) {
-    throw new HTTPException(400, { message: "End user with this external ID already exists" });
+    throw new HTTPException(422, { message: "End user with this external ID already exists" });
   }
 
   const newEndUser = await createEndUser({
@@ -713,7 +713,7 @@ app.openapi(endUserMe, async (c) => {
   const endUser = principal.endUser;
 
   if (!endUser) {
-    throw new HTTPException(400, { message: "You must provide an end user token to access this endpoint." });
+    throw new HTTPException(422, { message: "You must provide an end user token to access this endpoint." });
   }
 
   await authorize(principal, { action: "end-user:read", endUser })
@@ -1419,7 +1419,7 @@ app.openapi(runsPOSTRoute, async (c) => {
 
   /** Only one in_progress run is allowed per session **/
   if (lastRun?.status === 'in_progress') {
-    throw new HTTPException(400, { message: `Can't create a run because session has already a run in progress.` });
+    throw new HTTPException(422, { message: `Can't create a run because session has already a run in progress.` });
   }
 
   /** Version compatibility checking **/
@@ -1427,18 +1427,18 @@ app.openapi(runsPOSTRoute, async (c) => {
 
   const parsedVersion = parseVersion(version.version);
   if (!parsedVersion) {
-    throw new HTTPException(400, { message: "Invalid version number format. Should be like '1.2.3'" });
+    throw new HTTPException(422, { message: "Invalid version number format. Should be like '1.2.3'" });
   }
 
   if (lastRun?.version) { // compare semantic versions when previous version exists
     const lastVersionParsed = parseVersion(lastRun.version.version);
 
     if (lastVersionParsed?.major !== parsedVersion?.major || lastVersionParsed?.minor !== parsedVersion?.minor) {
-      throw new HTTPException(400, { message: "Cannot continue a session with a different major or minor version." });
+      throw new HTTPException(422, { message: "Cannot continue a session with a different major or minor version." });
     }
 
     if (lastVersionParsed?.patch > parsedVersion?.patch) {
-      throw new HTTPException(400, { message: "Cannot continue a session with a smaller patch version." });
+      throw new HTTPException(422, { message: "Cannot continue a session with a smaller patch version." });
     }
   }
 
@@ -1465,7 +1465,7 @@ app.openapi(runsPOSTRoute, async (c) => {
   const failReason = body.failReason ?? null;
 
   if (failReason && status !== 'failed') {
-    throw new AgentViewError("failReason can only be set when status is 'failed'.", 400);
+    throw new AgentViewError("failReason can only be set when status is 'failed'.", 422);
   }
 
   const finishedAt = (status === 'completed' || status === 'failed') ? new Date().toISOString() : null;
@@ -1560,7 +1560,7 @@ app.openapi(runPATCHRoute, async (c) => {
   const items = body.items ?? [];
 
   if (items.length > 0 && run.status !== 'in_progress') {
-    throw new AgentViewError("Cannot add items to a finished run.", 400);
+    throw new AgentViewError("Cannot add items to a finished run.", 422);
   }
 
   const parsedItems = validateNonInputItems(runConfig, items, body.status ?? 'in_progress');
@@ -1575,14 +1575,14 @@ app.openapi(runPATCHRoute, async (c) => {
 
   /** Status, finished at, failReason */
   if (run.status !== 'in_progress' && body.status && body.status !== run.status) {
-    throw new AgentViewError("Cannot change the status of a finished run.", 400);
+    throw new AgentViewError("Cannot change the status of a finished run.", 422);
   }
 
   const status = body.status ?? 'in_progress';
   const failReason = body.failReason ?? null;
 
   if (failReason && status !== 'failed') {
-    throw new AgentViewError("failReason can only be set when status is 'failed'.", 400);
+    throw new AgentViewError("failReason can only be set when status is 'failed'.", 422);
   }
 
   const finishedAt = run.finishedAt ?? ((status === 'completed' || status === 'failed') ? new Date().toISOString() : null);
@@ -1925,7 +1925,7 @@ app.openapi(commentsPUTRoute, async (c) => {
     try {
       await updateComment(tx, session, item, commentMessage, body.comment ?? null);
     } catch (error) {
-      return c.json({ message: `Invalid mention format: ${(error as Error).message}` }, 400);
+      return c.json({ message: `Invalid mention format: ${(error as Error).message}` }, 422);
     }
   });
 
@@ -2361,7 +2361,7 @@ const configPutRoute = createRoute({
   },
   responses: {
     200: response_data(ConfigSchema),
-    400: response_error(),
+    422: response_error(),
   },
 })
 
@@ -2376,7 +2376,7 @@ app.openapi(configPutRoute, async (c) => {
   // validate & parse body.config
   const { data, success, error } = BaseConfigSchema.safeParse(body.config)
   if (!success) {
-    return c.json({ message: "Invalid config", code: 'parse.schema', details: error.issues }, 400);
+    return c.json({ message: "Invalid config", code: 'parse.schema', details: error.issues }, 422);
   }
 
   // console.log('------------- 2 -------------');

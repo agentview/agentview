@@ -83,7 +83,7 @@ describe('API', () => {
   describe("end users", () => {
     test("creating another user with the same external id should fail", async () => {
       await expect(av.createEndUser({ externalId: EXTERNAL_ID_1 })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 400,
+        statusCode: 422,
         message: expect.any(String),
       }))
     })
@@ -282,7 +282,7 @@ describe('API', () => {
 
     test("invalid config throws", async () => {
       await expect(av.__updateConfig({ config: { agents: 100 } })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 400,
+        statusCode: 422,
         message: expect.any(String),
       }))
     })
@@ -567,7 +567,7 @@ describe('API', () => {
 
       await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
       await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 400,
+        statusCode: 422,
         message: expect.any(String),
       }))
     })
@@ -820,12 +820,12 @@ describe('API', () => {
       expect(completed.status).toBe("completed")
 
       await expect(av.updateRun({ id: run.id, items: [baseStep] })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 400,
+        statusCode: 422,
         message: expect.any(String),
       }))
 
       await expect(av.updateRun({ id: run.id, status: "failed" })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 400,
+        statusCode: 422,
         message: expect.any(String),
       }))
 
@@ -839,11 +839,11 @@ describe('API', () => {
 
       const failReason = { message: "oops" }
 
-      await expect(av.updateRun({ id: run.id, items: [baseStep], failReason })).rejects.toThrowError(expect.objectContaining({statusCode: 400,
+      await expect(av.updateRun({ id: run.id, items: [baseStep], failReason })).rejects.toThrowError(expect.objectContaining({statusCode: 422,
         message: expect.any(String),
       }))
       
-      await expect(av.updateRun({ id: run.id, items: [baseOutput], failReason, status: "completed" })).rejects.toThrowError(expect.objectContaining({statusCode: 400,
+      await expect(av.updateRun({ id: run.id, items: [baseOutput], failReason, status: "completed" })).rejects.toThrowError(expect.objectContaining({statusCode: 422,
         message: expect.any(String),
       }))
 
@@ -864,13 +864,13 @@ describe('API', () => {
 
       // smaller patch fails
       await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.2" })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 400,
+        statusCode: 422,
         message: expect.any(String),
       }))
 
       // different minor fails
       await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.3.0" })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 400,
+        statusCode: 422,
         message: expect.any(String),
       }))
     })
