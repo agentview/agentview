@@ -801,8 +801,6 @@ describe('API', () => {
 
     // METADATA
 
-    
-
     test.only("create / with known metadata / saved", async () => {
       await updateConfig({ runMetadata: { product_id: z.string() } })
       const session = await createSession()
@@ -899,9 +897,6 @@ describe('API', () => {
 
       const updated = await av.updateRun({ id: run.id, metadata: { field1: "B", field2: 1 } })
       expect(updated.metadata).toEqual({ field1: "B", field2: 1 })
-
-      // const fetched = await av.getRun({ id: run.id })
-      // expect(fetched.metadata).toEqual({ field1: "B", field2: 1 })
     })
 
     test.only("update metadata - partial update", async () => {
@@ -917,9 +912,6 @@ describe('API', () => {
 
       const updated = await av.updateRun({ id: run.id, metadata: { field1: "B" } })
       expect(updated.metadata).toEqual({ field1: "B", field2: 0 })
-
-      // const fetched = await av.getRun({ id: run.id })
-      // expect(fetched.metadata).toEqual({ field1: "B", field2: 0 })
     })
 
     test.only("update metadata - make field null", async () => {
@@ -935,9 +927,6 @@ describe('API', () => {
 
       const updated = await av.updateRun({ id: run.id, metadata: { field2: null } })
       expect(updated.metadata).toEqual({ field1: "A", field2: null })
-
-      // const fetched = await av.getRun({ id: run.id })
-      // expect(fetched.metadata).toEqual({ field1: "A", field2: null })
     })
 
     test.only("update metadata only - validation enforced", async () => {
