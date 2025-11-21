@@ -42,7 +42,7 @@ describe('API', () => {
   const wrongStep = { type: "reasoning", content: 100 }
   const wrongOutput = { type: "message", role: "assistant", content: 100 }
 
-  const updateConfig = async (options: { strictMatching?: boolean, runMetadata?: Record<string, z.ZodType>, allowUnknownMetadata?: boolean } = {}) => {
+  const updateConfig = async (options: { strictMatching?: boolean, runMetadata?: Record<string, z.ZodType>, allowUnknownMetadata?: boolean, validateSteps?: boolean } = {}) => {
 
     let inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() })
     let stepSchema = z.looseObject({ type: z.literal("reasoning"), content: z.string() })
@@ -65,6 +65,7 @@ describe('API', () => {
               steps: [{ schema: stepSchema }],
               output: { schema: outputSchema },
               metadata: options.runMetadata,
+              validateSteps: options.validateSteps,
               allowUnknownMetadata: options.allowUnknownMetadata,
             }
           ]
@@ -548,7 +549,7 @@ describe('API', () => {
      * This is automated set of test cases where we test different scenarios of runs.
      **/
 
-    const baseTestCases : Array<{ title: string, scenarios: any[], lastRunStatus: ("in_progress" | "completed" | "failed" | undefined)[], error?: number | null, validateItems?: boolean, strictMatching?: boolean }> = [
+    const baseTestCases : Array<{ title: string, scenarios: any[], lastRunStatus: ("in_progress" | "completed" | "failed" | undefined)[], error?: number | null, validateSteps?: boolean, strictMatching?: boolean }> = [
       {
         title: "just input & output",
         scenarios: [
@@ -566,7 +567,7 @@ describe('API', () => {
           [ [baseInput], [baseStep, baseStep], [baseOutput] ],
           [ [baseInput], [baseStep, baseStep, baseOutput] ],
         ],
-        lastRunStatus: ["completed", "failed"],
+        lastRunStatus: ["completed", "failed", undefined], // in_progress (undefined) doesn't throw because we don't validate steps -> therefore output can be treated as step. 
         error: null
       },
       {
@@ -578,6 +579,7 @@ describe('API', () => {
           [ [baseInput], [baseStep, baseStep, baseOutput] ],
         ],
         lastRunStatus: [undefined],
+        validateSteps: true,
         error: 422
       },
       {
@@ -669,6 +671,28 @@ describe('API', () => {
         ],
         lastRunStatus: ["failed"],
         error: null // when there is no step validation and status becomes "failed", we don't know if the last item was output or step
+      },
+      {
+        title: "incorrect step item, validateSteps=false",
+        scenarios: [
+          [ [baseInput, baseStep, wrongStep] ],
+          [ [baseInput], [baseStep], [wrongStep] ],
+          [ [baseInput], [baseStep, wrongStep] ],
+        ],
+        // validateSteps: false -> default
+        lastRunStatus: [undefined],
+        error: null,
+      },
+      {
+        title: "incorrect step item, validateSteps=true",
+        scenarios: [
+          [ [baseInput, baseStep, wrongStep] ],
+          [ [baseInput], [baseStep], [wrongStep] ],
+          [ [baseInput], [baseStep, wrongStep] ],
+        ],
+        validateSteps: true,
+        lastRunStatus: [undefined],
+        error: 422,
       }
     ]
 
@@ -681,7 +705,7 @@ describe('API', () => {
           const title = `${testCase.title} / run ${counter} / ${lastRunStatus} -> ${testCase.error ? `error ${testCase.error}` : "ok"}`
 
           test(title, async () => {
-            await updateConfig({ strictMatching: testCase.strictMatching });
+            await updateConfig({ strictMatching: testCase.strictMatching, validateSteps: testCase.validateSteps });
 
             const session = await createSession()
 
@@ -699,15 +723,15 @@ describe('API', () => {
               if (isFirst && isLast) {
                 promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status: lastRunStatus });
                 expectedStatus = lastRunStatus ?? "in_progress";
-                expectedHasFinishedAt = true;
+                expectedHasFinishedAt = expectedStatus !== "in_progress";
+              } else if (isLast) {
+                promise = av.updateRun({ id: run!.id, items: iteration, status: lastRunStatus })
+                expectedStatus = lastRunStatus ?? "in_progress";
+                expectedHasFinishedAt = expectedStatus !== "in_progress";
               } else if (isFirst) {
                 promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0" })
                 expectedStatus = "in_progress";
                 expectedHasFinishedAt = false;
-              } else if (isLast) {
-                promise = av.updateRun({ id: run!.id, items: iteration, status: lastRunStatus })
-                expectedStatus = lastRunStatus ?? "in_progress";
-                expectedHasFinishedAt = true;
               } else {
                 promise = av.updateRun({ id: run!.id, items: iteration })
                 expectedStatus = "in_progress";

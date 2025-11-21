@@ -2,8 +2,7 @@ import { db } from "./db";
 import { configs } from "./schemas/schema";
 import { desc } from "drizzle-orm";
 import { convertJsonSchemaToZod } from 'zod-from-json-schema';
-import type { BaseAgentViewConfig, BaseScoreConfig, BaseSessionItemConfig } from "./shared/configTypes";
-import { z, ZodObject, ZodType } from "zod";
+import { z } from "zod";
 
 const JsonSchema = z.record(z.string(), z.any()).superRefine((value, ctx) => {
     const valid = isJSONSchema(value)
@@ -79,15 +78,13 @@ function baseConfigSchema<T extends z.ZodType>(jsonSchemaSchema: T) {
             url: z.string(),
             metadata: z.record(z.string(), jsonSchemaSchema).optional(),
             allowUnknownMetadata: z.boolean().optional(),
-            allowUnknownRuns: z.boolean().optional(),
-            allowUnknownSteps: z.boolean().optional(),
-            allowUnknownItemKeys: z.boolean().optional(),
             runs: z.array(z.object({
                 input: BaseSessionItemConfigSchema,
                 output: BaseSessionItemConfigSchema,
                 steps: z.array(BaseSessionItemConfigSchemaWithTools).optional(),
                 metadata: z.record(z.string(), jsonSchemaSchema).optional(),
                 allowUnknownMetadata: z.boolean().optional(),
+                validateSteps: z.boolean().optional(),
             })).optional(),
         })).optional(),
     })

@@ -24,7 +24,7 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
 import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, SessionUpdateSchema, RunSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type EndUser, type Run } from './shared/apiTypes'
 import { getConfigRow, BaseConfigSchema, BaseConfigSchemaToZod } from './getConfig'
-import { type BaseAgentViewConfig, type BaseAgentConfig, type BaseSessionItemConfig, type BaseScoreConfig, type Metadata, type BaseRunConfig } from './shared/configTypes'
+import { type BaseAgentViewConfig, type Metadata, type BaseRunConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
 import { getUsersCount } from './users'
 import { updateInboxes } from './updateInboxes'
@@ -1316,7 +1316,7 @@ function parseVersion(version: string): { major: number, minor: number, patch: n
 }
 
 function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: 'in_progress' | 'completed' | 'failed') {
-  const validateSteps = false;
+  const validateSteps = runConfig.validateSteps ?? false;
 
   const stepItemsParsed : any[] = [];
   let lastItemParsed : any;
@@ -1374,11 +1374,14 @@ function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: '
   /* Validate step items */
   for (const stepItem of stepItems) {
     const stepItemConfig = findItemConfig(runConfig, [], stepItem, "step");
-    if (!stepItemConfig) {
-      throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
+    if (stepItemConfig) {
+      stepItemsParsed.push(stepItemConfig.content);
+    }
+    else if (!validateSteps) {
+      stepItemsParsed.push(stepItem);
     }
     else {
-      stepItemsParsed.push(stepItemConfig.content);
+      throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
     }
   }
 
@@ -1572,7 +1575,7 @@ app.openapi(runPATCHRoute, async (c) => {
   if (run.status !== 'in_progress' && body.status && body.status !== run.status) {
     throw new AgentViewError("Cannot change the status of a finished run.", 400);
   }
-  
+
   const status = body.status ?? 'in_progress';
   const failReason = body.failReason ?? null;
 

@@ -20,6 +20,7 @@ export interface BaseRunConfig<TSessionItemConfig extends BaseSessionItemConfig 
     steps?: TSessionItemConfig[];
     metadata?: Metadata;
     allowUnknownMetadata?: boolean;
+    validateSteps?: boolean;
 }
 
 export interface BaseAgentConfig<TRunConfig extends BaseRunConfig = BaseRunConfig> {
@@ -28,9 +29,6 @@ export interface BaseAgentConfig<TRunConfig extends BaseRunConfig = BaseRunConfi
     metadata?: Metadata;
     allowUnknownMetadata?: boolean;
     runs?: TRunConfig[];
-    allowUnknownRuns?: boolean;
-    allowUnknownSteps?: boolean;
-    allowUnknownItemKeys?: boolean;
 }
 
 export type BaseAgentViewConfig<TAgentConfig extends BaseAgentConfig = BaseAgentConfig> = {
