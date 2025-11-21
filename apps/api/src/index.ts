@@ -1447,9 +1447,8 @@ app.openapi(runsPOSTRoute, async (c) => {
     throw new AgentViewError("New run must have at least 1 item, input.", 422);
   }
   const [inputItem, ...nonInputItems] = body.items;
-  const looseMatching = agentConfig.allowUnknownItemKeys ?? true;
 
-  const runConfig = requireRunConfig(agentConfig, inputItem, looseMatching);
+  const runConfig = requireRunConfig(agentConfig, inputItem);
 
   const parsedInput = [runConfig.input.schema.parse(inputItem)] // must be true, because of line above
 
@@ -1474,7 +1473,6 @@ app.openapi(runsPOSTRoute, async (c) => {
 
   // Create run and items
   await db.transaction(async (tx) => {
-
     const env = version.env || 'dev';
 
     await db.insert(versions).values({
@@ -1502,6 +1500,7 @@ app.openapi(runsPOSTRoute, async (c) => {
       }))
     ).returning();
 
+    // insert state item
     if (body.state !== undefined) {
       await tx.insert(sessionItems).values({
         sessionId: body.sessionId,
@@ -1553,11 +1552,9 @@ app.openapi(runPATCHRoute, async (c) => {
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
 
-  const looseMatching = agentConfig.allowUnknownItemKeys ?? true;
-
   /** Find matching run **/
   const inputItem = run.items[0].content;
-  const runConfig = requireRunConfig(agentConfig, inputItem, looseMatching);
+  const runConfig = requireRunConfig(agentConfig, inputItem);
 
   /** Validate items */
   const items = body.items ?? [];
@@ -1584,50 +1581,6 @@ app.openapi(runPATCHRoute, async (c) => {
   }
 
   const finishedAt = run.finishedAt ?? ((status === 'completed' || status === 'failed') ? new Date().toISOString() : null);
-
-
-  // const allowUnknownRuns = agentConfig.allowUnknownRuns ?? true;
-  // const allowUnknownSteps = agentConfig.allowUnknownSteps ?? true;
-  // const allowUnknownItemKeys = agentConfig.allowUnknownItemKeys ?? true;
-  // const runWithItems = session.runs.find((r) => r.id === run.id);
-  // const inputItem = runWithItems?.items?.[0];
-
-  // const runMatch = inputItem ? findItemAndRunConfig(agentConfig, session, inputItem.id ?? inputItem.content, "input") : undefined;
-  // const runConfig = runMatch?.runConfig;
-  // const effectiveRunMatch = runMatch ?? (agentConfig.runs && agentConfig.runs.length === 1 ? { runConfig: agentConfig.runs[0], itemConfig: agentConfig.runs[0].input, itemType: "input" as const } : undefined);
-
-  // if (!effectiveRunMatch && !allowUnknownRuns) {
-  //   throw new HTTPException(422, { message: "Input item not allowed." });
-  // }
-
-  // // prevent wrong status changes
-  // if (body.status && (run.status === 'failed' || run.status === 'completed') && body.status !== run.status) {
-  //   throw new HTTPException(400, { message: `Cannot change the status of a completed or failed run.` });
-  // }
-
-  // const targetStatus = body.status ?? run.status;
-
-  // if (body.failReason && targetStatus !== 'failed') {
-  //   throw new HTTPException(400, { message: "failReason can only be set when status is 'failed'." });
-  // }
-
-  // if ((run.status === 'failed' || run.status === 'completed') && body.items?.length) {
-  //   throw new HTTPException(400, { message: "Cannot add items to a finished run." });
-  // }
-
-  // if (body.items?.length) {
-  //   validateItemsForRun(agentConfig, session, effectiveRunMatch?.runConfig, body.items, targetStatus as any, { allowUnknownSteps, allowUnknownItemKeys });
-  // }
-
-  // const parsedMetadata = body.metadata !== undefined ? validateRunMetadata(effectiveRunMatch?.runConfig, body.metadata) : run.metadata;
-
-  // const justCompleted = targetStatus === 'completed' && run.status !== 'completed';
-  // const justFailed = targetStatus === 'failed' && run.status !== 'failed';
-  // const justFinished = justCompleted || justFailed;
-
-  // const newStatus = targetStatus;
-  // const newFailReason = newStatus === 'failed' ? (body.failReason ?? run.failReason) : run.failReason; // ignore fail reason for non-failed statuses
-  // const finishedAt = justFinished ? new Date().toISOString() : run.finishedAt;
 
   await db.transaction(async (tx) => {
     if (parsedItems.length > 0) {

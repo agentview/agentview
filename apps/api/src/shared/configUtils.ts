@@ -13,7 +13,7 @@ export function requireAgentConfig<T extends BaseAgentViewConfig>(config: T, age
 }
 
 
-export function findMatchingRunConfigs<T extends BaseAgentConfig>(agentConfig: T, inputItemContent: any, looseMatching: boolean = true) {
+export function findMatchingRunConfigs<T extends BaseAgentConfig>(agentConfig: T, inputItemContent: any) {
     let matchingRunConfigs: BaseRunConfig[] = [];
 
     for (const runConfig of agentConfig.runs ?? []) {
@@ -25,8 +25,8 @@ export function findMatchingRunConfigs<T extends BaseAgentConfig>(agentConfig: T
     return matchingRunConfigs;
 }
 
-export function requireRunConfig<T extends BaseAgentConfig>(agentConfig: T, inputItemContent: any, looseMatching: boolean = true) {
-    const matchingRunConfigs = findMatchingRunConfigs(agentConfig, inputItemContent, looseMatching);
+export function requireRunConfig<T extends BaseAgentConfig>(agentConfig: T, inputItemContent: any) {
+    const matchingRunConfigs = findMatchingRunConfigs(agentConfig, inputItemContent);
     if (matchingRunConfigs.length === 0) {
         throw new AgentViewError(`No run config found for input item content.`, 422, { item: inputItemContent });
     }

@@ -492,9 +492,6 @@ describe('API', () => {
   // - do state, and check it properly (should be in enhanced session):
   // - tool calls (fix configUtils.test)
 
-
-
-
   describe("runs", () => {
     test("creating run with non-existing sessionId", async () => {
       await updateConfig()
