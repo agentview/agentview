@@ -44,7 +44,7 @@ export function requireRunConfig<T extends BaseAgentConfig>(agentConfig: T, inpu
 
 type SessionItemExtension = { __type: "input" | "output" | "step", content?: any, toolCallContent?: any }
 
-export function findItemConfig<T extends BaseRunConfig, RunT extends BaseRunConfig>(runConfig: T, items: any[], contentOrId: string | Record<string, any>, itemType?: "input" | "output" | "step") {
+export function findItemConfig<RunT extends BaseRunConfig>(runConfig: RunT, items: any[], contentOrId: string | Record<string, any>, itemType?: "input" | "output" | "step") : { itemConfig: RunT["output"], content: any, toolCallContent?: any } | undefined {
     // console.log("--------------------------------")
     // type RunT = NonNullable<T["runs"]>[number];
     type ItemConfigT = RunT["output"] & SessionItemExtension; // output type is the same as step type, we also ignore input type difference for now 
@@ -92,11 +92,11 @@ export function findItemConfig<T extends BaseRunConfig, RunT extends BaseRunConf
     }
 
     const { __type, content, toolCallContent, ...itemConfig } = matches[0];
-    return { itemConfig, itemType: __type, content, toolCallContent };
+    return { itemConfig, content, toolCallContent };
 }
 
 
-function getCallIdKey(inputSchema: ExtendedSchema): any | undefined {
+function getCallIdKey(inputSchema: z.ZodType): any | undefined {
     const shape = inputSchema.shape;
 
     for (const [key, value] of Object.entries(shape)) {

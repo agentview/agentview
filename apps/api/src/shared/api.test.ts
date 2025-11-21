@@ -522,7 +522,6 @@ describe('API', () => {
 
   // TODO:
   // - tool calls (fix configUtils.test)
-  // - ORDER OF SESSION ITEMS!!!
 
   describe("runs", () => {
     test("creating run with non-existing sessionId", async () => {

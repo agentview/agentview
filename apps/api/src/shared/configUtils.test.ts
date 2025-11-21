@@ -1,0 +1,347 @@
+import { describe, it, expect } from 'vitest'
+import { z } from 'zod';
+import { type BaseAgentConfig, type BaseRunConfig, type BaseSessionItemConfig } from './configTypes';
+import { findItemConfig } from './configUtils';
+import type { Session } from './apiTypes';
+
+// those types here add $id on the session item config level, also tests whether our functions properly infers types :) 
+type SessionItemConfig = BaseSessionItemConfig & {
+    $id: string;
+}
+type RunConfig = BaseRunConfig<SessionItemConfig, SessionItemConfig>
+type AgentConfig = BaseAgentConfig<RunConfig>
+
+let sessionItemIdCounter = 1;
+
+function createSessionItem(content: any) {
+    return {
+        id: `${sessionItemIdCounter++}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        content,
+        runId: "default_run_id",
+        sessionId: "default_session_id",
+    }
+}
+
+function replace$Id(object: any, value: any) {
+    const newObject: Record<string, any> = {}
+    for (const key in object) {
+        if (object[key] == "$id") {
+            newObject[key] = value
+        } else {
+            newObject[key] = object[key]
+        }
+    }
+    return newObject;
+}
+
+
+function buildSchema(fields: any) {
+    const shape: Record<string, any> = {}
+
+    for (const key in fields) {
+        if (fields[key] == "$id") {
+            shape[key] = z.string().meta({ callId: true })
+        } else if(typeof fields[key] === 'string') {
+            shape[key] = z.literal(fields[key])
+        } else {
+            throw new Error(`Invalid field value for ${key}: ${fields[key]}`)
+        }
+    }
+    return z.object(shape);
+}
+
+// we added special '$id' property for the sake of assertions
+function functionCall($id: string, fields1: any = {}, fields2: any = {}) {
+
+    return {
+        definition: {
+            $id: `${$id}_call`,
+            schema: buildSchema({
+                type: "function_call",
+                ...fields1,
+            }),
+            callResult: {
+                $id: `${$id}_result`,
+                schema: buildSchema({
+                    type: "function_call_result",
+                    ...fields2,
+                }),
+            }
+        },
+        generate: () => {
+            const randomId = 'call_' + Math.random().toString(36).substring(2, 7);
+
+            const call = replace$Id({
+                type: "function_call",
+                arguments: { a: 1, b: 2 },
+                ...fields1,
+            }, randomId)
+
+            const result = replace$Id({
+                type: "function_call_result",
+                output: { c: 3 },
+                ...fields2,
+            }, randomId)
+
+            return {
+                call: createSessionItem(call),
+                result: createSessionItem(result),
+            }
+        }
+    }
+}
+
+function createRunConfig(steps: any[]): RunConfig {
+    return {
+        input: {
+            $id: "input",
+            schema: z.looseObject({
+                type: z.literal("message"),
+                role: z.literal("user"),
+                content: z.string(),
+            })
+        },
+        output: {
+            $id: "output",
+            schema: z.looseObject({
+                type: z.literal("message"),
+                role: z.literal("user"),
+                content: z.string(),
+            })
+        },
+        steps: [
+            {
+                schema: z.looseObject({
+                    type: z.literal("reasoning"),
+                })
+            },
+            ...steps
+        ]
+    }
+}
+
+
+const reasoning = () => {
+    return createSessionItem({
+        type: "reasoning",
+        content: "thinking..."
+    })
+}
+
+describe('agent with 2 function calls / call ids not set up', () => {
+    const functionCall1 = functionCall("function1", { name: "function1" }, { });
+    const functionCall2 = functionCall("function2", { name: "function2" }, { });
+
+    const runConfig = createRunConfig([
+        functionCall1.definition,
+        functionCall2.definition,
+    ])
+
+    describe('items with 2 consecutive synchronous function calls', () => {
+        const call1 = functionCall1.generate();
+        const call2 = functionCall2.generate();
+
+        console.log('call1', call1.call)
+
+        const items = [
+            reasoning(),
+            call1.call,
+            call1.result,
+            reasoning(),
+            call2.call,
+            call2.result,
+            reasoning()
+        ]
+
+        // const items = session.runs[0].items;
+
+        it('finds call items', () => {
+            expect(findItemConfig(runConfig, items, call1.call.id)?.itemConfig.$id).toBe(`function1_call`);
+            expect(findItemConfig(runConfig, items, call2.call.id)?.itemConfig.$id).toBe(`function2_call`);
+        })
+
+        it('can\'t find call results', () => {
+            expect(findItemConfig(runConfig, items, "xxx")).toBeUndefined();
+            expect(findItemConfig(runConfig, items, call1.result.id)).toBeUndefined();
+            expect(findItemConfig(runConfig, items, call2.result.id)).toBeUndefined();
+        });
+    })
+
+    describe('a lot of paralell calls', () => {
+        const fun1_call1 = functionCall1.generate();
+        const fun1_call2 = functionCall1.generate();
+        const fun1_call3 = functionCall1.generate();
+        const fun1_call4 = functionCall1.generate();
+
+        const fun2_call1 = functionCall2.generate();
+        const fun2_call2 = functionCall2.generate();
+        const fun2_call3 = functionCall2.generate();
+        const fun2_call4 = functionCall2.generate();
+
+        const items = [
+            reasoning(),
+            fun1_call1.call,
+            fun1_call2.call,
+            fun2_call2.call,
+            fun2_call1.call,
+            
+            fun2_call2.result,
+            // fun1_call1.result,
+            fun1_call2.result,
+            fun2_call1.result,
+
+            reasoning(),
+
+            fun1_call3.call,
+            fun2_call4.call,
+            fun2_call3.call,
+            fun1_call4.call,
+
+            fun1_call3.result,
+            fun1_call4.result,
+            fun2_call3.result,
+            // fun2_call4.result,
+
+            reasoning(),
+        ]
+
+        it("properly finds calls", () => {
+            expect(findItemConfig(runConfig, items, fun1_call1.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfig(runConfig, items, fun1_call2.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfig(runConfig, items, fun1_call3.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfig(runConfig, items, fun1_call4.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfig(runConfig, items, fun2_call1.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfig(runConfig, items, fun2_call2.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfig(runConfig, items, fun2_call3.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfig(runConfig, items, fun2_call4.call.id)?.itemConfig.$id).toBe('function2_call');
+        })
+
+        it("can't find results", () => {
+            expect(findItemConfig(runConfig, items, fun1_call1.result.id)).toBeUndefined();
+            expect(findItemConfig(runConfig, items, fun1_call2.result.id)).toBeUndefined();
+            expect(findItemConfig(runConfig, items, fun1_call3.result.id)).toBeUndefined();
+            expect(findItemConfig(runConfig, items, fun1_call4.result.id)).toBeUndefined();
+            expect(findItemConfig(runConfig, items, fun2_call1.result.id)).toBeUndefined();
+            expect(findItemConfig(runConfig, items, fun2_call2.result.id)).toBeUndefined();
+            expect(findItemConfig(runConfig, items, fun2_call3.result.id)).toBeUndefined();
+            expect(findItemConfig(runConfig, items, fun2_call4.result.id)).toBeUndefined();
+        })
+    })
+})
+
+
+describe('agent with 2 function calls, with ids', () => {
+    const functionCall1 = functionCall("function1", { name: "function1", callId: "$id" }, { callId: "$id" });
+    const functionCall2 = functionCall("function2", { name: "function2", callId: "$id" }, { callId: "$id" });
+
+    const runConfig = createRunConfig([
+        functionCall1.definition,
+        functionCall2.definition,
+    ])
+
+    describe('items with 2 consecutive synchronous function calls', () => {
+        const call1 = functionCall1.generate();
+        const call2 = functionCall2.generate();
+
+        const items =[
+            reasoning(),
+            call1.call,
+            call1.result,
+            reasoning(),
+            call2.call,
+            call2.result,
+            reasoning()
+        ]
+
+        it ('can find calls', () => {
+            expect(findItemConfig(runConfig, items, call1.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfig(runConfig, items, call2.call.id)?.itemConfig.$id).toBe('function2_call');
+        });
+
+        it ('can find results', () => {
+            expect(findItemConfig(runConfig, items, call1.result.id)?.itemConfig.$id).toBe('function1_result');
+            expect(findItemConfig(runConfig, items, call2.result.id)?.itemConfig.$id).toBe('function2_result');
+        });
+
+        it ('properly finds tool content for results', () => {
+            expect(findItemConfig(runConfig, items, call1.result.id)?.toolCallContent).toBe(call1.call.content);
+            expect(findItemConfig(runConfig, items, call2.result.id)?.toolCallContent).toBe(call2.call.content);
+        })
+    })
+
+    describe('a lot of paralell calls', () => {
+        const fun1_call1 = functionCall1.generate();
+        const fun1_call2 = functionCall1.generate();
+        const fun1_call3 = functionCall1.generate();
+        const fun1_call4 = functionCall1.generate();
+
+        const fun2_call1 = functionCall2.generate();
+        const fun2_call2 = functionCall2.generate();
+        const fun2_call3 = functionCall2.generate();
+        const fun2_call4 = functionCall2.generate();
+
+        const items = [
+
+            reasoning(),
+
+            fun1_call1.call,
+            fun1_call2.call,
+            fun2_call2.call,
+            fun2_call1.call,
+            
+            fun2_call2.result,
+            // fun1_call1.result,
+            fun1_call2.result,
+            fun2_call1.result,
+
+            reasoning(),
+
+            fun1_call3.call,
+            fun2_call4.call,
+            fun2_call3.call,
+            fun1_call4.call,
+
+            fun1_call3.result,
+            fun1_call4.result,
+            fun2_call3.result,
+            // fun2_call4.result,
+
+            reasoning(),
+        ]
+
+        it("finds calls", () => {
+            expect(findItemConfig(runConfig, items, fun1_call1.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfig(runConfig, items, fun1_call2.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfig(runConfig, items, fun1_call3.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfig(runConfig, items, fun1_call4.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfig(runConfig, items, fun2_call1.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfig(runConfig, items, fun2_call2.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfig(runConfig, items, fun2_call3.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfig(runConfig, items, fun2_call4.call.id)?.itemConfig.$id).toBe('function2_call');
+        })
+
+        it("finds results", () => {
+            expect(findItemConfig(runConfig, items, fun1_call1.result.id)).toBeUndefined();
+            expect(findItemConfig(runConfig, items, fun1_call2.result.id)?.itemConfig.$id).toBe('function1_result');
+            expect(findItemConfig(runConfig, items, fun1_call3.result.id)?.itemConfig.$id).toBe('function1_result');
+            expect(findItemConfig(runConfig, items, fun1_call4.result.id)?.itemConfig.$id).toBe('function1_result');
+            expect(findItemConfig(runConfig, items, fun2_call1.result.id)?.itemConfig.$id).toBe('function2_result');
+            expect(findItemConfig(runConfig, items, fun2_call2.result.id)?.itemConfig.$id).toBe('function2_result');
+            expect(findItemConfig(runConfig, items, fun2_call3.result.id)?.itemConfig.$id).toBe('function2_result');
+            expect(findItemConfig(runConfig, items, fun2_call4.result.id)).toBeUndefined();
+        })
+
+        it ('properly finds tool content for results', () => {
+            expect(findItemConfig(runConfig, items, fun1_call1.result.id)).toBeUndefined();
+            expect(findItemConfig(runConfig, items, fun1_call2.result.id)?.toolCallContent).toBe(fun1_call2.call.content);
+            expect(findItemConfig(runConfig, items, fun1_call3.result.id)?.toolCallContent).toBe(fun1_call3.call.content);
+            expect(findItemConfig(runConfig, items, fun1_call4.result.id)?.toolCallContent).toBe(fun1_call4.call.content);
+            expect(findItemConfig(runConfig, items, fun2_call1.result.id)?.toolCallContent).toBe(fun2_call1.call.content);
+            expect(findItemConfig(runConfig, items, fun2_call2.result.id)?.toolCallContent).toBe(fun2_call2.call.content);
+            expect(findItemConfig(runConfig, items, fun2_call3.result.id)?.toolCallContent).toBe(fun2_call3.call.content);
+            expect(findItemConfig(runConfig, items, fun2_call4.result.id)).toBeUndefined();
+        })
+    })
+})
