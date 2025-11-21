@@ -1318,11 +1318,28 @@ function parseVersion(version: string): { major: number, minor: number, patch: n
 function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: 'in_progress' | 'completed' | 'failed') {
   const validateSteps = runConfig.validateSteps ?? false;
 
-  const stepItemsParsed : any[] = [];
-  let lastItemParsed : any;
+  const parsedItems : any[] = [];
   
   /** Validate last item **/
-  let stepItems: any[] = [];
+  // let stepItems: any[] = [];
+
+  const validateStepItems = (stepItems: any[]) => {
+    for (const stepItem of stepItems) {
+      console.log('ITERATION');
+      console.log('parsedItems before', parsedItems);
+      const stepItemConfig = findItemConfig(runConfig, parsedItems, stepItem, "step");
+      if (stepItemConfig) {
+        parsedItems.push(stepItemConfig.content);
+      }
+      else if (!validateSteps) {
+        parsedItems.push(stepItem);
+      }
+      else {
+        throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
+      }
+      console.log('parsedItems after', parsedItems);
+    }
+  }
 
   if (status === "completed") { // last item must exist and must be output
     if (items.length === 0) {
@@ -1330,37 +1347,38 @@ function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: '
     }
 
     const outputItem = items[items.length - 1];
-    stepItems = items.slice(0, -1);
 
-    const outputItemConfig = findItemConfig(runConfig, [], outputItem, "output");
+    validateStepItems(items.slice(0, -1));
+
+    const outputItemConfig = findItemConfig(runConfig, parsedItems, outputItem, "output");
     if (!outputItemConfig) {
       throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
     }
     else {
-      lastItemParsed = outputItemConfig.content;
+      parsedItems.push(outputItemConfig.content);
     }
   }
   else if (status === "failed") { // last item, if exists, should be either step or output
     if (items.length === 0) {
-      stepItems = items;
+      validateStepItems(items);
     }
     else {
       const lastItem = items[items.length - 1];
-      stepItems = items.slice(0, -1);
+      validateStepItems(items.slice(0, -1));
 
       // last item must be either step or output. We first try to match step, if not successful then output
-      const lastItemStepConfig = findItemConfig(runConfig, [], lastItem, "step");
-      const lastItemOutputConfig = findItemConfig(runConfig, [], lastItem, "output");
+      const lastItemStepConfig = findItemConfig(runConfig, parsedItems, lastItem, "step");
+      const lastItemOutputConfig = findItemConfig(runConfig, parsedItems, lastItem, "output");
 
       if (lastItemStepConfig) {
-        lastItemParsed = lastItemStepConfig.content;
+        parsedItems.push(lastItemStepConfig.content);
       }
       else if (lastItemOutputConfig) {
-        lastItemParsed = lastItemOutputConfig.content;
+        parsedItems.push(lastItemOutputConfig.content);
       }
       else if (!validateSteps) {
         // we don't validate steps, so if no match, then we assume it's unknown step
-        lastItemParsed = lastItem;
+        parsedItems.push(lastItem);
       }
       else {
         throw new AgentViewError("Last item must be either step or output.", 422, { item: lastItem });
@@ -1368,24 +1386,24 @@ function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: '
     }
   }
   else {
-    stepItems = items;
+    validateStepItems(items);
   }
 
   /* Validate step items */
-  for (const stepItem of stepItems) {
-    const stepItemConfig = findItemConfig(runConfig, [], stepItem, "step");
-    if (stepItemConfig) {
-      stepItemsParsed.push(stepItemConfig.content);
-    }
-    else if (!validateSteps) {
-      stepItemsParsed.push(stepItem);
-    }
-    else {
-      throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
-    }
-  }
+  // for (const stepItem of stepItems) {
+  //   const stepItemConfig = findItemConfig(runConfig, [], stepItem, "step");
+  //   if (stepItemConfig) {
+  //     stepItemsParsed.push(stepItemConfig.content);
+  //   }
+  //   else if (!validateSteps) {
+  //     stepItemsParsed.push(stepItem);
+  //   }
+  //   else {
+  //     throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
+  //   }
+  // }
 
-  return lastItemParsed ? [...stepItemsParsed, lastItemParsed] : stepItemsParsed;
+  return parsedItems;
 }
 
 

@@ -113,6 +113,10 @@ function getCallIdKey(inputSchema: z.ZodType): any | undefined {
 function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension>(itemConfigs: T[], content: Record<string, any>, prevItems: Record<string, any>[]): T[] {
     const matches: T[] = [];
 
+    console.log('--------------MATCH ITEM CONFIGS------------------');
+    console.log('prevItems', prevItems);
+    console.log('content', content);
+
     for (const itemConfig of itemConfigs) {
         const { success, data } = itemConfig.schema.safeParse(content);
         if (success) {

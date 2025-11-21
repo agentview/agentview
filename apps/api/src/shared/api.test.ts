@@ -3,6 +3,7 @@ import { AgentView, AgentViewClient } from './AgentView'
 import type { EndUser, Run } from './apiTypes';
 import { z } from 'zod';
 import { AgentViewError } from './AgentViewError';
+import { schema } from '../schemas/schema';
 
 const apiKey = 'QnUveLvkStSMbjRCCzfbkBtlngakfLLoHFyaARUroWvTPoqALxxpZSPRuYIUMGbR'
 const apiUrl = 'http://localhost:8080'
@@ -30,22 +31,13 @@ describe('API', () => {
   })
 
 
-  const baseInput = { type: "message", role: "user", content: "Hello" }
-  const baseOutput = { type: "message", role: "assistant", content: "Hi there" }
-  const baseStep = { type: "reasoning", content: "Thinking..." }
-
-  const baseInputExt = { type: "message", role: "user", content: "Hello", __extraField: "extra" }
-  const baseOutputExt = { type: "message", role: "assistant", content: "Hi there", __extraField: "extra" }
-  const baseStepExt = { type: "reasoning", content: "Thinking...", __extraField: "extra" }
-
-  const wrongInput = { type: "message", role: "user", content: 100 }
-  const wrongStep = { type: "reasoning", content: 100 }
-  const wrongOutput = { type: "message", role: "assistant", content: 100 }
-
   const updateConfig = async (options: { strictMatching?: boolean, runMetadata?: Record<string, z.ZodType>, allowUnknownMetadata?: boolean, validateSteps?: boolean } = {}) => {
 
     let inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() })
     let stepSchema = z.looseObject({ type: z.literal("reasoning"), content: z.string() })
+    let functionCallSchema = z.looseObject({ type: z.literal("function_call"), name: z.string(), callId: z.string().meta({ callId: true }) })
+    let functionResultSchema = z.looseObject({ type: z.literal("function_call_result"), name: z.string(), callId: z.string().meta({ callId: true }) })
+
     let outputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("assistant"), content: z.string() })
 
     if (options.strictMatching) {
@@ -62,7 +54,7 @@ describe('API', () => {
           runs: [
             {
               input: { schema: inputSchema },
-              steps: [{ schema: stepSchema }],
+              steps: [{ schema: stepSchema }, { schema: functionCallSchema, callResult: { schema: functionResultSchema } }],
               output: { schema: outputSchema },
               metadata: options.runMetadata,
               validateSteps: options.validateSteps,
@@ -75,6 +67,25 @@ describe('API', () => {
 
     await av.__updateConfig({ config })
   }
+
+  const baseInput = { type: "message", role: "user", content: "Hello" }
+  const baseOutput = { type: "message", role: "assistant", content: "Hi there" }
+  const baseStep = { type: "reasoning", content: "Thinking..." }
+
+  const fun1Call = (id?: string) => ({ type: "function_call", name: "function1", ...(id ? { callId: id } : {}) })
+  const fun1Result = (id?: string) => ({ type: "function_call_result", name: "function1", ...(id ? { callId: id } : {}) })
+
+  const fun2Call = (id?: string) => ({ type: "function_call", name: "function2", ...(id ? { callId: id } : {}) })
+  const fun2Result = (id?: string) => ({ type: "function_call_result", name: "function2", ...(id ? { callId: id } : {}) })
+
+  const baseInputExt = { type: "message", role: "user", content: "Hello", __extraField: "extra" }
+  const baseOutputExt = { type: "message", role: "assistant", content: "Hi there", __extraField: "extra" }
+  const baseStepExt = { type: "reasoning", content: "Thinking...", __extraField: "extra" }
+
+  const wrongInput = { type: "message", role: "user", content: 100 }
+  const wrongStep = { type: "reasoning", content: 100 }
+  const wrongOutput = { type: "message", role: "assistant", content: 100 }
+
 
   async function createSession() {
     return await av.createSession({ agent: "test", endUserId: initEndUser1.id })
@@ -571,15 +582,13 @@ describe('API', () => {
       }))
     })
 
-
-
     /** 
      * RUN STATES TESTS 
      * 
      * This is automated set of test cases where we test different scenarios of runs.
      **/
 
-    const baseTestCases : Array<{ title: string, scenarios: any[], lastRunStatus: ("in_progress" | "completed" | "failed" | undefined)[], error?: number | null, validateSteps?: boolean, strictMatching?: boolean }> = [
+    const baseTestCases : Array<{ title: string, scenarios: any[], lastRunStatus: ("in_progress" | "completed" | "failed" | undefined)[], error?: number | null, validateSteps?: boolean, strictMatching?: boolean, only?: boolean }> = [
       {
         title: "just input & output",
         scenarios: [
@@ -723,7 +732,34 @@ describe('API', () => {
         validateSteps: true,
         lastRunStatus: [undefined],
         error: 422,
-      }
+      },
+      {
+        title: "tool calls, correct call",
+        scenarios: [
+          [ [baseInput, fun1Call("xxx"), fun1Result("xxx"), baseOutput ] ],
+
+          // [ [baseInput, fun1Call("xxx"), fun1Result("xxx"), fun2Call("yyy"), fun2Result("yyy"), baseOutput ] ],
+          // [ [baseInput], [funCall1("id1")], [funResult1("id1")], [funCall2("id2")], [funResult2("id2")], [baseOutput] ],
+          // [ [baseInput], [funCall1("id1")], [funResult1("id1"), funCall2("id2")], [funResult2("id2"), baseOutput] ],
+        ],
+        validateSteps: true,
+        lastRunStatus: ["completed", "failed"],
+        error: null,
+        only: true
+      },
+      {
+        title: "tool calls, not matching result",
+        scenarios: [
+          [ [baseInput, fun1Result("xxx") ] ],
+          [ [baseInput, fun1Call("xxx"), fun2Result("xxx_different") ] ],
+          // [ [baseInput], [funCall1("id1")], [funResult1("id1")], [funCall2("id2")], [funResult2("id2")], [baseOutput] ],
+          // [ [baseInput], [funCall1("id1")], [funResult1("id1"), funCall2("id2")], [funResult2("id2"), baseOutput] ],
+        ],
+        validateSteps: true,
+        lastRunStatus: [undefined],
+        error: 422,
+        // only: true
+      },
     ]
 
     for (const testCase of baseTestCases) {
@@ -734,7 +770,9 @@ describe('API', () => {
         for (const lastRunStatus of testCase.lastRunStatus) {
           const title = `${testCase.title} / run ${counter} / ${lastRunStatus} -> ${testCase.error ? `error ${testCase.error}` : "ok"}`
 
-          test(title, async () => {
+          const testFn = testCase.only ? test.only : test;
+
+          testFn(title, async () => {
             await updateConfig({ strictMatching: testCase.strictMatching, validateSteps: testCase.validateSteps });
 
             const session = await createSession()
