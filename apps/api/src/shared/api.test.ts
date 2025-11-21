@@ -489,9 +489,11 @@ describe('API', () => {
   })
 
   // TODO:
-  // - do state, and check it properly (shoudl be in enhanced session):
+  // - do state, and check it properly (should be in enhanced session):
   // - tool calls (fix configUtils.test)
-  // - validateSteps
+
+
+
 
   describe("runs", () => {
     test("creating run with non-existing sessionId", async () => {
