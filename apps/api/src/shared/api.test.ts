@@ -288,8 +288,8 @@ describe('API', () => {
     })
 
 
+    // METADATA TESTS
 
-    
     test("create / with known metadata / saved", async () => {
       await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { product_id: z.string() } }] } })
 
@@ -427,7 +427,7 @@ describe('API', () => {
     const wrongStep = { type: "reasoning", content: 100 }
     const wrongOutput = { type: "message", role: "assistant", content: 100 }
 
-    const updateConfig = async (options: { strictMatching?: boolean } = {}) => {
+    const updateConfig = async (options: { strictMatching?: boolean, runMetadata?: Record<string, z.ZodType>, allowUnknownMetadata?: boolean } = {}) => {
 
       let inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() })
       let stepSchema = z.looseObject({ type: z.literal("reasoning"), content: z.string() })
@@ -449,8 +449,8 @@ describe('API', () => {
                 input: { schema: inputSchema },
                 steps: [{ schema: stepSchema }],
                 output: { schema: outputSchema },
-                // metadata: { trace_id: z.string() },
-                // allowUnknownMetadata: false,
+                metadata: options.runMetadata,
+                allowUnknownMetadata: options.allowUnknownMetadata,
               }
             ]
           }
@@ -458,6 +458,10 @@ describe('API', () => {
       }
 
       await av.__updateConfig({ config })
+    }
+
+    async function createSession() {
+      return await av.createSession({ agent: "test", endUserId: initEndUser1.id })
     }
 
     test("creating run with non-existing sessionId", async () => {
@@ -480,8 +484,8 @@ describe('API', () => {
 
     test("creating run without items", async () => {
       await updateConfig()
+      const session = await createSession()
 
-      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
       await expect(av.createRun({ sessionId: session.id, items: [], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
         statusCode: 422,
         message: expect.any(String),
@@ -490,18 +494,17 @@ describe('API', () => {
 
     test("new run defaults to in_progress status", async () => {
       await updateConfig()
+      const session = await createSession()
 
-      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
       const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
       expect(run.status).toBe("in_progress")
     })
 
     test("cannot create new run while previous is in progress", async () => {
       await updateConfig()
-      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      const session = await createSession()
 
       await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-
       await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
         statusCode: 400,
         message: expect.any(String),
@@ -649,7 +652,7 @@ describe('API', () => {
           test(title, async () => {
             await updateConfig({ strictMatching: testCase.strictMatching });
 
-            const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+            const session = await createSession()
 
             let run: Run | undefined;
             let expected_history : any[] = [];
@@ -724,7 +727,7 @@ describe('API', () => {
 
     test("cannot add items or change status after completion", async () => {
       await updateConfig()
-      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      const session = await createSession()
 
       const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
       const completed = await av.updateRun({ id: run.id, items: [baseOutput], status: "completed", metadata: { trace_id: "abc" } })
@@ -744,7 +747,7 @@ describe('API', () => {
 
     test("failReason can be set only on failed runs", async () => {
       await updateConfig()
-      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      const session = await createSession()
 
       const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
 
@@ -764,7 +767,7 @@ describe('API', () => {
 
     test("version compatibility enforced", async () => {
       await updateConfig()
-      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      const session = await createSession()
 
       const run1 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.3" })
       await av.updateRun({ id: run1.id, items: [baseOutput], status: "completed" })
@@ -788,10 +791,168 @@ describe('API', () => {
 
     test("endUserToken scoped permissions", async () => {
       await updateConfig()
-      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      const session = await createSession()
 
       await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", endUserToken: initEndUser2.token })).rejects.toThrowError(expect.objectContaining({
         statusCode: 401,
+        message: expect.any(String),
+      }))
+    })
+
+    // METADATA
+
+    
+
+    test.only("create / with known metadata / saved", async () => {
+      await updateConfig({ runMetadata: { product_id: z.string() } })
+      const session = await createSession()
+      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { product_id: "123" } })
+
+      expect(run.metadata).toMatchObject({
+        product_id: "123",
+      })
+    })
+
+    test.only("create / optional & nullable metadata / all saved as null", async () => {
+      await updateConfig({ runMetadata: { x: z.nullable(z.string()), y: z.nullable(z.number()) } })
+
+      const session = await createSession()
+      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { product_id: "123" } })
+
+      expect(run.metadata).toMatchObject({
+        x: null,
+        y: null,
+      })
+    })
+
+    test.only("create / with known metadata + allowUnknownMetadata=false / saved", async () => {
+      await updateConfig({ runMetadata: { product_id: z.string() }, allowUnknownMetadata: false })
+
+      const session = await createSession()
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [baseInput],
+        version: "1.0.0",
+        metadata: { product_id: "123" }
+      })
+
+      expect(run.metadata).toMatchObject({
+        product_id: "123",
+      })
+    })
+
+    test.only("create / with unknown metadata / saved", async () => {
+      await updateConfig()
+      const session = await createSession()
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [baseInput],
+        version: "1.0.0",
+        metadata: { product_id: "123" }
+      })
+
+      expect(run.metadata).toMatchObject({
+        product_id: "123",
+      })
+    })
+
+    test.only("create / with unknown metadata + allowUnknownMetadata=false / failed", async () => {
+      await updateConfig({ allowUnknownMetadata: false })
+
+      const session = await createSession()
+      await expect(av.createRun({
+        sessionId: session.id,
+        items: [baseInput],
+        version: "1.0.0",
+        metadata: { product_id: "123" }
+      })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 422,
+        message: expect.any(String),
+      }))
+    })
+
+    test.only("create / with incompatible metadata / fails", async () => {
+      await updateConfig({ runMetadata: { product_id: z.string() } })
+
+      const session = await createSession()
+      await expect(av.createRun({
+        sessionId: session.id,
+        items: [baseInput],
+        version: "1.0.0",
+        metadata: { product_id: 123 }
+      })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 422,
+        message: expect.any(String),
+      }))
+    })
+
+    test.only("update metadata", async () => {
+      await updateConfig({ runMetadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false })
+
+      const session = await createSession()
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [baseInput],
+        version: "1.0.0",
+        metadata: { field1: "A", field2: 0 }
+      })
+
+      const updated = await av.updateRun({ id: run.id, metadata: { field1: "B", field2: 1 } })
+      expect(updated.metadata).toEqual({ field1: "B", field2: 1 })
+
+      // const fetched = await av.getRun({ id: run.id })
+      // expect(fetched.metadata).toEqual({ field1: "B", field2: 1 })
+    })
+
+    test.only("update metadata - partial update", async () => {
+      await updateConfig({ runMetadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false })
+
+      const session = await createSession()
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [baseInput],
+        version: "1.0.0",
+        metadata: { field1: "A", field2: 0 }
+      })
+
+      const updated = await av.updateRun({ id: run.id, metadata: { field1: "B" } })
+      expect(updated.metadata).toEqual({ field1: "B", field2: 0 })
+
+      // const fetched = await av.getRun({ id: run.id })
+      // expect(fetched.metadata).toEqual({ field1: "B", field2: 0 })
+    })
+
+    test.only("update metadata - make field null", async () => {
+      await updateConfig({ runMetadata: { field1: z.string(), field2: z.number().nullable() }, allowUnknownMetadata: false })
+
+      const session = await createSession()
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [baseInput],
+        version: "1.0.0",
+        metadata: { field1: "A", field2: 0 }
+      })
+
+      const updated = await av.updateRun({ id: run.id, metadata: { field2: null } })
+      expect(updated.metadata).toEqual({ field1: "A", field2: null })
+
+      // const fetched = await av.getRun({ id: run.id })
+      // expect(fetched.metadata).toEqual({ field1: "A", field2: null })
+    })
+
+    test.only("update metadata only - validation enforced", async () => {
+      await updateConfig({ runMetadata: { product_id: z.string() }, allowUnknownMetadata: false })
+
+      const session = await createSession()
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [baseInput],
+        version: "1.0.0",
+        metadata: { product_id: "A" }
+      })
+
+      await expect(av.updateRun({ id: run.id, metadata: { wrong: "x" } })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 422,
         message: expect.any(String),
       }))
     })
