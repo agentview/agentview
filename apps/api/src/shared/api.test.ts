@@ -775,6 +775,8 @@ describe('API', () => {
           testFn(title, async () => {
             await updateConfig({ strictMatching: testCase.strictMatching, validateSteps: testCase.validateSteps });
 
+            console.log((await av.__getConfig()).config.agents[0].runs[0].steps[1].schema);
+
             const session = await createSession()
 
             let run: Run | undefined;

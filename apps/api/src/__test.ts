@@ -3,11 +3,15 @@ import { z } from "zod";
 import { convertJsonSchemaToZod } from 'zod-from-json-schema';
 
 const schema = z.looseObject({
-  foo: "aaa",
-  bar: z.number(),
+  foo: z.string().meta({ dupa: 8 })
 })
 
-console.log(z.toJSONSchema(schema))
+const jsonSchema = z.toJSONSchema(schema)
+
+const schema2 = convertJsonSchemaToZod(jsonSchema)
+
+console.log('after conversion back to zod')
+console.log(z.toJSONSchema(schema2))
 
 // const schemaDefault = z.object({
 //   foo: z.string(),

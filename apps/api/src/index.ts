@@ -1325,8 +1325,6 @@ function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: '
 
   const validateStepItems = (stepItems: any[]) => {
     for (const stepItem of stepItems) {
-      console.log('ITERATION');
-      console.log('parsedItems before', parsedItems);
       const stepItemConfig = findItemConfig(runConfig, parsedItems, stepItem, "step");
       if (stepItemConfig) {
         parsedItems.push(stepItemConfig.content);
@@ -1337,7 +1335,6 @@ function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: '
       else {
         throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
       }
-      console.log('parsedItems after', parsedItems);
     }
   }
 
