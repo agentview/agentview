@@ -66,8 +66,8 @@ export async function fetchSessions(session_id?: string, tx?: Transaction): Prom
       }
     }
   });
-
-  return await Promise.all(sessionRows.map(async (row) => ({
+  
+  return sessionRows.map((row) => ({
     id: row.id,
     handle: row.handleNumber.toString() + (row.handleSuffix ?? ""),
     createdAt: row.createdAt,
@@ -76,9 +76,22 @@ export async function fetchSessions(session_id?: string, tx?: Transaction): Prom
     agent: row.agent,
     endUser: row.endUser,
     endUserId: row.endUser.id,
-    runs: row.runs,
-    state: await fetchSessionState(row.id, tx),
-  }))) as SessionWithCollaboration[];
+    runs: row.runs.filter((run, index) => run.status !== "failed" || index === row.runs.length - 1),
+    state: {} // todo: fixme
+  })) as SessionWithCollaboration[];
+
+  // return await Promise.all(sessionRows.map(async (row) => ({
+  //   id: row.id,
+  //   handle: row.handleNumber.toString() + (row.handleSuffix ?? ""),
+  //   createdAt: row.createdAt,
+  //   updatedAt: row.updatedAt,
+  //   metadata: row.metadata,
+  //   agent: row.agent,
+  //   endUser: row.endUser,
+  //   endUserId: row.endUser.id,
+  //   runs: row.runs,
+  //   state: await fetchSessionState(row.id, tx),
+  // }))) as SessionWithCollaboration[];
 }
 
 export async function fetchSession(session_id: string, tx?: Transaction): Promise<SessionWithCollaboration | undefined> {

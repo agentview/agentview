@@ -339,7 +339,7 @@ describe('API', () => {
 
 
 
-    test.only("history and lastRun are generated correctly as new runs are created", async () => {
+    test("history and lastRun are generated correctly as new runs are created", async () => {
       await updateConfig()
       
       let session = await createSession()
@@ -368,28 +368,9 @@ describe('API', () => {
       session = await av.getSession({ id: session.id })
       expect(session.history).toEqual([baseInput, baseOutput, baseInput, baseStep, baseOutput])
       expect(session.lastRun?.id).toBe(run3.id)
-
-
-      // first run failed
-      // const run2 = await av.createRun({ sessionId: session.id, items: [baseStep], version: "1.0.0" })
-      // session = await av.getSession({ id: session.id })
-      // expect(session.history).toEqual([baseInput])
-      // expect(session.lastRun?.id).toBe(run2.id)
-
-
-
-      // run = await av.updateRun({ id: run.id, items: [baseOutput], status: "completed" })
-      // session = await av.getSession({ id: session.id })
-      // expect(session.history).toEqual([run])
-      // expect(session.lastRun).toBe(run)
-
-      // expect(run.status).toBe("in_progress")
     })
 
-
-
     // METADATA TESTS
-
     test("create / with known metadata / saved", async () => {
       await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { product_id: z.string() } }] } })
 
@@ -510,11 +491,8 @@ describe('API', () => {
   // - do state, and check it properly (shoudl be in enhanced session):
   // - tool calls (fix configUtils.test)
   // - validateSteps
-  // - test history and lastRun (whether history keeps only items from valid runs)
 
   describe("runs", () => {
-
-
     test("creating run with non-existing sessionId", async () => {
       await updateConfig()
 
