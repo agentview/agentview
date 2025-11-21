@@ -36,7 +36,7 @@ describe('API', () => {
     let inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() })
     let stepSchema = z.looseObject({ type: z.literal("reasoning"), content: z.string() })
     let functionCallSchema = z.looseObject({ type: z.literal("function_call"), name: z.string(), callId: z.string().meta({ callId: true }) })
-    let functionResultSchema = z.looseObject({ type: z.literal("function_call_result"), name: z.string(), callId: z.string().meta({ callId: true }) })
+    let functionResultSchema = z.looseObject({ type: z.literal("function_call_result"), callId: z.string().meta({ callId: true }) })
 
     let outputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("assistant"), content: z.string() })
 
@@ -73,10 +73,9 @@ describe('API', () => {
   const baseStep = { type: "reasoning", content: "Thinking..." }
 
   const fun1Call = (id?: string) => ({ type: "function_call", name: "function1", ...(id ? { callId: id } : {}) })
-  const fun1Result = (id?: string) => ({ type: "function_call_result", name: "function1", ...(id ? { callId: id } : {}) })
-
   const fun2Call = (id?: string) => ({ type: "function_call", name: "function2", ...(id ? { callId: id } : {}) })
-  const fun2Result = (id?: string) => ({ type: "function_call_result", name: "function2", ...(id ? { callId: id } : {}) })
+
+  const funResult = (id?: string) => ({ type: "function_call_result", ...(id ? { callId: id } : {}) })
 
   const baseInputExt = { type: "message", role: "user", content: "Hello", __extraField: "extra" }
   const baseOutputExt = { type: "message", role: "assistant", content: "Hi there", __extraField: "extra" }
@@ -733,32 +732,40 @@ describe('API', () => {
         lastRunStatus: [undefined],
         error: 422,
       },
+      // Tool calls validation
       {
-        title: "tool calls, correct call",
+        title: "tool calls, correct call, sequential",
         scenarios: [
-          [ [baseInput, fun1Call("xxx"), fun1Result("xxx"), baseOutput ] ],
-
-          // [ [baseInput, fun1Call("xxx"), fun1Result("xxx"), fun2Call("yyy"), fun2Result("yyy"), baseOutput ] ],
-          // [ [baseInput], [funCall1("id1")], [funResult1("id1")], [funCall2("id2")], [funResult2("id2")], [baseOutput] ],
-          // [ [baseInput], [funCall1("id1")], [funResult1("id1"), funCall2("id2")], [funResult2("id2"), baseOutput] ],
+          [ [baseInput, fun1Call("xxx"), funResult("xxx"), baseOutput ] ],
+          [ [baseInput, fun1Call("xxx"), funResult("xxx"), fun2Call("yyy"), funResult("yyy"), baseOutput ] ],
+          [ [baseInput], [fun1Call("id1")], [funResult("id1")], [fun2Call("id2")], [funResult("id2")], [baseOutput] ],
+          [ [baseInput], [fun1Call("id1")], [funResult("id1"), fun2Call("id2")], [funResult("id2"), baseOutput] ],
         ],
         validateSteps: true,
         lastRunStatus: ["completed", "failed"],
         error: null,
-        only: true
+      },
+      {
+        title: "tool calls, correct call, paralell",
+        scenarios: [
+          [ [baseInput, fun1Call("1"), fun2Call("2"), fun1Call("3"), funResult("3"), funResult("1"), funResult("2"), baseOutput ] ],
+        ],
+        validateSteps: true,
+        lastRunStatus: ["completed", "failed"],
+        error: null,
       },
       {
         title: "tool calls, not matching result",
         scenarios: [
-          [ [baseInput, fun1Result("xxx") ] ],
-          [ [baseInput, fun1Call("xxx"), fun2Result("xxx_different") ] ],
-          // [ [baseInput], [funCall1("id1")], [funResult1("id1")], [funCall2("id2")], [funResult2("id2")], [baseOutput] ],
-          // [ [baseInput], [funCall1("id1")], [funResult1("id1"), funCall2("id2")], [funResult2("id2"), baseOutput] ],
+          [ [baseInput, funResult("xxx") ] ],
+          [ [baseInput], [funResult("xxx") ] ],
+
+          [ [baseInput, fun1Call("xxx"), funResult("xxx_different") ] ],
+          [ [baseInput], [fun1Call("xxx")], [funResult("xxx_different") ] ],
         ],
         validateSteps: true,
         lastRunStatus: [undefined],
         error: 422,
-        // only: true
       },
     ]
 
@@ -774,8 +781,6 @@ describe('API', () => {
 
           testFn(title, async () => {
             await updateConfig({ strictMatching: testCase.strictMatching, validateSteps: testCase.validateSteps });
-
-            console.log((await av.__getConfig()).config.agents[0].runs[0].steps[1].schema);
 
             const session = await createSession()
 
@@ -839,6 +844,9 @@ describe('API', () => {
                 }
 
                 const { lastRun, history } = await av.getSession({ id: session.id });
+
+                // console.log('history', history);
+                // console.log('expected_history', expected_history);
                 expect(deepCompare(history, expected_history)).toBe(true)
 
                 expect(lastRun?.status).toBe(expectedStatus)

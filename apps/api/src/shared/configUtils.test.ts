@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { z } from 'zod';
 import { type BaseAgentConfig, type BaseRunConfig, type BaseSessionItemConfig } from './configTypes';
-import { findItemConfig } from './configUtils';
+import { findItemConfig, findItemConfigById } from './configUtils';
 import type { Session } from './apiTypes';
 
 // those types here add $id on the session item config level, also tests whether our functions properly infers types :) 
@@ -158,14 +158,15 @@ describe('agent with 2 function calls / call ids not set up', () => {
         // const items = session.runs[0].items;
 
         it('finds call items', () => {
-            expect(findItemConfig(runConfig, items, call1.call.id)?.itemConfig.$id).toBe(`function1_call`);
-            expect(findItemConfig(runConfig, items, call2.call.id)?.itemConfig.$id).toBe(`function2_call`);
+            expect(findItemConfigById(runConfig, items, call1.call.id)?.itemConfig.$id).toBe(`function1_call`);
+            expect(findItemConfigById(runConfig, items, call2.call.id)?.itemConfig.$id).toBe(`function2_call`);
+
         })
 
         it('can\'t find call results', () => {
-            expect(findItemConfig(runConfig, items, "xxx")).toBeUndefined();
-            expect(findItemConfig(runConfig, items, call1.result.id)).toBeUndefined();
-            expect(findItemConfig(runConfig, items, call2.result.id)).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, "xxx")).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, call1.result.id)).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, call2.result.id)).toBeUndefined();
         });
     })
 
@@ -208,25 +209,25 @@ describe('agent with 2 function calls / call ids not set up', () => {
         ]
 
         it("properly finds calls", () => {
-            expect(findItemConfig(runConfig, items, fun1_call1.call.id)?.itemConfig.$id).toBe('function1_call');
-            expect(findItemConfig(runConfig, items, fun1_call2.call.id)?.itemConfig.$id).toBe('function1_call');
-            expect(findItemConfig(runConfig, items, fun1_call3.call.id)?.itemConfig.$id).toBe('function1_call');
-            expect(findItemConfig(runConfig, items, fun1_call4.call.id)?.itemConfig.$id).toBe('function1_call');
-            expect(findItemConfig(runConfig, items, fun2_call1.call.id)?.itemConfig.$id).toBe('function2_call');
-            expect(findItemConfig(runConfig, items, fun2_call2.call.id)?.itemConfig.$id).toBe('function2_call');
-            expect(findItemConfig(runConfig, items, fun2_call3.call.id)?.itemConfig.$id).toBe('function2_call');
-            expect(findItemConfig(runConfig, items, fun2_call4.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfigById(runConfig, items, fun1_call1.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfigById(runConfig, items, fun1_call2.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfigById(runConfig, items, fun1_call3.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfigById(runConfig, items, fun1_call4.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfigById(runConfig, items, fun2_call1.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfigById(runConfig, items, fun2_call2.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfigById(runConfig, items, fun2_call3.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfigById(runConfig, items, fun2_call4.call.id)?.itemConfig.$id).toBe('function2_call');
         })
 
         it("can't find results", () => {
-            expect(findItemConfig(runConfig, items, fun1_call1.result.id)).toBeUndefined();
-            expect(findItemConfig(runConfig, items, fun1_call2.result.id)).toBeUndefined();
-            expect(findItemConfig(runConfig, items, fun1_call3.result.id)).toBeUndefined();
-            expect(findItemConfig(runConfig, items, fun1_call4.result.id)).toBeUndefined();
-            expect(findItemConfig(runConfig, items, fun2_call1.result.id)).toBeUndefined();
-            expect(findItemConfig(runConfig, items, fun2_call2.result.id)).toBeUndefined();
-            expect(findItemConfig(runConfig, items, fun2_call3.result.id)).toBeUndefined();
-            expect(findItemConfig(runConfig, items, fun2_call4.result.id)).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, fun1_call1.result.id)).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, fun1_call2.result.id)).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, fun1_call3.result.id)).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, fun1_call4.result.id)).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, fun2_call1.result.id)).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, fun2_call2.result.id)).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, fun2_call3.result.id)).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, fun2_call4.result.id)).toBeUndefined();
         })
     })
 })
@@ -256,18 +257,18 @@ describe('agent with 2 function calls, with ids', () => {
         ]
 
         it ('can find calls', () => {
-            expect(findItemConfig(runConfig, items, call1.call.id)?.itemConfig.$id).toBe('function1_call');
-            expect(findItemConfig(runConfig, items, call2.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfigById(runConfig, items, call1.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfigById(runConfig, items, call2.call.id)?.itemConfig.$id).toBe('function2_call');
         });
 
         it ('can find results', () => {
-            expect(findItemConfig(runConfig, items, call1.result.id)?.itemConfig.$id).toBe('function1_result');
-            expect(findItemConfig(runConfig, items, call2.result.id)?.itemConfig.$id).toBe('function2_result');
+            expect(findItemConfigById(runConfig, items, call1.result.id)?.itemConfig.$id).toBe('function1_result');
+            expect(findItemConfigById(runConfig, items, call2.result.id)?.itemConfig.$id).toBe('function2_result');
         });
 
         it ('properly finds tool content for results', () => {
-            expect(findItemConfig(runConfig, items, call1.result.id)?.toolCallContent).toBe(call1.call.content);
-            expect(findItemConfig(runConfig, items, call2.result.id)?.toolCallContent).toBe(call2.call.content);
+            expect(findItemConfigById(runConfig, items, call1.result.id)?.toolCallContent).toBe(call1.call.content);
+            expect(findItemConfigById(runConfig, items, call2.result.id)?.toolCallContent).toBe(call2.call.content);
         })
     })
 
@@ -312,36 +313,36 @@ describe('agent with 2 function calls, with ids', () => {
         ]
 
         it("finds calls", () => {
-            expect(findItemConfig(runConfig, items, fun1_call1.call.id)?.itemConfig.$id).toBe('function1_call');
-            expect(findItemConfig(runConfig, items, fun1_call2.call.id)?.itemConfig.$id).toBe('function1_call');
-            expect(findItemConfig(runConfig, items, fun1_call3.call.id)?.itemConfig.$id).toBe('function1_call');
-            expect(findItemConfig(runConfig, items, fun1_call4.call.id)?.itemConfig.$id).toBe('function1_call');
-            expect(findItemConfig(runConfig, items, fun2_call1.call.id)?.itemConfig.$id).toBe('function2_call');
-            expect(findItemConfig(runConfig, items, fun2_call2.call.id)?.itemConfig.$id).toBe('function2_call');
-            expect(findItemConfig(runConfig, items, fun2_call3.call.id)?.itemConfig.$id).toBe('function2_call');
-            expect(findItemConfig(runConfig, items, fun2_call4.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfigById(runConfig, items, fun1_call1.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfigById(runConfig, items, fun1_call2.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfigById(runConfig, items, fun1_call3.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfigById(runConfig, items, fun1_call4.call.id)?.itemConfig.$id).toBe('function1_call');
+            expect(findItemConfigById(runConfig, items, fun2_call1.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfigById(runConfig, items, fun2_call2.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfigById(runConfig, items, fun2_call3.call.id)?.itemConfig.$id).toBe('function2_call');
+            expect(findItemConfigById(runConfig, items, fun2_call4.call.id)?.itemConfig.$id).toBe('function2_call');
         })
 
         it("finds results", () => {
-            expect(findItemConfig(runConfig, items, fun1_call1.result.id)).toBeUndefined();
-            expect(findItemConfig(runConfig, items, fun1_call2.result.id)?.itemConfig.$id).toBe('function1_result');
-            expect(findItemConfig(runConfig, items, fun1_call3.result.id)?.itemConfig.$id).toBe('function1_result');
-            expect(findItemConfig(runConfig, items, fun1_call4.result.id)?.itemConfig.$id).toBe('function1_result');
-            expect(findItemConfig(runConfig, items, fun2_call1.result.id)?.itemConfig.$id).toBe('function2_result');
-            expect(findItemConfig(runConfig, items, fun2_call2.result.id)?.itemConfig.$id).toBe('function2_result');
-            expect(findItemConfig(runConfig, items, fun2_call3.result.id)?.itemConfig.$id).toBe('function2_result');
-            expect(findItemConfig(runConfig, items, fun2_call4.result.id)).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, fun1_call1.result.id)).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, fun1_call2.result.id)?.itemConfig.$id).toBe('function1_result');
+            expect(findItemConfigById(runConfig, items, fun1_call3.result.id)?.itemConfig.$id).toBe('function1_result');
+            expect(findItemConfigById(runConfig, items, fun1_call4.result.id)?.itemConfig.$id).toBe('function1_result');
+            expect(findItemConfigById(runConfig, items, fun2_call1.result.id)?.itemConfig.$id).toBe('function2_result');
+            expect(findItemConfigById(runConfig, items, fun2_call2.result.id)?.itemConfig.$id).toBe('function2_result');
+            expect(findItemConfigById(runConfig, items, fun2_call3.result.id)?.itemConfig.$id).toBe('function2_result');
+            expect(findItemConfigById(runConfig, items, fun2_call4.result.id)).toBeUndefined();
         })
 
         it ('properly finds tool content for results', () => {
-            expect(findItemConfig(runConfig, items, fun1_call1.result.id)).toBeUndefined();
-            expect(findItemConfig(runConfig, items, fun1_call2.result.id)?.toolCallContent).toBe(fun1_call2.call.content);
-            expect(findItemConfig(runConfig, items, fun1_call3.result.id)?.toolCallContent).toBe(fun1_call3.call.content);
-            expect(findItemConfig(runConfig, items, fun1_call4.result.id)?.toolCallContent).toBe(fun1_call4.call.content);
-            expect(findItemConfig(runConfig, items, fun2_call1.result.id)?.toolCallContent).toBe(fun2_call1.call.content);
-            expect(findItemConfig(runConfig, items, fun2_call2.result.id)?.toolCallContent).toBe(fun2_call2.call.content);
-            expect(findItemConfig(runConfig, items, fun2_call3.result.id)?.toolCallContent).toBe(fun2_call3.call.content);
-            expect(findItemConfig(runConfig, items, fun2_call4.result.id)).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, fun1_call1.result.id)).toBeUndefined();
+            expect(findItemConfigById(runConfig, items, fun1_call2.result.id)?.toolCallContent).toBe(fun1_call2.call.content);
+            expect(findItemConfigById(runConfig, items, fun1_call3.result.id)?.toolCallContent).toBe(fun1_call3.call.content);
+            expect(findItemConfigById(runConfig, items, fun1_call4.result.id)?.toolCallContent).toBe(fun1_call4.call.content);
+            expect(findItemConfigById(runConfig, items, fun2_call1.result.id)?.toolCallContent).toBe(fun2_call1.call.content);
+            expect(findItemConfigById(runConfig, items, fun2_call2.result.id)?.toolCallContent).toBe(fun2_call2.call.content);
+            expect(findItemConfigById(runConfig, items, fun2_call3.result.id)?.toolCallContent).toBe(fun2_call3.call.content);
+            expect(findItemConfigById(runConfig, items, fun2_call4.result.id)).toBeUndefined();
         })
     })
 })

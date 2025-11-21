@@ -1,4 +1,4 @@
-import type { Run, Session } from "./apiTypes";
+import type { Run, Session, SessionItem } from "./apiTypes";
 import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig, Metadata, BaseRunConfig } from "./configTypes";
 import { z, ZodString } from "zod";
 import { getAllSessionItems } from "./sessionUtils";
@@ -61,6 +61,27 @@ type SessionItemExtension = { __type: "input" | "output" | "step", content?: any
 //     return findItemConfig(runConfig, items, item, item.__type);
 // }
 
+export function findItemConfigById<RunT extends BaseRunConfig>(runConfig: RunT, sessionItems: SessionItem[], itemId: string, itemType?: "input" | "output" | "step"): { itemConfig: RunT["output"], content: any, toolCallContent?: any } | undefined {
+    const previousItems = [];
+    let newItem = undefined;
+
+    for (const sessionItem of sessionItems) {
+        if (sessionItem.id === itemId) {
+            newItem = sessionItem.content;
+            break;
+        }
+        else {
+            previousItems.push(sessionItem.content);
+        }
+    }
+
+    if (!newItem) {
+        return undefined;
+    }
+    
+    return findItemConfig(runConfig, previousItems, newItem, itemType);
+}
+
 export function findItemConfig<RunT extends BaseRunConfig>(runConfig: RunT, items: any[], newItem: Record<string, any>, itemType?: "input" | "output" | "step"): { itemConfig: RunT["output"], content: any, toolCallContent?: any } | undefined {
     // console.log("--------------------------------")
     // type RunT = NonNullable<T["runs"]>[number];
@@ -118,7 +139,6 @@ function getCallIdKey(inputSchema: z.ZodType): any | undefined {
 
     for (const [key, value] of Object.entries(shape)) {
         const meta = value.meta(); // fixme: it could be any type, even without shape
-        console.log('meta', meta);
 
         // @ts-ignore
         if (meta?.callId === true) {
@@ -131,28 +151,30 @@ function getCallIdKey(inputSchema: z.ZodType): any | undefined {
 function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension>(itemConfigs: T[], content: Record<string, any>, prevItems: Record<string, any>[]): T[] {
     const matches: T[] = [];
 
-    console.log('--------------MATCH ITEM CONFIGS------------------');
-    console.log('prevItems', prevItems);
-    console.log('content', content);
+    // console.log('--------------MATCH ITEM CONFIGS------------------');
+    // console.log('prevItems', prevItems);
+    // console.log('content', content);
 
     for (const itemConfig of itemConfigs) {
-        const { success, data } = itemConfig.schema.safeParse(content);
-        if (success) {
-            matches.push({ ...itemConfig, content: data });
+        const itemParseResult = itemConfig.schema.safeParse(content);
+        if (itemParseResult.success) {
+            matches.push({ ...itemConfig, content: itemParseResult.data });
         }
 
         if (itemConfig.callResult) {
-            if (!itemConfig.callResult.schema.safeParse(content).success) {
+            const toolResultParseResult = itemConfig.callResult.schema.safeParse(content);
+
+            if (!toolResultParseResult.success) {
                 continue;
             }
 
             const callIdKey = getCallIdKey(itemConfig.schema);
             const resultIdKey = getCallIdKey(itemConfig.callResult.schema);
 
-            console.log('itemConfig.schema', z.toJSONSchema(itemConfig.schema));
-            console.log('callResult.schema', z.toJSONSchema(itemConfig.callResult.schema));
-            console.log('callIdKey', callIdKey);
-            console.log('resultIdKey', resultIdKey);
+            // console.log('itemConfig.schema', z.toJSONSchema(itemConfig.schema));
+            // console.log('callResult.schema', z.toJSONSchema(itemConfig.callResult.schema));
+            // console.log('callIdKey', callIdKey);
+            // console.log('resultIdKey', resultIdKey);
 
             if (!callIdKey || !resultIdKey) {
                 console.warn('Both callIdKey and resultIdKey must be defined for result');
@@ -166,11 +188,14 @@ function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension
                 //     break;
                 // }
 
-                const { success, data } = itemConfig.schema.safeParse(prevItem);
-                if (success && prevItem[callIdKey] === content[resultIdKey]) { // if both keys are `undefined`, first match.
+                const toolCallParseResult = itemConfig.schema.safeParse(prevItem);
+
+                if (toolCallParseResult.success && prevItem[callIdKey] === content[resultIdKey]) { // if both keys are `undefined`, first match.
+                    // console.log('FOUND MATCHING CALL!', prevItem);
+                    // console.log('matched with', z.toJSONSchema(itemConfig.schema));
                     matches.push({
                         ...itemConfig.callResult,
-                        content: data,
+                        content: toolResultParseResult.data,
                         toolCallContent: prevItem,
                     } as T);
                     break;

@@ -1,0 +1,13 @@
+{
+  "name": "zod-from-json-schema-examples",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cjs": "node cjs-example.cjs",
+    "esm": "node esm-example.mjs"
+  },
+  "dependencies": {
+    "zod": "^3.25.25",
+    "zod-from-json-schema": "file:.."
+  }
+}

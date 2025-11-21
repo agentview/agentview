@@ -1315,7 +1315,7 @@ function parseVersion(version: string): { major: number, minor: number, patch: n
   return { major, minor, patch };
 }
 
-function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: 'in_progress' | 'completed' | 'failed') {
+function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[], items: any[], status: 'in_progress' | 'completed' | 'failed') {
   const validateSteps = runConfig.validateSteps ?? false;
 
   const parsedItems : any[] = [];
@@ -1325,7 +1325,7 @@ function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: '
 
   const validateStepItems = (stepItems: any[]) => {
     for (const stepItem of stepItems) {
-      const stepItemConfig = findItemConfig(runConfig, parsedItems, stepItem, "step");
+      const stepItemConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], stepItem, "step");
       if (stepItemConfig) {
         parsedItems.push(stepItemConfig.content);
       }
@@ -1347,7 +1347,7 @@ function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: '
 
     validateStepItems(items.slice(0, -1));
 
-    const outputItemConfig = findItemConfig(runConfig, parsedItems, outputItem, "output");
+    const outputItemConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], outputItem, "output");
     if (!outputItemConfig) {
       throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
     }
@@ -1364,8 +1364,8 @@ function validateNonInputItems(runConfig: BaseRunConfig, items: any[], status: '
       validateStepItems(items.slice(0, -1));
 
       // last item must be either step or output. We first try to match step, if not successful then output
-      const lastItemStepConfig = findItemConfig(runConfig, parsedItems, lastItem, "step");
-      const lastItemOutputConfig = findItemConfig(runConfig, parsedItems, lastItem, "output");
+      const lastItemStepConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], lastItem, "step");
+      const lastItemOutputConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], lastItem, "output");
 
       if (lastItemStepConfig) {
         parsedItems.push(lastItemStepConfig.content);
@@ -1468,7 +1468,7 @@ app.openapi(runsPOSTRoute, async (c) => {
   const parsedInput = [runConfig.input.schema.parse(inputItem)] // must be true, because of line above
 
   /** Validate rest items **/
-  const parsedNonInputItems = validateNonInputItems(runConfig, nonInputItems, body.status ?? 'in_progress');
+  const parsedNonInputItems = validateNonInputItems(runConfig, [parsedInput], nonInputItems, body.status ?? 'in_progress');
 
   const parsedItems = [...parsedInput, ...parsedNonInputItems];
 
@@ -1578,7 +1578,7 @@ app.openapi(runPATCHRoute, async (c) => {
     throw new AgentViewError("Cannot add items to a finished run.", 422);
   }
 
-  const parsedItems = validateNonInputItems(runConfig, items, body.status ?? 'in_progress');
+  const parsedItems = validateNonInputItems(runConfig, run.items.map(item => item.content), items, body.status ?? 'in_progress');
 
   /** State */
   if (body.state !== undefined && run.status !== 'in_progress') {

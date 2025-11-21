@@ -6,12 +6,26 @@ const schema = z.looseObject({
   foo: z.string().meta({ dupa: 8 })
 })
 
+console.log('meta', schema.shape.foo.meta());
+
 const jsonSchema = z.toJSONSchema(schema)
+console.log('jsonSchema', jsonSchema);
 
-const schema2 = convertJsonSchemaToZod(jsonSchema)
+console.log('--------------- after conversion ---------------');
+const schemaAfter = convertJsonSchemaToZod(jsonSchema)
+console.log('meta', schemaAfter.shape.foo.meta());
 
-console.log('after conversion back to zod')
-console.log(z.toJSONSchema(schema2))
+const jsonSchemaAfter = z.toJSONSchema(schemaAfter)
+console.log('jsonSchema', jsonSchemaAfter);
+// console.log('after conversion back to')
+// console.log(z.toJSONSchema(schema2))
+
+
+
+
+
+
+
 
 // const schemaDefault = z.object({
 //   foo: z.string(),
