@@ -285,7 +285,7 @@ describe('API', () => {
       let configRow = await av.__updateConfig({ config: { agents: [], animal: "cat" } })
       expect(configRow.config).toEqual({ agents: [] });
 
-      configRow = await av.__getConfig();
+      configRow = await av.__getConfig(); 
       console.log(configRow.config);
       expect(configRow.config).toEqual({ agents: [] });
     })
@@ -530,8 +530,6 @@ describe('API', () => {
     })
   })
 
-  // TODO:
-  // - tool calls (fix configUtils.test)
 
   describe("runs", () => {
     test("creating run with non-existing sessionId", async () => {
@@ -586,6 +584,8 @@ describe('API', () => {
      * 
      * This is automated set of test cases where we test different scenarios of runs.
      **/
+
+    // TODO: Better error messages from bad matches!!!
 
     const baseTestCases : Array<{ title: string, scenarios: any[], lastRunStatus: ("in_progress" | "completed" | "failed" | undefined)[], error?: number | null, validateSteps?: boolean, strictMatching?: boolean, only?: boolean }> = [
       {
