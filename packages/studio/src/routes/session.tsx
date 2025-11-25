@@ -32,9 +32,7 @@ import { Form as HookForm } from "~/components/ui/form";
 import { Pill } from "~/components/Pill";
 import { useRerender } from "~/hooks/useRerender";
 import { AssistantMessage, StepItem, UserMessage } from "~/components/session-item";
-import { toast } from "sonner";
 import { debugRun } from "~/lib/debugRun";
-import { runDefaultName } from "~/lib/runDefaultName";
 import { ErrorBoundary } from "~/components/internal/ErrorBoundary";
 
 
@@ -45,6 +43,7 @@ async function loader({ request, params }: LoaderFunctionArgs) {
         throw data(response.error, { status: response.status })
     }
 
+    console.log('re-loaded');
     return {
         session: response.data,
         listParams: getListParams(request)
@@ -62,18 +61,18 @@ function SessionPage() {
     const navigate = useNavigate();
     const { user } = useSessionContext();
 
-    const [watchedRun, setWatchedRun] = useState<RunWithCollaboration | undefined>(undefined)
+    const [session, setSession] = useState<SessionWithCollaboration>(loaderData.session)
 
     // Session with applied local watched run
-    const session = {
-        ...loaderData.session,
-        runs: loaderData.session.runs.map(run => {
-            if (run.id === watchedRun?.id) {
-                return watchedRun
-            }
-            return run;
-        })
-    } as SessionWithCollaboration
+    // const session = {
+    //     ...loaderData.session,
+    //     runs: loaderData.session.runs.map(run => {
+    //         if (run.id === watchedRun?.id) {
+    //             return watchedRun
+    //         }
+    //         return run;
+    //     })
+    // } as SessionWithCollaboration
 
     const listParams = loaderData.listParams;
     const activeItems = getAllSessionItems(session, { activeOnly: true })
@@ -109,6 +108,75 @@ function SessionPage() {
 
         navigate(`?${currentSearchParams.toString()}`, { replace: true });
     }
+    
+    useEffect(() => {
+
+        const abortController = new AbortController();
+
+        (async () => {
+
+            try {
+                const response = await fetch(`${getAPIBaseUrl()}/api/sessions/${session.id}/watch`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include', // ensure cookies are sent
+                    signal: abortController.signal,
+                });
+
+                console.log('WATCHING SESSION...')
+
+                for await (const event of parseSSE(response)) {
+                    console.log('EVENT', event.event)
+
+                    setSession((prevSession) => {
+                        if (event.event === 'session.snapshot') {
+                            return event.data;
+                        }
+                        else if (event.event === 'run.created') {
+                            // if run already exists, don't add it again
+                            if (prevSession.runs.find(run => run.id === event.data.id)) {
+                                return prevSession;
+                            }
+
+                            return {
+                                ...prevSession,
+                                runs: [...prevSession.runs, event.data]
+                            }
+                        }
+                        else if (event.event === 'run.archived') {
+                            return {
+                                ...prevSession,
+                                runs: prevSession.runs.filter(run => run.id !== event.data.id)
+                            }
+                        }
+                        else if (event.event === 'run.updated') {
+                            return {
+                                ...prevSession,
+                                runs: prevSession.runs.map(run => run.id === event.data.id ? { ...run, ...event.data, items: [...run.items, ...event.data.items] } : run)
+                            }
+                        }
+                        else {
+                            console.warn('Unknown event type', event.event)
+                            return prevSession
+                        }
+                    })
+                }   
+            } catch (err: any) {
+                if (err?.name === 'AbortError') {
+                    console.log('stream aborted');
+                    return;
+                }
+                
+                throw err;
+            }
+        })()
+
+        return () => {
+            abortController.abort();
+        }
+
+    }, [])
 
     useEffect(() => {
         apiFetch(`/api/sessions/${session.id}/seen`, {
@@ -122,65 +190,6 @@ function SessionPage() {
             }
         })
     }, [])
-
-    useEffect(() => {
-        if (lastRun?.status === 'in_progress') {
-
-            (async () => {
-                try {
-                    const response = await fetch(`${getAPIBaseUrl()}/api/sessions/${session.id}/watch_run`, {
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        credentials: 'include', // ensure cookies are sent
-                    });
-
-                    // setStreaming(true)
-
-                    for await (const event of parseSSE(response)) {
-
-                        setWatchedRun((prevWatchedRun) => {
-                            if (event.event === 'run.snapshot') {
-                                return event.data;
-                            }
-
-                            if (!prevWatchedRun) {
-                                console.warn("This is probably error state.")
-                                return prevWatchedRun
-                            }
-
-                            if (event.event === 'run.state') {
-                                return {
-                                    ...prevWatchedRun,
-                                    ...event.data
-                                }
-                            }
-                            else if (event.event === 'item.created') {
-                                console.log('item.created', event.data)
-                                return {
-                                    ...prevWatchedRun,
-                                    sessionItems: [...prevWatchedRun.items, event.data]
-                                }
-                            }
-                            else {
-                                console.warn('Unknown event type', event.event)
-                                throw new Error('Unknown event type')
-                            }
-                        })
-                    }
-
-                } catch (error) {
-                    console.error(error)
-                } finally {
-                    setWatchedRun(undefined)
-                    revalidator.revalidate();
-                }
-            })()
-        }
-
-    }, [lastRun?.status])
-
-    
 
     const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -482,6 +491,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
                 setError(error instanceof Error ? { message: error.message } : { message: 'Unknown error' })
             })
             .finally(() => {
+                setAbortController(undefined);
                 // setIsRequestInProgress(false);
                 // abortController.abort();
                 // revalidator.revalidate();

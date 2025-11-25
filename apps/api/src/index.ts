@@ -1290,7 +1290,9 @@ async function* watchSession(initSession: Session) {
         if (prevLastRun && !session.runs.find(r => r.id === prevLastRun?.id)) {
           yield {
             event: 'run.archived',
-            data: prevLastRun.id,
+            data: {
+              id: prevLastRun.id,
+            },
           }
         }
 
@@ -1301,20 +1303,16 @@ async function* watchSession(initSession: Session) {
 
         prevLastRun = lastRun;
       }
-
-      const freshItems = hasNewRun ? lastRun.items : lastRun.items.filter(i => !prevLastRun?.items.find(i2 => i2.id === i.id))
-
-      for (const item of freshItems) {
-        yield {
-          event: 'item.created',
-          data: JSON.stringify(item),
-        };
-      }
-
-      // check for state change
-      if (!hasNewRun) {
-        const runFieldsToCompare = ['id', 'status', 'finishedAt', 'failReason', 'metadata'] as const;
+      else {
         const changedFields: Partial<typeof lastRun> = {};
+
+        const newItems = lastRun.items.filter(i => !prevLastRun?.items.find(i2 => i2.id === i.id))
+
+        if (newItems.length > 0) {
+          changedFields.items = newItems;
+        }
+
+        const runFieldsToCompare = ['id', 'status', 'finishedAt', 'failReason', 'metadata'] as const;
   
         for (const field of runFieldsToCompare) {
           if (JSON.stringify(prevLastRun![field] ?? null) !== JSON.stringify(lastRun[field] ?? null)) {
@@ -1325,7 +1323,10 @@ async function* watchSession(initSession: Session) {
         if (Object.keys(changedFields).length > 0) {
           yield {
             event: 'run.updated',
-            data: JSON.stringify(changedFields),
+            data: {
+              id: lastRun.id,
+              ...changedFields,
+            },
           };
         }
       }
@@ -1333,7 +1334,6 @@ async function* watchSession(initSession: Session) {
       prevLastRun = lastRun;
     }
 
-    // Wait 1s before next poll
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
 }
@@ -1371,23 +1371,32 @@ app.openapi(sessionWatchRoute, async (c) => {
 
   const generator = watchSession(session);
 
+  let running = true;
+
   // @ts-ignore
   c.env.incoming.on('aborted', () => {
+    if (!running) return;
+    running = false;
     generator.return();
+    console.log(`[session ${session.handle} watch] aborted`)
   });
 
   // @ts-ignore
   c.env.incoming.on('close', () => {
+    if (!running) return;
+    running = false;
     generator.return();
+    console.log(`[session ${session.handle} watch] closed`)
   });
 
-  return streamSSE(c, async (stream) => {
-    stream.onAbort(() => {
-      generator.return();
-    });
+  console.log(`[session ${session.handle} watch] start`)
 
+  // TODO: heartbeat
+  return streamSSE(c, async (stream) => {
     for await (const event of generator) {
-      console.log('session watch event: ', event.event);
+      if (!running) return;
+
+      console.log(`[session ${session.handle} watch] event: ${event.event}`);
       await stream.writeSSE({
         data: JSON.stringify(event.data),
         event: event.event,

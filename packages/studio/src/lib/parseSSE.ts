@@ -16,10 +16,16 @@ export async function* parseSSE(response: Response) {
         let data : string = '';
   
         for (const line of eventStr.split('\n')) {
-          if (line.startsWith('event:')) {
+          // Skip SSE comments (lines starting with ':')
+          if (line.startsWith(':')) {
+            continue;
+          }
+          else if (line.startsWith('event:')) {
             eventType = line.replace('event:', '').trim();
           } else if (line.startsWith('data:')) {
             data += line.replace('data:', '').trim();
+          } else {
+            console.warn('Unknown SSE line', line)
           }
         }
   
