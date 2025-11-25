@@ -66,12 +66,12 @@ export type RunConfig = BaseRunConfig<SessionItemConfig, SessionItemConfig> & {
   displayProperties?: DisplayProperty<{ session: Session, run: Run }>[];
 };
 
-export type AgentInputComponentProps<TSchema extends z.ZodTypeAny> = {
+export type AgentInputComponentProps<TSchema extends z.ZodTypeAny = z.ZodAny> = {
   session: ReturnType<typeof enhanceSession>,
   token: string,
   isRunning: boolean,
   cancel: () => void,
-  submit: (url: string, options: RequestInit & { input?: z.infer<TSchema> }) => Promise<void>
+  submit: (url: string, options: RequestInit & { input?: z.infer<TSchema> }) => Promise<void | Response> // no idea why this type is correct
 }
 
 export type AgentInputComponent<TSchema extends z.ZodTypeAny = z.ZodAny> = React.ComponentType<AgentInputComponentProps<TSchema>>
