@@ -498,9 +498,6 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
                     return;
                 }
                 throw error;
-                // else {
-                //     setError(error instanceof Error ? { message: error.message } : { message: 'Unknown error' })
-                // }
             })
             .finally(() => {
                 setAbortController(undefined);
@@ -508,7 +505,6 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
     }
 
     const cancel = async () => {
-
         if (lastRun?.status === 'in_progress') {
             console.log('all good, cancelling');
             await apiFetch(`/api/runs/${lastRun.id}`, {
@@ -522,10 +518,6 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
             abortController?.abort();
         }
         
-        // await apiFetch('/api/runs/', {
-        //     method: 'POST',
-        // });
-        // console.log('cancelling');
         setAbortController(undefined);
     }
 
