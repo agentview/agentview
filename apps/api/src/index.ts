@@ -250,7 +250,7 @@ function authorize(principal: Principal, action: Action) {
     else if (principal.type === 'user') {
       const userId = principal.session.user.id
 
-      if (action.action === "end-user:read" && (!action.endUser.simulatedBy || action.endUser.isShared)) { // sessions without owner or shared -> read access
+      if (action.action === "end-user:read" && (!action.endUser.simulatedBy || action.endUser.isShared || (action.endUser.simulatedBy === userId))) { // sessions without owner or shared -> read access
         return true;
       }
 
@@ -820,7 +820,6 @@ app.openapi(apiEndUsersPUTRoute, async (c) => {
 /**
  * SESSIONS
  */
-
 const PublicSessionsGetQueryParamsSchema = z.object({
   agent: z.string().optional(),
   page: z.string().optional(),
@@ -1091,10 +1090,18 @@ const sessionGETRoute = createRoute({
 app.openapi(sessionGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const { session_id } = c.req.param()
-  requireUUID(session_id);
+  // requireUUID(session_id);
+
+  console.log('session_id', session_id);
 
   const session = await requireSession(session_id);
+  console.log('session', session.id);
+  console.log('principal', principal);
+  console.log('session.endUser', session.endUser);
+
   await authorize(principal, { action: "end-user:read", endUser: session.endUser });
+
+  console.log('authorised!!!');
 
   return c.json(session, 200);
 })
@@ -1119,7 +1126,7 @@ const sessionPATCHRoute = createRoute({
 app.openapi(sessionPATCHRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const { session_id } = c.req.param()
-  requireUUID(session_id);
+  // requireUUID(session_id);
 
   const body = await c.req.valid('json')
   const session = await requireSession(session_id);

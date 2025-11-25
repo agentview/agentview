@@ -13,7 +13,7 @@ import {
 } from './apiTypes'
 
 import { type AgentViewErrorBody, type AgentViewErrorDetails, AgentViewError } from './AgentViewError'
-import { BaseConfigSchemaZodToJsonSchema } from './configUtils'
+import { serializeConfig } from './configUtils'
 
 import { getLastRun, getAllSessionItems } from './sessionUtils'
 
@@ -130,7 +130,7 @@ export class AgentView {
   }
 
   async __updateConfig(body: ConfigCreate): Promise<Config> {
-    return await this.request<Config>('PUT', `/api/config`, { ...body, config: BaseConfigSchemaZodToJsonSchema.parse(body.config) })
+    return await this.request<Config>('PUT', `/api/config`, { ...body, config: serializeConfig(body.config) })
   }
 }
 

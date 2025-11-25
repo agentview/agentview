@@ -10,31 +10,27 @@ function Component() {
 
 function ErrorBoundary() {
   const error = useRouteError();
-  let message = "Oops!";
-  let details = "An unexpected error occurred.";
+  let message = "An unexpected error occurred.";
+  let details : any = undefined;
   let stack: string | undefined;
-  let data: any;
 
   if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error";
-    details =
-      error.status === 404
-        ? "The requested page could not be found."
-        : error.statusText || details;
+    message = `${error.status} ${error.data.message}`;
+    details = error.data.data;
 
-    data = error.data;
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
-    details = error.message;
+  } else if (error instanceof Error) {
+    message = error.message;
+    details = error.cause;
     stack = error.stack;
   }
 
   return (
     <main className="pt-16 p-4 container mx-auto">
-      <h1>{message}</h1>
-      <p>{details}</p>
-      { data && (<div>
+      <h1>Error: {message}</h1>
+      <br/>
+      { details && (<div>Details:
           <br/>
-          <pre>{JSON.stringify(data, null, 2)}</pre>
+          <pre>{JSON.stringify(details, null, 2)}</pre>
         </div>
       )}
       {stack && (

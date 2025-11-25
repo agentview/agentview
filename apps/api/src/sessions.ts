@@ -5,6 +5,7 @@ import type { Transaction } from "./types";
 import { isUUID } from "./isUUID";
 import type { SessionWithCollaboration } from "./shared/apiTypes";
 
+
 export async function fetchSession(session_id: string, tx?: Transaction): Promise<SessionWithCollaboration | undefined> {
   let where : ReturnType<typeof eq> | undefined;
 
@@ -16,6 +17,9 @@ export async function fetchSession(session_id: string, tx?: Transaction): Promis
     if (match) {
       const handleNumber = parseInt(match[1], 10);
       const handleSuffix = match[2] || "";
+
+      console.log('HANDLE', handleNumber, handleSuffix);
+
       where = and(eq(sessions.handleNumber, handleNumber), eq(sessions.handleSuffix, handleSuffix));
     }
     else {
@@ -63,7 +67,7 @@ export async function fetchSession(session_id: string, tx?: Transaction): Promis
     return undefined;
   }
 
-  const state = await fetchSessionState(session_id, tx);
+  const state = await fetchSessionState(row.id, tx);
 
   return {
     id: row.id,
@@ -75,45 +79,9 @@ export async function fetchSession(session_id: string, tx?: Transaction): Promis
     endUser: row.endUser,
     endUserId: row.endUser.id,
     runs: row.runs.filter((run, index) => run.status !== "failed" || index === row.runs.length - 1),
-    state//: null,//row.states[row.states.length - 1]?.content ?? null // todo: fixme
+    state
   } as SessionWithCollaboration;
-
-  // return sessionRows.map((row) => ({
-  //   id: row.id,
-  //   handle: row.handleNumber.toString() + (row.handleSuffix ?? ""),
-  //   createdAt: row.createdAt,
-  //   updatedAt: row.updatedAt,
-  //   metadata: row.metadata,
-  //   agent: row.agent,
-  //   endUser: row.endUser,
-  //   endUserId: row.endUser.id,
-  //   runs: row.runs.filter((run, index) => run.status !== "failed" || index === row.runs.length - 1),
-  //   state: null,//row.states[row.states.length - 1]?.content ?? null // todo: fixme
-  // })) as SessionWithCollaboration[];
-
-  // return await Promise.all(sessionRows.map(async (row) => ({
-  //   id: row.id,
-  //   handle: row.handleNumber.toString() + (row.handleSuffix ?? ""),
-  //   createdAt: row.createdAt,
-  //   updatedAt: row.updatedAt,
-  //   metadata: row.metadata,
-  //   agent: row.agent,
-  //   endUser: row.endUser,
-  //   endUserId: row.endUser.id,
-  //   runs: row.runs,
-  //   state: await fetchSessionState(row.id, tx),
-  // }))) as SessionWithCollaboration[];
 }
-
-// export async function fetchSession(session_id: string, tx?: Transaction): Promise<SessionWithCollaboration | undefined> {
-//   const sessions = await fetchSessions(session_id, tx)
-
-//   if (sessions.length === 0) {
-//     return undefined;
-//   }
-
-//   return sessions[0]
-// }
 
 async function fetchSessionState(session_id: string, tx?: Transaction) {
   // Fetch the latest __state__ session item by createdAt descending

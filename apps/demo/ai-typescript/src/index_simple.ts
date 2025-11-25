@@ -6,48 +6,58 @@ import { OpenAI } from 'openai';
 
 const app = new Hono();
 const client = new OpenAI()
-const agentView = new AgentView({
+const av = new AgentView({
   apiUrl: 'http://localhost:8080',
   apiKey: process.env.AGENTVIEW_API_KEY!
 })
 
 app.post('/chat', async (c) => {
-  const body = await c.req.json();
+  const { id, token, input } = await c.req.json();
 
-  console.log('hellow', body);
+  const endUserToken = token ?? (await av.createEndUser()).token;
 
-  const endUserToken = body.endUserToken ?? (await agentView.createEndUser()).token;
+  const session = id ? 
+    await av.getSession({ id, endUserToken }) : 
+    await av.createSession({ agent: "simple_chat", endUserToken });
 
-  console.log('endUserToken', endUserToken);
-
-  const session = body.sessionId ? await agentView.getSession({ id: body.sessionId, endUserToken }) : await agentView.createSession({ agent: "simple_chat", endUserToken });
-
-  console.log('session', session);
-
-  console.log('input', [...session.history, body.input]);
-  
-  const run = await agentView.createRun({ 
+  const run = await av.createRun({ 
     sessionId: session.id, 
-    items: [body.input], 
+    items: [input], 
     version: "0.0.1", 
     endUserToken
   });
 
+  try {
+    const response = await client.responses.create({
+      model: "gpt-5-nano",
+      reasoning: {
+        effort: "low",
+        summary: "detailed"
+      },
+      input: [...session.history, input]
+    });
 
-  const response = await client.responses.create({
-    model: "gpt-5-nano",
-    input: [...session.history, body.input]
-  });
+    await av.updateRun({
+      id: run.id,
+      items: response.output,
+      status: "completed"
+    });
 
-  await agentView.updateRun({
-    id: run.id,
-    items: response.output,
-    status: "completed"
-  });
+    return c.json({
+      ok: true
+    })
 
-  return c.json({
-    ok: true
-  })
+  } catch (error) {
+    await av.updateRun({
+      id: run.id,
+      status: "failed",
+      failReason: {
+        message: (error as Error).message,
+      }
+    });
+
+    throw error;
+  }
 })
 
 app.onError((error, c) => {

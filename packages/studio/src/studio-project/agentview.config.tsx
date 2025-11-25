@@ -71,7 +71,7 @@ export default defineConfig({
             displayComponent: ({ value }) => <BaseItem title="Weather Tool" value={"Checking weather in: " + JSON.parse(value.arguments).location + "..."} variant="muted" />,
             callResult: {
               schema: z.looseObject({
-                type: "function_call_result",
+                type: z.literal("function_call_result"),
                 callId: z.string().meta({ callId: true })
               }),
               displayComponent: ({ value }) => <WeatherComponent value={value} />

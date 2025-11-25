@@ -297,3 +297,12 @@ export const BaseConfigSchemaZodToJsonSchema = baseConfigSchema(ZodToJsonSchema)
 function isJSONSchema(value: any): boolean { // temporarily simple check
     return typeof value === 'object' && value !== null && '$schema' in value;
 }
+
+
+export function serializeConfig(config: any) {
+    const { data, success, error } = BaseConfigSchemaZodToJsonSchema.safeParse(config);
+    if (!success) {
+        throw new Error("Invalid config", { cause: error.issues });
+    }
+    return data;
+}
