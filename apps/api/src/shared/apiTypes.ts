@@ -124,7 +124,7 @@ export const RunCreateSchema = z.object({
     items: z.array(z.record(z.string(), z.any())),
     version: z.union([VersionCreateSchema, z.string()]),
     metadata: z.record(z.string(), z.any()).optional(),
-    status: z.enum(['in_progress', 'completed', 'failed']).optional(),
+    status: z.enum(['in_progress', 'completed', 'cancelled', 'failed']).optional(),
     state: z.any().optional(),
     failReason: z.any().nullable().optional()
 });

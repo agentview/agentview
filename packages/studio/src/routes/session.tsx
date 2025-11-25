@@ -108,7 +108,7 @@ function SessionPage() {
 
         navigate(`?${currentSearchParams.toString()}`, { replace: true });
     }
-    
+
     useEffect(() => {
 
         const abortController = new AbortController();
@@ -153,7 +153,7 @@ function SessionPage() {
                         else if (event.event === 'run.updated') {
                             return {
                                 ...prevSession,
-                                runs: prevSession.runs.map(run => run.id === event.data.id ? { ...run, ...event.data, items: [...run.items, ...event.data.items] } : run)
+                                runs: prevSession.runs.map(run => run.id === event.data.id ? { ...run, ...event.data, items: [...run.items, ...event.data.items ?? []] } : run)
                             }
                         }
                         else {
@@ -161,13 +161,13 @@ function SessionPage() {
                             return prevSession
                         }
                     })
-                }   
+                }
             } catch (err: any) {
                 if (err?.name === 'AbortError') {
                     console.log('stream aborted');
                     return;
                 }
-                
+
                 throw err;
             }
         })()
@@ -313,6 +313,11 @@ function SessionPage() {
 
                                         {isLastRunItem && run.status === "failed" && <div className="text-md mt-6 text-red-500">
                                             <span className="">{run.failReason?.message ?? "Unknown reason"} </span>
+                                            {/* <br /> <a href="#" className="underline flex flex-row items-center gap-1">Debug <ExternalLinkIcon className="size-4" /></a></span> */}
+                                        </div>}
+
+                                        {isLastRunItem && run.status === "cancelled" && <div className="text-md mt-6 text-red-500">
+                                            <span>Cancelled by user</span>
                                             {/* <br /> <a href="#" className="underline flex flex-row items-center gap-1">Debug <ExternalLinkIcon className="size-4" /></a></span> */}
                                         </div>}
 
@@ -464,13 +469,13 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
     const [error, setError] = useState<BaseError | undefined>(undefined)
 
     const lastRun = getLastRun(session)
-    const revalidator = useRevalidator()
 
     const [abortController, setAbortController] = useState<AbortController | undefined>(undefined)
 
     const submit = async (url: string, options: RequestInit & { input?: any }) => {
         const abortController = new AbortController();
         setAbortController(abortController);
+        setError(undefined);
 
         const fetchOptions: RequestInit = {
             method: 'POST',
@@ -487,21 +492,44 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
         }
 
         return fetch(url, fetchOptions)
-            .catch((error) => {
-                setError(error instanceof Error ? { message: error.message } : { message: 'Unknown error' })
+            .catch((error: any) => {
+                if (error?.name === 'AbortError') {
+                    console.log('stream aborted');
+                    return;
+                }
+                throw error;
+                // else {
+                //     setError(error instanceof Error ? { message: error.message } : { message: 'Unknown error' })
+                // }
             })
             .finally(() => {
                 setAbortController(undefined);
-                // setIsRequestInProgress(false);
-                // abortController.abort();
-                // revalidator.revalidate();
             })
     }
 
     const cancel = async () => {
-        abortController?.abort();
+
+        if (lastRun?.status === 'in_progress') {
+            console.log('all good, cancelling');
+            await apiFetch(`/api/runs/${lastRun.id}`, {
+                method: 'PATCH',
+                body: {
+                    status: 'cancelled'
+                }
+            });
+
+            // must go *after* request above to prevent race
+            abortController?.abort();
+        }
+        
+        // await apiFetch('/api/runs/', {
+        //     method: 'POST',
+        // });
+        // console.log('cancelling');
         setAbortController(undefined);
     }
+
+    // submit, cancel are *special* (shorthand). isRunning is legit when session is running. It's THAT SIMPLE. Trivial. Do not overthink it.
 
     const isRunning = lastRun?.status === 'in_progress' || !!abortController;
 
@@ -522,8 +550,6 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
 
             {InputComponent && (
                 <div>
-                    {/* {error && <AVFormError error={error} className="mb-4" />} */}
-
                     <InputComponent
                         cancel={cancel}
                         submit={submit}
@@ -542,8 +568,6 @@ export const sessionRoute: RouteObject = {
     Component,
     loader,
 }
-
-
 
 type MessageFooterProps = {
     session: SessionWithCollaboration,

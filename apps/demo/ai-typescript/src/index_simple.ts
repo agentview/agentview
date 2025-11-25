@@ -40,8 +40,12 @@ app.post('/chat', async (c) => {
     endUserToken
   });
 
+  console.log('all initiated, running AI...');
+
+  let response : Awaited<ReturnType<typeof client.responses.create>>;
+
   try {
-    const response = await client.responses.create({
+    response = await client.responses.create({
       model: "gpt-5-nano",
       reasoning: {
         effort: "low",
@@ -49,18 +53,6 @@ app.post('/chat', async (c) => {
       },
       input: [...session.history, input]
     });
-
-    await av.updateRun({
-      id: run.id,
-      items: response.output,
-      status: "completed"
-    });
-
-    return c.json({
-      token: endUserToken,
-      sessionId: session.id,
-      output: response.output
-    })
 
   } catch (error) {
     await av.updateRun({
@@ -73,6 +65,18 @@ app.post('/chat', async (c) => {
 
     throw error;
   }
+
+  await av.updateRun({
+    id: run.id,
+    items: response.output,
+    status: "completed"
+  });
+
+  return c.json({
+    token: endUserToken,
+    sessionId: session.id,
+    output: response.output
+  })
 })
 
 

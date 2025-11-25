@@ -1533,7 +1533,7 @@ function parseVersion(version: string): { major: number, minor: number, patch: n
   return { major, minor, patch };
 }
 
-function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[], items: any[], status: 'in_progress' | 'completed' | 'failed') {
+function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[], items: any[], status: 'in_progress' | 'completed' | 'cancelled' | 'failed') {
   const validateSteps = runConfig.validateSteps ?? false;
 
   const parsedItems: any[] = [];
@@ -1573,7 +1573,7 @@ function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[]
       parsedItems.push(outputItemConfig.content);
     }
   }
-  else if (status === "failed") { // last item, if exists, should be either step or output
+  else if (status === "failed" || status === "cancelled") { // last item, if exists, should be either step or output
     if (items.length === 0) {
       validateStepItems(items);
     }
@@ -1600,7 +1600,7 @@ function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[]
       }
     }
   }
-  else {
+  else if (status === "in_progress") {
     validateStepItems(items);
   }
 
@@ -1701,7 +1701,7 @@ app.openapi(runsPOSTRoute, async (c) => {
     throw new AgentViewError("failReason can only be set when status is 'failed'.", 422);
   }
 
-  const finishedAt = (status === 'completed' || status === 'failed') ? new Date().toISOString() : null;
+  const finishedAt = (status === 'completed' || status === 'cancelled' || status === 'failed') ? new Date().toISOString() : null;
 
 
   // Create run and items
@@ -1792,6 +1792,8 @@ app.openapi(runPATCHRoute, async (c) => {
   /** Validate items */
   const items = body.items ?? [];
 
+  console.log('items', items);
+
   if (items.length > 0 && run.status !== 'in_progress') {
     throw new AgentViewError("Cannot add items to a finished run.", 422);
   }
@@ -1814,11 +1816,16 @@ app.openapi(runPATCHRoute, async (c) => {
   const status = body.status ?? 'in_progress';
   const failReason = body.failReason ?? null;
 
-  if (failReason && status !== 'failed') {
-    throw new AgentViewError("failReason can only be set when status is 'failed'.", 422);
+  if (failReason) {
+    if (run.status !== 'in_progress') {
+      throw new AgentViewError("failReason cannot be set for a finished run.", 422);
+    }
+    else if (status !== 'failed') {
+      throw new AgentViewError("failReason can only be set when changing status to 'failed'.", 422);
+    }
   }
 
-  const finishedAt = run.finishedAt ?? ((status === 'completed' || status === 'failed') ? new Date().toISOString() : null);
+  const finishedAt = run.finishedAt ?? ((status === 'completed' || status === 'failed' || status === 'cancelled') ? new Date().toISOString() : null);
 
   await db.transaction(async (tx) => {
     if (parsedItems.length > 0) {

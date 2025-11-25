@@ -28,3 +28,11 @@ export function getVersions(session: Session | SessionWithCollaboration) {
       return true;
     });
 }
+
+export function enhanceSession(session: Session) {
+  return {
+    ...session,
+    lastRun: getLastRun(session),
+    history: getAllSessionItems(session).map((item) => item.content),
+  }
+}

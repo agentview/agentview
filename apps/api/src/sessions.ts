@@ -76,7 +76,7 @@ export async function fetchSession(session_id: string, tx?: Transaction): Promis
     agent: row.agent,
     endUser: row.endUser,
     endUserId: row.endUser.id,
-    runs: row.runs.filter((run, index) => run.status !== "failed" || index === row.runs.length - 1),
+    runs: row.runs.filter((run, index) => run.status === "in_progress" || run.status === "completed" || index === row.runs.length - 1),
     state
   } as SessionWithCollaboration;
 }

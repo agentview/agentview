@@ -15,7 +15,7 @@ import {
 import { type AgentViewErrorBody, type AgentViewErrorDetails, AgentViewError } from './AgentViewError'
 import { serializeConfig } from './configUtils'
 
-import { getLastRun, getAllSessionItems } from './sessionUtils'
+import { enhanceSession } from './sessionUtils'
 
 
 export interface AgentViewOptions {
@@ -25,14 +25,6 @@ export interface AgentViewOptions {
 
 export type EndUserTokenOptions = {
   endUserToken?: string
-}
-
-function enhanceSession(session: Session) {
-  return {
-    ...session,
-    lastRun: getLastRun(session),
-    history: getAllSessionItems(session).map((item) => item.content),
-  }
 }
 
 export class AgentView {
