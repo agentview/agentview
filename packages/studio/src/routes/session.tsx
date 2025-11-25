@@ -34,6 +34,7 @@ import { useRerender } from "~/hooks/useRerender";
 import { AssistantMessage, StepItem, UserMessage } from "~/components/session-item";
 import { debugRun } from "~/lib/debugRun";
 import { ErrorBoundary } from "~/components/internal/ErrorBoundary";
+import { enhanceSession } from "~/lib/shared/sessionUtils";
 
 
 async function loader({ request, params }: LoaderFunctionArgs) {
@@ -546,7 +547,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
                         cancel={cancel}
                         submit={submit}
                         isRunning={isRunning}
-                        session={session}
+                        session={enhanceSession(session)}
                         token={session.endUser.token}
                     />
                 </div>

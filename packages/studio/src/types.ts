@@ -1,5 +1,5 @@
 import type { RouteObject } from "react-router";
-import type { BaseScoreConfig, BaseSessionItemConfig, BaseAgentConfig, BaseAgentViewConfig, BaseRunConfig } from "./lib/shared/configTypes";
+import type { BaseScoreConfig, BaseSessionItemConfig, BaseAgentConfig, BaseAgentViewConfig, BaseRunConfig, Metadata } from "./lib/shared/configTypes";
 import type { Run, Session } from "./lib/shared/apiTypes";
 import { enhanceSession } from "./lib/shared/sessionUtils";
 import { z, type ZodType } from "zod";
@@ -76,9 +76,16 @@ export type AgentInputComponentProps<TSchema extends z.ZodTypeAny> = {
 
 export type AgentInputComponent<TSchema extends z.ZodTypeAny = z.ZodAny> = React.ComponentType<AgentInputComponentProps<TSchema>>
 
+export type NewSessionComponentProps = {
+  submit: (values?: { metadata?: any }) => void,
+  isRunning: boolean
+}
+
+export type NewSessionComponent = React.ComponentType<NewSessionComponentProps>
+
 export type AgentConfig = BaseAgentConfig<RunConfig> & {
   displayProperties?: DisplayProperty<{ session: Session }>[];
-  newSessionComponent?: FormComponent<any>;
+  newSessionComponent?: NewSessionComponent;
   inputComponent?: AgentInputComponent;
   run?: RunConfig;
 }

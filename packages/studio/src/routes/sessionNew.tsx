@@ -27,15 +27,13 @@ async function action({ request, params }: ActionFunctionArgs): Promise<ActionRe
     payload = await request.json();
   }
 
-  // Lack of "context" property is treated as attempt to creaate context-less session. If session requires context, we redirect to the form.
-  
-  // TODO: do it based on inputComponent for session!!!
-  
-  // if (agentConfig.context && !payload?.context) {
-  //   return redirect(`/sessions/new?${toQueryParams(listParams)}`, { status: 303 });
-  // }
+  if (!payload && agentConfig.newSessionComponent) {
+    return redirect(`/sessions/new?${toQueryParams(listParams)}`, { status: 303 });
+  }
 
-  const clientResponse = await apiFetch('/api/clients', {
+
+
+  const clientResponse = await apiFetch('/api/end-users', {
     method: 'POST',
     body: {
       isShared: false
@@ -45,13 +43,13 @@ async function action({ request, params }: ActionFunctionArgs): Promise<ActionRe
   if (!clientResponse.ok) {
     throw data(clientResponse.error, { status: clientResponse.status });
   }
-
+  
   const sessionResponse = await apiFetch('/api/sessions', {
     method: 'POST',
     body: {
       agent: agentConfig.name,
       clientId: clientResponse.data.id,
-      context: payload?.context
+      metadata: payload?.metadata
     }
   });
 
@@ -79,15 +77,14 @@ function Component() {
       <div className="p-6 max-w-4xl space-y-6">
         {error && <AVFormError error={error} className="mb-6" />}
 
-        <div>TO IMPLEMENT</div>
+        {agentConfig.newSessionComponent && <agentConfig.newSessionComponent
+          submit={(values) => { 
 
-        {/* {agentConfig.inputComponent && <agentConfig.inputComponent
-          cancel={() => { console.warn("New session operation does not support cancel.") }}
-          submit={(values) => { fetcher.submit({ context: values }, { method: 'post', encType: 'application/json' }) }}
-          schema={agentConfig.metadata!}
-          error={error}
+            console.log('submit!!!', values);
+            fetcher.submit(values ?? {}, { method: 'post', encType: 'application/json' }) 
+          }}
           isRunning={fetcher.state === "submitting"}
-        />} */}
+        />}
 
       </div>
     </div>

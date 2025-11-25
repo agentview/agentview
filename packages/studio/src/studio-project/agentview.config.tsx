@@ -53,7 +53,17 @@ export default defineConfig({
         onSubmit={(val) => submit("http://localhost:3000/chat", { input: { content: val, type: "message", role: "user" } })}
         onCancel={cancel}
         isRunning={isRunning}
-      />
+      />,
+      // newSessionComponent: ({ submit, isRunning }) => <form onSubmit={(e) => {
+      //   e.preventDefault();
+      //   submit({
+      //     metadata: {
+      //       dupa: 888
+      //     }
+      //   });
+      // }}>
+      //   <Button type="submit" disabled={isRunning}>Submit</Button>
+      // </form>
     },
     {
       name: "weather_chat",
