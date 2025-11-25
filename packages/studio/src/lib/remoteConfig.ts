@@ -1,6 +1,6 @@
 import type { AgentViewConfig, SessionItemConfig } from "~/types";
 import { apiFetch } from "./apiFetch";
-import { makeObjectSerializable } from "./shared/configUtils";
+import { BaseConfigSchemaZodToJsonSchema } from "./shared/configUtils";
 
 
 // TODO: this code could use SDK
@@ -16,10 +16,12 @@ export async function getRemoteConfig() {
 }
 
 export async function updateRemoteConfig(config: AgentViewConfig) {
+    const baseConfig = BaseConfigSchemaZodToJsonSchema.parse(config);
+    
     const response = await apiFetch(`/api/config`, {
         method: "PUT",
         body: {
-            config: makeObjectSerializable(config)
+            config: baseConfig
         }
     });
 

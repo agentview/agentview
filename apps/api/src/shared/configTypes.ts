@@ -6,7 +6,6 @@ export interface BaseScoreConfig {
 }
 
 export type Metadata = Record<string, z.ZodType>;
-// export type ExtendedSchema = Record<string, z.ZodType | string> | z.ZodType;
 
 export interface BaseSessionItemConfig<TScoreConfig extends BaseScoreConfig = BaseScoreConfig> {
     schema: z.ZodType;

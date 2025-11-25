@@ -1,8 +1,8 @@
-import type { Run, Session, SessionItem } from "./apiTypes";
+import type { SessionItem } from "./apiTypes";
 import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig, Metadata, BaseRunConfig } from "./configTypes";
-import { z, ZodString } from "zod";
-import { getAllSessionItems } from "./sessionUtils";
+import { z } from "zod";
 import { AgentViewError } from "./AgentViewError";
+import { convertJsonSchemaToZod } from 'zod-from-json-schema';
 
 
 // Register `callId` meta for zod schemas
@@ -78,32 +78,12 @@ export function findItemConfigById<RunT extends BaseRunConfig>(runConfig: RunT, 
     if (!newItem) {
         return undefined;
     }
-    
+
     return findItemConfig(runConfig, previousItems, newItem, itemType);
 }
 
 export function findItemConfig<RunT extends BaseRunConfig>(runConfig: RunT, items: any[], newItem: Record<string, any>, itemType?: "input" | "output" | "step"): { itemConfig: RunT["output"], content: any, toolCallContent?: any, type: "input" | "output" | "step" } | undefined {
-    // console.log("--------------------------------")
-    // type RunT = NonNullable<T["runs"]>[number];
     type ItemConfigT = RunT["output"] & SessionItemExtension; // output type is the same as step type, we also ignore input type difference for now 
-
-    // // existing session id
-    // let newContent: Record<string, any>;
-    // let prevContent: Record<string, any>[]
-
-    // if (typeof contentOrId === "string") {
-    //     const itemIndex = items.findIndex((item) => item.id === contentOrId);
-    //     if (itemIndex === -1) {
-    //         return undefined;
-    //     }
-
-    //     newContent = items[itemIndex].content;
-    //     prevContent = items.slice(0, itemIndex).map((item) => item.content);
-    // }
-    // else {
-    //     newContent = contentOrId;
-    //     prevContent = items.map((item) => item.content);
-    // }
 
     const availableItemConfigs: ItemConfigT[] = [];
 
@@ -153,10 +133,6 @@ function getCallIdKey(inputSchema: z.ZodType): any | undefined {
 function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension>(itemConfigs: T[], content: Record<string, any>, prevItems: Record<string, any>[]): T[] {
     const matches: T[] = [];
 
-    // console.log('--------------MATCH ITEM CONFIGS------------------');
-    // console.log('prevItems', prevItems);
-    // console.log('content', content);
-
     for (const itemConfig of itemConfigs) {
         const itemParseResult = itemConfig.schema.safeParse(content);
         if (itemParseResult.success) {
@@ -173,11 +149,6 @@ function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension
             const callIdKey = getCallIdKey(itemConfig.schema);
             const resultIdKey = getCallIdKey(itemConfig.callResult.schema);
 
-            // console.log('itemConfig.schema', z.toJSONSchema(itemConfig.schema));
-            // console.log('callResult.schema', z.toJSONSchema(itemConfig.callResult.schema));
-            // console.log('callIdKey', callIdKey);
-            // console.log('resultIdKey', resultIdKey);
-
             if (!callIdKey || !resultIdKey) {
                 console.warn('Both callIdKey and resultIdKey must be defined for result');
                 break;
@@ -193,8 +164,6 @@ function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension
                 const toolCallParseResult = itemConfig.schema.safeParse(prevItem);
 
                 if (toolCallParseResult.success && prevItem[callIdKey] === content[resultIdKey]) { // if both keys are `undefined`, first match.
-                    // console.log('FOUND MATCHING CALL!', prevItem);
-                    // console.log('matched with', z.toJSONSchema(itemConfig.schema));
                     matches.push({
                         ...itemConfig.callResult,
                         content: toolResultParseResult.data,
@@ -209,106 +178,122 @@ function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension
     return matches;
 }
 
-// export function metadataToSchema(metadata?: Metadata, allowUnknownKeys: boolean = true): z.ZodObject {
-//     let schema = z.object(metadata ?? {});
 
-//     if (allowUnknownKeys) {
-//         return schema.loose();
+
+// // 1. remove functions and react components
+// // 2. convert zod schemas to json schemas
+// export function makeObjectSerializable(obj: any, path?: string): any {
+//     if (obj === null || obj === undefined) {
+//         return obj;
 //     }
-//     else {
-//         return schema.strict();
+
+//     // Handle Zod schemas
+//     if (obj instanceof z.ZodType) {
+//         return z.toJSONSchema(obj);
 //     }
-// }
 
-
-
-
-// export function normalizeExtendedSchema(extendedSchema?: ExtendedSchema, looseMatching: boolean = true): z.ZodObject {
-//     let schema: z.ZodObject;
-
-//     if (!extendedSchema) {
-//         schema = z.object({});
+//     // Handle arrays
+//     if (Array.isArray(obj)) {
+//         return obj.map((value, index) => makeObjectSerializable(value, path ? `${path}[${index}]` : index.toString()));
 //     }
-//     else if (extendedSchema instanceof z.ZodType && extendedSchema instanceof z.ZodObject) {
-//         schema = extendedSchema;
-//     }
-//     else if (typeof extendedSchema === "object" && extendedSchema !== null && !Array.isArray(extendedSchema)) {
-//         const shape: Record<string, any> = {};
-//         for (const [key, val] of Object.entries(extendedSchema)) {
-//             if (val instanceof z.ZodType) {
-//                 shape[key] = val;
+
+//     // Handle objects
+//     if (typeof obj === "object") {
+//         const result: any = {};
+//         for (const [key, value] of Object.entries(obj)) {
+//             console.log('key-value', path + "." + key);
+//             if (isFunction(value) || isReactComponent(value)) {
+//                 continue;
 //             }
-//             else if (typeof val === "string") {
-//                 shape[key] = z.literal(val);
-//             }
-//             else if (typeof val === "number" || typeof val === "boolean" || val === null) {
-//                 shape[key] = z.literal(val);
-//             }
-//             else {
-//                 shape[key] = z.any();
-//             }
+//             result[key] = makeObjectSerializable(value, path ? `${path}.${key}` : key);
 //         }
-//         schema = z.object(shape);
-//     }
-//     else {
-//         throw new Error("Invalid schema, must be z.ZodObject or object");
+//         return result;
 //     }
 
-//     if (looseMatching) {
-//         return schema.loose();
-//     }
-//     else {
-//         return schema.strict();
-//     }
+//     // Primitives
+//     return obj;
 // }
 
-// 1. remove functions and react components
-// 2. convert zod schemas to json schemas
-export function makeObjectSerializable(obj: any, path?: string): any {
-    if (obj === null || obj === undefined) {
-        return obj;
-    }
+// // Helper function to check if a value is a React component
+// function isReactComponent(value: any): boolean {
+//     return typeof value === 'function' && (
+//         value.displayName ||
+//         value.name?.startsWith('React') ||
+//         value.$$typeof === Symbol.for('react.element') ||
+//         value.$$typeof === Symbol.for('react.memo') ||
+//         value.$$typeof === Symbol.for('react.forward_ref')
+//     );
+// }
 
-    // Handle Zod schemas
-    if (obj instanceof z.ZodType) {
-        return z.toJSONSchema(obj);
-    }
+// // Helper function to check if a value is a function (excluding React components)
+// function isFunction(value: any): boolean {
+//     return typeof value === 'function' && !isReactComponent(value);
+// }
 
-    // Handle arrays
-    if (Array.isArray(obj)) {
-        return obj.map((value, index) => makeObjectSerializable(value, path ? `${path}[${index}]` : index.toString()));
-    }
 
-    // Handle objects
-    if (typeof obj === "object") {
-        const result: any = {};
-        for (const [key, value] of Object.entries(obj)) {
-            console.log('key-value', path + "." + key);
-            if (isFunction(value) || isReactComponent(value)) {
-                continue;
-            }
-            result[key] = makeObjectSerializable(value, path ? `${path}.${key}` : key);
+
+
+const JsonSchema = z.record(z.string(), z.any()).refine((value) => isJSONSchema(value), {
+    message: "Invalid JSON Schema format",
+});
+
+const JsonSchemaToZod = JsonSchema.transform((schema) => convertJsonSchemaToZod(schema))
+
+const ZodToJsonSchema = z.any()
+    .refine((value) => {
+        try {
+            z.toJSONSchema(value);
+            return true;
         }
-        return result;
-    }
+        catch (error) {
+            return false;
+        }
+    }, {
+        message: "must be correct Zod schema",
+    })
+    .transform((schema) => z.toJSONSchema(schema))
 
-    // Primitives
-    return obj;
+
+function baseConfigSchema<T extends z.ZodType>(jsonSchemaSchema: T) {
+    // const ExtendedSchema = z.union([
+    //     jsonSchemaSchema,
+    //     z.record(z.string(), z.union([jsonSchemaSchema, z.string()]))
+    // ]);
+
+    const BaseSessionItemConfigSchema = z.object({
+        schema: jsonSchemaSchema,
+        scores: z.array(z.object({
+            name: z.string(),
+            schema: jsonSchemaSchema,
+        })).optional(),
+    });
+
+    const BaseSessionItemConfigSchemaWithTools = BaseSessionItemConfigSchema.extend({
+        callResult: BaseSessionItemConfigSchema.optional(),
+    });
+
+    return z.object({
+        agents: z.array(z.object({
+            name: z.string(),
+            url: z.string(),
+            metadata: z.record(z.string(), jsonSchemaSchema).optional(),
+            allowUnknownMetadata: z.boolean().optional(),
+            runs: z.array(z.object({
+                input: BaseSessionItemConfigSchema,
+                output: BaseSessionItemConfigSchema,
+                steps: z.array(BaseSessionItemConfigSchemaWithTools).optional(),
+                metadata: z.record(z.string(), jsonSchemaSchema).optional(),
+                allowUnknownMetadata: z.boolean().optional(),
+            })).optional(),
+        })).optional(),
+    })
 }
 
-// Helper function to check if a value is a React component
-function isReactComponent(value: any): boolean {
-    return typeof value === 'function' && (
-        value.displayName ||
-        value.name?.startsWith('React') ||
-        value.$$typeof === Symbol.for('react.element') ||
-        value.$$typeof === Symbol.for('react.memo') ||
-        value.$$typeof === Symbol.for('react.forward_ref')
-    );
-}
+export const BaseConfigSchema = baseConfigSchema(JsonSchema)
+export const BaseConfigSchemaToZod = baseConfigSchema(JsonSchemaToZod)
+export const BaseConfigSchemaZodToJsonSchema = baseConfigSchema(ZodToJsonSchema)
 
-// Helper function to check if a value is a function (excluding React components)
-function isFunction(value: any): boolean {
-    return typeof value === 'function' && !isReactComponent(value);
-}
 
+function isJSONSchema(value: any): boolean { // temporarily simple check
+    return typeof value === 'object' && value !== null && '$schema' in value;
+}
