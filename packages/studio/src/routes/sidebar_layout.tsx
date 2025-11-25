@@ -62,8 +62,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const agent = getCurrentAgent(request);
 
+  console.log('updating remote config', config);
   await updateRemoteConfig(config); // update schema on every page load
-
+  console.log('udpated');
+  
   const membersResponse = await apiFetch<User[]>('/api/users');
 
   if (!membersResponse.ok) {

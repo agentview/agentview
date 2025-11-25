@@ -2394,17 +2394,6 @@ app.openapi(configPutRoute, async (c) => {
     return c.json({ message: "Invalid config", code: 'parse.schema', details: error.issues }, 422);
   }
 
-  // console.log('------------- 2 -------------');
-
-  // console.log(JSON.stringify(data, null, 2));
-
-  // // let's serialize again. After parse & serialize we stripped all the omitted values. Only now we can compare the original and the parsed config.
-  // const newConfig = makeObjectSerializable(data)
-
-  // console.log('------------- 3 -------------');
-
-  // console.log(JSON.stringify(newConfig, null, 2));
-
   // @ts-ignore
   if (configRow && equalJSON(configRow.config, data)) {
     return c.json(configRow, 200)

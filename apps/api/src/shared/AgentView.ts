@@ -100,8 +100,8 @@ export class AgentView {
     return await this.request<Run>('PATCH', `/api/runs/${id}`, body, endUserToken)
   }
 
-  async createEndUser(options: EndUserCreate & EndUserTokenOptions): Promise<EndUser> {
-    const { endUserToken, ...body } = options;
+  async createEndUser(options?: EndUserCreate & EndUserTokenOptions): Promise<EndUser> {
+    const { endUserToken, ...body } = options ?? {};
     return await this.request<EndUser>('POST', `/api/end-users`, body, endUserToken)
   }
 

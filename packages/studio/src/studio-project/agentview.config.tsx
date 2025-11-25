@@ -12,9 +12,6 @@ import { PillSelect } from "~/components/PillSelect";
 import { ToggleGroupControl } from "~/components/ToggleGroup";
 import { OptionDisplay } from "~/components/OptionDisplay";
 import { Colors } from "~/lib/shared/colors";
-
-import { ProductDisplay } from "./ProductDisplay";
-import { ProductSelect } from "./ProductSelect";
 import { CustomPage } from "./CustomPage";
 
 

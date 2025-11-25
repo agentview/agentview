@@ -264,7 +264,7 @@ function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension
 
 // 1. remove functions and react components
 // 2. convert zod schemas to json schemas
-export function makeObjectSerializable(obj: any): any {
+export function makeObjectSerializable(obj: any, path?: string): any {
     if (obj === null || obj === undefined) {
         return obj;
     }
@@ -276,17 +276,18 @@ export function makeObjectSerializable(obj: any): any {
 
     // Handle arrays
     if (Array.isArray(obj)) {
-        return obj.map(makeObjectSerializable);
+        return obj.map((value, index) => makeObjectSerializable(value, path ? `${path}[${index}]` : index.toString()));
     }
 
     // Handle objects
     if (typeof obj === "object") {
         const result: any = {};
         for (const [key, value] of Object.entries(obj)) {
+            console.log('key-value', path + "." + key);
             if (isFunction(value) || isReactComponent(value)) {
                 continue;
             }
-            result[key] = makeObjectSerializable(value);
+            result[key] = makeObjectSerializable(value, path ? `${path}.${key}` : key);
         }
         return result;
     }
