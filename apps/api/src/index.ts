@@ -789,8 +789,8 @@ app.openapi(endUserByExternalIdGETRoute, async (c) => {
   return c.json(endUser, 200);
 })
 
-const apiEndUsersPUTRoute = createRoute({
-  method: 'put',
+const apiEndUsersPATCHRoute = createRoute({
+  method: 'patch',
   path: '/api/end-users/{id}',
   request: {
     body: body(EndUserCreateSchema)
@@ -801,7 +801,7 @@ const apiEndUsersPUTRoute = createRoute({
 })
 
 
-app.openapi(apiEndUsersPUTRoute, async (c) => {
+app.openapi(apiEndUsersPATCHRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
   const { id } = c.req.param()

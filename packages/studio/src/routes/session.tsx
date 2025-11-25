@@ -64,6 +64,10 @@ function SessionPage() {
 
     const [session, setSession] = useState<SessionWithCollaboration>(loaderData.session)
 
+    useEffect(() => {
+        setSession(loaderData.session);
+    }, [loaderData.session]);
+
     // Session with applied local watched run
     // const session = {
     //     ...loaderData.session,
@@ -427,7 +431,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
 
 function ShareForm({ session }: { session: Session }) {
     const fetcher = useFetcher();
-    return <fetcher.Form method="put" action={`/clients/${session.endUser.id}/share`}>
+    return <fetcher.Form method="put" action={`/end-users/${session.endUser.id}/share`}>
         <input type="hidden" name="isShared" value={session.endUser.isShared ? "false" : "true"} />
         <Button variant={"outline"} size="sm" type="submit">
             <UsersIcon fill={session.endUser.isShared ? "black" : "none"} stroke={session.endUser.isShared ? "none" : "black"} /> {session.endUser.isShared ? "Shared" : "Share"}

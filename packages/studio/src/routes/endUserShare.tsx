@@ -5,8 +5,8 @@ async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
   const isShared = formData.get("isShared") === "true" ;
   
-  const response = await apiFetch(`/api/clients/${params.clientId}`, {
-    method: "PUT",
+  const response = await apiFetch(`/api/end-users/${params.endUserId}`, {
+    method: "PATCH",
     body: { isShared },
   });
 
@@ -17,16 +17,16 @@ async function action({ request, params }: ActionFunctionArgs) {
   return { ok: true, data: {} };
 }
 
-function Component() {
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Client Share</h1>
-      <p>Client share page content goes here.</p>
-    </div>
-  );
-}
+// function Component() {
+//   return (
+//     <div className="p-6">
+//       <h1 className="text-2xl font-bold mb-4">End User Share</h1>
+//       <p>Client share page content goes here.</p>
+//     </div>
+//   );
+// }
 
-export const clientShareRoute: RouteObject = {
-  Component,
+export const endUserShareRoute: RouteObject = {
+  // Component,
   action,
 }
