@@ -32,6 +32,14 @@ export default defineConfig({
           displayComponent: ({ value }) => <UserMessage value={value.content} />,
           inputComponent: (props) => <UserMessageInput {...props} submit={(val) => props.submit({ content: val, type: "message", role: "user" })} />
         },
+        steps: [
+          {
+            schema: z.looseObject({
+              type: z.literal("reasoning"),
+            }),
+            displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
+          }
+        ],
         output: {
           schema: z.looseObject({
             role: z.literal("assistant"),

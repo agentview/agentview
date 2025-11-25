@@ -52,7 +52,7 @@ export type ScoreConfig<TValue = any> = BaseScoreConfig & {
 export type SessionItemDisplayComponentProps<T=any> = DisplayComponentProps<T>;
 
 export type SessionItemConfig = BaseSessionItemConfig<ScoreConfig> & {
-  displayComponent?: React.ComponentType<DisplayComponentProps>;
+  displayComponent?: React.ComponentType<DisplayComponentProps> | null;
   callResult?: SessionItemConfig;
 };
 

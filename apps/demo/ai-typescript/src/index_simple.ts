@@ -44,7 +44,9 @@ app.post('/chat', async (c) => {
     });
 
     return c.json({
-      ok: true
+      token: endUserToken,
+      sessionId: session.id,
+      output: response.output
     })
 
   } catch (error) {

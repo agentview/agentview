@@ -259,8 +259,15 @@ function SessionPage() {
                             const runConfigMatches = findMatchingRunConfigs(agentConfig, run.items[0].content);
                             const itemConfigMatch = runConfigMatches.length === 1 ? findItemConfigById(runConfigMatches[0], run.items, item.id) : undefined;
 
+                            if (itemConfigMatch?.itemConfig?.displayComponent === null) {
+                                return null;
+                            }
+                            
                             if (isInputItem) {
                                 const Component = itemConfigMatch?.itemConfig?.displayComponent ?? UserMessage;
+                                if (!Component) {
+                                    return null;
+                                }
                                 content = <div className="pl-[10%] relative">
                                     <Component value={item.content} />
                                 </div>
@@ -328,7 +335,7 @@ function SessionPage() {
                                     /> : undefined
                             }
                         })
-                    }).flat()} selectedItemId={selectedItemId}
+                    }).flat().filter((item) => item !== undefined && item !== null)} selectedItemId={selectedItemId}
                         commentsContainer={{
                             style: {
                                 width: `${styles.commentsWidth}px`,
