@@ -1,4 +1,4 @@
-import type { FormComponentProps, SessionItemDisplayComponentProps } from "~/types";
+import type { AgentInputComponentProps, FormComponentProps, SessionItemDisplayComponentProps } from "~/types";
 import { marked } from "marked";
 import { cn } from "~/lib/utils";
 import { useState } from "react";
@@ -60,12 +60,12 @@ export function StepItem({ value }: SessionItemDisplayComponentProps<any>) {
     return <BaseItem value={value} variant="muted" />
 }
 
-export function UserMessageInput(props: FormComponentProps<z.ZodString> & { placeholder?: string }) {
+export function UserMessageInput(props: { isRunning: boolean, onCancel: () => void, onSubmit: (value: string) => void, placeholder?: string }) {
     const [value, setValue] = useState<string>("");
 
     return <form onSubmit={(e) => {
         e.preventDefault();
-        props.submit(value);
+        props.onSubmit(value);
     }}>
         <InputGroup>
             <InputGroupTextarea placeholder={props.placeholder ?? "Enter your message..."} rows={2} className="min-h-0 pb-0 md:text-md" value={value} onChange={(e) => setValue(e.target.value)} />
@@ -87,7 +87,7 @@ export function UserMessageInput(props: FormComponentProps<z.ZodString> & { plac
                     className={`rounded-full ml-auto ${!props.isRunning ? "hidden" : ""}`}
                     size="icon-sm"
                     onClick={() => {
-                        props.cancel();
+                        props.onCancel();
                     }}
                 >
                     <PauseIcon />

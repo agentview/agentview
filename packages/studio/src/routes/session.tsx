@@ -525,7 +525,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
 
     const isRunning = lastRun?.status === 'in_progress' || !!abortController;
 
-    const InputComponent = agentConfig.inputComponent2;
+    const InputComponent = agentConfig.inputComponent;
     if (InputComponent === null) {
         return null;
     }

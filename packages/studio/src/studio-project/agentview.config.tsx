@@ -49,7 +49,11 @@ export default defineConfig({
           displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />
         }
       },
-      inputComponent2: (props) => <UserMessageInput {...props} submit={(val) => props.submit("http://localhost:3000/chat", { input: { content: val, type: "message", role: "user" } })} />
+      inputComponent: ({ submit, cancel, isRunning }) => <UserMessageInput
+        onSubmit={(val) => submit("http://localhost:3000/chat", { input: { content: val, type: "message", role: "user" } })}
+        onCancel={cancel}
+        isRunning={isRunning}
+      />
     },
     {
       name: "weather_chat",

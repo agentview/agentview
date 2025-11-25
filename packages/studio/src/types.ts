@@ -1,6 +1,7 @@
 import type { RouteObject } from "react-router";
 import type { BaseScoreConfig, BaseSessionItemConfig, BaseAgentConfig, BaseAgentViewConfig, BaseRunConfig } from "./lib/shared/configTypes";
 import type { Run, Session } from "./lib/shared/apiTypes";
+import { enhanceSession } from "./lib/shared/sessionUtils";
 import { z, type ZodType } from "zod";
 import type { BaseError } from "./lib/errors";
 import { requireAgentConfig } from "./lib/shared/configUtils";
@@ -65,10 +66,20 @@ export type RunConfig = BaseRunConfig<SessionItemConfig, SessionItemConfig> & {
   displayProperties?: DisplayProperty<{ session: Session, run: Run }>[];
 };
 
+export type AgentInputComponentProps<TSchema extends z.ZodTypeAny> = {
+  session: ReturnType<typeof enhanceSession>,
+  token: string,
+  isRunning: boolean,
+  cancel: () => void,
+  submit: (url: string, options: RequestInit & { input?: z.infer<TSchema> }) => Promise<void>
+}
+
+export type AgentInputComponent<TSchema extends z.ZodTypeAny = z.ZodAny> = React.ComponentType<AgentInputComponentProps<TSchema>>
+
 export type AgentConfig = BaseAgentConfig<RunConfig> & {
   displayProperties?: DisplayProperty<{ session: Session }>[];
-  inputComponent?: FormComponent<any>;
-  inputComponent2?: React.ComponentType<any>;
+  newSessionComponent?: FormComponent<any>;
+  inputComponent?: AgentInputComponent;
   run?: RunConfig;
 }
 
