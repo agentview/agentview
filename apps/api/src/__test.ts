@@ -2,6 +2,21 @@ import "dotenv/config";
 import { z } from "zod";
 import { convertJsonSchemaToZod } from 'zod-from-json-schema';
 
+
+const test = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('foo'),
+    foo: z.string(),
+  }),
+  z.object({
+    type: z.literal('bar'),
+    bar: z.string(),
+  })
+]);
+
+
+
+
 const schema = z.looseObject({
   foo: z.string().meta({ dupa: 8 })
 })

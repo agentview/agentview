@@ -1,9 +1,7 @@
-import { describe, it, test, expect, beforeAll } from 'vitest'
+import { describe, test, expect, beforeAll } from 'vitest'
 import { AgentView, AgentViewClient } from './AgentView'
 import type { EndUser, Run } from './apiTypes';
 import { z } from 'zod';
-import { AgentViewError } from './AgentViewError';
-import { schema } from '../schemas/schema';
 
 const apiKey = 'QnUveLvkStSMbjRCCzfbkBtlngakfLLoHFyaARUroWvTPoqALxxpZSPRuYIUMGbR'
 const apiUrl = 'http://localhost:8080'

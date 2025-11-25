@@ -27,7 +27,7 @@ export function getListParamsAndCheckForRedirect(request: Request) {
     let needsRedirect = false;
 
     if (!list) {
-        list = "real";
+        list = "prod";
         needsRedirect = true;
     }
 

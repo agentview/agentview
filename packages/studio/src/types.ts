@@ -76,15 +76,3 @@ export type AgentViewConfig = BaseAgentViewConfig<AgentConfig> & {
   // agents?: AgentConfig[],
   customRoutes?: CustomRoute[],
 }
-
-
-
-function __testTypes__(config: AgentViewConfig) {
-
-  const agent = config.agents?.find((agent) => agent.name === "simple_chat");
-  const agent2 = requireAgentConfig(config, "simple_chat");
-
-  const Component1 = agent?.runs?.[0].displayProperties;
-  const Component2 = agent2.runs?.[0].displayProperties;
-  
-}

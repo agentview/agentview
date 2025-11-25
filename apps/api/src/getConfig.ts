@@ -84,7 +84,6 @@ function baseConfigSchema<T extends z.ZodType>(jsonSchemaSchema: T) {
                 steps: z.array(BaseSessionItemConfigSchemaWithTools).optional(),
                 metadata: z.record(z.string(), jsonSchemaSchema).optional(),
                 allowUnknownMetadata: z.boolean().optional(),
-                validateSteps: z.boolean().optional(),
             })).optional(),
         })).optional(),
     })

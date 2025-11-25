@@ -41,7 +41,6 @@ import { updateRemoteConfig } from "~/lib/remoteConfig";
 import { config } from "~/config";
 import { type User, allowedSessionLists } from "~/lib/shared/apiTypes";
 import { Button } from "~/components/ui/button";
-import { getAgentParamAndCheckForRedirect } from "~/lib/listParams";
 import { getCurrentAgent } from "~/lib/currentAgent";
 import { matchPath } from "react-router";
 import { UserAvatar } from "~/components/internal/UserAvatar";
@@ -144,9 +143,9 @@ function Component() {
   const isSettings = isMenuLinkActive("/settings")
 
   // Get unseen counts for badges
-  const realUnseenCount = getUnseenCount(agent, "real")
-  const simulatedPrivateUnseenCount = getUnseenCount(agent, "simulated_private")
-  const simulatedSharedUnseenCount = getUnseenCount(agent, "simulated_shared")
+  const prodUnseenCount = getUnseenCount(agent, "prod")
+  const playgroundPrivateUnseenCount = getUnseenCount(agent, "playground_private")
+  const playgroundSharedUnseenCount = getUnseenCount(agent, "playground_shared")
   
   const customRoutes = config.customRoutes?.filter(route => route.scope === "loggedIn");
 
@@ -183,7 +182,7 @@ function Component() {
 
               <SidebarMenuItem>
 
-                <Form action={`/sessions/new?agent=${agent}&list=simulated_private`} method="post" className="flex flex-col items-stretch relative mt-1 px-1">
+                <Form action={`/sessions/new?agent=${agent}&list=playground_private`} method="post" className="flex flex-col items-stretch relative mt-1 px-1">
                   <Button variant="outline" size="sm" type="submit">
                     <PlusIcon className="h-4 w-4" />
                     New Session
@@ -200,30 +199,29 @@ function Component() {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=real`)} className={"justify-between"}>
-                        <Link to={`/sessions?agent=${agent}&list=real`}>
+                      <SidebarMenuButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=prod`)} className={"justify-between"}>
+                        <Link to={`/sessions?agent=${agent}&list=prod`}>
                           <div className="flex flex-row items-center gap-2"><MessageCircle className="h-4 w-4" /> Production</div>
-                          {realUnseenCount > 0 && <NotificationBadge>{realUnseenCount}</NotificationBadge>}
+                          {prodUnseenCount > 0 && <NotificationBadge>{prodUnseenCount}</NotificationBadge>}
                         </Link>
                       </SidebarMenuButton>
-                      {/* {realUnseenCount > 0 && <NotificationBadge>{realUnseenCount}</NotificationBadge>} */}
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
                       <SidebarMenuSub className="mr-0 pr-0">
                         <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=simulated_private`)} className={"justify-between"}>
-                            <Link to={`/sessions?agent=${agent}&list=simulated_private`}>
+                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=playground_private`)} className={"justify-between"}>
+                            <Link to={`/sessions?agent=${agent}&list=playground_private`}>
                               <div>Private</div>
-                              {simulatedPrivateUnseenCount > 0 && <NotificationBadge>{simulatedPrivateUnseenCount}</NotificationBadge>}
+                              {playgroundPrivateUnseenCount > 0 && <NotificationBadge>{playgroundPrivateUnseenCount}</NotificationBadge>}
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                         <SidebarMenuSubItem >
-                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=simulated_shared`)}  className={"justify-between"}>
-                            <Link to={`/sessions?agent=${agent}&list=simulated_shared`}>
+                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=playground_shared`)}  className={"justify-between"}>
+                            <Link to={`/sessions?agent=${agent}&list=playground_shared`}>
                               <div>Shared</div>
-                              {simulatedSharedUnseenCount > 0 && <NotificationBadge>{simulatedSharedUnseenCount}</NotificationBadge>}
+                              {playgroundSharedUnseenCount > 0 && <NotificationBadge>{playgroundSharedUnseenCount}</NotificationBadge>}
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
@@ -261,63 +259,6 @@ function Component() {
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>}
-
-              {/* <SidebarGroup>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {(!config.agents || config.agents.length === 0) && (
-                    <SidebarMenuItem>
-                      <SidebarMenuButton className="text-muted-foreground">You don't have any agents yet</SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )}
-
-                  {config.agents?.map((agent, index) => {
-                    if (index > 0) {
-                      return null
-                    }
-
-                    const realUnseenCount = getUnseenCount(agent.name, "real")
-                    const simulatedPrivateUnseenCount = getUnseenCount(agent.name, "simulated_private")
-                    const simulatedSharedUnseenCount = getUnseenCount(agent.name, "simulated_shared")
-
-                    return (
-                      <SidebarMenuItem key={agent.name}>
-                        <SidebarMenuButton>                                <MessageCircle className="h-4 w-4" />
-                          Sessions</SidebarMenuButton>
-                        <SidebarMenuSub className="mr-0">
-                          <SidebarMenuSubItem className={realUnseenCount > 0 ? "flex justify-between items-center" : ""}>
-                            <SidebarMenuSubButton asChild>
-                              <Link to={`/sessions?agent=${agent.name}`}>
-                                <span>Production</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                            {realUnseenCount > 0 && <NotificationBadge>{realUnseenCount}</NotificationBadge>}
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem className={simulatedPrivateUnseenCount > 0 ? "flex justify-between items-center" : ""}>
-                            <SidebarMenuSubButton asChild>
-                              <Link to={`/sessions?agent=${agent.name}&list=simulated_private`}>
-                                <span>Simulated Private</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-
-                            {simulatedPrivateUnseenCount > 0 && <NotificationBadge>{simulatedPrivateUnseenCount}</NotificationBadge>}
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem className={simulatedSharedUnseenCount > 0 ? "flex justify-between items-center" : ""}>
-                            <SidebarMenuSubButton asChild>
-                              <Link to={`/sessions?agent=${agent.name}&list=simulated_shared`}>
-                                <span>Simulated Shared</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                            {simulatedSharedUnseenCount > 0 && <NotificationBadge>{simulatedSharedUnseenCount}</NotificationBadge>}
-
-                          </SidebarMenuSubItem>
-                        </SidebarMenuSub>
-                      </SidebarMenuItem>
-                    )
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup> */}
 
 
             </SidebarContent>

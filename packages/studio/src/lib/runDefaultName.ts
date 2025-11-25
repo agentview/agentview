@@ -4,6 +4,8 @@ import { z } from "zod";
 export function runDefaultName(itemConfig: SessionItemConfig) {   
 
     // Get the shape of the schema to inspect field definitions
+    
+    // @ts-ignore
     const shape = itemConfig.schema.shape; // fixme: shape might not be here
     
     // Check if fields are string literals (z.literal instances)

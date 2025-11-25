@@ -27,20 +27,20 @@ export default defineConfig({
       url: "http://127.0.0.1:3000/agentview/simple_chat/run",
       run: {
         input: {
-          schema: {
-            type: "message",
-            role: "user",
+          schema: z.looseObject({
+            type: z.literal("message"),
+            role: z.literal("user"),
             content: z.string(),
-          },
+          }),
           displayComponent: ({ value }) => <UserMessage value={value.content} />,
           inputComponent: (props) => <UserMessageInput {...props} submit={(val) => props.submit({ content: val, type: "message", role: "user" })} />
         },
         output: {
-          schema: {
-            role: "assistant",
-            type: "message",
+          schema: z.looseObject({
+            role: z.literal("assistant"),
+            type: z.literal("message"),
             content: z.any(),
-          },
+          }),
           displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />
         }
       }
@@ -50,43 +50,43 @@ export default defineConfig({
       url: "http://127.0.0.1:3000/agentview/weather_chat/run",
       run: {
         input: {
-          schema: {
-            type: "message",
-            role: "user",
+          schema: z.looseObject({
+            type: z.literal("message"),
+            role: z.literal("user"),
             content: z.string(),
-          },
+          }),
           displayComponent: ({ value }) => <UserMessage value={value.content} />,
           inputComponent: (props) => <UserMessageInput {...props} submit={(val) => props.submit({ content: val, type: "message", role: "user" })} />
         },
         steps: [
           {
-            schema: {
-              type: "reasoning",
-            },
+            schema: z.looseObject({
+              type: z.literal("reasoning"),
+            }),
             displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.content[0]?.text} variant="muted" />,
           },
           {
-            schema: {
-              type: "function_call",
-              name: "weather_tool",
+            schema: z.looseObject({
+              type: z.literal("function_call"),
+              name: z.literal("weather_tool"),
               callId: z.string().meta({ callId: true })
-            },
+            }),
             displayComponent: ({ value }) => <BaseItem title="Weather Tool" value={"Checking weather in: " + JSON.parse(value.arguments).location + "..."} variant="muted" />,
             callResult: {
-              schema: {
+              schema: z.looseObject({
                 type: "function_call_result",
                 callId: z.string().meta({ callId: true })
-              },
+              }),
               displayComponent: ({ value }) => <WeatherComponent value={value} />
             }
           },
         ],
         output: {
-          schema: {
-            role: "assistant",
-            type: "message",
+          schema: z.looseObject({
+            role: z.literal("assistant"),
+            type: z.literal("message"),
             content: z.any(),
-          },
+          }),
           displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />,
           scores: [
             {

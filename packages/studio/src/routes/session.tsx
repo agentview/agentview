@@ -20,7 +20,7 @@ import { ItemsWithCommentsLayout } from "~/components/internal/ItemsWithComments
 import { CommentsThread } from "~/components/internal/comments";
 import { Popover, PopoverTrigger, PopoverContent } from "~/components/ui/popover";
 import { config } from "~/config";
-import { findItemConfig, requireAgentConfig } from "~/lib/shared/configUtils";
+import { findItemConfigById, findMatchingRunConfigs, requireAgentConfig } from "~/lib/shared/configUtils";
 import { Loader } from "~/components/internal/Loader";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import type { BaseError } from "~/lib/errors";
@@ -237,7 +237,7 @@ function SessionPage() {
         <div className="flex-grow-1 border-r  flex flex-col">
             <Header className="py-1">
                 <HeaderTitle title={`Session ${session.handle}`} />
-                {session.client.simulatedBy === user.id && <ShareForm session={session} />}
+                {session.endUser.simulatedBy === user.id && <ShareForm session={session} />}
             </Header>
             <div className="flex-1 overflow-y-auto">
 
@@ -248,30 +248,29 @@ function SessionPage() {
                 <div ref={bodyRef}>
                     <ItemsWithCommentsLayout items={getActiveRuns(session).map((run) => {
                         return run.items.map((item, index) => {
-
                             const isLastRunItem = index === run.items.length - 1;
                             const isInputItem = index === 0;
-                            const isOutputItem = index === run.items.length - 1;
 
                             const hasComments = item.commentMessages.filter((m: any) => !m.deletedAt).length > 0
                             const isSelected = selectedItemId === item.id;
 
                             let content: React.ReactNode = null;
 
-                            const itemConfig = findItemConfig(agentConfig, session, item.id);
+                            const runConfigMatches = findMatchingRunConfigs(agentConfig, run.items[0].content);
+                            const itemConfigMatch = runConfigMatches.length === 1 ? findItemConfigById(runConfigMatches[0], run.items, item.id) : undefined;
 
                             if (isInputItem) {
-                                const Component = itemConfig?.displayComponent ?? UserMessage;
+                                const Component = itemConfigMatch?.itemConfig?.displayComponent ?? UserMessage;
                                 content = <div className="pl-[10%] relative">
                                     <Component value={item.content} />
                                 </div>
                             }
-                            else if (isOutputItem) {
-                                const Component = itemConfig?.displayComponent ?? AssistantMessage;
+                            else if (itemConfigMatch?.type === "output") {
+                                const Component = itemConfigMatch?.itemConfig?.displayComponent ?? AssistantMessage;
                                 content = <Component value={item.content} />
                             }
                             else {
-                                const Component = itemConfig?.displayComponent ?? StepItem;
+                                const Component = itemConfigMatch?.itemConfig?.displayComponent ?? StepItem;
                                 content = <Component value={item.content} />
                             }
 
@@ -304,6 +303,7 @@ function SessionPage() {
                                             run={run}
                                             listParams={listParams}
                                             item={item}
+                                            itemConfig={itemConfigMatch?.itemConfig}
                                             onSelect={() => { setselectedItemId(item.id) }}
                                             isSelected={isSelected}
                                             isSmallSize={styles.isSmallSize}
@@ -321,6 +321,7 @@ function SessionPage() {
                                 commentsComponent: !styles.isSmallSize && (hasComments || (isSelected)) ?
                                     <CommentsThread
                                         item={item}
+                                        itemConfig={itemConfigMatch?.itemConfig}
                                         session={session}
                                         selected={isSelected}
                                         onSelect={(a) => { setselectedItemId(a?.id) }}
@@ -341,7 +342,7 @@ function SessionPage() {
             </div>
 
 
-            {session.client.simulatedBy === user.id && <InputForm session={session} agentConfig={agentConfig} styles={styles} />}
+            {session.endUser.simulatedBy === user.id && <InputForm session={session} agentConfig={agentConfig} styles={styles} />}
 
         </div>
 
@@ -354,7 +355,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
     const versions = getVersions(session);
     const { members } = useSessionContext();
 
-    const simulatedBy = members.find((member) => member.id === session.client.simulatedBy);
+    const simulatedBy = members.find((member) => member.id === session.endUser.simulatedBy);
 
     return (
         <div className="w-full">
@@ -378,7 +379,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
                 <PropertyListItem>
                     <PropertyListTitle>Source</PropertyListTitle>
                     <PropertyListTextValue>
-                        {simulatedBy ? <>Simulated by <span className="text-cyan-700">{simulatedBy.name}</span></> : "Real"}
+                        {simulatedBy ? <>Simulated by <span className="text-cyan-700">{simulatedBy.name}</span></> : "Production"}
                     </PropertyListTextValue>
                 </PropertyListItem>
                 <PropertyListItem>
@@ -402,10 +403,10 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
 
 function ShareForm({ session }: { session: Session }) {
     const fetcher = useFetcher();
-    return <fetcher.Form method="put" action={`/clients/${session.client.id}/share`}>
-        <input type="hidden" name="isShared" value={session.client.isShared ? "false" : "true"} />
+    return <fetcher.Form method="put" action={`/clients/${session.endUser.id}/share`}>
+        <input type="hidden" name="isShared" value={session.endUser.isShared ? "false" : "true"} />
         <Button variant={"outline"} size="sm" type="submit">
-            <UsersIcon fill={session.client.isShared ? "black" : "none"} stroke={session.client.isShared ? "none" : "black"} /> {session.client.isShared ? "Shared" : "Share"}
+            <UsersIcon fill={session.endUser.isShared ? "black" : "none"} stroke={session.endUser.isShared ? "none" : "black"} /> {session.endUser.isShared ? "Shared" : "Share"}
         </Button>
     </fetcher.Form>
 }
@@ -526,6 +527,7 @@ type MessageFooterProps = {
     run: RunWithCollaboration,
     listParams: ReturnType<typeof getListParams>,
     item: SessionItemWithCollaboration,
+    itemConfig?: SessionItemConfig,
     onSelect: () => void,
     isSelected: boolean,
     isSmallSize: boolean,
@@ -534,10 +536,10 @@ type MessageFooterProps = {
 
 
 function MessageFooter(props: MessageFooterProps) {
-    const { session, run, listParams, item, onSelect, isSelected, isSmallSize, hasErrors = false } = props;
+    const { session, run, listParams, item, itemConfig, onSelect, isSelected, isSmallSize, hasErrors = false } = props;
     const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
 
-    const allScoreConfigs = getAllScoreConfigs(session, item);
+    const allScoreConfigs = itemConfig?.scores ?? [];
     const actionBarScores = allScoreConfigs.filter(scoreConfig => scoreConfig.actionBarComponent);
 
     /**
@@ -576,6 +578,7 @@ function MessageFooter(props: MessageFooterProps) {
                         <ScoreDialog
                             session={session}
                             item={item}
+                            itemConfig={itemConfig}
                             open={scoreDialogOpen}
                             onOpenChange={setScoreDialogOpen}
                         />
@@ -609,18 +612,11 @@ function MessageFooter(props: MessageFooterProps) {
 }
 
 
-
-function getAllScoreConfigs(session: SessionWithCollaboration, item: SessionItemWithCollaboration) {
-    const agentConfig = requireAgentConfig(config, session.agent);
-    const itemConfig = findItemConfig(agentConfig, session, item.id);
-    return itemConfig?.scores || [];
-}
-
-function ScoreDialog({ session, item, open, onOpenChange }: { session: SessionWithCollaboration, item: SessionItemWithCollaboration, open: boolean, onOpenChange: (open: boolean) => void }) {
+function ScoreDialog({ session, item, itemConfig, open, onOpenChange }: { session: SessionWithCollaboration, item: SessionItemWithCollaboration, itemConfig?: SessionItemConfig, open: boolean, onOpenChange: (open: boolean) => void }) {
     const { user } = useSessionContext();
     const fetcher = useFetcher();
 
-    const allScoreConfigs = getAllScoreConfigs(session, item);
+    const allScoreConfigs = itemConfig?.scores ?? [];
 
     const schema = z.object(
         Object.fromEntries(

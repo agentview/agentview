@@ -54,10 +54,7 @@ function Component() {
     <div className="basis-[300px] flex-shrink-0 flex-grow-0 border-r flex flex-col ">
 
       <Header className="px-3">
-        <HeaderTitle title={`${listParams.list === "real" ? "Sessions" : listParams.list === "simulated_private" ? "Private Sessions" : "Shared Sessions"}`} />
-        {/* {listParams.list !== "real" && <Form method="post" action={`/sessions/new?${toQueryParams(listParams)}`}>
-          <Button type="submit" variant="outline" size="sm"><PlusIcon /> New Session</Button>
-        </Form>} */}
+        <HeaderTitle title={`${listParams.list === "prod" ? "Sessions" : listParams.list === "playground_private" ? "Private Playground" : "Shared Playground"}`} />
       </Header>
 
       <div className="flex-1 overflow-y-auto pb-12">
@@ -125,7 +122,7 @@ export function SessionCard({ session, listParams, sessionStats }: { session: Se
   const itemsMentionsCount = allItemEvents.filter((event: any) => Array.isArray(event?.payload?.user_mentions) && (event.payload.user_mentions as any[]).includes(user.id)).length;
   const hasUnreads = hasSessionUnreads || hasUnreadItems;
 
-  const author = members.find((member) => member.id === session.client.simulatedBy);
+  const author = members.find((member) => member.id === session.endUser.simulatedBy);
 
   return <div key={session.id}>
     <NavLink to={`/sessions/${session.handle}?${toQueryParams(listParams)}`}>

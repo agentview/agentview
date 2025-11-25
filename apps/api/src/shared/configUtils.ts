@@ -26,7 +26,7 @@ export function requireAgentConfig<T extends BaseAgentViewConfig>(config: T, age
 
 
 export function findMatchingRunConfigs<T extends BaseAgentConfig>(agentConfig: T, inputItemContent: any) {
-    let matchingRunConfigs: BaseRunConfig[] = [];
+    let matchingRunConfigs: NonNullable<T["runs"]>[number][] = [];
 
     for (const runConfig of agentConfig.runs ?? []) {
         if (runConfig.input.schema.safeParse(inputItemContent).success) {
@@ -61,7 +61,7 @@ type SessionItemExtension = { __type: "input" | "output" | "step", content?: any
 //     return findItemConfig(runConfig, items, item, item.__type);
 // }
 
-export function findItemConfigById<RunT extends BaseRunConfig>(runConfig: RunT, sessionItems: SessionItem[], itemId: string, itemType?: "input" | "output" | "step"): { itemConfig: RunT["output"], content: any, toolCallContent?: any } | undefined {
+export function findItemConfigById<RunT extends BaseRunConfig>(runConfig: RunT, sessionItems: SessionItem[], itemId: string, itemType?: "input" | "output" | "step"): { itemConfig: RunT["output"], content: any, toolCallContent?: any, type: "input" | "output" | "step" } | undefined {
     const previousItems = [];
     let newItem = undefined;
 
@@ -82,7 +82,7 @@ export function findItemConfigById<RunT extends BaseRunConfig>(runConfig: RunT, 
     return findItemConfig(runConfig, previousItems, newItem, itemType);
 }
 
-export function findItemConfig<RunT extends BaseRunConfig>(runConfig: RunT, items: any[], newItem: Record<string, any>, itemType?: "input" | "output" | "step"): { itemConfig: RunT["output"], content: any, toolCallContent?: any } | undefined {
+export function findItemConfig<RunT extends BaseRunConfig>(runConfig: RunT, items: any[], newItem: Record<string, any>, itemType?: "input" | "output" | "step"): { itemConfig: RunT["output"], content: any, toolCallContent?: any, type: "input" | "output" | "step" } | undefined {
     // console.log("--------------------------------")
     // type RunT = NonNullable<T["runs"]>[number];
     type ItemConfigT = RunT["output"] & SessionItemExtension; // output type is the same as step type, we also ignore input type difference for now 
@@ -130,23 +130,25 @@ export function findItemConfig<RunT extends BaseRunConfig>(runConfig: RunT, item
     }
 
     const { __type, content, toolCallContent, ...itemConfig } = matches[0];
-    return { itemConfig, content, toolCallContent };
+    return { itemConfig, content, toolCallContent, type: __type };
 }
 
 
 function getCallIdKey(inputSchema: z.ZodType): any | undefined {
-    const shape = inputSchema.shape;
+    if (inputSchema instanceof z.ZodObject) {
+        const shape = inputSchema.shape;
 
-    for (const [key, value] of Object.entries(shape)) {
-        const meta = value.meta(); // fixme: it could be any type, even without shape
+        for (const [key, value] of Object.entries(shape)) {
+            const meta = value.meta(); // fixme: it could be any type, even without shape
 
-        // @ts-ignore
-        if (meta?.callId === true) {
-            return key;
+            if (meta?.callId === true) {
+                return key;
+            }
         }
     }
     return undefined;
 }
+
 
 function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension>(itemConfigs: T[], content: Record<string, any>, prevItems: Record<string, any>[]): T[] {
     const matches: T[] = [];

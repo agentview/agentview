@@ -28,9 +28,12 @@ async function action({ request, params }: ActionFunctionArgs): Promise<ActionRe
   }
 
   // Lack of "context" property is treated as attempt to creaate context-less session. If session requires context, we redirect to the form.
-  if (agentConfig.context && !payload?.context) {
-    return redirect(`/sessions/new?${toQueryParams(listParams)}`, { status: 303 });
-  }
+  
+  // TODO: do it based on inputComponent for session!!!
+  
+  // if (agentConfig.context && !payload?.context) {
+  //   return redirect(`/sessions/new?${toQueryParams(listParams)}`, { status: 303 });
+  // }
 
   const clientResponse = await apiFetch('/api/clients', {
     method: 'POST',
@@ -76,13 +79,15 @@ function Component() {
       <div className="p-6 max-w-4xl space-y-6">
         {error && <AVFormError error={error} className="mb-6" />}
 
-        {agentConfig.inputComponent && <agentConfig.inputComponent
+        <div>TO IMPLEMENT</div>
+
+        {/* {agentConfig.inputComponent && <agentConfig.inputComponent
           cancel={() => { console.warn("New session operation does not support cancel.") }}
           submit={(values) => { fetcher.submit({ context: values }, { method: 'post', encType: 'application/json' }) }}
-          schema={agentConfig.context!}
+          schema={agentConfig.metadata!}
           error={error}
           isRunning={fetcher.state === "submitting"}
-        />}
+        />} */}
 
       </div>
     </div>

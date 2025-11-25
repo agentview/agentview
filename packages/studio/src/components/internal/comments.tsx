@@ -1,4 +1,4 @@
-import { AlertCircleIcon, EllipsisVerticalIcon, Gauge, GaugeIcon, PencilIcon, PencilLineIcon, Reply, ReplyIcon } from "lucide-react";
+import { AlertCircleIcon } from "lucide-react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useFetcher, useRevalidator } from "react-router";
 import type { SessionItem, CommentMessage, Session, User, Score, SessionWithCollaboration, SessionItemWithCollaboration } from "~/lib/shared/apiTypes";
@@ -17,12 +17,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { Form } from "../ui/form";
 import React from "react";
-import { type AgentViewConfig } from "~/types";
+import { type AgentViewConfig, type SessionItemConfig } from "~/types";
 import { UserAvatar } from "./UserAvatar";
 
 export type CommentsThreadRawProps = {
     session: SessionWithCollaboration,
     item: SessionItemWithCollaboration,
+    itemConfig?: SessionItemConfig,
     collapsed?: boolean,
     singleLineMessageHeader?: boolean,
     small?: boolean,
@@ -90,7 +91,7 @@ function getStackedCommentMessages(messages: CommentMessage[]): StackedCommentMe
     return result;
 }
 
-export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ session, item, collapsed = false, singleLineMessageHeader = false, small = false }, ref) => {
+export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ session, item, itemConfig, collapsed = false, singleLineMessageHeader = false, small = false }, ref) => {
     const { members, user } = useSessionContext();
     const fetcher = useFetcher();
 
@@ -157,6 +158,7 @@ export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ sess
                     message={message}
                     fetcher={fetcher}
                     item={item}
+                    itemConfig={itemConfig}
                     session={session}
                     compressionLevel={compressionLevel}
                     singleLineMessageHeader={singleLineMessageHeader}
@@ -349,7 +351,7 @@ export function CommentMessageHeader({ title, subtitle, actions, singleLineMessa
 type MessageCompressionLevel = "none" | "medium" | "high";
 
 // New subcomponent for comment message item with edit logic
-export function CommentMessageItem({ message, item, session, compressionLevel = "none", singleLineMessageHeader = false }: { message: StackedCommentMessage, fetcher: any, item: SessionItem, session: Session, compressionLevel?: MessageCompressionLevel, singleLineMessageHeader?: boolean }) {
+export function CommentMessageItem({ message, item, itemConfig, session, compressionLevel = "none", singleLineMessageHeader = false }: { message: StackedCommentMessage, fetcher: any, item: SessionItem, itemConfig?: SessionItemConfig, session: Session, compressionLevel?: MessageCompressionLevel, singleLineMessageHeader?: boolean }) {
     if (message.deletedAt) {
         throw new Error("Deleted messages don't have rendering code.")
     }
@@ -387,9 +389,6 @@ export function CommentMessageItem({ message, item, session, compressionLevel = 
     useFetcherSuccess(fetcher, () => {
         setIsEditing(false);
     });
-
-    const agentConfig = requireAgentConfig<AgentViewConfig>(config, session.agent);
-    const itemConfig = findItemConfig(agentConfig, session, item.id);
 
     // score configs
     const getScoreConfig = (score: Score) => {
