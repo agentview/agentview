@@ -1092,17 +1092,9 @@ app.openapi(sessionGETRoute, async (c) => {
   const { session_id } = c.req.param()
   // requireUUID(session_id);
 
-  console.log('session_id', session_id);
-
   const session = await requireSession(session_id);
-  console.log('session', session.id);
-  console.log('principal', principal);
-  console.log('session.endUser', session.endUser);
 
   await authorize(principal, { action: "end-user:read", endUser: session.endUser });
-
-  console.log('authorised!!!');
-
   return c.json(session, 200);
 })
 
@@ -1275,6 +1267,216 @@ app.openapi(sessionsPOSTRoute, async (c) => {
 })
 
 
+// watches session and its last run changes
+async function* watchSession(initSession: Session) {
+  yield {
+    event: 'session.snapshot',
+    data: initSession
+  }
+
+  let prevLastRun = getLastRun(initSession);
+
+  while (true) {
+    const session = await requireSession(initSession.id)
+    const lastRun = getLastRun(session)
+
+    if (lastRun) {
+      const hasNewRun = prevLastRun?.id !== lastRun.id;
+
+      // current run changed
+      if (hasNewRun) {
+
+        // if previous last run existed and it's not in session.runs now it means it is both failed & not active -> therefore archived. 
+        if (prevLastRun && !session.runs.find(r => r.id === prevLastRun?.id)) {
+          yield {
+            event: 'run.archived',
+            data: prevLastRun.id,
+          }
+        }
+
+        yield {
+          event: 'run.created',
+          data: lastRun,
+        }
+
+        prevLastRun = lastRun;
+      }
+
+      const freshItems = hasNewRun ? lastRun.items : lastRun.items.filter(i => !prevLastRun?.items.find(i2 => i2.id === i.id))
+
+      for (const item of freshItems) {
+        yield {
+          event: 'item.created',
+          data: JSON.stringify(item),
+        };
+      }
+
+      // check for state change
+      if (!hasNewRun) {
+        const runFieldsToCompare = ['id', 'status', 'finishedAt', 'failReason', 'metadata'] as const;
+        const changedFields: Partial<typeof lastRun> = {};
+  
+        for (const field of runFieldsToCompare) {
+          if (JSON.stringify(prevLastRun![field] ?? null) !== JSON.stringify(lastRun[field] ?? null)) {
+            changedFields[field] = lastRun[field];
+          }
+        }
+  
+        if (Object.keys(changedFields).length > 0) {
+          yield {
+            event: 'run.updated',
+            data: JSON.stringify(changedFields),
+          };
+        }
+      }
+
+      prevLastRun = lastRun;
+    }
+
+    // Wait 1s before next poll
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+}
+
+const sessionWatchRoute = createRoute({
+  method: 'get',
+  path: '/api/sessions/{session_id}/watch',
+  request: {
+    params: z.object({
+      session_id: z.string(),
+    }),
+  },
+  responses: {
+    200: {
+      content: {
+        'text/event-stream': {
+          schema: z.string(),
+        },
+      },
+      description: "Streams items from the run",
+    },
+    400: response_error(),
+    404: response_error()
+  },
+});
+
+
+app.openapi(sessionWatchRoute, async (c) => {
+  const principal = await authn(c.req.raw.headers);
+
+  const { session_id } = c.req.param()
+  const session = await requireSession(session_id)
+
+  authorize(principal, { action: "end-user:read", endUser: session.endUser });
+
+  const generator = watchSession(session);
+
+  // @ts-ignore
+  c.env.incoming.on('aborted', () => {
+    generator.return();
+  });
+
+  // @ts-ignore
+  c.env.incoming.on('close', () => {
+    generator.return();
+  });
+
+  return streamSSE(c, async (stream) => {
+    stream.onAbort(() => {
+      generator.return();
+    });
+
+    for await (const event of generator) {
+      console.log('session watch event: ', event.event);
+      await stream.writeSSE({
+        data: JSON.stringify(event.data),
+        event: event.event,
+      });
+    }
+  });
+
+  // return streamSSE(c, async (stream) => {
+  //   let running = true;
+  //   stream.onAbort(() => {
+  //     running = false;
+  //   });
+
+  //   // let's start with sending full run snapshot
+  //   await stream.writeSSE({
+  //     data: JSON.stringify(lastRun ?? null),
+  //     event: 'run.snapshot',
+  //   });
+
+  //   // close stream for runs that are not in_progress
+  //   if (lastRun?.status !== 'in_progress') {
+  //     return;
+  //   }
+
+  //   let previousRun = lastRun;
+
+  //   /**
+  //    * POLLING HERE
+  //    * Soon we'll need to create a proper messaging, when some LLM API will be streaming characters then even NOTIFY/LISTEN won't make it performance-wise.
+  //    */
+  //   while (running) {
+  //     const session = await requireSession(session_id)
+  //     const lastRun = getLastRun(session)
+
+  //     if (!lastRun) {
+  //       throw new Error('unreachable');
+  //     }
+
+  //     // check for new items
+  //     const items = lastRun.items
+  //     const freshItems = items.filter(i => !previousRun.items.find(i2 => i2.id === i.id))
+
+  //     for (const item of freshItems) {
+  //       await stream.writeSSE({
+  //         data: JSON.stringify(item),
+  //         event: 'item.created',
+  //       });
+  //     }
+
+  //     previousRun = {
+  //       ...previousRun,
+  //       items: [...previousRun.items, ...freshItems],
+  //     }
+
+  //     // check for state change
+  //     const runFieldsToCompare = ['id', 'createdAt', 'finishedAt', 'sessionId', 'versionId', 'status', 'failReason', 'version', 'metadata'] as const;
+  //     const changedFields: Partial<typeof lastRun> = {};
+
+  //     for (const field of runFieldsToCompare) {
+  //       if (JSON.stringify(previousRun[field]) !== JSON.stringify(lastRun[field])) {
+  //         changedFields[field] = lastRun[field];
+  //       }
+  //     }
+
+  //     if (Object.keys(changedFields).length > 0) {
+  //       await stream.writeSSE({
+  //         data: JSON.stringify(changedFields),
+  //         event: 'run.state',
+  //       });
+
+  //       // Update previousRun with the new values (excluding sessionItems)
+  //       previousRun = {
+  //         ...previousRun,
+  //         ...changedFields,
+  //       };
+  //     }
+
+  //     // End if run is no longer in_progress
+  //     if (lastRun?.status !== 'in_progress') {
+  //       break;
+  //     }
+
+  //     // Wait 1s before next poll
+  //     await new Promise(resolve => setTimeout(resolve, 1000));
+  //   }
+  // });
+});
+
+
 const sessionSeenRoute = createRoute({
   method: 'post',
   path: '/api/sessions/{sessionId}/seen',
@@ -1325,8 +1527,8 @@ function parseVersion(version: string): { major: number, minor: number, patch: n
 function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[], items: any[], status: 'in_progress' | 'completed' | 'failed') {
   const validateSteps = runConfig.validateSteps ?? false;
 
-  const parsedItems : any[] = [];
-  
+  const parsedItems: any[] = [];
+
   /** Validate last item **/
   // let stepItems: any[] = [];
 
@@ -1664,6 +1866,12 @@ const runWatchRoute = createRoute({
     404: response_error()
   },
 })
+
+
+
+
+
+
 
 
 app.openapi(runWatchRoute, async (c) => {

@@ -30,14 +30,14 @@ export default defineConfig({
             content: z.string(),
           }),
           displayComponent: ({ value }) => <UserMessage value={value.content} />,
-          inputComponent: (props) => <UserMessageInput {...props} submit={(val) => props.submit({ content: val, type: "message", role: "user" })} />
         },
         steps: [
           {
             schema: z.looseObject({
               type: z.literal("reasoning"),
             }),
-            displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
+            displayComponent: null
+            // displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
           }
         ],
         output: {
@@ -48,7 +48,8 @@ export default defineConfig({
           }),
           displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />
         }
-      }
+      },
+      inputComponent2: (props) => <UserMessageInput {...props} submit={(val) => props.submit("http://localhost:3000/chat", { input: { content: val, type: "message", role: "user" } })} />
     },
     {
       name: "weather_chat",
@@ -61,7 +62,7 @@ export default defineConfig({
             content: z.string(),
           }),
           displayComponent: ({ value }) => <UserMessage value={value.content} />,
-          inputComponent: (props) => <UserMessageInput {...props} submit={(val) => props.submit({ content: val, type: "message", role: "user" })} />
+          // inputComponent: (props) => <UserMessageInput {...props} submit={(val) => props.submit({ content: val, type: "message", role: "user" })} />
         },
         steps: [
           {

@@ -56,11 +56,11 @@ export type SessionItemConfig = BaseSessionItemConfig<ScoreConfig> & {
   callResult?: SessionItemConfig;
 };
 
-export type SessionInputItemConfig = SessionItemConfig & {
-  inputComponent?: FormComponent<any>;
-};
+// export type SessionInputItemConfig = SessionItemConfig & {
+//   inputComponent?: FormComponent<any>;
+// };
 
-export type RunConfig = BaseRunConfig<SessionItemConfig, SessionInputItemConfig> & {
+export type RunConfig = BaseRunConfig<SessionItemConfig, SessionItemConfig> & {
   title?: string;
   displayProperties?: DisplayProperty<{ session: Session, run: Run }>[];
 };
@@ -68,6 +68,7 @@ export type RunConfig = BaseRunConfig<SessionItemConfig, SessionInputItemConfig>
 export type AgentConfig = BaseAgentConfig<RunConfig> & {
   displayProperties?: DisplayProperty<{ session: Session }>[];
   inputComponent?: FormComponent<any>;
+  inputComponent2?: React.ComponentType<any>;
   run?: RunConfig;
 }
 

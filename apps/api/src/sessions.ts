@@ -18,8 +18,6 @@ export async function fetchSession(session_id: string, tx?: Transaction): Promis
       const handleNumber = parseInt(match[1], 10);
       const handleSuffix = match[2] || "";
 
-      console.log('HANDLE', handleNumber, handleSuffix);
-
       where = and(eq(sessions.handleNumber, handleNumber), eq(sessions.handleSuffix, handleSuffix));
     }
     else {

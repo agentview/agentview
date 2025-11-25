@@ -180,6 +180,8 @@ function SessionPage() {
 
     }, [lastRun?.status])
 
+    
+
     const bodyRef = useRef<HTMLDivElement>(null);
 
     const PADDING = 24;
@@ -244,7 +246,7 @@ function SessionPage() {
                 <div className="p-6 border-b">
                     <SessionDetails session={session} agentConfig={agentConfig} />
                 </div>
-    
+
                 <div ref={bodyRef}>
                     <ItemsWithCommentsLayout items={getActiveRuns(session).map((run) => {
                         return run.items.map((item, index) => {
@@ -262,7 +264,7 @@ function SessionPage() {
                             if (itemConfigMatch?.itemConfig?.displayComponent === null) {
                                 return null;
                             }
-                            
+
                             if (isInputItem) {
                                 const Component = itemConfigMatch?.itemConfig?.displayComponent ?? UserMessage;
                                 if (!Component) {
@@ -418,104 +420,108 @@ function ShareForm({ session }: { session: Session }) {
     </fetcher.Form>
 }
 
+// const inputComponent = ({ session, userToken }) => {
+//     const abortController = useRef(null)
+
+//     return <UserMessageInput
+//         onSubmit={(value) => {
+//             abortController.current = new AbortController();
+
+//             fetch("https://localhost:3000/chat", {
+//                 headers: {
+//                     'Content-Type': 'application/json',
+//                 },
+//                 method: 'POST',
+//                 body: JSON.stringify({
+//                     input: { content: value },
+//                     sessionId: session.id
+//                     userToken
+//                 }),
+//                 signal: abortController.current.signal
+//             }).catch(() => {
+
+//             }).finally(() => {
+//                 abortController.current = null;
+//             })
+//         }} 
+//         onCancel={() => {
+//             abortController.abort();  
+//         }}
+//         isLoading={abortController.current || session.lastRun?.status === "in_progress"}
+//     />
+// }
+
 function InputForm({ session, agentConfig, styles }: { session: Session, agentConfig: AgentConfig, styles: Record<string, number> }) {
     const [error, setError] = useState<BaseError | undefined>(undefined)
 
     const lastRun = getLastRun(session)
     const revalidator = useRevalidator()
 
-    const submit = async (values: any, inputItemConfig: SessionItemConfig) => {
-        try {
-            const response = await apiFetch(`/api/sessions/${session.id}/runs`, {
-                method: 'POST',
-                body: {
-                    input: values
-                }
-            });
+    const [abortController, setAbortController] = useState<AbortController | undefined>(undefined)
 
-            if (!response.ok) {
-                setError(response.error)
-            }
-            else {
-                revalidator.revalidate();
-            }
+    const submit = async (url: string, options: RequestInit & { input?: any }) => {
+        const abortController = new AbortController();
+        setAbortController(abortController);
 
-        } catch (error) {
-            setError(error instanceof Error ? { message: error.message } : { message: 'Unknown error' })
+        const fetchOptions: RequestInit = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                input: options.input,
+                id: session.id,
+                token: session.endUser.token
+            }),
+            signal: abortController.signal,
+            ...(options ?? {}),
         }
+
+        return fetch(url, fetchOptions)
+            .catch((error) => {
+                setError(error instanceof Error ? { message: error.message } : { message: 'Unknown error' })
+            })
+            .finally(() => {
+                // setIsRequestInProgress(false);
+                // abortController.abort();
+                // revalidator.revalidate();
+            })
     }
 
     const cancel = async () => {
-        await apiFetch(`/api/sessions/${session.id}/cancel_run`, {
-            method: 'POST',
-        })
+        abortController?.abort();
+        setAbortController(undefined);
     }
 
-    const runConfigs = agentConfig.runs ?? [];
+    const isRunning = lastRun?.status === 'in_progress' || !!abortController;
 
-    const FirstInputComponent = runConfigs[0]?.input.inputComponent;
+    const InputComponent = agentConfig.inputComponent2;
+    if (InputComponent === null) {
+        return null;
+    }
+
+    useEffect(() => {
+        if (error) {
+            alert(JSON.stringify(error, null, 2));
+        }
+    }, [error]);
 
     return <div className="border-t">
         <div className={`p-6 pr-0`} style={{ maxWidth: `${styles.textWidth + styles.padding}px` }}>
-            {runConfigs.length === 0 && <div className="text-sm text-muted-foreground">No runs</div>}
+            {!InputComponent && <div className="text-sm text-muted-foreground">No input component</div>}
 
-            {runConfigs.length === 1 ? (
-                // Single input config - no tabs
+            {InputComponent && (
                 <div>
-                    {FirstInputComponent && <div>
-                        {error && <AVFormError error={error} className="mb-4" />}
+                    {/* {error && <AVFormError error={error} className="mb-4" />} */}
 
-                        <FirstInputComponent
-                            cancel={cancel}
-                            submit={(values) => { submit(values, runConfigs[0].input) }}
-                            schema={runConfigs[0].input.schema}
-                            error={error}
-                            isRunning={lastRun?.status === 'in_progress'}
-                        /></div>}
+                    <InputComponent
+                        cancel={cancel}
+                        submit={submit}
+                        isRunning={isRunning}
+                        session={session}
+                        token={session.endUser.token}
+                    />
                 </div>
-            ) : (
-                // Multiple input configs - use tabs
-                <Tabs defaultValue={`0`} className="gap-3" onValueChange={() => {
-                    setError(undefined)
-                }}>
-                    <TabsList>
-                        {runConfigs.map((runConfig, index) => {
-                            const inputConfig = runConfig.input;
-
-                            const tabName = runConfig.title ?? runDefaultName(inputConfig) ?? "Unknown Name";
-                            const tabValue = `${index}`;
-
-                            return (
-                                <TabsTrigger key={index} value={tabValue}>
-                                    {tabName}
-                                </TabsTrigger>
-                            );
-                        })}
-                    </TabsList>
-
-                    {runConfigs.map((runConfig, index) => {
-                        const inputConfig = runConfig.input;
-                        const tabValue = `${index}`;
-
-                        const InputComponent = runConfig.input.inputComponent;
-
-                        return (
-                            <TabsContent key={index} value={tabValue}>
-                                {error && <AVFormError error={error} className="mb-4" />}
-
-                                {InputComponent && <InputComponent
-                                    cancel={cancel}
-                                    submit={(values) => { submit(values, inputConfig) }}
-                                    schema={inputConfig.schema}
-                                    error={error}
-                                    isRunning={lastRun?.status === 'in_progress'}
-                                />}
-
-                                {!InputComponent && <div className="text-muted-foreground"><code>inputComponent</code> is missing for this run.</div>}
-                            </TabsContent>
-                        );
-                    })}
-                </Tabs>
             )}
 
         </div>
@@ -592,7 +598,7 @@ function MessageFooter(props: MessageFooterProps) {
                     </>}
 
                     {hasErrors && <Button variant="ghost" size="sm" onClick={() => { debugRun(run) }}>
-                    <SquareTerminal />Debug
+                        <SquareTerminal />Debug
                     </Button>}
                 </div>
 

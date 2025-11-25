@@ -3,6 +3,7 @@ import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
 import { AgentView, AgentViewError } from "agentview";
 import { OpenAI } from 'openai';
+import { cors } from 'hono/cors';
 
 const app = new Hono();
 const client = new OpenAI()
@@ -10,6 +11,18 @@ const av = new AgentView({
   apiUrl: 'http://localhost:8080',
   apiKey: process.env.AGENTVIEW_API_KEY!
 })
+
+app.use('*', cors({
+  origin: ['http://localhost:1989'],
+  credentials: true,
+}))
+
+app.onError((error, c) => {
+  if (error instanceof AgentViewError) {
+    return c.json({ ...error.details, message: error.message }, error.statusCode as any);
+  }
+  throw error;
+});
 
 app.post('/chat', async (c) => {
   const { id, token, input } = await c.req.json();
@@ -62,13 +75,6 @@ app.post('/chat', async (c) => {
   }
 })
 
-app.onError((error, c) => {
-  if (error instanceof AgentViewError) {
-    return c.json({ ...error.details, message: error.message }, error.statusCode as any);
-  }
-
-  throw error;
-});
 
 serve({
   fetch: app.fetch,
