@@ -3,11 +3,14 @@
   "theme": "willow",
   "name": "docs",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#007595",
+    "light": "#00b8db",
+    "dark": "#00b8db"
   },
-  "favicon": "/favicon.svg",
+  "favicon": {
+    "light": "/favicon-light.svg",
+    "dark": "/favicon-dark.svg"
+  },
   "navigation": {
     "tabs": [
       {
@@ -17,7 +20,8 @@
             "group": "Getting started",
             "pages": [
               "getting-started/index",
-              "getting-started/quickstart"
+              "getting-started/quickstart",
+              "getting-started/why"
             ]
           },
           {

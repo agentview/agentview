@@ -161,7 +161,7 @@ function Component() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton className="font-medium">
-                      <img src="/logo_symbol.svg" className="size-4" alt="AgentView Logo" />
+                      <img src="/symbol_light.svg" className="size-4" alt="AgentView Logo" />
                       {agent}
                       <ChevronDown className="ml-auto" />
                     </SidebarMenuButton>
