@@ -1,11 +1,6 @@
-import { useState } from "react";
 import { z } from "zod";
 import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { defineConfig } from "~";
-import { FormField, FormItem, FormLabel, FormMessage, Form, FormControl } from "~/components/ui/form";
-import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { UserMessage, AssistantMessage, StepItem, UserMessageInput, BaseItem } from "~/components/session-item";
 import { PillSelect } from "~/components/PillSelect";

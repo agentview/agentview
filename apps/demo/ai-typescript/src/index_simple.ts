@@ -68,8 +68,8 @@ app.post('/chat', async (c) => {
 
   await av.updateRun({
     id: run.id,
+    status: "completed",
     items: response.output,
-    status: "completed"
   });
 
   return c.json({
