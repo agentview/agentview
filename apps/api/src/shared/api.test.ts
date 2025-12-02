@@ -132,41 +132,41 @@ describe('API', () => {
       })
 
       test("succeeeds when scoped with own token", async () => {
-        const endUser1 = await av.getEndUser({ id: initEndUser1.id, endUserToken: initEndUser1.token })
+        const endUser1 = await av.as(initEndUser1).getEndUser({ id: initEndUser1.id })
         expect(endUser1).toBeDefined()
         expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
       })
 
       test("fails when scoped with another user's token", async () => {
-        await expect(av.getEndUser({ id: initEndUser1.id, endUserToken: initEndUser2.token })).rejects.toThrowError(expect.objectContaining({
+        await expect(av.as(initEndUser1).getEndUser({ id: initEndUser2.id })).rejects.toThrowError(expect.objectContaining({
           statusCode: 401,
           message: expect.any(String),
-        }))
+          }))
+        })
       })
-    })
 
-    describe("get by external id", () => {
-      test("existing external ids", async () => {
-        const endUser1 = await av.getEndUserByExternalId({ externalId: EXTERNAL_ID_1 })
+      describe("get by external id", () => {
+        test("existing external ids", async () => {
+          const endUser1 = await av.getEndUser({ externalId: EXTERNAL_ID_1 })
         expect(endUser1).toBeDefined()
         expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
       })
 
       test("not found", async () => {
-        await expect(av.getEndUserByExternalId({ externalId: 'unknown_external_id' })).rejects.toThrowError(expect.objectContaining({
+        await expect(av.getEndUser({ externalId: 'unknown_external_id' })).rejects.toThrowError(expect.objectContaining({
           statusCode: 404,
           message: expect.any(String),
         }))
       })
 
       test("succeeeds when scoped with own token", async () => {
-        const endUser1 = await av.getEndUserByExternalId({ externalId: EXTERNAL_ID_1, endUserToken: initEndUser1.token })
+        const endUser1 = await av.as(initEndUser1).getEndUser({ externalId: EXTERNAL_ID_1 })
         expect(endUser1).toBeDefined()
         expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
       })
 
       test("fails when scoped with another user's token", async () => {
-        await expect(av.getEndUserByExternalId({ externalId: EXTERNAL_ID_1, endUserToken: initEndUser2.token })).rejects.toThrowError(expect.objectContaining({
+        await expect(av.as(initEndUser1).getEndUser({ externalId: EXTERNAL_ID_1 })).rejects.toThrowError(expect.objectContaining({
           statusCode: 401,
           message: expect.any(String),
         }))
@@ -175,17 +175,17 @@ describe('API', () => {
 
     describe("get me", () => {
       test("works", async () => {
-        const endUser1 = await av.getEndUserMe({ endUserToken: initEndUser1.token })
+        const endUser1 = await av.as(initEndUser1).getEndUser()
         expect(endUser1).toBeDefined()
         expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
 
-        const endUser2 = await av.getEndUserMe({ endUserToken: initEndUser2.token })
+        const endUser2 = await av.as(initEndUser2).getEndUser()
         expect(endUser2).toBeDefined()
         expect(endUser2.externalId).toBe(EXTERNAL_ID_2)
       })
 
       test("fails for bad token", async () => {
-        await expect(av.getEndUserMe({ endUserToken: 'xxx' })).rejects.toThrowError(expect.objectContaining({
+        await expect(av.as('xxx').getEndUser()).rejects.toThrowError(expect.objectContaining({
           statusCode: 404,
           message: expect.any(String),
         }))
@@ -924,7 +924,7 @@ describe('API', () => {
       await updateConfig()
       const session = await createSession()
 
-      await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", endUserToken: initEndUser2.token })).rejects.toThrowError(expect.objectContaining({
+      await expect(av.as(initEndUser2).createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
         statusCode: 401,
         message: expect.any(String),
       }))

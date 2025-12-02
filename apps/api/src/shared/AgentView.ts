@@ -7,7 +7,6 @@ import {
   type RunUpdate,
   type SessionCreate,
   type SessionUpdate,
-  RunBodySchema,
   type Config,
   type ConfigCreate,
 } from './apiTypes'
@@ -17,37 +16,34 @@ import { serializeConfig } from './configUtils'
 
 import { enhanceSession } from './sessionUtils'
 
-
 export interface AgentViewOptions {
   apiUrl: string
   apiKey: string
-}
-
-export type EndUserTokenOptions = {
   endUserToken?: string
 }
 
 export class AgentView {
   private apiUrl: string
   private apiKey: string
+  private endUserToken?: string
 
   constructor(options: AgentViewOptions) {
     this.apiUrl = options.apiUrl.replace(/\/$/, '') // remove trailing slash
     this.apiKey = options.apiKey
+    this.endUserToken = options.endUserToken
   }
 
   private async request<T>(
     method: string,
     path: string,
-    body?: any,
-    endUserToken?: string
+    body?: any
   ): Promise<T> {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     }
 
-    if (endUserToken) {
-      headers['X-End-User-Token'] = endUserToken;
+    if (this.endUserToken) {
+      headers['X-End-User-Token'] = this.endUserToken;
     }
 
     headers['Authorization'] = `Bearer ${this.apiKey}`
@@ -67,54 +63,59 @@ export class AgentView {
     return await response.json()
   }
 
-  async createSession(options: SessionCreate & EndUserTokenOptions) {
-    const { endUserToken, ...body } = options;
-    return enhanceSession(await this.request<Session>('POST', `/api/sessions`, body, endUserToken))
+  async createSession(options: SessionCreate) {
+    return enhanceSession(await this.request<Session>('POST', `/api/sessions`, options))
   }
 
-  async getSession(options: { id: string } & EndUserTokenOptions) {
-    const { endUserToken, id } = options;
-    return enhanceSession(await this.request<Session>('GET', `/api/sessions/${id}`, undefined, endUserToken))
+  async getSession(options: { id: string }) {
+    return enhanceSession(await this.request<Session>('GET', `/api/sessions/${options.id}`, undefined))
   }
 
-  async updateSession(options: { id: string } & SessionUpdate & EndUserTokenOptions) {
-    const { endUserToken, id, ...body } = options;
-    return enhanceSession(await this.request<Session>('PATCH', `/api/sessions/${id}`, body, endUserToken))
+  async updateSession(options: { id: string } & SessionUpdate) {
+    return enhanceSession(await this.request<Session>('PATCH', `/api/sessions/${options.id}`, options))
   }
 
-  async createRun(options: RunCreate & EndUserTokenOptions): Promise<Run> {
-    const { endUserToken, ...body } = options;
-    return await this.request<Run>('POST', `/api/runs`, body, endUserToken)
+  async createRun(options: RunCreate): Promise<Run> {
+    return await this.request<Run>('POST', `/api/runs`, options)
   }
 
-  async updateRun(options: RunUpdate & EndUserTokenOptions & { id: string }): Promise<Run> {
-    const { endUserToken, id, ...body } = options;
-    return await this.request<Run>('PATCH', `/api/runs/${id}`, body, endUserToken)
+  async updateRun(options: RunUpdate & { id: string }): Promise<Run> {
+    return await this.request<Run>('PATCH', `/api/runs/${options.id}`, options)
   }
 
-  async createEndUser(options?: EndUserCreate & EndUserTokenOptions): Promise<EndUser> {
-    const { endUserToken, ...body } = options ?? {};
-    return await this.request<EndUser>('POST', `/api/end-users`, body, endUserToken)
+  async createEndUser(options?: EndUserCreate): Promise<EndUser> {
+    return await this.request<EndUser>('POST', `/api/end-users`, options)
   }
 
-  async getEndUser(options: { id: string } & EndUserTokenOptions): Promise<EndUser> {
-    const { endUserToken, id } = options;
-    return await this.request<EndUser>('GET', `/api/end-users/${id}`, undefined, endUserToken)
+  async getEndUser(options?: { id: string } | { token: string } | { externalId: string } | undefined): Promise<EndUser> {
+    if (!options) {
+      return await this.request<EndUser>('GET', `/api/end-users/me`)
+    }
+    if ('id' in options) {
+      return await this.request<EndUser>('GET', `/api/end-users/${options.id}`)
+    }
+    if ('token' in options) {
+      if (this.endUserToken && this.endUserToken !== options.token) {
+        throw new Error('Cannot get end user with token when scoped with another user\'s token')
+      }
+      return await this.as(options.token).request<EndUser>('GET', `/api/end-users/me`)
+    }
+    if ('externalId' in options) {
+      return await this.request<EndUser>('GET', `/api/end-users/by-external-id/${options.externalId}`)
+    }
+    throw new Error('Invalid options')
   }
 
-  async getEndUserByExternalId(options: { externalId: string } & EndUserTokenOptions): Promise<EndUser> {
-    const { endUserToken, externalId } = options;
-    return await this.request<EndUser>('GET', `/api/end-users/by-external-id/${externalId}`, undefined, endUserToken)
-  }
+  // async getEndUserByExternalId(options: { externalId: string }): Promise<EndUser> {
+  //   return await this.request<EndUser>('GET', `/api/end-users/by-external-id/${options.externalId}`, undefined)
+  // }
 
-  async getEndUserMe(options: {} & EndUserTokenOptions): Promise<EndUser> {
-    const { endUserToken } = options;
-    return await this.request<EndUser>('GET', `/api/end-users/me`, undefined, endUserToken)
-  }
+  // async getEndUserMe(): Promise<EndUser> {
+  //   return await this.request<EndUser>('GET', `/api/end-users/me`)
+  // }
 
-  async updateEndUser(options: EndUserCreate & EndUserTokenOptions & { id: string }): Promise<EndUser> {
-    const { endUserToken, id, ...body } = options;
-    return await this.request<EndUser>('PUT', `/api/end-users/${id}`, body, endUserToken)
+  async updateEndUser(options: EndUserCreate & { id: string }): Promise<EndUser> {
+    return await this.request<EndUser>('PUT', `/api/end-users/${options.id}`, options)
   }
 
   async __getConfig(): Promise<Config> {
@@ -124,7 +125,20 @@ export class AgentView {
   async __updateConfig(body: ConfigCreate): Promise<Config> {
     return await this.request<Config>('PUT', `/api/config`, { ...body, config: serializeConfig(body.config) })
   }
+
+  as(endUserOrToken: EndUser | string) {
+    const endUserToken = typeof endUserOrToken === 'string' ? endUserOrToken : endUserOrToken.token;
+
+    return new AgentView({
+      apiUrl: this.apiUrl,
+      apiKey: this.apiKey,
+      endUserToken,
+    })
+  }
 }
+
+
+
 
 export interface AgentViewClientOptions {
   apiUrl: string

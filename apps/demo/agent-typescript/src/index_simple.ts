@@ -78,7 +78,6 @@ app.post('/chat/simple', async (c) => {
   })
 })
 
-
 serve({
   fetch: app.fetch,
   port: 3000
