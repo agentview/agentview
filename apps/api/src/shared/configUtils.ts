@@ -275,7 +275,6 @@ function baseConfigSchema<T extends z.ZodType>(jsonSchemaSchema: T) {
     return z.object({
         agents: z.array(z.object({
             name: z.string(),
-            url: z.string(),
             metadata: z.record(z.string(), jsonSchemaSchema).optional(),
             allowUnknownMetadata: z.boolean().optional(),
             runs: z.array(z.object({
@@ -299,7 +298,9 @@ function isJSONSchema(value: any): boolean { // temporarily simple check
 }
 
 
-export function serializeConfig(config: any) {
+export function serializeConfig(config: any) {    
+    console.log('xconfig', config);
+
     const { data, success, error } = BaseConfigSchemaZodToJsonSchema.safeParse(config);
     if (!success) {
         throw new Error("Invalid config", { cause: error.issues });

@@ -84,7 +84,7 @@ export class AgentView {
   }
 
   async createEndUser(options?: EndUserCreate): Promise<EndUser> {
-    return await this.request<EndUser>('POST', `/api/end-users`, options)
+    return await this.request<EndUser>('POST', `/api/end-users`, options ?? {})
   }
 
   async getEndUser(options?: { id: string } | { token: string } | { externalId: string } | undefined): Promise<EndUser> {

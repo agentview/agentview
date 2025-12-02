@@ -27,7 +27,7 @@ The root directory of the project has a following structure:
 
 Depending on preference how you want to write AI code you can use either `ai-python/` or `agent-typescript/`. You'll need `studio/` in both cases.
 
-### Set up AgentView Server
+### Run AgentView Server
 
 <Note>AgentView is in beta, so for now you have to self-host the server. We're working on the cloud service, keep an eye on updates!</Note>
 
@@ -41,9 +41,89 @@ Visit `http://localhost:1990/api/status` to see if the server is running. If you
 
 AgentView server exposes AgentView API, which is used by Studio and your apps. 
 
+
+### Install Studio
+
+Before we continue, let's install and run the studio:
+
+```bash
+cd studio
+npm install
+npm run dev
+```
+
+Now go to the `localhost:1989` URL and register as the first admin user.
+
+### Generate API Key
+
+Go to `Settings > API Keys` and grab your personal API key.
+
+### Configure your first agent
+
+The most important file in the AgentView ecosystem is `agentview.config.tsx`. It lives in your Studio project (`studio/agentview.config.tsx`), but it's automatically synced with the AgentView Server.
+
+Let's take a look at it:
+
+```typescript
+export default defineConfig({
+  apiBaseUrl: "http://localhost:1990",
+  agents: [
+    {
+      name: "simple_chat",
+      runs: [
+        {
+          input: {
+            schema: z.object({
+              type: z.literal("message"),
+              role: z.literal("user"),
+              content: z.string(),
+            }),
+            displayComponent: ({ value }) => <UserMessage value={value.content} />,
+          },
+          steps: [
+            {
+              schema: z.object({
+                type: z.literal("reasoning"),
+                summary: z.array(z.object({
+                  type: z.literal("summary_text"),
+                  text: z.string(),
+                })),
+              }).loose(),
+              displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
+            }
+          ],
+          output: {
+            schema: z.object({
+              role: z.literal("assistant"),
+              type: z.literal("message"),
+              content: z.any(),
+            }),
+            displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />
+          }
+        }
+      ],
+      inputComponent: ({ submit, cancel, isRunning }) => <UserMessageInput
+        onSubmit={(val) => submit("http://localhost:3000/chat/simple", { input: { content: val, type: "message", role: "user" } })}
+        onCancel={cancel}
+        isRunning={isRunning}
+      />
+    },
+    // other agents...
+  ]
+```
+
+In this file we defined a simple agent called `simple_chat`. It has one run type with input, output and reasoning step determined by Zod schemas.
+
+`apiBaseUrl` is the location of AgentView Server.
+
+`inputComponent` and `displayComponent` define how the input and output will be displayed in the Studio, we'll cover them later.
+
+
 ### Your Agent Endpoint
 
-In AgentView you provide AI logic as a HTTP endpoint. This gives you a full freedom over how you want to write AI and doesn't lock you in with any specific framework.
+When you build an AI agent you have to create a HTTP endpoint that takes user message and generates AI responses. We call this endpoint "Agent Endpoint".
+
+With AgentView you can write your Agent Endpoint in any language or framework you want. AgentView helps you with storing and retrieving sessions and runs, error handling, versioning and managing session lifecycle.
 
 The example Agent Endpoint in Typescript is in `agent-typescript`. Let's run it:
 
@@ -61,25 +141,82 @@ Let's take a look at `src/index.ts`:
 import 'dotenv/config'
 import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
-import { parseBody } from "agentview";
+import { AgentView, AgentViewError } from "agentview";
 import { OpenAI } from 'openai';
+import { cors } from 'hono/cors';
 
 const app = new Hono();
+const client = new OpenAI()
+const av = new AgentView({
+  apiUrl: 'http://localhost:1990',
+  apiKey: process.env.AGENTVIEW_API_KEY!
+})
 
-app.post('/agentview/my_super_agent/run', async (c) => {
-  const { history, input } = parseBody(await c.req.json());
+app.use('*', cors({
+  origin: ['http://localhost:1989'],
+  credentials: true,
+}))
 
-  const client = new OpenAI()
-  const response = await client.responses.create({
-    model: "gpt-5-nano",
-    input: [...history, input]
+// beautiful error handling
+app.onError((error, c) => {
+  if (error instanceof AgentViewError) {
+    return c.json({ ...error.details, message: error.message }, error.statusCode as any);
+  }
+  throw error;
+});
+
+app.post('/chat/simple', async (c) => {
+  const { id, token, input } = await c.req.json();
+
+  const endUser = token ? 
+    await av.getEndUser({ token }) : 
+    await av.createEndUser();
+
+  const session = id ?
+    await av.as(endUser).getSession({ id }) : 
+    await av.as(endUser).createSession({ agent: "simple_chat" });
+
+  const run = await av.createRun({ 
+    sessionId: session.id, 
+    items: [input], 
+    version: "0.0.1"
   });
 
-  return c.json({ 
-    manifest: { 
-      version: "0.0.1" 
-    },
-    output: response.output // output items array
+  let response : Awaited<ReturnType<typeof client.responses.create>>;
+
+  try {
+    // Your stateless AI agent logic goes here
+    response = await client.responses.create({
+      model: "gpt-5-nano",
+      reasoning: {
+        effort: "low",
+        summary: "detailed"
+      },
+      input: [...session.history, input]
+    });
+
+  } catch (error) {
+    await av.updateRun({
+      id: run.id,
+      status: "failed",
+      failReason: {
+        message: (error as Error).message,
+      }
+    });
+
+    throw error;
+  }
+
+  await av.updateRun({
+    id: run.id,
+    status: "completed",
+    items: response.output
+  });
+
+  return c.json({
+    id: session.id,
+    output: response.output,
+    token: endUser.token,
   })
 })
 
@@ -91,217 +228,217 @@ serve({
 })
 ```
 
-As you can see we defined a single `POST /agentview/my_super_agent/run` HTTP endpoint. Any time user sends a message to the AgentView Server via Client API, under the hood the server will make a call to your endpoint to generate a response.
+It's a simple Hono HTTP server with a single endpoint `POST /chat/simple`. 
 
-The `/{agent}/run` endpoint is **stateless**. It means that it doesn't have to care about storage, session management etc. Everything is handled by AgentView Server, which makes sure the endpoint gets everything it needs to generate a response:
-- full conversation history
-- user memory
-- session metadata
-- new input item
+In this example your AI logic is a simple call to OpenAI Responses API:
 
-The `history` input and `output` is just an array of items. `input` is a single item too.
-
-Items are arbitrary objects, they represents something happened in an agent (input message, tool call, tool result, handoff, reasoning, output etc). AgentView doesn't enforce any predefined structure over your items, so that you keep maxium flexibility.
-
-*You can find full specification of `Agent API` here.*
-
-
-### Install Studio
-
-Before we continue, let's install and run the studio:
-
-```bash
-cd studio
-npm install
-npm run dev
+```typescript    
+    response = await client.responses.create({
+      model: "gpt-5-nano",
+      reasoning: {
+        effort: "low",
+        summary: "detailed"
+      },
+      input: [...session.history, input]
+    });
 ```
 
-Now go to the `localhost:1989` URL. You should see registration screen:
+In practice it could be any framework or your choice, AgentView stays completely agnostic in this regard.
 
-[registration screen]
+AgentView handles everything **around** your AI logic:
+- authenticates and creates end users
+- fetches existing session or creates a new one, authorizes user's access to the session
+- creates a run, which locks the session for the duration of the run (new calls for this session while run is in progress will fail)
+- `session.history` provides the conversation history required by the AI logic
+- validates whether the run version is compatible with the initial session version
+- stores the response items in the session history, or error message for failed runs
+- validates all the items against the schemas from the agent config
 
-The first user registered is gonna be the admin. You can invite more users via Settings.
-
-
-### Configuration
-
-The most important file in the AgentView ecosystem is `agentview.config.tsx`. It lives in your Studio project (`studio/agentview.config.tsx`), but any time you open the studio, it automatically sends it to the AgentView Server.
-
-Let's take a look at it:
+All errors from AgentView SDK come with status code and body, so that you can easily redirect it directly to the user as HTTP response:
 
 ```typescript
-export default defineConfig({
-    server: "http://localhost:1990",
-    agentApp: "http://localhost:3000/agentview",
-    agents: [
-        {
-            name: "my_super_agent",
-            run: {
-                input: {
-                    schema: {
-                        type: "message",
-                        role: "user",
-                        content: z.string(),
-                    }
-                    displayComponent: UserMessage,
-                    inputComponent: UserMessageInput
-                },
-                output: {
-                    schema: {
-                        type: "message",
-                        role: "assistant",
-                        content: z.string(),
-                    }
-                    displayComponent: AssistantMessage,
-                }
-            }
-        }
-    ]
-})
+app.onError((error, c) => {
+  if (error instanceof AgentViewError) {
+    return c.json({ ...error.details, message: error.message }, error.statusCode as any);
+  }
+  throw error;
+});
 ```
 
-`server` is a location of AgentView Server and `agentApp` is a base URL of your stateless Agent Endpoint.
+The goal is so that you focus on AI logic and not on the scaffolding.
 
-In the properties we defined a single agent called `my_super_agent`. It has one run (*multiple runs* are supported).
+### Test your agent
 
-Run is basically a single **turn** of an agent interaction. Run is always initiated by an input item done by user, usually an input message. It's ended with an output item (usually assistant message).
-
-Let's try to initiate a new conversation via Client API. We must first create auth token:
+Call your Agent Endpoint to initiate a new conversation:
 
 ```bash
-curl -X POST https://localhost:1990/api/auth \
+curl -X POST https://localhost:3000/chat/simple \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "input": { "type": "message", "role": "user", "content": "Hello, I'm Bob, how are you?" }
+  }'
 ```
 
 Result:
 
 ```json
 {
-  "token": "YOUR_TOKEN_HERE",
-  "expiresAt": "...",
-  "clientId": "..."
+  "id": "a2ce2d7a-3869-4ec0-aa22-d7cbaf09fb46",
+  "output": [
+    {
+      "id": "rs_03e64139f60c639700692eeb4b012c81a0b3077f41a8c34778",
+      "type": "reasoning",
+      "summary": []
+    },
+    {
+      "id": "msg_03e64139f60c639700692eeb4c046c81a0bc071eff9a93fb36",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "Hi Bob! I’m doing well, thanks for asking. How can I help you today?"
+        }
+      ],
+      "role": "assistant"
+    }
+  ],
+  "token": "142c646f9e5022adcf0b9dcac4e5707b1385a7d017f5bb9b00c448876e372bf1"
 }
 ```
 
-And now let's start a run.
+Let's continue the thread by sending new message
 
 ```bash
-curl -X POST https://localhost:1990/api/run \
+curl -X POST https://localhost:3000/chat/simple \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -d '{
-    "agent": "my_super_agent",
-    "input": {
-      "type": "message",
-      "role": "user",
-      "content": "Hello, my name is Bob. How are you?"
-    }
+    "id": "SESSION_ID",
+    "input": {"type": "message", "role": "user", "content": "Hello, what was my name again?"},
+    "token": "END_USER_TOKEN"
   }'
 ```
 
 You should get a response:
 
+(TODO)
+
 ```json
 {
-  
+  "id": "SESSION_ID",
+  "output": [
+    {
+      "type": "reasoning",
+      "content": "Thinking..."
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "Your name is Bob, how can I help you today?"
+    }
+  ],
+  "token": "END_USER_TOKEN"
 }
 ```
 
-Here's what AgentView did under the hood:
-- validated whether the input for agent is correct (used Zod schemas you provided)
-- created a session
-- initiated the run
-- called your Agent Endpoint to produce a response (`history` was empty)
-- saved responses in DB
-- returned response
+As you can see the AgentView correctly stores the conversation history and remembers the context of the conversation.
 
-Let's make a second turn to prove it:
+### Error cases
+
+Let's send an incorrect input:
 
 ```bash
-curl -X POST https://localhost:1990/api/run \
+curl -X POST https://localhost:3000/chat/simple \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -d '{
-    "agent": "my_super_agent",
-    "session": "SESSION_ID",
-    "input": {
-      "type": "message",
-      "role": "user",
-      "content": "Hello again, I have poor memory and forgot my name :( What is it?"
-    }
+    "id": "SESSION_ID",
+    "input": {"type": "message", "role": "user", "content": 100}
+    "token": "END_USER_TOKEN"
   }'
 ```
 
-Response:
-```json
+This triggers 422 error, as the input is not a string. Let's send a correct input, but with incorrect token:
 
+```bash
+curl -X POST https://localhost:3000/chat/simple \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "SESSION_ID",
+    "input": { "type": "message", "role": "user", "content": "Hello, I'm Bob, how are you?" },
+    "token": "xxx"
+  }'
 ```
 
-As you can see AgentView took care of persistence and session, under the hood your Agent Endpoint got proper `history`.
-
-You can call `GET /sessions/YOUR_SESSION_ID` to fetch the full session history.
-
-*You can find Client API docs here.*
+You got 401, access denied error, as the token is incorrect.
 
 
 ## Studio
 
-We all love `curl`, but it's not the most user-friendly way to test an agent. That's why we have the Studio.
+`curl` is great, but it's not the most user-friendly way to test an agent, especially for non-technical users. That's why we've built the Studio.
 
-Let's open `http://localhost:1989` in the browser: (todo: should redirect to single agent production sessions -> list should redirect to the last displayed session)
+Open `http://localhost:1989` in the browser. You should already see the sessions we created via curl.
 
 // screenshot
 
-You can see studio automatically redirects you to the Production sessions of our only agent `my_super_agent`.
+### Custom components
 
+Studio allows you to provide your own components for any part of the experience.
 
-### Display Components
+Below is `agentview.config.tsx` with custom components for our `simple_chat` agent:
 
-Let's for a moment comment out the components.
-
-```typescript
+```typescript highlight={14,25,34,38-42}
 export default defineConfig({
-    server: "http://localhost:1990",
-    agentApp: "http://localhost:3000/agentview",
-    agents: [
+  apiBaseUrl: "http://localhost:1990",
+  agents: [
+    {
+      name: "simple_chat",
+      runs: [
         {
-            name: "my_super_agent",
-            run: {
-                input: {
-                    schema: {
-                        type: "message",
-                        role: "user",
-                        content: z.string(),
-                    }
-                    // displayComponent: UserMessage,
-                    // inputComponent: UserMessageInput
-                },
-                output: {
-                    schema: {
-                        type: "message",
-                        role: "assistant",
-                        content: z.string(),
-                    }
-                    // displayComponent: AssistantMessage,
-                }
+          input: {
+            schema: z.object({
+              type: z.literal("message"),
+              role: z.literal("user"),
+              content: z.string(),
+            }),
+            displayComponent: ({ value }) => <UserMessage value={value.content} />,
+          },
+          steps: [
+            {
+              schema: z.object({
+                type: z.literal("reasoning"),
+                summary: z.array(z.object({
+                  type: z.literal("summary_text"),
+                  text: z.string(),
+                })),
+              }).loose(),
+              displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
             }
+          ],
+          output: {
+            schema: z.object({
+              role: z.literal("assistant"),
+              type: z.literal("message"),
+              content: z.any(),
+            }),
+            displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />
+          }
         }
-    ]
-})
+      ],
+      inputComponent: ({ submit, cancel, isRunning }) => <UserMessageInput
+        onSubmit={(val) => submit("http://localhost:3000/chat/simple", { input: { content: val, type: "message", role: "user" } })}
+        onCancel={cancel}
+        isRunning={isRunning}
+      />
+    },
+    // other agents...
+  ]
 ```
 
-And see the studio again:
+`displayComponent` is a React component responsible for rendering session item. By default it just shows a block with JSON data.
 
-[screenshot]
-
-You'll see the items are shown as their JSON data. AgentView assumes you should be able to customise any part of the UI in a domain-specific way. That's the only way to make domain-experts and business stakeholders willing to cooperate.
-
-We provide a bunch of off-the-shelf components so that you don't need to build everything from scratch. Check out our *design system*. 
-
-### Input Components
-
-You can easily create Test Sessions in AgentView Studio. When you click on "Create Session" button, a new test session is created. The "Enter your message" component is also customisable, in this case it's `UserMessageInput`. 
+`inputComponent` is a React component responsible for rendering the input field. AgnetView has a concept of "playground session", which are test sessions that can be created by any team member to play with the agent. You create a playground session by clicking on "Create Session" button in Studio. When you're the owner of the playground session, AgentView will display the `inputComponent` at the bottom so that you can send messages to the agent.
 
 ### Collaboration
 

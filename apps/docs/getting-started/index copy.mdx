@@ -5,15 +5,20 @@ description: "Welcome to the AgentView documentation"
 
 ## What is AgentView?
 
-AgentView is an open-source toolkit for building conversational agents like customer support bots, shopping assistants, and more. It has 2 parts:
-1. Beautiful and extremely customisable Data Viewer with collaboration features.
-2. Backend for session storage, user authentication, versioning, and more.
+AgentView is a session viewer and backend for conversational agents.
 
-Most importantly, AgentView is **framework/language-agnostic in terms of AI code**. Most “AI frameworks” force you into their SDK or hosted backend. AgentView flips that model - it **wraps around** your AI, not inside it.
+It lets you write your AI logic in **any language or framework**. Most “AI frameworks” force you into their SDK or hosted backend. AgentView flips that model - it **wraps around** your AI, not inside it.
 
-It means you can write AI in Python, TS using any framework of your choice **or** without any framework at all. 
+AgentView provides 2 parts:
+1. Server - API for session management, storage, user authentication, versioning, and more.
+2. Studio — a powerful session viewer focused on beautiful data presentation and collaboration (great for working with domain experts and business stakeholders). Ships as React package to provide maximum flexibility with **custom components anywhere**. 
 
-## Example
+
+### Own your AI
+
+Agent View stays out of your AI logic. Most “AI frameworks” force you into their SDK or hosted backend. AgentView flips that model - it **wraps around** your AI, not inside it. It means you can write AI in Python, TS using any framework of your choice **or** without any framework at all. 
+
+Here's how you could write your stateless endpoint with Hono and Responses API:
 
 ```typescript
 import { Hono } from 'hono'

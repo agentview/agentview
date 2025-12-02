@@ -14,11 +14,10 @@ export default defineConfig({
   agents: [
     {
       name: "simple_chat",
-      url: "http://127.0.0.1:3000/agentview/simple_chat/run",
       runs: [
         {
           input: {
-            schema: z.looseObject({
+            schema: z.object({
               type: z.literal("message"),
               role: z.literal("user"),
               content: z.string(),
@@ -27,14 +26,14 @@ export default defineConfig({
           },
           steps: [
             {
-              schema: z.looseObject({
+              schema: z.object({
                 type: z.literal("reasoning"),
-              }),
+              }).loose(),
               displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
             }
           ],
           output: {
-            schema: z.looseObject({
+            schema: z.object({
               role: z.literal("assistant"),
               type: z.literal("message"),
               content: z.any(),
@@ -51,7 +50,6 @@ export default defineConfig({
     },
     {
       name: "weather_chat",
-      url: "http://127.0.0.1:3000/agentview/weather_chat/run",
       run: {
         input: {
           schema: z.looseObject({

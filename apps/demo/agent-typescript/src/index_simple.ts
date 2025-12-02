@@ -17,28 +17,33 @@ app.use('*', cors({
   credentials: true,
 }))
 
+// beautiful error handling
 app.onError((error, c) => {
   if (error instanceof AgentViewError) {
+    console.log('error', error)
     return c.json({ ...error.details, message: error.message }, error.statusCode as any);
   }
   throw error;
 });
 
 app.post('/chat/simple', async (c) => {
+  console.log('hello')
   const { id, token, input } = await c.req.json();
+  console.log('after hello')
+  console.log(id, token, input)
 
-  const endUserToken = token ?? (await av.createEndUser()).token;
+  const endUser = token ? 
+    await av.getEndUser({ token }) : 
+    await av.createEndUser();
 
-  // create or get session
   const session = id ?
-    await av.getSession({ id, endUserToken }) : 
-    await av.createSession({ agent: "simple_chat", endUserToken });
+    await av.as(endUser).getSession({ id }) : 
+    await av.as(endUser).createSession({ agent: "simple_chat" });
 
   const run = await av.createRun({ 
     sessionId: session.id, 
     items: [input], 
-    version: "0.0.1", 
-    endUserToken
+    version: "0.0.1"
   });
 
   let response : Awaited<ReturnType<typeof client.responses.create>>;
@@ -54,6 +59,7 @@ app.post('/chat/simple', async (c) => {
     });
 
   } catch (error) {
+    console.log('error!', error);
     await av.updateRun({
       id: run.id,
       status: "failed",
@@ -71,10 +77,11 @@ app.post('/chat/simple', async (c) => {
     items: response.output
   });
 
+
   return c.json({
-    token: endUserToken,
-    sessionId: session.id,
-    output: response.output
+    id: session.id,
+    output: response.output,
+    token: endUser.token,
   })
 })
 
