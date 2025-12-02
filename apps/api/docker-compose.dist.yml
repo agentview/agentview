@@ -23,7 +23,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-db:5432/${POSTGRES_DB}
       AGENTVIEW_STUDIO_URL: ${AGENTVIEW_STUDIO_URL}
     ports:
-      - "8080:80"
+      - "1990:80"
     depends_on:
       postgres-db:
         condition: service_healthy

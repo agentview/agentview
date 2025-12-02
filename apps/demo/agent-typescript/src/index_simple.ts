@@ -8,7 +8,7 @@ import { cors } from 'hono/cors';
 const app = new Hono();
 const client = new OpenAI()
 const av = new AgentView({
-  apiUrl: 'http://localhost:8080',
+  apiUrl: 'http://localhost:1990',
   apiKey: process.env.AGENTVIEW_API_KEY!
 })
 
@@ -24,12 +24,13 @@ app.onError((error, c) => {
   throw error;
 });
 
-app.post('/chat', async (c) => {
+app.post('/chat/simple', async (c) => {
   const { id, token, input } = await c.req.json();
 
   const endUserToken = token ?? (await av.createEndUser()).token;
 
-  const session = id ? 
+  // create or get session
+  const session = id ?
     await av.getSession({ id, endUserToken }) : 
     await av.createSession({ agent: "simple_chat", endUserToken });
 
@@ -39,8 +40,6 @@ app.post('/chat', async (c) => {
     version: "0.0.1", 
     endUserToken
   });
-
-  console.log('all initiated, running AI...');
 
   let response : Awaited<ReturnType<typeof client.responses.create>>;
 
@@ -69,7 +68,7 @@ app.post('/chat', async (c) => {
   await av.updateRun({
     id: run.id,
     status: "completed",
-    items: response.output,
+    items: response.output
   });
 
   return c.json({

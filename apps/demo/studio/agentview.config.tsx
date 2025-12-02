@@ -18,7 +18,7 @@ import { ProductSelect } from "./src/ProductSelect";
 import { CustomPage } from "./src/CustomPage";
 
 export default defineConfig({
-    apiBaseUrl: "http://localhost:8080",
+    apiBaseUrl: "http://localhost:1990",
     agents: [
         {
             name: "simple_chat",

@@ -3,9 +3,9 @@ title: "Quick Start"
 description: "Start building with AgentView in minutes"
 ---
 
-# Getting Started
-
 This guide will walk through setting up your first agent with AgentView. Along the way, you'll learn more about the concepts that are fundamental to using the SDK in your own projects.
+
+### Create a project
 
 Start by creating AgentView project:
 
@@ -20,45 +20,40 @@ cd my-agentview-project
 ```
 
 The root directory of the project has a following structure:
-1. `studio/` - React app with data viewer
-2. `agent-app-python/` - demo Agent App written in Python + FastAPI
-3. `agent-app-ts/` - demo of Agent App written in TS + Hono
+1. `studio/` - data viewer React app
+2. `agent-python/` - demo Agent Endpoint written in Python + FastAPI
+3. `agent-typescript/` - demo Agent Endpoint written in TS + Hono
 4. `docker-compose.yml` - since there's no cloud yet, you'll need to set up AgentView Server via docker-compose.
 
-Depending on preference how you want to write AI code you can use either `agent-app-python/` or `agent-app-ts`. You'll need `studio/` in both cases.
-
+Depending on preference how you want to write AI code you can use either `ai-python/` or `agent-typescript/`. You'll need `studio/` in both cases.
 
 ### Set up AgentView Server
 
-AgentView cloud service is work-in-progress so for now you gotta install it via docker compose. Just run:
+<Note>AgentView is in beta, so for now you have to self-host the server. We're working on the cloud service, keep an eye on updates!</Note>
+
+To run AgentView server locally you need to install it via docker compose. Just run:
 
 ```bash
 docker compose up -d
 ```
 
-To test whether server is running you can run:
+Visit `http://localhost:1990/api/status` to see if the server is running. If you get 200 response with `{ "status": "ok", ... }` it means it's all good.
 
-```bash
-curl http://localhost:1990/api/status
-```
+AgentView server exposes AgentView API, which is used by Studio and your apps. 
 
-If you get a response with `{ "status": "ok", ... }` it means it's all good.
+### Your Agent Endpoint
 
-AgentView exposes Client API, with which users will communicate in the real world.
+In AgentView you provide AI logic as a HTTP endpoint. This gives you a full freedom over how you want to write AI and doesn't lock you in with any specific framework.
 
-### Agent App
-
-In AgentView you provide AI logic as a stateless HTTP endpoint called "Agent App". This gives you a full freedom over how you want to write AI and doesn't lock you in with any specific framework.
-
-The example Agent App in TS is in `agent-app-ts`. Let's run it:
+The example Agent Endpoint in Typescript is in `agent-typescript`. Let's run it:
 
 ```
-cd agent-app-ts
+cd agent-typescript
 npm install
 npm run dev
 ```
 
-Your Agent App server should be running at `localhost:3000`.
+Your Agent Endpoint server should be running at `localhost:3000`.
 
 Let's take a look at `src/index.ts`:
 
@@ -165,7 +160,7 @@ export default defineConfig({
 })
 ```
 
-`server` is a location of AgentView Server and `agentApp` is a base URL of your stateless Agent App.
+`server` is a location of AgentView Server and `agentApp` is a base URL of your stateless Agent Endpoint.
 
 In the properties we defined a single agent called `my_super_agent`. It has one run (*multiple runs* are supported).
 
@@ -217,7 +212,7 @@ Here's what AgentView did under the hood:
 - validated whether the input for agent is correct (used Zod schemas you provided)
 - created a session
 - initiated the run
-- called your Agent App to produce a response (`history` was empty)
+- called your Agent Endpoint to produce a response (`history` was empty)
 - saved responses in DB
 - returned response
 
@@ -243,7 +238,7 @@ Response:
 
 ```
 
-As you can see AgentView took care of persistence and session, under the hood your Agent App got proper `history`.
+As you can see AgentView took care of persistence and session, under the hood your Agent Endpoint got proper `history`.
 
 You can call `GET /sessions/YOUR_SESSION_ID` to fetch the full session history.
 
@@ -362,7 +357,7 @@ And let's configure it in `agentview.config.tsx`:
 
 ```typescript
 export default defineConfig({
-  apiBaseUrl: "http://localhost:8080",
+  apiBaseUrl: "http://localhost:1990",
   agents: [
     // ...
     {

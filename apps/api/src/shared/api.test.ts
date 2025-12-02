@@ -4,7 +4,7 @@ import type { EndUser, Run } from './apiTypes';
 import { z } from 'zod';
 
 const apiKey = 'QnUveLvkStSMbjRCCzfbkBtlngakfLLoHFyaARUroWvTPoqALxxpZSPRuYIUMGbR'
-const apiUrl = 'http://localhost:8080'
+const apiUrl = 'http://localhost:1990'
 
 const av = new AgentView({
   apiUrl,

@@ -100,7 +100,7 @@ docker compose up -d
 To test whether server is running you can run:
 
 ```
-curl localhost:8080/api/status
+curl localhost:1990/api/status
 
 // expected response: `{ "is_active": false }`
 ```
@@ -125,7 +125,7 @@ Let's quickly look at the most important config file in the AgentView: `studio/a
 
 ```
 export default defineConfig({
-    apiBaseUrl: "http://localhost:8080",
+    apiBaseUrl: "http://localhost:1990",
     agents: [
         {
             name: "simple_chat",

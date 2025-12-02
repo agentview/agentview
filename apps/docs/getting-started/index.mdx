@@ -34,40 +34,58 @@ const av = new AgentView({
 })
 
 app.post('/chat', async (c) => {
-  const { sessionId, endUserToken, input } = await c.req.json();
+  const { id, input, token } = await c.req.json();
 
-  const endUser = endUserToken ? await av.getEndUser({ token: endUserToken }) : await av.createEndUser();
-  const session = sessionId ? await av.getSession({ id: sessionId, as: endUser }) : await av.createSession({ agent: "my_chat", as: endUser });
+  // authenticate end user or create new one
+  const user = token ? 
+    await av.getUser({ token }) : 
+    await av.createUser();
 
+  // get session for user or create new one
+  const session = id ? 
+    await user.getSession({ id }) : 
+    await user.createSession({ agent: "my_chat" });
+
+  // create a versioned run (session is in progress now)
   const run = await av.createRun({
     sessionId: session.id,
     items: [input],
     version: "0.1.0",
   })
 
-  c.req.raw.signal.addEventListener("abort", () => {
-    av.updateRun({
+  // generate AI response, read session.history to get previous messages
+  let response : Awaited<ReturnType<typeof client.responses.create>>;
+  try {
+    response = await client.responses.create({
+      model: "gpt-5-nano",
+      instructions: "Be a nice agent.",
+      input: [...session.history, input]
+    });
+
+  } catch (error) {
+    // on error mark run as failed
+    await av.updateRun({
       id: run.id,
-      status: "cancelled",
-    })
-  })
+      status: "failed",
+      failReason: {
+        message: (error as Error).message,
+      }
+    });
+    throw error;
+  }
 
-  const response = await client.responses.create({
-    model: "gpt-5-nano",
-    instructions: "Be a nice agent.",
-    input: [...session.history, input]
-  });
-
+  // on success mark run as complete and append output items
   av.updateRun({
     id: run.id,
     items: [...response.output],
     status: "complete",
   })
 
+  // send response
   return c.json({
-    sessionId: session.id,
-    endUserToken: endUser.token,
-    output: [...response.output]
+    id: session.id,
+    output: [...response.output],
+    token: user.token,
   })
 })
 ```
@@ -75,40 +93,40 @@ AgentView builds everything around your AI so you can focus on what matters.
 
 ```tsx
 export default defineConfig({
-    agents: [
-        {
-            name: "my_chat",
-            url: "http://localhost:3000/agentview",
-            run: {
-                input: {
-                    schema: z.looseObject({
-                        type: z.literal("message"),
-                        role: z.literal("user"),
-                        content: z.string()
-                    }),
-                    displayComponent: ({ data }) => <UserMessage>{data.content}</UserMessage>
-                    inputComponent: (props) => <UserMessagInput {...props} onSubmit={() => ...}/>
-                },
-                steps: [
-                    {
-                        schema: z.looseObject({
-                            type: z.literal("reasoning"),
-                            content: z.string()
-                        }),
-                        displayComponent: ({ data }) => <StepBlock>{data.content}</StepBlock>
-                    }
-                ]
-                output: {
-                    schema: z.looseObject({
-                        type: z.literal("message"),
-                        role: z.literal("assistant"),
-                        content: z.string(),
-                    }),
-                    displayComponent: ({ data }) => <AssistantMessage>{data.content}</AssistantMessage>,
-                }
-            }
+  agents: [
+    {
+      name: "my_chat",
+      url: "http://localhost:3000/agentview",
+      run: {
+        input: {
+          schema: z.looseObject({
+            type: z.literal("message"),
+            role: z.literal("user"),
+            content: z.string()
+          }),
+          displayComponent: ({ data }) => <UserMessage>{data.content}</UserMessage>
+          inputComponent: (props) => <UserMessagInput {...props} onSubmit={() => ...}/>
+        },
+        steps: [
+          {
+            schema: z.looseObject({
+              type: z.literal("reasoning"),
+              content: z.string()
+            }),
+            displayComponent: ({ data }) => <StepBlock>{data.content}</StepBlock>
+          }
+        ]
+        output: {
+          schema: z.looseObject({
+            type: z.literal("message"),
+            role: z.literal("assistant"),
+            content: z.string(),
+          }),
+          displayComponent: ({ data }) => <AssistantMessage>{data.content}</AssistantMessage>,
         }
-    ]
+      }
+    }
+  ]
 })
 ```
 

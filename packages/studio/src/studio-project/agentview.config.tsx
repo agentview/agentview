@@ -2,63 +2,52 @@ import { z } from "zod";
 import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
 import { defineConfig } from "~";
 import { Button } from "~/components/ui/button";
-import { UserMessage, AssistantMessage, StepItem, UserMessageInput, BaseItem } from "~/components/session-item";
+import { UserMessage, AssistantMessage, UserMessageInput, BaseItem } from "~/components/session-item";
 import { PillSelect } from "~/components/PillSelect";
 import { ToggleGroupControl } from "~/components/ToggleGroup";
 import { OptionDisplay } from "~/components/OptionDisplay";
 import { Colors } from "~/lib/shared/colors";
 import { CustomPage } from "./CustomPage";
 
-
-
 export default defineConfig({
-  apiBaseUrl: "http://localhost:8080",
+  apiBaseUrl: "http://localhost:1990",
   agents: [
     {
       name: "simple_chat",
       url: "http://127.0.0.1:3000/agentview/simple_chat/run",
-      run: {
-        input: {
-          schema: z.looseObject({
-            type: z.literal("message"),
-            role: z.literal("user"),
-            content: z.string(),
-          }),
-          displayComponent: ({ value }) => <UserMessage value={value.content} />,
-        },
-        steps: [
-          {
+      runs: [
+        {
+          input: {
             schema: z.looseObject({
-              type: z.literal("reasoning"),
+              type: z.literal("message"),
+              role: z.literal("user"),
+              content: z.string(),
             }),
-            displayComponent: null
-            // displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
+            displayComponent: ({ value }) => <UserMessage value={value.content} />,
+          },
+          steps: [
+            {
+              schema: z.looseObject({
+                type: z.literal("reasoning"),
+              }),
+              displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
+            }
+          ],
+          output: {
+            schema: z.looseObject({
+              role: z.literal("assistant"),
+              type: z.literal("message"),
+              content: z.any(),
+            }),
+            displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />
           }
-        ],
-        output: {
-          schema: z.looseObject({
-            role: z.literal("assistant"),
-            type: z.literal("message"),
-            content: z.any(),
-          }),
-          displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />
         }
-      },
+      ],
       inputComponent: ({ submit, cancel, isRunning }) => <UserMessageInput
-        onSubmit={(val) => submit("http://localhost:3000/chat", { input: { content: val, type: "message", role: "user" } })}
+        onSubmit={(val) => submit("http://localhost:3000/chat/simple", { input: { content: val, type: "message", role: "user" } })}
         onCancel={cancel}
         isRunning={isRunning}
-      />,
-      // newSessionComponent: ({ submit, isRunning }) => <form onSubmit={(e) => {
-      //   e.preventDefault();
-      //   submit({
-      //     metadata: {
-      //       dupa: 888
-      //     }
-      //   });
-      // }}>
-      //   <Button type="submit" disabled={isRunning}>Submit</Button>
-      // </form>
+      />
     },
     {
       name: "weather_chat",

@@ -126,8 +126,6 @@ export class AgentView {
   }
 }
 
-
-
 export interface AgentViewClientOptions {
   apiUrl: string
   endUserToken: string
