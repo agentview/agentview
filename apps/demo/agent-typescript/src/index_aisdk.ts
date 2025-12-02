@@ -2,11 +2,39 @@ import 'dotenv/config'
 import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
 import { AgentView, AgentViewError } from "agentview";
-import { OpenAI } from 'openai';
 import { cors } from 'hono/cors';
+import { Experimental_Agent as Agent, tool } from 'ai';
+import { z } from 'zod';
+import { openai } from '@ai-sdk/openai';
+
+const weatherAgent = new Agent({
+  model: openai('gpt-5-nano'),
+  system: 'You are a helpful assistant with tools to get the weather and convert temperatures.',
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location (in Fahrenheit)',
+      inputSchema: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
+    convertFahrenheitToCelsius: tool({
+      description: 'Convert temperature from Fahrenheit to Celsius',
+      inputSchema: z.object({
+        temperature: z.number().describe('Temperature in Fahrenheit'),
+      }),
+      execute: async ({ temperature }) => {
+        const celsius = Math.round((temperature - 32) * (5 / 9));
+        return { celsius };
+      },
+    }),
+  }
+});
 
 const app = new Hono();
-const client = new OpenAI()
 const av = new AgentView({
   apiUrl: 'http://localhost:1990',
   apiKey: process.env.AGENTVIEW_API_KEY!
@@ -43,19 +71,17 @@ app.post('/chat/simple', async (c) => {
     version: "0.0.1"
   });
 
-  let response : Awaited<ReturnType<typeof client.responses.create>>;
+  let response : Awaited<ReturnType<typeof weatherAgent.stream>>;
 
   try {
-    response = await client.responses.create({
-      model: "gpt-5-nano",
-      reasoning: {
-        effort: "low",
-        summary: "detailed"
-      },
-      input: [...session.history, input]
+    const result = await weatherAgent.stream({
+      messages: [...session.history, input]
     });
 
+    return result.toUIMessageStreamResponse()
+
   } catch (error) {
+    console.log('error!', error);
     await av.updateRun({
       id: run.id,
       status: "failed",

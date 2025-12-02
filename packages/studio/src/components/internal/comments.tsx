@@ -228,7 +228,7 @@ export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ sess
     );
 });
 
-export function CommentsThread({ session, item, selected = false, onSelect }: CommentsThreadProps) {
+export function CommentsThread({ session, item, itemConfig, selected = false, onSelect }: CommentsThreadProps) {
     const commentThreadRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const revalidator = useRevalidator();
@@ -298,6 +298,7 @@ export function CommentsThread({ session, item, selected = false, onSelect }: Co
             <CommentsThreadRaw
                 session={session}
                 item={item}
+                itemConfig={itemConfig}
                 collapsed={!selected}
                 ref={commentThreadRef}
                 small={true}

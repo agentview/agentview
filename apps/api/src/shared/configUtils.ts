@@ -299,8 +299,6 @@ function isJSONSchema(value: any): boolean { // temporarily simple check
 
 
 export function serializeConfig(config: any) {    
-    console.log('xconfig', config);
-
     const { data, success, error } = BaseConfigSchemaZodToJsonSchema.safeParse(config);
     if (!success) {
         throw new Error("Invalid config", { cause: error.issues });

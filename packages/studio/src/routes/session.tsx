@@ -128,11 +128,7 @@ function SessionPage() {
                     signal: abortController.signal,
                 });
 
-                console.log('WATCHING SESSION...')
-
                 for await (const event of parseSSE(response)) {
-                    console.log('EVENT', event.event)
-
                     setSession((prevSession) => {
                         if (event.event === 'session.snapshot') {
                             return event.data;
@@ -688,7 +684,7 @@ function ScoreDialog({ session, item, itemConfig, open, onOpenChange }: { sessio
 
         // @ts-ignore i don't know why but payload as array is not correct body but it's correct JSON.
         fetcher.submit(payload, {
-            method: 'put',
+            method: 'patch',
             action: `/sessions/${session.id}/items/${item.id}/scores`,
             encType: 'application/json'
         });
@@ -788,7 +784,7 @@ function ActionBarScoreForm({ session, item, scoreConfig }: { session: SessionWi
 
         // @ts-ignore - fetcher.submit accepts JSON payload
         fetcher.submit(payload, {
-            method: 'put',
+            method: 'patch',
             action: `/sessions/${session.id}/items/${item.id}/scores`,
             encType: 'application/json'
         });

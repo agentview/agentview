@@ -32,7 +32,7 @@ import { isInboxItemUnread } from './inboxItems'
 import { findEndUser, createEndUser } from './endUsers'
 import packageJson from '../package.json'
 import type { Transaction } from './types'
-import { findItemConfig, requireRunConfig } from './shared/configUtils'
+import { findItemConfig, findItemConfigById, requireRunConfig } from './shared/configUtils'
 import { equalJSON } from './shared/equalJSON'
 import { AgentViewError } from './shared/AgentViewError'
 
@@ -318,17 +318,17 @@ function requireAgentConfig(config: BaseAgentViewConfig, name: string) {
   return agentConfig
 }
 
-function requireItemConfig(agentConfig: ReturnType<typeof requireAgentConfig>, session: Session, contentOrId: object | string, itemType?: "input" | "output" | "step") {
-  let itemConfig = findItemConfig(agentConfig, session, contentOrId, itemType);
+function requireItemConfig(runConfig: ReturnType<typeof requireRunConfig>, sessionItems: SessionItem[], itemId: string, itemType?: "input" | "output" | "step") {
+  let itemConfig = findItemConfigById(runConfig, sessionItems, itemId, itemType);
 
   if (!itemConfig) {
-    throw new HTTPException(400, { message: `Item not found in configuration for agent '${agentConfig.name}'. ${itemType ? `For run item type: ${itemType}` : ''}` });
+    throw new HTTPException(400, { message: `Item not found in configuration for item '${itemId}'.` });
   }
 
   return itemConfig
 }
 
-function requireScoreConfig(itemConfig: ReturnType<typeof requireItemConfig>, scoreName: string) {
+function requireScoreConfig(itemConfig: ReturnType<typeof requireItemConfig>["itemConfig"], scoreName: string) {
   const scoreConfig = itemConfig.scores?.find((scoreConfig) => scoreConfig.name === scoreName)
   if (!scoreConfig) {
     throw new HTTPException(400, { message: `Score name '${scoreName}' not found in configuration.'` });
@@ -2230,9 +2230,9 @@ app.openapi(scoresGETRoute, async (c) => {
 })
 
 
-// Scores PUT (create or update scores for an item)
-const scoresPUTRoute = createRoute({
-  method: 'put',
+// Scores PATCH (create or update scores for an item)
+const scoresPATCHRoute = createRoute({
+  method: 'patch',
   path: '/api/sessions/{sessionId}/items/{itemId}/scores',
   request: {
     params: z.object({
@@ -2252,7 +2252,7 @@ const scoresPUTRoute = createRoute({
   },
 })
 
-app.openapi(scoresPUTRoute, async (c) => {
+app.openapi(scoresPATCHRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const userPrincipal = requireUserPrincipal(principal);
 
@@ -2262,9 +2262,11 @@ app.openapi(scoresPUTRoute, async (c) => {
   const config = await requireConfig()
   const session = await requireSession(sessionId)
   const item = await requireSessionItem(session, itemId);
+  const run = session.runs.find(r => r.id === item.runId)!
 
   const agentConfig = requireAgentConfig(config, session.agent);
-  const itemConfig = requireItemConfig(agentConfig, session, item.id)
+  const runConfig = requireRunConfig(agentConfig, run.items[0].content);
+  const itemConfig = requireItemConfig(runConfig, run.items, item.id).itemConfig;
 
   await db.transaction(async (tx) => {
     for (const score of inputScores) {

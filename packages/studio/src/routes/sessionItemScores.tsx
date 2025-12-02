@@ -3,16 +3,14 @@ import { type ActionResponse } from "~/lib/errors";
 import type { ActionFunctionArgs, RouteObject } from "react-router";
 
 async function action({ request, params }: ActionFunctionArgs): Promise<ActionResponse> {
-    if (request.method !== 'PUT') {
+    if (request.method !== 'PATCH') {
         throw new Error('Method not allowed');
     }
 
     const scores = await request.json();
 
-    console.log('scores', scores);
-
     const response = await apiFetch(`/api/sessions/${params.id}/items/${params.itemId}/scores`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: scores
     });
 

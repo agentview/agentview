@@ -38,7 +38,24 @@ export default defineConfig({
               type: z.literal("message"),
               content: z.any(),
             }),
-            displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />
+            displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />,
+            scores: [
+              {
+                name: "user_reaction",
+                title: "Can it go to client?",
+                schema: z.boolean(),
+                inputComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />,
+                displayComponent: (props) => <OptionDisplay {...props} options={likeOptions} />,
+                actionBarComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />
+              },
+              {
+                name: "test",
+                title: "Test",
+                schema: z.string(),
+                inputComponent: (props) => <PillSelect {...props} options={selectOptions} />,
+                displayComponent: (props) => <OptionDisplay {...props} options={selectOptions} />,
+              }
+            ]
           }
         }
       ],
