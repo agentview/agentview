@@ -1,0 +1,22 @@
+[
+  {
+    "id": "",
+    "role": "assistant",
+    "parts": [
+      {
+        "type": "step-start"
+      },
+      {
+        "type": "reasoning",
+        "text": "",
+        "providerMetadata": {
+          "openai": {
+            "itemId": "rs_07482f2be0d2c50f00693012146bbc81949ae799d4a5936e7f",
+            "reasoningEncryptedContent": null
+          }
+        },
+        "state": "streaming"
+      }
+    ]
+  }
+]

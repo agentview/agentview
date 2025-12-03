@@ -3,13 +3,13 @@ import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
 import { AgentView, AgentViewError } from "agentview";
 import { cors } from 'hono/cors';
-import { Experimental_Agent as Agent, tool } from 'ai';
+import { Experimental_Agent as Agent, tool, convertToModelMessages } from 'ai';
 import { z } from 'zod';
 import { openai } from '@ai-sdk/openai';
 
 const weatherAgent = new Agent({
   model: openai('gpt-5-nano'),
-  system: 'You are a helpful assistant with tools to get the weather and convert temperatures.',
+  instructions: 'You are a helpful assistant with tools to get the weather and convert temperatures.',
   tools: {
     weather: tool({
       description: 'Get the weather in a location (in Fahrenheit)',
@@ -57,54 +57,67 @@ app.onError((error, c) => {
 app.post('/chat/simple', async (c) => {
   const { id, token, input } = await c.req.json();
 
-  const endUser = token ? 
-    await av.getEndUser({ token }) : 
-    await av.createEndUser();
+  // const endUser = token ?
+  //   await av.getEndUser({ token }) :
+  //   await av.createEndUser();
 
-  const session = id ?
-    await av.as(endUser).getSession({ id }) : 
-    await av.as(endUser).createSession({ agent: "simple_chat" });
+  // const session = id ?
+  //   await av.as(endUser).getSession({ id }) :
+  //   await av.as(endUser).createSession({ agent: "simple_chat" });
 
-  const run = await av.createRun({ 
-    sessionId: session.id, 
-    items: [input], 
+  const session = id ? 
+    await av.getSession({ id }) :
+    await av.createSession({ agent: "simple_chat" });
+
+  const run = await av.createRun({
+    sessionId: session.id,
+    items: [input],
     version: "0.0.1"
   });
 
-  let response : Awaited<ReturnType<typeof weatherAgent.stream>>;
+  const history = session.runs.map(run => [
+    run.items[0],
+    {
+      role: 'assistant',
+      parts: run.items.slice(1)
+    }
+  ]).flat();
 
-  try {
-    const result = await weatherAgent.stream({
-      messages: [...session.history, input]
-    });
+  console.log('history', history);
 
-    return result.toUIMessageStreamResponse()
-
-  } catch (error) {
-    console.log('error!', error);
-    await av.updateRun({
-      id: run.id,
-      status: "failed",
-      failReason: {
-        message: (error as Error).message,
-      }
-    });
-
-    throw error;
-  }
-
-  await av.updateRun({
-    id: run.id,
-    status: "completed",
-    items: response.output
+  let result = await weatherAgent.stream({
+    messages: convertToModelMessages([...history, input]),
+    abortSignal: c.req.raw.signal,
   });
 
+  return result.toUIMessageStreamResponse({
+    onFinish: async ({ messages, isAborted }) => {
+      await av.updateRun({
+        id: run.id,
+        status: "completed",
+        items: messages[0].parts,
+      });
+    },
+    onError(error) {
 
-  return c.json({
-    id: session.id,
-    output: response.output,
-    token: endUser.token,
-  })
+      av.updateRun({
+        id: run.id,
+        status: "failed",
+        failReason: {
+          message: (error as Error).message,
+        },
+      });
+
+      console.log('error', error);
+      return "xxx";
+    },
+    consumeSseStream: async ({ stream }) => {
+      for await (const chunk of stream) {
+        console.log('chunk', chunk);
+      }
+    }
+  });
+
 })
 
 serve({

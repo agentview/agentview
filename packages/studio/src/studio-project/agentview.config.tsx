@@ -17,47 +17,74 @@ export default defineConfig({
       runs: [
         {
           input: {
-            schema: z.object({
-              type: z.literal("message"),
+            schema: z.looseObject({
               role: z.literal("user"),
-              content: z.string(),
+              parts: z.any()
             }),
-            displayComponent: ({ value }) => <UserMessage value={value.content} />,
           },
-          steps: [
-            {
-              schema: z.object({
-                type: z.literal("reasoning"),
-              }).loose(),
-              displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
-            }
-          ],
           output: {
-            schema: z.object({
-              role: z.literal("assistant"),
-              type: z.literal("message"),
-              content: z.any(),
+            schema: z.looseObject({
+              type: z.literal("text"),
+              text: z.string(),
             }),
-            displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />,
-            scores: [
-              {
-                name: "user_reaction",
-                title: "Can it go to client?",
-                schema: z.boolean(),
-                inputComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />,
-                displayComponent: (props) => <OptionDisplay {...props} options={likeOptions} />,
-                actionBarComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />
-              },
-              {
-                name: "test",
-                title: "Test",
-                schema: z.string(),
-                inputComponent: (props) => <PillSelect {...props} options={selectOptions} />,
-                displayComponent: (props) => <OptionDisplay {...props} options={selectOptions} />,
-              }
-            ]
           }
         }
+        // {
+        //   input: {
+        //     schema: z.object({
+        //       type: z.literal("message"),
+        //       role: z.literal("user"),
+        //       content: z.string(),
+        //     }),
+        //     displayComponent: ({ value }) => <UserMessage value={value.content} />,
+        //   },
+        //   steps: [
+        //     {
+        //       schema: z.object({
+        //         type: z.literal("reasoning"),
+        //         summary: z.array(z.object({
+        //           type: z.literal("summary_text"),
+        //           text: z.string(),
+        //         })),
+        //       }).loose(),
+        //       displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
+        //     }
+        //   ],
+        //   output: {
+        //     schema: z.object({
+        //       role: z.literal("assistant"),
+        //       type: z.literal("message"),
+        //       content: z.array(z.discriminatedUnion("type", [
+        //         z.object({
+        //           type: z.literal("output_text"),
+        //           text: z.string(),
+        //         }),
+        //         z.object({
+        //           type: z.literal("refusal"),
+        //           refusal: z.string(),
+        //         })
+        //       ])),
+        //     }),
+        //     displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />,
+        //     // scores: [
+        //     //   {
+        //     //     name: "user_reaction",
+        //     //     title: "Can it go to client?",
+        //     //     schema: z.boolean(),
+        //     //     inputComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />,
+        //     //     displayComponent: (props) => <OptionDisplay {...props} options={likeOptions} />,
+        //     //     actionBarComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />
+        //     //   },
+        //     //   {
+        //     //     name: "test",
+        //     //     title: "Test",
+        //     //     schema: z.string(),
+        //     //     inputComponent: (props) => <PillSelect {...props} options={selectOptions} />,
+        //     //     displayComponent: (props) => <OptionDisplay {...props} options={selectOptions} />,
+        //     //   }
+        //     // ]
+        //   }
+        // }
       ],
       inputComponent: ({ submit, cancel, isRunning }) => <UserMessageInput
         onSubmit={(val) => submit("http://localhost:3000/chat/simple", { input: { content: val, type: "message", role: "user" } })}
