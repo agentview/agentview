@@ -99,22 +99,15 @@ app.post('/chat/simple', async (c) => {
       });
     },
     onError(error) {
+      const message = (error as Error).message || 'Unknown error';
 
       av.updateRun({
         id: run.id,
         status: "failed",
-        failReason: {
-          message: (error as Error).message,
-        },
+        failReason: { message },
       });
 
-      console.log('error', error);
-      return "xxx";
-    },
-    consumeSseStream: async ({ stream }) => {
-      for await (const chunk of stream) {
-        console.log('chunk', chunk);
-      }
+      return message;
     }
   });
 

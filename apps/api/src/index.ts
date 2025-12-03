@@ -59,7 +59,8 @@ export const app = new OpenAPIHono({
 app.onError((error, c) => {
   console.error(error)
   if (error instanceof AgentViewError) {
-    const payload = { message: error.message, code: error.details?.code, issues: error.details?.issues }
+    console.log('#########################');
+    const payload = { message: error.message, ...(error.details ?? {}) }
     console.log('AgentViewError', error.statusCode, payload);
     return c.json(payload, error.statusCode as any);
   }
@@ -163,7 +164,7 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
   if (token) {
     endUser = await findEndUser({ token });
     if (!endUser) {
-      throw new HTTPException(404, { message: "User from X-End-User-Token not found." });
+      throw new HTTPException(404, { message: "User not found." });
     }
   }
 

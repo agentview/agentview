@@ -26,7 +26,7 @@ app.onError((error, c) => {
   throw error;
 });
 
-app.post('/chat/simple', async (c) => {
+app.post('/simple_chat', async (c) => {
   const { id, token, input } = await c.req.json();
 
   const endUser = token ? 
@@ -56,6 +56,7 @@ app.post('/chat/simple', async (c) => {
     });
 
   } catch (error) {
+    console.error(error)
     await av.updateRun({
       id: run.id,
       status: "failed",

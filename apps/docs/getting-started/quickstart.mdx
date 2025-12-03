@@ -94,16 +94,19 @@ export default defineConfig({
           ],
           output: {
             schema: z.object({
-              role: z.literal("assistant"),
               type: z.literal("message"),
-              content: z.any(),
+              role: z.literal("assistant"),
+              content: z.array(z.object({
+                type: z.literal("output_text"),
+                text: z.string(),
+              })),
             }),
             displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />
           }
         }
       ],
       inputComponent: ({ submit, cancel, isRunning }) => <UserMessageInput
-        onSubmit={(val) => submit("http://localhost:3000/chat/simple", { input: { content: val, type: "message", role: "user" } })}
+        onSubmit={(val) => submit("http://localhost:3000/simple_chat", { input: { content: val, type: "message", role: "user" } })}
         onCancel={cancel}
         isRunning={isRunning}
       />
@@ -165,7 +168,7 @@ app.onError((error, c) => {
   throw error;
 });
 
-app.post('/chat/simple', async (c) => {
+app.post('/simple_chat', async (c) => {
   const { id, token, input } = await c.req.json();
 
   const endUser = token ? 
@@ -228,7 +231,7 @@ serve({
 })
 ```
 
-It's a simple Hono HTTP server with a single endpoint `POST /chat/simple`. 
+It's a simple Hono HTTP server with a single endpoint `POST /simple_chat`. 
 
 In this example your AI logic is a simple call to OpenAI Responses API:
 
@@ -272,123 +275,64 @@ The goal is so that you focus on AI logic and not on the scaffolding.
 Call your Agent Endpoint to initiate a new conversation:
 
 ```bash
-curl -X POST https://localhost:3000/chat/simple \
-  -H "Content-Type: application/json" \
-  -d '{
-    "input": { "type": "message", "role": "user", "content": "Hello, I'm Bob, how are you?" }
-  }'
+curl -X POST --json '{ "input": { "type": "message", "role": "user", "content": "Hey, my name is Bob." } }' http://localhost:3000/simple_chat
 ```
 
-Result:
+You should get a response in a following JSON format:
 
-```json
+```ts
 {
-  "id": "a2ce2d7a-3869-4ec0-aa22-d7cbaf09fb46",
-  "output": [
-    {
-      "id": "rs_03e64139f60c639700692eeb4b012c81a0b3077f41a8c34778",
-      "type": "reasoning",
-      "summary": []
-    },
-    {
-      "id": "msg_03e64139f60c639700692eeb4c046c81a0bc071eff9a93fb36",
-      "type": "message",
-      "status": "completed",
-      "content": [
-        {
-          "type": "output_text",
-          "annotations": [],
-          "logprobs": [],
-          "text": "Hi Bob! I’m doing well, thanks for asking. How can I help you today?"
-        }
-      ],
-      "role": "assistant"
-    }
-  ],
-  "token": "142c646f9e5022adcf0b9dcac4e5707b1385a7d017f5bb9b00c448876e372bf1"
+  "id": "SESSION_ID",
+  "output": [ /* output items */],
+  "token": "USER_TOKEN"
 }
 ```
 
 Let's continue the thread by sending new message
 
 ```bash
-curl -X POST https://localhost:3000/chat/simple \
-  -H "Content-Type: application/json" \
-  -d '{
+curl -X POST --json '{
     "id": "SESSION_ID",
     "input": {"type": "message", "role": "user", "content": "Hello, what was my name again?"},
-    "token": "END_USER_TOKEN"
-  }'
+    "token": "USER_TOKEN"
+  }' http://localhost:3000/simple_chat
 ```
 
-You should get a response:
+You should get a response which shows that the agent remembers your name. AgentView correctly stores the conversation history and remembers the context of the conversation.
 
-(TODO)
-
-```json
-{
-  "id": "SESSION_ID",
-  "output": [
-    {
-      "type": "reasoning",
-      "content": "Thinking..."
-    },
-    {
-      "type": "message",
-      "role": "assistant",
-      "content": "Your name is Bob, how can I help you today?"
-    }
-  ],
-  "token": "END_USER_TOKEN"
-}
-```
-
-As you can see the AgentView correctly stores the conversation history and remembers the context of the conversation.
-
-### Error cases
+### Errors
 
 Let's send an incorrect input:
 
 ```bash
-curl -X POST https://localhost:3000/chat/simple \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": "SESSION_ID",
-    "input": {"type": "message", "role": "user", "content": 100}
-    "token": "END_USER_TOKEN"
-  }'
+curl -i -X POST --json '{ "input": { "type": "message", "role": "user", "content": 100 } }' http://localhost:3000/simple_chat
 ```
 
-This triggers 422 error, as the input is not a string. Let's send a correct input, but with incorrect token:
+This triggers `422` error, as the input is not a string. Let's send a correct input, but with incorrect token:
 
 ```bash
-curl -X POST https://localhost:3000/chat/simple \
-  -H "Content-Type: application/json" \
-  -d '{
+curl -i -X POST --json '{
     "id": "SESSION_ID",
-    "input": { "type": "message", "role": "user", "content": "Hello, I'm Bob, how are you?" },
-    "token": "xxx"
-  }'
+    "input": {"type": "message", "role": "user", "content": "Hello, what was my name again?"},
+    "token": "surely_incorrect_token"
+  }' http://localhost:3000/simple_chat
 ```
 
-You got 401, access denied error, as the token is incorrect.
-
+You should get `404` - user not found.
 
 ## Studio
 
 `curl` is great, but it's not the most user-friendly way to test an agent, especially for non-technical users. That's why we've built the Studio.
 
-Open `http://localhost:1989` in the browser. You should already see the sessions we created via curl.
-
-// screenshot
+Open `http://localhost:1989` in the browser. Go to `Playground > Private`. At the top you should see the sessions we just created via curl.
 
 ### Custom components
 
-Studio allows you to provide your own components for any part of the experience.
+Studio allows you to provide your own components for any part of the experience. 
 
-Below is `agentview.config.tsx` with custom components for our `simple_chat` agent:
+Below is `agentview.config.tsx` with custom components for our `simple_chat` highlighted:
 
-```typescript highlight={14,25,34,38-42}
+```typescript highlight={14,25,37,41-45}
 export default defineConfig({
   apiBaseUrl: "http://localhost:1990",
   agents: [
@@ -418,16 +362,19 @@ export default defineConfig({
           ],
           output: {
             schema: z.object({
-              role: z.literal("assistant"),
               type: z.literal("message"),
-              content: z.any(),
+              role: z.literal("assistant"),
+              content: z.array(z.object({
+                type: z.literal("output_text"),
+                text: z.string(),
+              })),
             }),
             displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />
           }
         }
       ],
       inputComponent: ({ submit, cancel, isRunning }) => <UserMessageInput
-        onSubmit={(val) => submit("http://localhost:3000/chat/simple", { input: { content: val, type: "message", role: "user" } })}
+        onSubmit={(val) => submit("http://localhost:3000/simple_chat", { input: { content: val, type: "message", role: "user" } })}
         onCancel={cancel}
         isRunning={isRunning}
       />
@@ -436,9 +383,9 @@ export default defineConfig({
   ]
 ```
 
-`displayComponent` is a React component responsible for rendering session item. By default it just shows a block with JSON data.
+`displayComponent` is a React component responsible for rendering session item. You can play around with it to see how it works. If you set it to `null`, the item will not be hidden. If you remove `displayComponent` completely, you'll see the JSON data.
 
-`inputComponent` is a React component responsible for rendering the input field. AgnetView has a concept of "playground session", which are test sessions that can be created by any team member to play with the agent. You create a playground session by clicking on "Create Session" button in Studio. When you're the owner of the playground session, AgentView will display the `inputComponent` at the bottom so that you can send messages to the agent.
+`inputComponent` is responsible for rendering the input field. It allows users in the Studio to send messages to the agent to play around. `inputComponent` is displayed only for your own Playground Sessions. Production sessions or Playground Sessions created by other users will not have the input field. You can create a new Playground Session by clicking on "Create Session" at the top of the sidebar.
 
 ### Collaboration
 
@@ -446,109 +393,6 @@ One of the key features of AgentView is collaboration. It should be easy to disc
 
 [video]
 
-## Expand the agent with tools
-
-So far `my_super_agent` was very simple. Let's create a more advanced  example. We're gonna build a weather agent, that is capable of calling `weather_tool` for checking weather in given location.
-
-To show the flexibility of AgnetView, let's use AgentSDK instead of pure Responses API for a change:
-
-```typescript
-const weatherAgent = new Agent({
-  name: 'Weather Assistant',
-  model: 'gpt-5-mini',
-  modelSettings: {
-    reasoning: { effort: 'medium', summary: 'auto' }
-  },
-  instructions: 'You are a helpful general-purposeassistant. You have super skill of checking the weather for any location.',
-  tools: [
-    tool({
-      name: 'weather_tool',
-      description: 'Get weather information for a location using wttr.in',
-      parameters: z.object({
-        location: z.string().describe('The city name to get weather for'),
-      }),
-      execute: async ({ location }) => {
-        const response = await fetch(`https://wttr.in/${encodeURIComponent(location)}?format=j2`);
-        if (!response.ok) {
-          return { error: 'Failed to fetch weather data' };
-        }
-        return await response.json();
-      },
-    })
-  ],
-});
-
-app.post('/agentview/weather_agent/run', async (c) => {
-  const { history, input } = parseBody(await c.req.json());
-
-  const result = await run(weatherAgent, [...history, input]);
-
-  return c.json({
-    manifest,
-    items: result.output
-  })
-})
-```
-
-And let's configure it in `agentview.config.tsx`:
-
-```typescript
-export default defineConfig({
-  apiBaseUrl: "http://localhost:1990",
-  agents: [
-    // ...
-    {
-      name: "weather_chat",
-      url: "http://127.0.0.1:3000/agentview/weather_chat/run",
-      run: {
-        input: {
-          schema: {
-            type: "message",
-            role: "user",
-            content: z.string(),
-          },
-          displayComponent: ({ value }) => <UserMessage value={value.content} />,
-          inputComponent: (props) => <UserMessageInput {...props} submit={(val) => props.submit({ content: val, type: "message", role: "user" })} />
-        },
-        steps: [
-          {
-            schema: {
-              type: "reasoning",
-            },
-            displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.content[0]?.text} variant="muted" />,
-          },
-          {
-            schema: {
-              type: "function_call",
-              name: "weather_tool",
-              callId: z.string().meta({ callId: true })
-            },
-            displayComponent: ({ value }) => <BaseItem title="Weather Tool" value={"Checking weather in: " + JSON.parse(value.arguments).location + "..."} variant="muted" />,
-            callResult: {
-              schema: {
-                type: "function_call_result",
-                callId: z.string().meta({ callId: true })
-              },
-              displayComponent: ({ value }) => <WeatherComponent value={value} />
-            }
-          },
-        ],
-        output: {
-          schema: {
-            role: "assistant",
-            type: "message",
-            content: z.any(),
-          },
-          displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />,
-        }
-      }
-    }
-})
-```
-
-As you can see we added `steps` property in our agent definition. `steps` are all the items that go in a run after `input` and before. Most commonly it's reasoning or tool calls, but it could be handoffs in multi-agent system or actually any custom object that we need to store or display.
-
-As you can see we use `callResult` [to finish]
 
 ## Custom Scores
 

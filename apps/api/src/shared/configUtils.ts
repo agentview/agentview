@@ -40,15 +40,14 @@ export function findMatchingRunConfigs<T extends BaseAgentConfig>(agentConfig: T
 export function requireRunConfig<T extends BaseAgentConfig>(agentConfig: T, inputItemContent: any) {
     const matchingRunConfigs = findMatchingRunConfigs(agentConfig, inputItemContent);
     if (matchingRunConfigs.length === 0) {
-        throw new AgentViewError(`No run config found for input item content.`, 422, { item: inputItemContent });
+        throw new AgentViewError(`Incorrect input item for agent '${agentConfig.name}'.`, 422, { item: inputItemContent });
     }
     else if (matchingRunConfigs.length > 1) {
-        throw new AgentViewError(`More than 1 run config found for input item content.`, 422, { item: inputItemContent });
+        throw new AgentViewError(`More than 1 run config found for input item item.`, 422, { item: inputItemContent });
     }
 
     return matchingRunConfigs[0]
 }
-
 
 // two possible inputs:
 // - session (items history) + new item (not yet in session) -> we assume it goes last, all items are previous items

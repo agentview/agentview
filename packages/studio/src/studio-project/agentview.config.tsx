@@ -17,158 +17,141 @@ export default defineConfig({
       runs: [
         {
           input: {
-            schema: z.looseObject({
+            schema: z.object({
+              type: z.literal("message"),
               role: z.literal("user"),
-              parts: z.any()
+              content: z.string(),
             }),
+            displayComponent: ({ value }) => <UserMessage value={value.content} />,
           },
+          steps: [
+            {
+              schema: z.looseObject({
+                type: z.literal("reasoning"),
+                summary: z.array(z.object({
+                  type: z.literal("summary_text"),
+                  text: z.string(),
+                })),
+              }),
+              displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
+            }
+          ],
           output: {
             schema: z.looseObject({
-              type: z.literal("text"),
-              text: z.string(),
+              type: z.literal("message"),
+              role: z.literal("assistant"),
+              content: z.array(z.object({
+                type: z.literal("output_text"),
+                text: z.string(),
+              })),
             }),
+            displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />
           }
         }
-        // {
-        //   input: {
-        //     schema: z.object({
-        //       type: z.literal("message"),
-        //       role: z.literal("user"),
-        //       content: z.string(),
-        //     }),
-        //     displayComponent: ({ value }) => <UserMessage value={value.content} />,
-        //   },
-        //   steps: [
-        //     {
-        //       schema: z.object({
-        //         type: z.literal("reasoning"),
-        //         summary: z.array(z.object({
-        //           type: z.literal("summary_text"),
-        //           text: z.string(),
-        //         })),
-        //       }).loose(),
-        //       displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
-        //     }
-        //   ],
-        //   output: {
-        //     schema: z.object({
-        //       role: z.literal("assistant"),
-        //       type: z.literal("message"),
-        //       content: z.array(z.discriminatedUnion("type", [
-        //         z.object({
-        //           type: z.literal("output_text"),
-        //           text: z.string(),
-        //         }),
-        //         z.object({
-        //           type: z.literal("refusal"),
-        //           refusal: z.string(),
-        //         })
-        //       ])),
-        //     }),
-        //     displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />,
-        //     // scores: [
-        //     //   {
-        //     //     name: "user_reaction",
-        //     //     title: "Can it go to client?",
-        //     //     schema: z.boolean(),
-        //     //     inputComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />,
-        //     //     displayComponent: (props) => <OptionDisplay {...props} options={likeOptions} />,
-        //     //     actionBarComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />
-        //     //   },
-        //     //   {
-        //     //     name: "test",
-        //     //     title: "Test",
-        //     //     schema: z.string(),
-        //     //     inputComponent: (props) => <PillSelect {...props} options={selectOptions} />,
-        //     //     displayComponent: (props) => <OptionDisplay {...props} options={selectOptions} />,
-        //     //   }
-        //     // ]
-        //   }
-        // }
       ],
       inputComponent: ({ submit, cancel, isRunning }) => <UserMessageInput
-        onSubmit={(val) => submit("http://localhost:3000/chat/simple", { input: { content: val, type: "message", role: "user" } })}
+        onSubmit={(val) => submit("http://localhost:3000/simple_chat", { input: { content: val, type: "message", role: "user" } })}
         onCancel={cancel}
         isRunning={isRunning}
       />
     },
-    {
-      name: "weather_chat",
-      run: {
-        input: {
-          schema: z.looseObject({
-            type: z.literal("message"),
-            role: z.literal("user"),
-            content: z.string(),
-          }),
-          displayComponent: ({ value }) => <UserMessage value={value.content} />,
-          // inputComponent: (props) => <UserMessageInput {...props} submit={(val) => props.submit({ content: val, type: "message", role: "user" })} />
-        },
-        steps: [
-          {
-            schema: z.looseObject({
-              type: z.literal("reasoning"),
-            }),
-            displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.content[0]?.text} variant="muted" />,
-          },
-          {
-            schema: z.looseObject({
-              type: z.literal("function_call"),
-              name: z.literal("weather_tool"),
-              callId: z.string().meta({ callId: true })
-            }),
-            displayComponent: ({ value }) => <BaseItem title="Weather Tool" value={"Checking weather in: " + JSON.parse(value.arguments).location + "..."} variant="muted" />,
-            callResult: {
-              schema: z.looseObject({
-                type: z.literal("function_call_result"),
-                callId: z.string().meta({ callId: true })
-              }),
-              displayComponent: ({ value }) => <WeatherComponent value={value} />
-            }
-          },
-        ],
-        output: {
-          schema: z.looseObject({
-            role: z.literal("assistant"),
-            type: z.literal("message"),
-            content: z.any(),
-          }),
-          displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />,
-          scores: [
-            {
-              name: "user_reaction",
-              title: "Can it go to client?",
-              schema: z.boolean(),
-              inputComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />,
-              displayComponent: (props) => <OptionDisplay {...props} options={likeOptions} />,
-              actionBarComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />
-            },
-            {
-              name: "user_reaction2",
-              title: "Test",
-              schema: z.string(),
-              inputComponent: (props) => <PillSelect {...props} options={selectOptions} />,
-              displayComponent: (props) => <OptionDisplay {...props} options={selectOptions} />,
-            }
-          ]
-        },
-        displayProperties: [
-          {
-            title: "Langfuse trace",
-            value: ({ run }) => {
-              if (!run.metadata?.trace_id) {
-                return <span className="text-muted-foreground">No trace</span>
-              }
-              return <Button asChild variant="outline" size="xs">
-                <a href={`https://cloud.langfuse.com/project/cmfmholwz00k1ad074onno73u/traces/${run.metadata.trace_id}`} target="_blank">
-                  Trace <ExternalLink className="size-4" />
-                </a>
-              </Button>
-            }
-          }
-        ],
-      }
-    },
+
+            // scores: [
+            //   {
+            //     name: "user_reaction",
+            //     title: "Can it go to client?",
+            //     schema: z.boolean(),
+            //     inputComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />,
+            //     displayComponent: (props) => <OptionDisplay {...props} options={likeOptions} />,
+            //     actionBarComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />
+            //   },
+            //   {
+            //     name: "test",
+            //     title: "Test",
+            //     schema: z.string(),
+            //     inputComponent: (props) => <PillSelect {...props} options={selectOptions} />,
+            //     displayComponent: (props) => <OptionDisplay {...props} options={selectOptions} />,
+            //   }
+            // ]
+    // {
+    //   name: "weather_chat",
+    //   run: {
+    //     input: {
+    //       schema: z.looseObject({
+    //         type: z.literal("message"),
+    //         role: z.literal("user"),
+    //         content: z.string(),
+    //       }),
+    //       displayComponent: ({ value }) => <UserMessage value={value.content} />,
+    //       // inputComponent: (props) => <UserMessageInput {...props} submit={(val) => props.submit({ content: val, type: "message", role: "user" })} />
+    //     },
+    //     steps: [
+    //       {
+    //         schema: z.looseObject({
+    //           type: z.literal("reasoning"),
+    //         }),
+    //         displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.content[0]?.text} variant="muted" />,
+    //       },
+    //       {
+    //         schema: z.looseObject({
+    //           type: z.literal("function_call"),
+    //           name: z.literal("weather_tool"),
+    //           callId: z.string().meta({ callId: true })
+    //         }),
+    //         displayComponent: ({ value }) => <BaseItem title="Weather Tool" value={"Checking weather in: " + JSON.parse(value.arguments).location + "..."} variant="muted" />,
+    //         callResult: {
+    //           schema: z.looseObject({
+    //             type: z.literal("function_call_result"),
+    //             callId: z.string().meta({ callId: true })
+    //           }),
+    //           displayComponent: ({ value }) => <WeatherComponent value={value} />
+    //         }
+    //       },
+    //     ],
+    //     output: {
+    //       schema: z.looseObject({
+    //         role: z.literal("assistant"),
+    //         type: z.literal("message"),
+    //         content: z.any(),
+    //       }),
+    //       displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />,
+    //       scores: [
+    //         {
+    //           name: "user_reaction",
+    //           title: "Can it go to client?",
+    //           schema: z.boolean(),
+    //           inputComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />,
+    //           displayComponent: (props) => <OptionDisplay {...props} options={likeOptions} />,
+    //           actionBarComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />
+    //         },
+    //         {
+    //           name: "user_reaction2",
+    //           title: "Test",
+    //           schema: z.string(),
+    //           inputComponent: (props) => <PillSelect {...props} options={selectOptions} />,
+    //           displayComponent: (props) => <OptionDisplay {...props} options={selectOptions} />,
+    //         }
+    //       ]
+    //     },
+    //     displayProperties: [
+    //       {
+    //         title: "Langfuse trace",
+    //         value: ({ run }) => {
+    //           if (!run.metadata?.trace_id) {
+    //             return <span className="text-muted-foreground">No trace</span>
+    //           }
+    //           return <Button asChild variant="outline" size="xs">
+    //             <a href={`https://cloud.langfuse.com/project/cmfmholwz00k1ad074onno73u/traces/${run.metadata.trace_id}`} target="_blank">
+    //               Trace <ExternalLink className="size-4" />
+    //             </a>
+    //           </Button>
+    //         }
+    //       }
+    //     ],
+    //   }
+    // },
+
+    
     // {
     //     name: "pdp_chat",
     //     url: "http://127.0.0.1:8000/product_chat",
