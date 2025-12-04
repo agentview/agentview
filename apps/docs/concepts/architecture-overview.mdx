@@ -9,7 +9,7 @@ Below is a simplified architecture diagram. Blue parts are done by you, white pa
 
 <img src="/images/architecture-diagram.png" alt="AgentView architecture diagram" style={{ maxWidth: "100%", margin: "32px 0" }} />
 
-### Server
+## Server
 
 **Server** is a backend part. It exposes the REST API called **AgentView API**. All the communication with the outer world goes through it.
 
@@ -28,7 +28,7 @@ There's a subset of AgentView API called **AgentView Public API** (or just **Pub
 
 For now, Server must be set up locally via `docker-compose.yml`, we'll ship Cloud version soon.
 
-### Studio
+## Studio
 
 The **Studio** is a powerful and collaborative data viewer for your agents.
 
@@ -57,7 +57,7 @@ Here are some most important features of the Studio:
 - private, shared, production sessions are separated
 - add custom pages, make it a control panel of your agent
 
-### Configuration
+## Configuration
 
 All the AgentView configuration is in `agentview.config.tsx` file. This file lives in Studio project and must be provided to Studio in `renderStudio(...)`.
 
@@ -74,14 +74,8 @@ export default defineConfig({
 
 Now when you run `npm run dev` in your Studio project, each time `agentview.config.tsx` is changed, it's gonna be synchronised with the Server.
 
-## Your App Architecture
+## Your Agent Endpoint
 
-The typical architecture looks like this:
+Any AI application must expose a HTTP endpoint that takes user input and generates AI responses. We call this endpoint "Agent Endpoint". Vercel AI SDK calls it "chat endpoint" (`/api/chat`).
 
-[image: schema]
-
-Your app stays being your app, you can build it in any way you want, in a language or framework of your choice. The only difference is that your AI logic can be stateless and you can send the agent state to AgentView.
-
-The only endpoint you **must** provide is `/chat` endpoint. The purpose of this endpoint is take user input and generate AI responses. For the rest of the things your users can talk to AgentView API directly from the browser (read-only access).
-
-The Data Viewer is a separate app that talks to AgentView API directly. 
+In AgentView ecosystem you build and host Agent Endpoint yourself, in any language or framework you want. This gives you a total flexibility and doesn't lock you into any specific framework. As shown in [Quickstart](../getting-started/quickstart) example you can use AgentView SDK to read and write session data, users, runs, items, etc.

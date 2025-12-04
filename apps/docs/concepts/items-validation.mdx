@@ -1,0 +1,203 @@
+---
+title: "Items Validation"
+description: "Keep your agent data in check."
+---
+
+The default settings of AgentView are very relaxed not to overload you with annoying errors during development. However, you can provide schemas to provide stronger validation.
+
+### Input and Output
+
+The following code says that `very_simple_agent` has a single run.
+
+```typescript
+export default defineConfig({
+    // ...
+    agents: [
+        {
+            name: "very_simple_agent",
+            runs: [
+                {
+                    input: {
+                        schema: {
+                            type: "message",
+                            role: "user",
+                            content: z.string(),
+                        }
+                    },
+                    output: {
+                        schema: {
+                            type: "message",
+                            role: "assistant",
+                            content: z.string(),
+                        }
+                    }
+                }
+            ]
+        }
+        // ...
+    ]
+})
+```
+
+Here's what's happens now:
+1. When you create a run with `av.createRun`, the first item in `items` array is treated as "input".
+2. AgentView scans all the available runs from the agent config and matches the `input`.
+3. If it found a matching run, all the validation will be done according this run settings. So in this case, it's gonna make sure that the last item in items array (output) matches the `output` schema.
+
+
+```ts
+// Correct, output matches input
+await av.createRun({
+    items: [
+        { type: "message", role: "user", content: "Hello I'm Bob." }
+        { type: "message", role: "assistant", content: "Hello Bob, how are you?" }
+    ],
+    status: "complete",
+})
+
+// Throws, incorrect output for a given input
+await av.createRun({
+    items: [
+        { type: "message", role: "user", content: "Hello I'm Bob." }
+        { type: "message", content: "Hello Bob, how are you?" } // no "role"
+    ],
+    status: "complete",
+})
+```
+
+By default, if AgnetView can't find a run based on input item, it will fallback to "unknown run" which allows for any item shape. So this is still possible:
+
+```ts
+// Can't match any run -> unknown run -> allow
+await av.createRun({
+    items: [
+        { type: "blah" }
+        { type: "message", content: "Hello Bob, how are you?" }
+    ],
+    status: "complete",
+})
+```
+
+You can disable this behaviour:
+
+```typescript
+export default defineConfig({
+    // ...
+    agents: [
+        {
+            name: "very_simple_agent",
+            runs: [
+                // ...
+            ],
+            allowUnknownRuns: false
+        }
+        // ...
+    ]
+})
+```
+
+Now, an input item of new run **must** match at least one input from the runs array.
+
+### Steps
+
+For now we just validated input and output, which is first and and last items of a run. The items between input and output are called "steps". You can make sure steps conform to the schemas you provide:
+
+```typescript
+export default defineConfig({
+    // ...
+    agents: [
+        {
+            name: "very_simple_agent",
+            runs: [
+                {
+                    input: {
+                        schema: {
+                            type: "message",
+                            role: "user",
+                            content: z.string(),
+                        }
+                    },
+                    steps: [
+                        {
+                            schema: {
+                                type: "reasoning",
+                                content: z.string()
+                            }
+                        }
+                    ]
+                    output: {
+                        schema: {
+                            type: "message",
+                            role: "assistant",
+                            content: z.string(),
+                        }
+                    }
+                }
+            ],
+            allowUnknownSteps: false
+        },
+        // ...
+    ]
+})
+```
+
+In this example only the reasoning steps with string content are allowed. Please keep in mind you must set `allowUnknownSteps` to `false`. Without it, even if no matching stpe is found, AgentView will treat the step as unknown and allow it to be added.
+
+### Tool calls
+
+Tool calls are pretty special in a sense that there always come in pairs. There's a tool call item and tool result items, usually related to each other by tool call id.
+
+AgentView allows to represent this in the schema:
+
+```typescript
+export default defineConfig({
+    agents: [
+        {
+            name: "very_simple_agent",
+            runs: [
+                {
+                    input: /* ... */,
+                    output: /* ... */,
+                    steps: [
+                        {
+                            schema: {
+                                type: "function_call",
+                                name: "weather_tool",
+                                callId: z.string().meta({ callId: true })
+                            },
+                            callResult: {
+                                schema: {
+                                    type: "function_call_result",
+                                    callId: z.string().meta({ callId: true })
+                                },
+                            }
+                        },
+                        // ...
+                    ]
+                }
+            ],
+            allowUnknownSteps: false
+        }
+    ]
+})
+```
+
+In this scenario AgentView will make sure that every weather function call has appropriate result.
+
+### Strict validation
+
+By default the items are matched loosely, which means that unknown keys will be treated as a match and saved. You can force strict matching by setting `allowUnknownItemKeys` flag to `false`:
+
+```typescript
+export default defineConfig({
+    agents: [
+        {
+            name: "my_super_agent",
+            runs: [
+                // ...
+            ],            
+            allowUnknownItemKeys: false
+        }
+    ]
+})
+```

@@ -12,6 +12,7 @@ import { CustomPage } from "./CustomPage";
 export default defineConfig({
   apiBaseUrl: "http://localhost:1990",
   agents: [
+    
     {
       name: "simple_chat",
       runs: [

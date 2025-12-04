@@ -25,9 +25,20 @@
             ]
           },
           {
-            "group": "Concepts",
+            "group": "SDK",
             "pages": [
-              "concepts/architecture-overview"
+              "concepts/architecture-overview",
+              "concepts/agents-and-sessions",
+              "concepts/items-validation",
+              "concepts/users",
+              "concepts/version-control",
+              "concepts/error-handling"
+            ]
+          },
+          {
+            "group": "Studio",
+            "pages": [
+              "studio/index"
             ]
           }
         ]

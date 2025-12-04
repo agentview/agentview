@@ -1379,7 +1379,7 @@ app.openapi(sessionWatchRoute, async (c) => {
     if (!running) return;
     running = false;
     generator.return();
-    console.log(`[session ${session.handle} watch] aborted`)
+    // console.log(`[session ${session.handle} watch] aborted`)
   });
 
   // @ts-ignore
@@ -1387,17 +1387,17 @@ app.openapi(sessionWatchRoute, async (c) => {
     if (!running) return;
     running = false;
     generator.return();
-    console.log(`[session ${session.handle} watch] closed`)
+    // console.log(`[session ${session.handle} watch] closed`)
   });
 
-  console.log(`[session ${session.handle} watch] start`)
+  // console.log(`[session ${session.handle} watch] start`)
 
   // TODO: heartbeat
   return streamSSE(c, async (stream) => {
     for await (const event of generator) {
       if (!running) return;
 
-      console.log(`[session ${session.handle} watch] event: ${event.event}`);
+      // console.log(`[session ${session.handle} watch] event: ${event.event}`);
       await stream.writeSSE({
         data: JSON.stringify(event.data),
         event: event.event,
@@ -2617,6 +2617,8 @@ app.openapi(configPutRoute, async (c) => {
 
   const body = await c.req.valid('json')
   const configRow = await getConfigRow()
+
+  console.log('config update!');
 
   // validate & parse body.config
   const { data, success, error } = BaseConfigSchema.safeParse(body.config)

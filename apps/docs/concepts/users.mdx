@@ -1,0 +1,67 @@
+---
+title: "Users and Authentication"
+---
+
+Every session in AgentView is connected with a User. This is very helpful because we might have multiple sessions connected with teh same user which allows for memory, etc.
+
+When you create a session without specifically pointing at any user, a new anonymous user will be created under the hood.
+
+```ts
+const session = await av.createSession({ agent: "my_simple_agent" });
+
+console.log(session.user) // { id: "...", externalId: "...", token: "..." }
+```
+
+User object has 3 properties:
+- `id` - AgentView id
+- `externalId` - unique user id from host platform (for example Shopify), so that you can easily match users
+- `token` - user's authentication token
+
+The `token` should be send over to the client's browser so that you can use AgnetView API on the client side. 
+
+### Creating Users
+
+You can create user manually using `av.createEndUser`
+
+```ts
+const user1 = await av.createEndUser({ externalId: "..." }) // with external id
+
+const user2 = await av.createEndUser() // without external id
+```
+
+### Fetching Users
+
+You can fetch user by using id, external id or token:
+
+```ts
+await av.getEndUser({ agent, endUserId: "user_id" })
+await av.getEndUser({ agent, endUserExternalId: "user_external_id" })
+await av.getEndUser({ agent, endUserToken: "user_token" })
+```
+
+### Creating Sessions for specific user
+
+You can create a session for a particular user:
+
+```ts
+await av.createSession({ agent, endUserId: "user_id" })
+await av.createSession({ agent, endUserExternalId: "user_external_id" })
+await av.createSession({ agent, endUserToken: "user_token" })
+```
+
+
+### Client-Side Authentication
+
+The AgentView API key is secret and shouldn't be sent to the browser (or any other client-side app).
+
+However, you can still use AgnetView API directly on the client-side if you have user token: 
+
+```ts
+const av = new AgentView({
+    apiUrl: "http://localhost:3000",
+    endUserToken: "user_token"
+});
+```
+
+Such instance of `AgentView` has read-only access to this user's sessions, memories, etc.
+

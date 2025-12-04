@@ -1,0 +1,393 @@
+---
+title: "Core: Agents, Sessions, Runs & Items"
+---
+
+## Agent
+
+Agent is an entity that is responsible for doing one job (for example being a shopping assistant).
+
+Here's the simplest possible definition of an agent:
+
+```typescript
+export default defineConfig({
+  // ...
+  agents: [
+    {
+      name: "simple_agent",
+      runs: [
+        {
+          input: {
+            schema: z.object({
+              type: z.literal("message"),
+              role: z.literal("user"),
+              content: z.string(),
+            })
+          },
+          output: {
+            schema: z.object({
+              type: z.literal("message"),
+              role: z.literal("assistant"),
+              content: z.string(),
+            })
+          }
+        }
+      ]
+    }
+  ]
+});
+```
+
+We defined an agent named `simple_agent`. It has a single run type which input and output item schemas are defined.
+
+The Agent definition above is enough to create a session and add a bunch of items to it.
+
+```ts
+import { AgentView } from "agentview";
+
+const av = new AgentView({
+  apiUrl: "http://localhost:3000",
+  apiKey: process.env.AGENTVIEW_API_KEY,
+});
+
+// Create a new session
+const session = await av.createSession({ agent: "simple_agent" })
+
+// Create a complete run with input, output and reasoning step
+await av.createRun({
+    items: [
+        { type: "message", role: "user", content: "Hello, I'm Bob" },
+        { type: "reasoning", content: "Hmm, this is a very complex question..." },
+        { type: "message", role: "assistant", content: "Hey, nice to meet you :)" }
+    ],
+    sessionId: session.id
+    status: "complete",
+})
+
+const updatedSession = await av.getSession({ id: session.id })
+
+console.log(updatedSession.runs[0].items)
+```
+
+If you run this script in a terminal you should see following output object printed:
+
+```bash
+[
+    { type: "message", role: "user", content: "Hello, I'm Bob" },
+    { type: "reasoning", content: "Hmm, this is a very complex question..." },
+    { type: "message", role: "assistant", content: "Hey, nice to meet you :)" }
+]
+```
+
+You can also open the Studio to see a new unstyled Session in your Personal Playground.
+
+
+## Data Model
+
+Here's a brief overview of the data model:
+- **Agent** is a configuration object, think of it as a class.
+- **Session** represents a multi-turn conversation with an agent, it's an instance of Agent.
+- **Run** is a single turn of the conversation. It is composed of a list of arbitrary JSON objects called **Items**.
+- The first Item in a Run is considered to be the "input" item. It's usually the user message.
+- The last Item in a successful Run is considered to be the "output" item. It's usually the assistant message.
+- Items between input and output are called "steps". They can be tool calls, server tools, reasoning blocks, hand-offs to other agents, etc.
+- Session might have multiple Run types, each with different input, output and step item schemas.
+
+
+## Session
+
+Session represents a multi-turn conversation with the agent.
+
+### Create a session
+
+```typescript
+const session = await av.createSession({ agent: "agent_name" })
+```
+
+### Read session
+
+```typescript
+const session = await av.getSession({ 
+    id: "session_id"
+})
+
+console.log(session.items) // all session items
+console.log(session.state) // session state
+console.log(session.lastRun) // last run
+console.log(session.lastRun.status) // last run status
+console.log(session.runs) // all runs
+```
+
+### Session Items
+
+The core part of each session state is an ordered list of Session Items, or just Items. Items can be added via [Runs](#) (we explain Runs later in this chapter).
+
+```ts
+await av.createRun({
+    items: [
+        { type: "message", role: "user", content: "Hello, I'm Bob" },
+        { type: "reasoning", content: "Hmm, this is a very complex question..." },
+        { type: "message", role: "assistant", content: "Hey, nice to meet you :)" }
+    ],
+    sessionId: session.id
+    status: "complete",
+})
+```
+
+Item is a totally arbitrary object that represents that something happened in the history of our session and it needs to be stored for consistent continuation:
+- user or assistant messages
+- reasoning blocks
+- tools (function calls, MCP, server tools)
+- handoffs to other agents in multi-agent systems
+- any custom block
+
+Items are **incremental**. It means that each time you update run with `items` they'll be **appended** at to the list. Removing items is not possible.
+
+Each Item is displayed as a separate block in Studio, can have its own custom component, can be commentable, can have its custom scores, feedback etc.
+
+It's worth highlighting that Item in AgentView is just a JSON, it can be *anything*. AgentView goal is to be as unopinionated as possible and therefore doesn't force you into any pre-defined message formats. This allows to make it really framework-agnostic. For example, it's trivial to just send items from AgentsSDK, Responses API, AI SDK, LangChain, without any trouble.
+
+#### Squashing items into array
+
+The array representation is simple and powerful. It's how OpenAI models the conversation history in Responses API or Agents SDK and we believe it's the best way to represent the conversation history.
+
+However, some frameworks like LangChain or AI SDK from Vercel represent history as a list of messages, where message has parts.
+
+(TO-DO!!!)
+
+### Session `state`
+
+Sometimes it's hard to represent a session state just with array of Items. For example, durign the course of the session you might create session memories, or additional artifacts needed for thread summarisation (to prevent context overflow). You might want to store them between runs, but, it's unnatural to keep them as Items.
+
+For that purpose AgentView introduced the concept of the state. State is totally arbitrary object bounded to a session available via `session.state`.
+
+```ts
+await av.createRun({
+    items: [
+        { type: "message", role: "user", content: "Hello, I'm Bob. I have terrible acne, help me." },
+        { type: "reasoning", content: "Thinking on the response..." },
+        { type: "message", role: "assistant", content: "Use our Anti-Acne Super Cream, it will heal you." }
+    ],
+    state: {
+        userName: "Bob",
+        skincareProfile: "has terrible acne"
+    }
+    sessionId: session.id
+    status: "complete"
+})
+
+const session = await av.getSession({ id })
+console.log(session.state) // { userName: "Bob", skincareProfile: "..." }
+```
+
+You always get access to the *last* instance of the state. However, AgentView tracks the full history of the state changes so that you can copy the session up to a particular moment in time and continue it with different scenario.
+
+### Session Metadata
+
+Sessions can have custom metadata. AgentView aims to be as flexible as possible, that's why every object can be extended custom metadata.
+
+Imagine you're building a shopping assistant which can run on the product page of e-commerce website. In that case each session must have `product_id` assigned.
+
+Let's update our agent config:
+
+```typescript
+export default defineConfig({
+    // ...
+    agents: [
+        {
+            name: "very_simple_agent",
+            metadata: {
+                product_id: z.string()
+            }
+        }
+    ]
+});
+```
+
+`metadata` is an object with so called "metafields". Each metafield has a key (name) and it's Zod schema.
+
+Now when we create a new session we **must** provide `product_id` (since it's not `.optional()`):
+
+```ts
+const session = await av.createSession({ 
+    metadata: { 
+        product_id: "beautiful_pants_123",
+    }
+})
+```
+
+If we tried to call `createSession` without providing `product_id` the `createSession` function would throw an error.
+
+By default, if metafield is **not** defined in metadata, it's allowed to add it (no validation). If you want to override it:
+
+```typescript
+export default defineConfig({
+    // ...
+    agents: [
+        {
+            name: "very_simple_agent",
+            metadata: {
+                product_id: z.string(),
+            },
+            allowUnknownMetadata: false
+        }
+    ]
+});
+```
+
+## Runs
+
+You add items to a session via runs. Run is a special object helping in managing lifecycle of the session.
+
+Run represents a single turn of the conversation. It starts with a user action, usually just a user message, an input item. Then the any number of items might be produced, and in the end the output item must be added, which ends the run. Run in more complex systems will usually consist of multiple calls to the LLMs, tool calls, etc.
+
+Here's how to create a run with a user message input message.
+
+```ts
+const run = await av.createRun({
+    items: [
+        { type: "message", role: "user", content: "Hello, I'm Bob" }
+    ],
+    sessionId: session.id
+})
+
+console.log(run.status) // in_progress
+```
+
+### Run status
+
+The run `status` can be `in_progress`, `complete` or `failed`. After the run is created it automatically has `in_progress` value. When the run is `in_progress`, the session won't accept any new runs. Below, the second `av.createRun` will result in an exception:
+
+```ts
+await av.createRun({
+    items: [
+        { type: "message", role: "user", content: "Hello, I'm Bob" }
+    ],
+    sessionId: session.id
+})
+
+await av.createRun({
+    items: [
+        { type: "message", role: "user", content: "Hello, I'm Bob" }
+    ],
+    sessionId: session.id
+}) // throws AgentViewError, you can have only one in_progress run at a time!
+```
+
+### Adding items
+
+You can call `av.updateRun` as many times as you want to keep adding items.
+
+```ts
+await av.updateRun({
+    id: run.id,
+    items: [
+        { type: "reasoning", content: "Thinking..." },
+        { type: "reasoning", content: "Thinking even harder..." }
+    ]
+})
+```
+
+ We highly recommend using streaming and sending data to AgentView as soon as they appear. It allows for better retry / resume logic later. 
+
+ ### Ending Run
+
+ If the run finished successfully, just set the status to `complete`:
+
+```ts
+await av.updateRun({
+    id: run.id,
+    items: [
+        { type: "message", role: "assistant", content: "Hey, nice to meet you :)" }
+    ],
+    status: "complete"
+})
+```
+
+It's possible that you agent might encounter an error during a run. You can set mark a run as failed easily:
+
+```ts
+const run = await av.updateRun({ 
+    id: run.id,
+    status: "failed",
+    failReason: {
+        message: "LLM model error.",
+        details: ...
+    }
+})
+```
+
+When the run is finished (`failed` or `complete`), you can't change its status nor add items anymore. 
+
+### Retrying failed sessions
+
+If the last session run was failed, you can still create a new run. If you do it, the last failed run items will be removed from the history and the items from your new run will be appended to the last successful run (the one before the failed one):
+
+Retry logic with keeping only the user message:
+
+```ts
+if (session.lastRun === "failed") { // retry logic
+    await av.createRun({
+        items: [session.lastRun.items[0]],
+        sessionId
+    })
+}
+```
+
+Resume (all the items from previous failed run preserved):
+
+```ts
+if (session.lastRun === "failed") { // retry logic
+    await av.createRun({
+        items: session.lastRun.items,
+        sessionId
+    })
+}
+```
+
+### Removing items
+
+You can't remove items from the session. The core foundation behind AgentView is that whenever you send an item to a client (or agentview), the end user saw it. If end user saw it, then anyone using AgentView Studio should also be able to see it, exactly as user did. 
+
+### Run metadata
+
+Similary to sessions, runs can be extended with custom metadata. It's helpful when you want to store usage data, trace id for observability platform link, etc.
+
+```ts
+const run = await av.updateRun({ 
+    id: "RUN_ID",
+    metadata: {
+        trace_id: "TRACE_ID", // for example Langfuse trace id
+        cost: "0.15"
+    }
+})
+```
+
+Similar to sessions, by default unknown keys are allowed. You can change this behaviour by provide schema and settings `allowUnk
+
+```typescript
+export default defineConfig({
+    // ...
+    agents: [
+        {
+            name: "very_simple_agent",
+            runs: [
+                {
+                    metadata: {
+                        trace_id: z.string()
+                    },
+                    allowUnknownMetadata: false,
+                    // ...
+                }
+            ]
+        }
+    ]
+});
+```
+
+### Long running jobs
+
+The run will automatically be set as failed after 1 minute of inactivity. If your agent is long running you can send heartbeat to tell AgentView Server that the run is still processing:
+
+```ts
+await av.ping({ runId: "RUN_ID" })
+```
