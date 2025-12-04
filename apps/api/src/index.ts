@@ -1636,6 +1636,7 @@ const runsPOSTRoute = createRoute({
   },
 })
 
+const EXPIRATION_TIME = 1000 * 10; // 60 seconds
 
 app.openapi(runsPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
@@ -1700,8 +1701,9 @@ app.openapi(runsPOSTRoute, async (c) => {
     throw new AgentViewError("failReason can only be set when status is 'failed'.", 422);
   }
 
-  const finishedAt = (status === 'completed' || status === 'cancelled' || status === 'failed') ? new Date().toISOString() : null;
-
+  const isFinished = status === 'completed' || status === 'cancelled' || status === 'failed';
+  const finishedAt = isFinished ? new Date().toISOString() : null;
+  const expiresAt = isFinished ? null : new Date(Date.now() + EXPIRATION_TIME).toISOString();
 
   // Create run and items
   await db.transaction(async (tx) => {
@@ -1719,6 +1721,7 @@ app.openapi(runsPOSTRoute, async (c) => {
       sessionId: body.sessionId,
       status,
       failReason,
+      expiresAt,
       finishedAt,
       versionId: versionRow.id,
       metadata,
@@ -1822,7 +1825,9 @@ app.openapi(runPATCHRoute, async (c) => {
     }
   }
 
-  const finishedAt = run.finishedAt ?? ((status === 'completed' || status === 'failed' || status === 'cancelled') ? new Date().toISOString() : null);
+  const isFinished = status === 'completed' || status === 'failed' || status === 'cancelled';
+  const finishedAt = run.finishedAt ?? (isFinished ? new Date().toISOString() : null);
+  const expiresAt = isFinished ? null : new Date(Date.now() + EXPIRATION_TIME).toISOString();
 
   await db.transaction(async (tx) => {
     if (parsedItems.length > 0) {
@@ -1840,6 +1845,7 @@ app.openapi(runPATCHRoute, async (c) => {
       metadata,
       failReason,
       finishedAt,
+      expiresAt
     }).where(eq(runs.id, run.id));
 
     if (body.state !== undefined) {

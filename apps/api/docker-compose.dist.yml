@@ -32,5 +32,21 @@ services:
 
     restart: unless-stopped
 
+  worker:
+    image: ${AGENTVIEW_API_IMAGE}
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-db:5432/${POSTGRES_DB}
+      AGENTVIEW_STUDIO_URL: ${AGENTVIEW_STUDIO_URL}
+    ports:
+      - "1990:80"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    restart: unless-stopped
+    command: ["sh", "-c", "npm run start:worker"]
+
 volumes:
   pgdata:

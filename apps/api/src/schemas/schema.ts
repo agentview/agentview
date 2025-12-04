@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, varchar, jsonb, boolean, uniqueIndex, integer, bigserial, bigint, serial, unique, smallint } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, varchar, jsonb, boolean, uniqueIndex, integer, bigserial, bigint, serial, unique, smallint, index } from "drizzle-orm/pg-core";
 import { users, accounts, verifications, authSessions, apikeys } from "./auth-schema";
 import { relations, sql } from "drizzle-orm";
 
@@ -68,6 +68,7 @@ export const sessions = pgTable("sessions", {
 export const runs = pgTable("runs", {
   id: uuid("id").primaryKey().defaultRandom(),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
   finishedAt: timestamp("finished_at", { withTimezone: true, mode: "string" }),
   sessionId: uuid("session_id").notNull().references(() => sessions.id, { onDelete: 'cascade' }),
   versionId: uuid("version_id").references(() => versions.id), // version is nullable because when run is created, version is not yet created yet (no `run` was made)
@@ -75,7 +76,9 @@ export const runs = pgTable("runs", {
   failReason: jsonb("fail_reason"),
   responseData: jsonb("response_data"),
   metadata: jsonb("metadata")
-});
+}, (table) => [
+  index('runs_expires_at_status_idx').on(table.expiresAt, table.status)
+]);
 
 export const sessionItems = pgTable("session_items", {
   id: uuid("id").primaryKey().defaultRandom(),

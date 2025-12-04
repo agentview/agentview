@@ -47,4 +47,4 @@ USER nodeuser
 # EXPOSE 80
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
-CMD ["sh", "-c", "npm run start"]
+CMD ["sh", "-c", "npm run start:api"]

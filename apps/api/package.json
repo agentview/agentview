@@ -3,8 +3,11 @@
   "version": "0.0.4-beta.14",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
+    "dev:api": "tsx watch src/index.ts",
+    "dev:worker": "tsx watch src/worker.ts",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:worker\"",
+    "start:api": "tsx src/index.ts",
+    "start:worker": "tsx src/worker.ts",
     "build": "tsc --noEmit && tsc",
     "clear-db": "tsx scripts/clear-db.ts",
     "test-db": "tsx scripts/test-db.ts",
@@ -31,6 +34,7 @@
   "devDependencies": {
     "@types/node": "^20.11.17",
     "@vitest/coverage-v8": "^4.0.7",
+    "concurrently": "^9.2.1",
     "typescript": "^5.8.3",
     "vitest": "^4.0.7"
   }

@@ -40,6 +40,9 @@ app.post('/simple_chat', async (c) => {
     version: "0.0.1"
   });
 
+  console.log('waiting for 60 seconds');
+  await new Promise(resolve => setTimeout(resolve, 60000));
+
   let response : Awaited<ReturnType<typeof client.responses.create>>;
 
   try {
