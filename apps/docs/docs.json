@@ -25,7 +25,7 @@
             ]
           },
           {
-            "group": "SDK",
+            "group": "Core concepts",
             "pages": [
               "concepts/architecture-overview",
               "concepts/agents-and-sessions",
