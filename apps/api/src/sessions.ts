@@ -43,7 +43,7 @@ export async function fetchSession(session_id: string, tx?: Transaction): Promis
         orderBy: (run, { asc }) => [asc(run.createdAt)],
         with: {
           version: true,
-          items: {
+          sessionItems: {
             orderBy: (sessionItem, { asc }) => [asc(sessionItem.sortOrder)],
             where: (sessionItem, { eq }) => eq(sessionItem.isState, false),
             with: {
