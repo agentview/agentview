@@ -1636,7 +1636,7 @@ const runsPOSTRoute = createRoute({
   },
 })
 
-const EXPIRATION_TIME = 1000 * 10; // 60 seconds
+const EXPIRATION_TIME = 1000 * 60; // 60 seconds
 
 app.openapi(runsPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
@@ -1864,6 +1864,41 @@ app.openapi(runPATCHRoute, async (c) => {
   return c.json(newRun, 201);
 })
 
+const runKeepAliveRoute = createRoute({
+  method: 'post',
+  path: '/api/runs/{run_id}/keep-alive',
+  responses: {
+    200: response_data(z.object({ expiresAt: z.string().nullable() })),
+    400: response_error(),
+    404: response_error()
+  },
+})
+
+app.openapi(runKeepAliveRoute, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+
+  const { run_id } = c.req.param()
+  requireUUID(run_id);
+
+  const run = await requireRun(run_id);
+  const session = await requireSession(run.sessionId);
+
+  authorize(principal, { action: "end-user:update", endUser: session.endUser });
+
+  const status = run.status;
+  const isFinished = status === 'completed' || status === 'failed' || status === 'cancelled';
+  const expiresAt = isFinished ? null : new Date(Date.now() + EXPIRATION_TIME).toISOString();
+
+  await db.update(runs).set({
+    status,
+    expiresAt
+  }).where(eq(runs.id, run.id));
+  
+  return c.json({
+    expiresAt
+  }, 200);
+})
+
 const runWatchRoute = createRoute({
   method: 'get',
   path: '/api/runs/{run_id}/watch',
@@ -1885,12 +1920,6 @@ const runWatchRoute = createRoute({
     404: response_error()
   },
 })
-
-
-
-
-
-
 
 
 app.openapi(runWatchRoute, async (c) => {
