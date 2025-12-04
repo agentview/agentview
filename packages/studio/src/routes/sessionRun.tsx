@@ -37,7 +37,7 @@ function Component() {
 
     const agentConfig = requireAgentConfig(config, session.agent);
 
-    const runConfig = requireRunConfig(agentConfig, run.items[0].content);
+    const runConfig = requireRunConfig(agentConfig, run.sessionItems[0].content);
     // const result = findItemAndRunConfig(agentConfig, session, run.items[0].id, "input");
     // if (!result) {
     //     throw data({ message: "Run config not found" }, { status: 404 });

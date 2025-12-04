@@ -113,7 +113,7 @@ export const RunSchema = z.object({
     failReason: z.any().nullable(),
     version: VersionSchema.nullable(),
     metadata: z.record(z.string(), z.any()).nullable(),
-    items: z.array(SessionItemSchema),
+    sessionItems: z.array(SessionItemSchema),
 
     sessionId: z.string(), // potential bloat
     versionId: z.string().nullable(), // potential bloat
@@ -144,7 +144,7 @@ export type RunUpdate = z.infer<typeof RunUpdateSchema>
 export type Run = z.infer<typeof RunSchema>
 
 export const RunWithCollaborationSchema = RunSchema.extend({
-    items: z.array(SessionItemWithCollaborationSchema),
+    sessionItems: z.array(SessionItemWithCollaborationSchema),
 })
 
 export type RunWithCollaboration = z.infer<typeof RunWithCollaborationSchema>

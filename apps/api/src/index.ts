@@ -358,7 +358,7 @@ async function requireRun(runId: string) {
   const run = await db.query.runs.findFirst({
     where: eq(runs.id, runId),
     with: {
-      items: true,
+      sessionItems: true,
     },
   });
   if (!run) {
@@ -1168,7 +1168,7 @@ app.openapi(publicSessionGETRoute, async (c) => {
     ...session,
     runs: session.runs.map((run) => ({
       ...run,
-      items: run.items.map(({ commentMessages, scores, ...item }) => ({
+      items: run.sessionItems.map(({ commentMessages, scores, ...item }) => ({
         ...item
       })),
     }))
@@ -1307,10 +1307,10 @@ async function* watchSession(initSession: Session) {
       else {
         const changedFields: Partial<typeof lastRun> = {};
 
-        const newItems = lastRun.items.filter(i => !prevLastRun?.items.find(i2 => i2.id === i.id))
+        const newItems = lastRun.sessionItems.filter(i => !prevLastRun?.sessionItems.find(i2 => i2.id === i.id))
 
         if (newItems.length > 0) {
-          changedFields.items = newItems;
+          changedFields.sessionItems = newItems;
         }
 
         const runFieldsToCompare = ['id', 'status', 'finishedAt', 'failReason', 'metadata'] as const;
@@ -1785,19 +1785,17 @@ app.openapi(runPATCHRoute, async (c) => {
   const agentConfig = requireAgentConfig(config, session.agent)
 
   /** Find matching run **/
-  const inputItem = run.items[0].content;
+  const inputItem = run.sessionItems[0].content;
   const runConfig = requireRunConfig(agentConfig, inputItem);
 
   /** Validate items */
   const items = body.items ?? [];
 
-  console.log('items', items);
-
   if (items.length > 0 && run.status !== 'in_progress') {
     throw new AgentViewError("Cannot add items to a finished run.", 422);
   }
 
-  const parsedItems = validateNonInputItems(runConfig, run.items.map(item => item.content), items, body.status ?? 'in_progress');
+  const parsedItems = validateNonInputItems(runConfig, run.sessionItems.map(sessionItem => sessionItem.content), items, body.status ?? 'in_progress');
 
   /** State */
   if (body.state !== undefined && run.status !== 'in_progress') {
@@ -1933,8 +1931,8 @@ app.openapi(runWatchRoute, async (c) => {
       }
 
       // check for new items
-      const items = lastRun.items
-      const freshItems = items.filter(i => !previousRun.items.find(i2 => i2.id === i.id))
+      const items = lastRun.sessionItems
+      const freshItems = items.filter(i => !previousRun.sessionItems.find(i2 => i2.id === i.id))
 
       for (const item of freshItems) {
         await stream.writeSSE({
@@ -1945,7 +1943,7 @@ app.openapi(runWatchRoute, async (c) => {
 
       previousRun = {
         ...previousRun,
-        items: [...previousRun.items, ...freshItems],
+        sessionItems: [...previousRun.sessionItems, ...freshItems],
       }
 
       // check for state change
@@ -2264,8 +2262,8 @@ app.openapi(scoresPATCHRoute, async (c) => {
   const run = session.runs.find(r => r.id === item.runId)!
 
   const agentConfig = requireAgentConfig(config, session.agent);
-  const runConfig = requireRunConfig(agentConfig, run.items[0].content);
-  const itemConfig = requireItemConfig(runConfig, run.items, item.id).itemConfig;
+  const runConfig = requireRunConfig(agentConfig, run.sessionItems[0].content);
+  const itemConfig = requireItemConfig(runConfig, run.sessionItems, item.id).itemConfig;
 
   await db.transaction(async (tx) => {
     for (const score of inputScores) {

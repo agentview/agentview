@@ -243,7 +243,7 @@ export const runRelations = relations(runs, ({ one, many }) => ({
     fields: [runs.versionId],
     references: [versions.id],
   }),
-  items: many(sessionItems),
+  sessionItems: many(sessionItems),
 }));
 
 export const sessionItemsRelations = relations(sessionItems, ({ one, many }) => ({

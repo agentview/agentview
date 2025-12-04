@@ -3,8 +3,6 @@ title: "Quick Start"
 description: "Start building with AgentView in minutes"
 ---
 
-This guide will walk through setting up your first agent with AgentView. Along the way, you'll learn more about the concepts that are fundamental to using the SDK in your own projects.
-
 ### Create a project
 
 Start by creating AgentView project:
@@ -20,7 +18,7 @@ cd my-agentview-project
 ```
 
 The root directory of the project has a following structure:
-1. `studio/` - data viewer React app
+1. `studio/` - Studio React app
 2. `agent-python/` - demo Agent Endpoint written in Python + FastAPI
 3. `agent-typescript/` - demo Agent Endpoint written in TS + Hono
 4. `docker-compose.yml` - since there's no cloud yet, you'll need to set up AgentView Server via docker-compose.
@@ -115,18 +113,23 @@ export default defineConfig({
   ]
 ```
 
-In this file we defined a simple agent called `simple_chat`. It has one run type with input, output and reasoning step determined by Zod schemas.
+In this file we defined an agent called `simple_chat` with a single run type:
+- Each run in AgentView is just an array of JSON objects.
+- Each run starts with an input item (`input`), which is usually a user message.
+- Then goes any number of items in between input and output are called `steps`, in this example there's only one type of step - reasoning, but it could be tool calls, server tools, handoffs to other agents in multi-agent systems, etc.
+- The last item of the run is the output item (`output`), which is usually an assistant message.
+
+Each item comes with a schema defined with Zod, used for validation and data integrity. The schemas in this example are compatible with OpenAI Responses API item schemas.
 
 `apiBaseUrl` is the location of AgentView Server.
 
-`inputComponent` and `displayComponent` define how the input and output will be displayed in the Studio, we'll cover them later.
-
+`inputComponent` and `displayComponent` define how the input and output will be displayed in the Studio, we'll cover them later in this section.
 
 ### Your Agent Endpoint
 
 When you build an AI agent you have to create a HTTP endpoint that takes user message and generates AI responses. We call this endpoint "Agent Endpoint".
 
-With AgentView you can write your Agent Endpoint in any language or framework you want. AgentView helps you with storing and retrieving sessions and runs, error handling, versioning and managing session lifecycle.
+With AgentView you can write your Agent Endpoint in any language or framework you want.
 
 The example Agent Endpoint in Typescript is in `agent-typescript`. Let's run it:
 
@@ -150,6 +153,7 @@ import { cors } from 'hono/cors';
 
 const app = new Hono();
 const client = new OpenAI()
+
 const av = new AgentView({
   apiUrl: 'http://localhost:1990',
   apiKey: process.env.AGENTVIEW_API_KEY!
@@ -160,25 +164,22 @@ app.use('*', cors({
   credentials: true,
 }))
 
-// beautiful error handling
-app.onError((error, c) => {
-  if (error instanceof AgentViewError) {
-    return c.json({ ...error.details, message: error.message }, error.statusCode as any);
-  }
-  throw error;
-});
-
 app.post('/simple_chat', async (c) => {
   const { id, token, input } = await c.req.json();
 
+  // Create a new user or authenticate if token exists.
   const endUser = token ? 
     await av.getEndUser({ token }) : 
     await av.createEndUser();
 
+  // Create new session or fetch existing one and authorize user's access to the session.
   const session = id ?
     await av.as(endUser).getSession({ id }) : 
     await av.as(endUser).createSession({ agent: "simple_chat" });
 
+  // Create a new run
+  // 1. session is now locked - no more runs can be started until this one finishes.
+  // 2. will error if session version is semver-incompatible.
   const run = await av.createRun({ 
     sessionId: session.id, 
     items: [input], 
@@ -188,17 +189,20 @@ app.post('/simple_chat', async (c) => {
   let response : Awaited<ReturnType<typeof client.responses.create>>;
 
   try {
-    // Your stateless AI agent logic goes here
+    // Here you write your stateless AI agent logic.
     response = await client.responses.create({
       model: "gpt-5-nano",
       reasoning: {
         effort: "low",
         summary: "detailed"
       },
-      input: [...session.history, input]
+      // session.items has all the previous items from the session
+      input: [...session.items, input]
     });
 
   } catch (error) {
+
+    // Mark run as failed and save error message
     await av.updateRun({
       id: run.id,
       status: "failed",
@@ -210,11 +214,13 @@ app.post('/simple_chat', async (c) => {
     throw error;
   }
 
+  // Mark run as completed and save output items
   await av.updateRun({
     id: run.id,
     status: "completed",
     items: response.output
   });
+
 
   return c.json({
     id: session.id,
@@ -222,6 +228,14 @@ app.post('/simple_chat', async (c) => {
     token: endUser.token,
   })
 })
+
+// Errors from AgentView SDK are ready to be returned via HTTP with correct status code and body.
+app.onError((error, c) => {
+  if (error instanceof AgentViewError) {
+    return c.json({ ...error.details, message: error.message }, error.statusCode as any);
+  }
+  throw error;
+});
 
 serve({
   fetch: app.fetch,
@@ -231,46 +245,11 @@ serve({
 })
 ```
 
-It's a simple Hono HTTP server with a single endpoint `POST /simple_chat`. 
+As you can see it's a simple Hono HTTP server exposing a single stateful AI endpoint `POST /simple_chat`:
+1. The AI logic is made with Responses API.
+2. AgentView SDK handles sessions, session state, users, authorization, persistence, errors, etc. 
 
-In this example your AI logic is a simple call to OpenAI Responses API:
-
-```typescript    
-    response = await client.responses.create({
-      model: "gpt-5-nano",
-      reasoning: {
-        effort: "low",
-        summary: "detailed"
-      },
-      input: [...session.history, input]
-    });
-```
-
-In practice it could be any framework or your choice, AgentView stays completely agnostic in this regard.
-
-AgentView handles everything **around** your AI logic:
-- authenticates and creates end users
-- fetches existing session or creates a new one, authorizes user's access to the session
-- creates a run, which locks the session for the duration of the run (new calls for this session while run is in progress will fail)
-- `session.history` provides the conversation history required by the AI logic
-- validates whether the run version is compatible with the initial session version
-- stores the response items in the session history, or error message for failed runs
-- validates all the items against the schemas from the agent config
-
-All errors from AgentView SDK come with status code and body, so that you can easily redirect it directly to the user as HTTP response:
-
-```typescript
-app.onError((error, c) => {
-  if (error instanceof AgentViewError) {
-    return c.json({ ...error.details, message: error.message }, error.statusCode as any);
-  }
-  throw error;
-});
-```
-
-The goal is so that you focus on AI logic and not on the scaffolding.
-
-### Test your agent
+#### Test your agent
 
 Call your Agent Endpoint to initiate a new conversation:
 
@@ -288,7 +267,7 @@ You should get a response in a following JSON format:
 }
 ```
 
-Let's continue the thread by sending new message
+Let's continue the thread by sending new message (insert `SESSION_ID` and `USER_TOKEN` from the previous response):
 
 ```bash
 curl -X POST --json '{
@@ -300,37 +279,23 @@ curl -X POST --json '{
 
 You should get a response which shows that the agent remembers your name. AgentView correctly stores the conversation history and remembers the context of the conversation.
 
-### Errors
-
 Let's send an incorrect input:
 
 ```bash
 curl -i -X POST --json '{ "input": { "type": "message", "role": "user", "content": 100 } }' http://localhost:3000/simple_chat
 ```
 
-This triggers `422` error, as the input is not a string. Let's send a correct input, but with incorrect token:
-
-```bash
-curl -i -X POST --json '{
-    "id": "SESSION_ID",
-    "input": {"type": "message", "role": "user", "content": "Hello, what was my name again?"},
-    "token": "surely_incorrect_token"
-  }' http://localhost:3000/simple_chat
-```
-
-You should get `404` - user not found.
+This triggers `422` error, as the input is not a string. AgentView handles the validation and provides a correct HTTP status code.
 
 ## Studio
 
-`curl` is great, but it's not the most user-friendly way to test an agent, especially for non-technical users. That's why we've built the Studio.
+Open `http://localhost:1989` in the browser to open the Studio. Go to `Playground > Private`. At the top you should see the sessions we just created via curl.
 
-Open `http://localhost:1989` in the browser. Go to `Playground > Private`. At the top you should see the sessions we just created via curl.
+You can already comment on the output, mention other team members, like/dislike the response, etc.
 
 ### Custom components
 
-Studio allows you to provide your own components for any part of the experience. 
-
-Below is `agentview.config.tsx` with custom components for our `simple_chat` highlighted:
+Let's get back to `agentview.config.tsx` and highlight `displayComponent` and `inputComponent` for our `simple_chat` agent:
 
 ```typescript highlight={14,25,37,41-45}
 export default defineConfig({
@@ -379,7 +344,6 @@ export default defineConfig({
         isRunning={isRunning}
       />
     },
-    // other agents...
   ]
 ```
 
@@ -387,18 +351,12 @@ export default defineConfig({
 
 `inputComponent` is responsible for rendering the input field. It allows users in the Studio to send messages to the agent to play around. `inputComponent` is displayed only for your own Playground Sessions. Production sessions or Playground Sessions created by other users will not have the input field. You can create a new Playground Session by clicking on "Create Session" at the top of the sidebar.
 
-### Collaboration
+The goal of the AgentView is to make the Studio as customizable as possible. There's much more possible:
+- custom domain-specific scoring components
+- add custom display properties in the header for sessions and runs
+- custom pages
+- custom session cards
 
-One of the key features of AgentView is collaboration. It should be easy to discuss Agent outputs, mention stakeholders, domain experts etc. You get powerful collaboration features out of the box:
-
-[video]
-
-
-### Custom Scores
-
-You might have noticed that each message can have Like / Don't Like button. This is a built in score added to every output object. Collecting feedback from users is very important and giving feedback should be as easy as possible to urge domain experts / business stakeholders to leave it.
-
-[ quick score example with multi-select! ]
 
 ## Next steps
 

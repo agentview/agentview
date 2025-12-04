@@ -153,7 +153,7 @@ function SessionPage() {
                         else if (event.event === 'run.updated') {
                             return {
                                 ...prevSession,
-                                runs: prevSession.runs.map(run => run.id === event.data.id ? { ...run, ...event.data, items: [...run.items, ...event.data.items ?? []] } : run)
+                                runs: prevSession.runs.map(run => run.id === event.data.id ? { ...run, ...event.data, items: [...run.sessionItems, ...event.data.items ?? []] } : run)
                             }
                         }
                         else {
@@ -258,8 +258,8 @@ function SessionPage() {
 
                 <div ref={bodyRef}>
                     <ItemsWithCommentsLayout items={getActiveRuns(session).map((run) => {
-                        return run.items.map((item, index) => {
-                            const isLastRunItem = index === run.items.length - 1;
+                        return run.sessionItems.map((item, index) => {
+                            const isLastRunItem = index === run.sessionItems.length - 1;
                             const isInputItem = index === 0;
 
                             const hasComments = item.commentMessages.filter((m: any) => !m.deletedAt).length > 0
@@ -267,8 +267,8 @@ function SessionPage() {
 
                             let content: React.ReactNode = null;
 
-                            const runConfigMatches = findMatchingRunConfigs(agentConfig, run.items[0].content);
-                            const itemConfigMatch = runConfigMatches.length === 1 ? findItemConfigById(runConfigMatches[0], run.items, item.id) : undefined;
+                            const runConfigMatches = findMatchingRunConfigs(agentConfig, run.sessionItems[0].content);
+                            const itemConfigMatch = runConfigMatches.length === 1 ? findItemConfigById(runConfigMatches[0], run.sessionItems, item.id) : undefined;
 
                             if (itemConfigMatch?.itemConfig?.displayComponent === null) {
                                 return null;

@@ -1,110 +1,99 @@
 import 'dotenv/config'
-import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
-import { tool, Agent, run } from '@openai/agents';
-import { z } from 'zod';
+import { serve } from '@hono/node-server'
+import { AgentView, AgentViewError } from "agentview";
 import { OpenAI } from 'openai';
-import { parseBody } from "agentview";
+import { cors } from 'hono/cors';
 
 const app = new Hono();
+const client = new OpenAI()
 
-const manifest = {
-  version: "0.0.1",
-  env: "dev"
-}
-
-app.post('/agentview/chat', async (c) => {
-  const { sessionId, input, token } = await c.req.json();
-
-  const history = sessionId ? await fetchSession(sessionId, token).history : [];
-
-  const client = new OpenAI()
-  const response = await client.responses.create({
-    model: "gpt-5-nano",
-    input: [...history, input]
-  });
-
-  await pushItems({ output: response.output })
-
-  return c.json({ 
-    manifest,
-    items: response.output
-  })
+const av = new AgentView({
+  apiUrl: 'http://localhost:1990',
+  apiKey: process.env.AGENTVIEW_API_KEY!
 })
 
+app.use('*', cors({
+  origin: ['http://localhost:1989'],
+  credentials: true,
+}))
 
+app.post('/simple_chat', async (c) => {
+  const { id, token, input } = await c.req.json();
 
+  // Create a new user or authenticate if token exists.
+  const endUser = token ? 
+    await av.getEndUser({ token }) : 
+    await av.createEndUser();
 
+  // Create new session or fetch existing one and authorize user's access to the session.
+  const session = id ?
+    await av.as(endUser).getSession({ id }) : 
+    await av.as(endUser).createSession({ agent: "simple_chat" });
 
-
-app.post('/agentview/simple_chat/run', async (c) => {
-  const { items, input } = parseBody(await c.req.json());
-
-  const client = new OpenAI()
-  const response = await client.responses.create({
-    model: "gpt-5-nano",
-    input: [...items, input]
+  // Create a new run
+  // 1. session is now locked - no more runs can be started until this one finishes.
+  // 2. will error if session version is semver-incompatible.
+  const run = await av.createRun({ 
+    sessionId: session.id, 
+    items: [input], 
+    version: "0.0.1"
   });
 
-  return c.json({ 
-    manifest,
-    items: response.output
-  })
-})
+  let response : Awaited<ReturnType<typeof client.responses.create>>;
 
-const weatherAgent = new Agent({
-  name: 'Weather Assistant',
-  model: 'gpt-5-mini',
-  modelSettings: {
-    reasoning: { effort: 'medium', summary: 'auto' }
-  },
-  instructions: 'You are a helpful general-purposeassistant. You have super skill of checking the weather for any location.',
-  tools: [
-    tool({
-      name: 'weather_tool',
-      description: 'Get weather information for a location using wttr.in',
-      parameters: z.object({
-        location: z.string().describe('The city name to get weather for'),
-      }),
-      execute: async ({ location }) => {
-        const response = await fetch(`https://wttr.in/${encodeURIComponent(location)}?format=j2`);
-        if (!response.ok) {
-          return { error: 'Failed to fetch weather data' };
-        }
-        return await response.json();
+  try {
+    // Here you write your stateless AI agent logic.
+    response = await client.responses.create({
+      model: "gpt-5-nano",
+      reasoning: {
+        effort: "low",
+        summary: "detailed"
       },
-    })
-  ],
-});
+      // session.items has all the previous items from the session
+      input: [...session.items, input]
+    });
 
-app.post('/agentview/run', async (c) => {
-  const { items, input } = parseBody(await c.req.json());
+  } catch (error) {
 
-  const result = await run(weatherAgent, [...items, input]);
+    // Mark run as failed and save error message
+    await av.updateRun({
+      id: run.id,
+      status: "failed",
+      failReason: {
+        message: (error as Error).message,
+      }
+    });
 
-  return c.json({
-    manifest,
-    items: result.output
-  })
-})
-
-
-app.onError((error, c) => {
-  if (error instanceof Error) {
-    return c.json({ message: error.message }, (error as any).status ?? 500);
+    throw error;
   }
 
-  return c.json({ message: 'Internal server error' }, 500);
-});
+  // Mark run as completed and save output items
+  await av.updateRun({
+    id: run.id,
+    status: "completed",
+    items: response.output
+  });
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
+
+  return c.json({
+    id: session.id,
+    output: response.output,
+    token: endUser.token,
+  })
 })
 
+// Errors from AgentView SDK are ready to be returned via HTTP with correct status code and body.
+app.onError((error, c) => {
+  if (error instanceof AgentViewError) {
+    return c.json({ ...error.details, message: error.message }, error.statusCode as any);
+  }
+  throw error;
+});
 
 serve({
   fetch: app.fetch,
   port: 3000
 }, (info) => {
-  console.log(`Agent App server is running on localhost:${info.port}`)
+  console.log(`Agent API server is running on http://localhost:${info.port}`)
 })

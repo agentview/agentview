@@ -350,30 +350,30 @@ describe('API', () => {
       await updateConfig()
       
       let session = await createSession()
-      expect(session.history).toEqual([])
+      expect(session.items).toEqual([])
       expect(session.lastRun).toBeUndefined()
 
       // First run, check 
       let run1 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
       session = await av.getSession({ id: session.id })
-      expect(session.history).toEqual([baseInput])
+      expect(session.items).toEqual([baseInput])
       expect(session.lastRun?.id).toBe(run1.id)
 
       run1 = await av.updateRun({ id: run1.id, items: [baseOutput], status: "completed" })
       session = await av.getSession({ id: session.id })
-      expect(session.history).toEqual([baseInput, baseOutput])
+      expect(session.items).toEqual([baseInput, baseOutput])
       expect(session.lastRun?.id).toBe(run1.id)
 
       // Second run, failed, but items in the history
       let run2 = await av.createRun({ sessionId: session.id, items: [baseInput, baseStep, baseOutput], status: "failed", version: "1.0.0" })
       session = await av.getSession({ id: session.id })
-      expect(session.history).toEqual([baseInput, baseOutput, baseInput, baseStep, baseOutput])
+      expect(session.items).toEqual([baseInput, baseOutput, baseInput, baseStep, baseOutput])
       expect(session.lastRun?.id).toBe(run2.id)
 
       // Retry, successful
       let run3 = await av.createRun({ sessionId: session.id, items: [baseInput, baseStep, baseOutput], status: "completed", version: "1.0.0" })
       session = await av.getSession({ id: session.id })
-      expect(session.history).toEqual([baseInput, baseOutput, baseInput, baseStep, baseOutput])
+      expect(session.items).toEqual([baseInput, baseOutput, baseInput, baseStep, baseOutput])
       expect(session.lastRun?.id).toBe(run3.id)
     })
 
@@ -817,8 +817,8 @@ describe('API', () => {
                   message: expect.any(String),
                 }))
 
-                const { history, lastRun } = await av.getSession({ id: session.id });
-                expect(deepCompare(history, expected_history)).toBe(true)
+                const { items, lastRun } = await av.getSession({ id: session.id });
+                expect(deepCompare(items, expected_history)).toBe(true)
 
                 if (lastRun) {
                   expect(lastRun.status).toBe("in_progress")
@@ -841,11 +841,11 @@ describe('API', () => {
                   expected_history = [...expected_history, ...iteration];
                 }
 
-                const { lastRun, history } = await av.getSession({ id: session.id });
+                const { lastRun, items } = await av.getSession({ id: session.id });
 
                 // console.log('history', history);
                 // console.log('expected_history', expected_history);
-                expect(deepCompare(history, expected_history)).toBe(true)
+                expect(deepCompare(items, expected_history)).toBe(true)
 
                 expect(lastRun?.status).toBe(expectedStatus)
               }

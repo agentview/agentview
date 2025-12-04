@@ -1,0 +1,136 @@
+---
+title: "Introduction"
+description: "Welcome to the AgentView documentation"
+---
+
+## What is AgentView?
+
+*(TO CLEAN)*
+
+AgentView is a scaffolding for building conversational agents like customer support bots, shopping assistants, and more. It has 2 parts:
+1. Beautiful and extremely customisable Data Viewer with collaboration features.
+2. Backend for session storage, user authentication, versioning, and more.
+
+Most importantly, AgentView is **framework/language-agnostic in terms of AI code**. Most “AI frameworks” force you into their SDK or hosted backend. AgentView flips that model - it **wraps around** your AI, not inside it.
+
+It means you can write AI in Python, TS using any framework of your choice **or** without any framework at all. 
+
+This analogy might but controversial, but it feels like a "CMS", but for agents.
+
+## Example
+
+Imagine you're building a chat agent using OpenAI Responses API. The most trivial version would be a stateless HTTP endpoint that takes user conversation history, user input and generates a response using OpenAI Responses API.
+
+```typescript
+import { Hono } from 'hono'
+import { OpenAI } from 'openai';
+import { AgentView } from "agentview";
+
+const app = new Hono();
+const client = new OpenAI()
+
+app.post('/chat', async (c) => {
+  const { history, input } = await c.req.json();
+
+  let response : Awaited<ReturnType<typeof client.responses.create>>;
+  try {
+    response = await client.responses.create({
+      model: "gpt-5-nano",
+      instructions: "Be a nice agent.",
+      input: [...history, input]
+    });
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+
+  // send response
+  return c.json({
+    output: [...response.output],
+  })
+})
+```
+
+This is a good start but you need much more to go to production:
+1. **Persistence** - the messages must be stored somewhere so that you can retrieve them later
+2. **Stateful API** - you want to send only the new message, not send entire history back and forth
+3. **User management and authentication** - "can this user access this session?"
+4. **Versioning** - what if you released new version of an agent but user has old incompatible history?
+5. **Validation** - you want to validate the input and output of your agent.
+6. **Data Viewer** - you need a place where all the stakeholders can play around with your agent, leave comments and collaborate.
+
+And much more...
+
+AgentView provides all of those things without constraints on how you write your AI logic. Below is an example of how you could extend your code to add all of those things:
+
+<Prompt>
+  - Generate a Typescript code block with code from apps/demo/agent-typescript/src/index.ts
+  - highlight the parts related to AgentView (in Mintlify syntax): AgentView instance creation and calls to AgentView SDK.
+</Prompt>
+
+AgentView builds everything around your AI so you can focus on what matters.
+
+```tsx
+export default defineConfig({
+  agents: [
+    {
+      name: "my_chat",
+      url: "http://localhost:3000/agentview",
+      run: {
+        input: {
+          schema: z.looseObject({
+            type: z.literal("message"),
+            role: z.literal("user"),
+            content: z.string()
+          }),
+          displayComponent: ({ data }) => <UserMessage>{data.content}</UserMessage>
+          inputComponent: (props) => <UserMessagInput {...props} onSubmit={() => ...}/>
+        },
+        steps: [
+          {
+            schema: z.looseObject({
+              type: z.literal("reasoning"),
+              content: z.string()
+            }),
+            displayComponent: ({ data }) => <StepBlock>{data.content}</StepBlock>
+          }
+        ]
+        output: {
+          schema: z.looseObject({
+            type: z.literal("message"),
+            role: z.literal("assistant"),
+            content: z.string(),
+          }),
+          displayComponent: ({ data }) => <AssistantMessage>{data.content}</AssistantMessage>,
+        }
+      }
+    }
+  ]
+})
+```
+
+### 🧩 Studio - a customisable data viewer
+
+A powerful, collaborative interface for developing and debugging agents.
+
+- view and debug conversations
+- create test sessions easily, share with the team if needed
+- comment collaboratively on agent outputs (Notion-style). Mentions, notifications.
+- score outputs with teammates or domain experts
+- manage users, permissions, and teams
+
+AgentView Studio is not a cloud, fixed web app. It's a React package, where you provide your configuration with code. It makes it trivial to provide custom components for session views, custom messages, custom input forms, custom pages, whatever you need. However, it enforces certain design system to keep the Notion-like collaboration features working out-of-the-box.
+
+### 💾 Server - storage & middleware
+
+AgentView’s server takes care of all the glue you shouldn’t have to build yourself:
+
+- conversation storage and retrieval
+- clean, stateful APIs for integration
+- session management, reconnections, and resumable long-running chats
+- (soon) integrations with communication channels (email, Slack, WhatsApp, voice, etc.)
+- (soon) human hand-offs — easily route a conversation to a person when needed
+
+## Test
+
+[View code](https://github.com/easyblockshq/easyblocks/blob/main/.prettierignore)
