@@ -1,0 +1,87 @@
+---
+title: "Architecture overview"
+description: "The bird-eye view."
+---
+
+AgentView consists of two parts: **Server** and **Studio**. All the configuration is managed in code via `agentview.config.tsx` file.
+
+Below is a simplified architecture diagram. Blue parts are done by you, white parts are done by AgentView:
+
+<img src="/images/architecture-diagram.png" alt="AgentView architecture diagram" style={{ maxWidth: "100%", margin: "32px 0" }} />
+
+### Server
+
+**Server** is a backend part. It exposes the REST API called **AgentView API**. All the communication with the outer world goes through it.
+
+Most important features of the API:
+- create & access agent sessions
+- orchestrate session status via runs (sessions can be in progress, completed, cancelled, failed, etc.)
+- resume / retry runs
+- push items to the session (input, output, reasoning, tool calls, etc.)
+- streaming
+- manage users - sessions are always connected with some user
+- manage metadata - sessions, runs and items can have custom metadata
+
+You can access the API directly, however it's recommended to use AgentView SDK: Typescript or Python. (TODO!!!)
+
+There's a subset of AgentView API called **AgentView Public API** (or just **Public API**). It allows for direct access to the session data from the browser. It's limited and secure, AgentView takes care of the authentication and authorization.
+
+For now, Server must be set up locally via `docker-compose.yml`, we'll ship Cloud version soon.
+
+### Studio
+
+The **Studio** is a powerful and collaborative data viewer for your agents.
+
+It's a single page application built in React Router 7 and shipped as an `npm` package. Thanks to this architecture it's trivial to customise any part of the experience simply by providing custom React components in your codebase.
+
+In our [Quickstart](../getting-started/quickstart) example Studio is a simple Vite app run in this way (see `studio/index.tsx`):
+
+```ts
+import "./styles.css";
+import { renderStudio } from "agentview";
+import agentviewConfig from "./agentview.config";
+
+renderStudio(
+    document.getElementById("agentview"), 
+    agentviewConfig
+);
+```
+
+Studio deliberalty doesn't rely on server runtime, it's pure client-side application. Thanks to this it's trivial to build it as a static site and just drop it onto any static hosting.
+
+Here are some most important features of the Studio:
+
+- collaborative - invite users, comment, get notifications on activity
+- extremely customisable - provide custom components to any part of experience. It's shipped as a React package so that it's possible.
+- test environment - users can test agent in AgentView
+- private, shared, production sessions are separated
+- add custom pages, make it a control panel of your agent
+
+### Configuration
+
+All the AgentView configuration is in `agentview.config.tsx` file. This file lives in Studio project and must be provided to Studio in `renderStudio(...)`.
+
+All the agent definition information (mostly schemas) is sent to the AgentView Server. Thanks to this Server can do proper validation and prevent incorrect data getting into your system.
+
+In order to make this connection work you set `server` property in `agentview.config.tsx` file:
+
+```typescript
+export default defineConfig({
+    apiUrl: process.env.AGENTVIEW_API_URL,
+    // ...
+})
+```
+
+Now when you run `npm run dev` in your Studio project, each time `agentview.config.tsx` is changed, it's gonna be synchronised with the Server.
+
+## Your App Architecture
+
+The typical architecture looks like this:
+
+[image: schema]
+
+Your app stays being your app, you can build it in any way you want, in a language or framework of your choice. The only difference is that your AI logic can be stateless and you can send the agent state to AgentView.
+
+The only endpoint you **must** provide is `/chat` endpoint. The purpose of this endpoint is take user input and generate AI responses. For the rest of the things your users can talk to AgentView API directly from the browser (read-only access).
+
+The Data Viewer is a separate app that talks to AgentView API directly. 
