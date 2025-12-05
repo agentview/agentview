@@ -424,7 +424,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
 
 function ShareForm({ session }: { session: Session }) {
     const fetcher = useFetcher();
-    return <fetcher.Form method="put" action={`/end-users/${session.user.id}/share`}>
+    return <fetcher.Form method="put" action={`/users/${session.user.id}/share`}>
         <input type="hidden" name="isShared" value={session.user.isShared ? "false" : "true"} />
         <Button variant={"outline"} size="sm" type="submit">
             <UsersIcon fill={session.user.isShared ? "black" : "none"} stroke={session.user.isShared ? "none" : "black"} /> {session.user.isShared ? "Shared" : "Share"}

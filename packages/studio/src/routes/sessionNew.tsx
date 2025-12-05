@@ -33,7 +33,7 @@ async function action({ request, params }: ActionFunctionArgs): Promise<ActionRe
 
 
 
-  const clientResponse = await apiFetch('/api/end-users', {
+  const clientResponse = await apiFetch('/api/users', {
     method: 'POST',
     body: {
       isShared: false
