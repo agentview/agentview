@@ -125,7 +125,7 @@ Let's quickly look at the most important config file in the AgentView: `studio/a
 
 ```
 export default defineConfig({
-    apiBaseUrl: "http://localhost:1990",
+    baseUrl: "http://localhost:1990",
     agents: [
         {
             name: "simple_chat",
@@ -154,7 +154,7 @@ export default defineConfig({
 })
 ```
 
-1. `apiBaseUrl` is the AgentView server. It's the only URL that Studio app communicates with. 
+1. `baseUrl` is the AgentView server. It's the only URL that Studio app communicates with. 
 1. We set up one agent named `simple_chat`.
 2. The `url` points to your Agent API. When generating responses it's the URL that AgentView Server will make request to -> your independent API server with "intelligence" (we'll set it up soon in `ai-python/` or `ai-typescript/`)
 3. `input` defines that the agent run is initiated with { type: "message", role: "user", content: ... }, content is string (schema validation), and defines react components for both how User Message will be displayed, and what's the input form for it in the UI. (maybe let's write about schema validation)

@@ -5,7 +5,6 @@ import { Header, HeaderTitle } from "~/components/header";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { parseSSE } from "~/lib/parseSSE";
 import { apiFetch } from "~/lib/apiFetch";
-import { getAPIBaseUrl } from "~/lib/getAPIBaseUrl";
 import { getLastRun, getAllSessionItems, getVersions, getActiveRuns } from "~/lib/shared/sessionUtils";
 import { type Run, type RunWithCollaboration, type Session, type SessionItem, type SessionItemWithCollaboration, type SessionWithCollaboration } from "~/lib/shared/apiTypes";
 import { getListParams, toQueryParams } from "~/lib/listParams";
@@ -120,10 +119,9 @@ function SessionPage() {
         (async () => {
 
             try {
-                const response = await fetch(`${getAPIBaseUrl()}/api/sessions/${session.id}/watch`, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                const url = new URL(`/api/sessions/${session.id}/watch`, config.baseUrl).toString();
+
+                const response = await fetch(url, {
                     credentials: 'include', // ensure cookies are sent
                     signal: abortController.signal,
                 });

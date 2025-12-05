@@ -357,7 +357,7 @@ And let's configure it in `agentview.config.tsx`:
 
 ```typescript
 export default defineConfig({
-  apiBaseUrl: "http://localhost:1990",
+  baseUrl: "http://localhost:1990",
   agents: [
     // ...
     {

@@ -1,5 +1,5 @@
 import type { BaseError } from "./errors";
-import { getAPIBaseUrl } from "./getAPIBaseUrl";
+import { config } from "~/config";
 
 type APISuccessResponse<T> = Response & {
     ok: true;
@@ -18,8 +18,10 @@ type APIOptions = {
     body?: any
 }
 
-export async function apiFetch<T = any>(url: string, options: APIOptions = { method: 'GET', body: undefined }): Promise<APIResponse<T>> {
-    const response = await fetch(`${getAPIBaseUrl()}${url}`, {
+export async function apiFetch<T = any>(endpoint: string, options: APIOptions = { method: 'GET', body: undefined }): Promise<APIResponse<T>> {
+    const url = new URL(endpoint, config.baseUrl).toString();
+
+    const response = await fetch(url, {
         ...options,
         credentials: 'include',
         headers: {
