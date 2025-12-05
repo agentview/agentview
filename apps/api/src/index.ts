@@ -882,12 +882,15 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
   const page = Math.max(parseInt(params.page ?? DEFAULT_PAGE.toString()) || DEFAULT_PAGE, 1);
   const offset = (page - 1) * limit;
 
+  console.log('filter', getSessionListFilter(params, principal))
   // Get total count for pagination metadata
   const totalCountResult = await db
-    .select({ count: sql<number>`count(*)` })
+    .select({ count: sql<number>`cast(count(*) as integer)` })
     .from(sessions)
     .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
     .where(getSessionListFilter(params, principal));
+
+    console.log('totalCountResult', totalCountResult);
 
   const totalCount = totalCountResult[0]?.count ?? 0;
 
@@ -923,6 +926,7 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
     sessions: sessionsResult,
     pagination: {
       totalCount,
+      totalPages,
       page,
       limit,
       hasNextPage,
@@ -1196,7 +1200,6 @@ app.openapi(sessionsPOSTRoute, async (c) => {
 
   const memberId = requireMemberId(principal);
 
-  console.log('XXX');
   // find user or create new one if not found
   const user = await (async () => {
     if (body.userId) {
@@ -1214,8 +1217,6 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     authorize(principal, { action: "end-user:create" });
     return await createUser({ createdBy: memberId })
   })()
-
-  console.log('YYY', user);
 
   authorize(principal, { action: "end-user:update", user });
 
@@ -2661,16 +2662,11 @@ const configPutRoute = createRoute({
 app.openapi(configPutRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
-  console.log('principal', principal);
-
   authorize(principal, { action: "config" });
-  console.log('authorized');
   const userId = requireMemberId(principal);
 
   const body = await c.req.valid('json')
   const configRow = await getConfigRow()
-
-  console.log('config update!');
 
   // validate & parse body.config
   const { data, success, error } = BaseConfigSchema.safeParse(body.config)
@@ -2682,6 +2678,8 @@ app.openapi(configPutRoute, async (c) => {
   if (configRow && equalJSON(configRow.config, data)) {
     return c.json(configRow, 200)
   }
+
+  console.log('Updating config!');
 
   const [newConfigRow] = await db.insert(configs).values({
     config: data,

@@ -233,6 +233,7 @@ export const allowedSessionLists = ["prod", "playground_private", "playground_sh
 export const PaginationSchema = z.object({
   page: z.number(),
   limit: z.number(),
+  totalPages: z.number(),
   totalCount: z.number(),
   hasNextPage: z.boolean(),
   hasPreviousPage: z.boolean(),

@@ -3,6 +3,7 @@ import { configs } from "./schemas/schema";
 import { desc } from "drizzle-orm";
 import { convertJsonSchemaToZod } from 'zod-from-json-schema';
 import { z } from "zod";
+import type { BaseAgentViewConfig, Metadata } from "./shared/configTypes";
 
 const JsonSchema = z.record(z.string(), z.any()).superRefine((value, ctx) => {
     const valid = isJSONSchema(value)
@@ -49,6 +50,20 @@ function baseConfigSchema<T extends z.ZodType>(jsonSchemaSchema: T) {
 
 export const BaseConfigSchema = baseConfigSchema(JsonSchema)
 export const BaseConfigSchemaToZod = baseConfigSchema(JsonSchemaToZod)
+// export const BaseConfigSchemaToZod = baseConfigSchema(JsonSchemaToZod).transform((val) => {
+//   // Transform to ensure type compatibility with BaseAgentViewConfig
+//   // The metadata fields need to be explicitly typed as Metadata
+//   return {
+//     agents: val.agents?.map(agent => ({
+//       ...agent,
+//       metadata: agent.metadata as Metadata | undefined,
+//       runs: agent.runs?.map(run => ({
+//         ...run,
+//         metadata: run.metadata as Metadata | undefined,
+//       })),
+//     })),
+//   } as BaseAgentViewConfig;
+// })
 
 
 function isJSONSchema(value: any): boolean { // temporarily simple check

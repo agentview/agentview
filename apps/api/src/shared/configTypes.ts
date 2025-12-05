@@ -17,7 +17,7 @@ export interface BaseRunConfig<TSessionItemConfig extends BaseSessionItemConfig 
     input: TSessionInputItemConfig;
     output: TSessionItemConfig;
     steps?: TSessionItemConfig[];
-    metadata?: Metadata;
+    metadata?: Metadata | undefined;
     allowUnknownMetadata?: boolean;
     validateSteps?: boolean;
     idleTimeout?: number;
@@ -25,7 +25,7 @@ export interface BaseRunConfig<TSessionItemConfig extends BaseSessionItemConfig 
 
 export interface BaseAgentConfig<TRunConfig extends BaseRunConfig = BaseRunConfig> {
     name: string;
-    metadata?: Metadata;
+    metadata?: Metadata | undefined;
     allowUnknownMetadata?: boolean;
     runs?: TRunConfig[];
 }

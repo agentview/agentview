@@ -72,6 +72,8 @@ function Component() {
 function PaginationControls({ pagination, listParams }: { pagination: Pagination, listParams: ReturnType<typeof getListParams> }) {
   const { hasNextPage, hasPreviousPage, totalCount, currentPageStart, currentPageEnd, page } = pagination;
 
+  console.log('pagination', pagination);
+
   return (<div className="flex flex-row justify-center">
     <div className="px-3 py-2 text-xs text-muted-foreground flex items-center gap-1">
       <div className="flex items-center gap-2">
