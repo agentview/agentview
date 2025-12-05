@@ -78,7 +78,6 @@ app.post('/simple_chat', async (c) => {
     items: response.output
   });
 
-
   return c.json({
     id: session.id,
     output: response.output,
