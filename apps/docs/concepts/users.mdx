@@ -82,22 +82,5 @@ const alice = await av.createUser();
 const bobSession = await av.as(bob).createSession({ agent: "my_agent" }); // this session belongs to bob
 
 await av.as(bob).getSession({ id: bobSession.id }); // access granted
-await av.as(alice).getSession({ id: bobSession.id }); // (!) will throw, it's not session from Alice
-
-// will throw if session belongs to a different user
-const session = await av.as(user).getSession({ id: session.id });
-
-const user = await av.getUser({ id: "bob" });
-
-// create session for the user "bob"
-const session = await av.as(user).createSession({ agent: "my_agent" });
-
-// will throw if session belongs to a different user
-const session = await av.as(user).getSession({ id: session.id });
-
-// delete session for the user
-await av.as(user).deleteSession({ id: session.id });
-
-// get user for the user
-const user = await av.as(user).getUser({ id: "user_id" });
+await av.as(alice).getSession({ id: bobSession.id }); // (!) throws, it's not session from Alice
 ```

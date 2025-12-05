@@ -1530,6 +1530,14 @@ function parseVersion(version: string): { major: number, minor: number, patch: n
   return { major, minor, patch };
 }
 
+function compareVersions(v1: { major: number, minor: number, patch: number }, v2: { major: number, minor: number, patch: number }): number {
+  // Returns: -1 if v1 < v2, 0 if v1 === v2, 1 if v1 > v2
+  if (v1.major !== v2.major) return v1.major < v2.major ? -1 : 1;
+  if (v1.minor !== v2.minor) return v1.minor < v2.minor ? -1 : 1;
+  if (v1.patch !== v2.patch) return v1.patch < v2.patch ? -1 : 1;
+  return 0;
+}
+
 function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[], items: any[], status: 'in_progress' | 'completed' | 'cancelled' | 'failed') {
   const validateSteps = runConfig.validateSteps ?? false;
 
@@ -1661,13 +1669,19 @@ app.openapi(runsPOSTRoute, async (c) => {
 
   if (lastRun?.version) { // compare semantic versions when previous version exists
     const lastVersionParsed = parseVersion(lastRun.version.version);
-
-    if (lastVersionParsed?.major !== parsedVersion?.major || lastVersionParsed?.minor !== parsedVersion?.minor) {
-      throw new HTTPException(422, { message: "Cannot continue a session with a different major or minor version." });
+    if (!lastVersionParsed) {
+      throw new HTTPException(422, { message: "Invalid version format in previous run." });
     }
 
-    if (lastVersionParsed?.patch > parsedVersion?.patch) {
-      throw new HTTPException(422, { message: "Cannot continue a session with a smaller patch version." });
+    // Major version must match (major version changes are breaking)
+    if (lastVersionParsed.major !== parsedVersion.major) {
+      throw new HTTPException(422, { message: "Cannot continue a session with a different major version." });
+    }
+
+    // Current version must be >= last version (minor and patch upgrades are backward-compatible)
+    const comparison = compareVersions(parsedVersion, lastVersionParsed);
+    if (comparison < 0) {
+      throw new HTTPException(422, { message: "Cannot continue a session with an older version." });
     }
   }
 

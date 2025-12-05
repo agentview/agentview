@@ -4,23 +4,24 @@ title: "Version Control"
 
 As you update your agent over time, users may attempt to continue sessions that were created with a **previous** version of your agent. Maintaining compatibility between versions can be challenging, and sometimes it's better to prevent continuation rather than risk incompatibility. AgentView handles this scenario through versioning.
 
-Each run in AgentView must have a version attached. Provide the current version of your agent using the `version` parameter in the `AgentView` constructor:
+Each run in AgentView **must** have a version attached.
 
 ```ts
-const av = new AgentView({
-    agent: "my_agent",
+const run = await av.createRun({
+    items: [
+        { type: "message", role: "user", content: "Hello, I'm Bob" },
+    ],
     version: "0.1.1"
 })
 ```
 
-AgentView uses semantic versioning to determine compatibility. Sessions can only be continued with patch version increases (e.g., `0.2.5` → `0.2.6`). Minor or major version changes break compatibility and will prevent session continuation.
+AgentView uses semantic versioning (`MAJOR.MINOR.PATCH` format) to determine compatibility. Sessions can be continued with patch or minor version increases (e.g., `0.2.5` → `0.2.6` or `0.2.5` → `0.3.0`), as these are considered backward-compatible according to semantic versioning. Major version changes break compatibility and will prevent session continuation.
 
 ### Example
 
-Consider a session where the first run was created with version `0.2.5`. If you upgrade your agent to version `0.2.6`, the session can be continued with a new run because patch version increases are considered backward-compatible according to semantic versioning. It's your responsibility to ensure that patch version updates maintain backward compatibility. Minor changes to the system prompt are a good example of a backward-compatible change that would warrant a patch version increase.
+Consider a session where the first run was created with version `0.2.5`. If you upgrade your agent to version `0.2.6` (patch) or `0.3.0` (minor), the session can be continued with a new run because patch and minor version increases are considered backward-compatible according to semantic versioning. It's your responsibility to ensure that patch and minor version updates maintain backward compatibility. Minor changes to the system prompt are a good example of a backward-compatible change that would warrant a patch version increase, while adding new optional features might warrant a minor version increase.
 
 However, if the first run of your session was `0.2.5`, AgentView will throw an error if the next run has:
-- A smaller patch version (e.g., `0.2.4`)
-- A different minor version (e.g., `0.3.0`)
-- A different major version (e.g., `1.0.0`) 
+- A lower version (e.g., `0.2.4` or `0.1.0` - downgrades are not allowed)
+- A different major version (e.g., `1.0.0` - major version changes break compatibility) 
 

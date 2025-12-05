@@ -928,6 +928,10 @@ describe('API', () => {
       const run2 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.4" })
       await av.updateRun({ id: run2.id, items: [baseOutput], status: "completed" })
 
+      // higher minor works
+      const run3 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.3.0" })
+      await av.updateRun({ id: run3.id, items: [baseOutput], status: "completed" })
+
       // smaller patch fails
       await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.2" })).rejects.toThrowError(expect.objectContaining({
         statusCode: 422,
@@ -935,7 +939,7 @@ describe('API', () => {
       }))
 
       // different minor fails
-      await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.3.0" })).rejects.toThrowError(expect.objectContaining({
+      await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "2.0.0" })).rejects.toThrowError(expect.objectContaining({
         statusCode: 422,
         message: expect.any(String),
       }))
