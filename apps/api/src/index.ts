@@ -274,7 +274,7 @@ function authorize(principal: Principal, action: Action) {
     }
   }
   else if (action.action === "config") {
-    if (principal.type === 'apiKey' || principal.type === 'user') { // TODO: fixme!!! Just api key!
+    if (principal.type === 'apiKey' || principal.type === 'member') { // TODO: fixme!!! Just api key!
       return true;
     }
   }
@@ -2660,7 +2660,11 @@ const configPutRoute = createRoute({
 
 app.openapi(configPutRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
+
+  console.log('principal', principal);
+
   authorize(principal, { action: "config" });
+  console.log('authorized');
   const userId = requireMemberId(principal);
 
   const body = await c.req.valid('json')
