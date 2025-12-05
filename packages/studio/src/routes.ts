@@ -75,11 +75,11 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
                       ...membersInviteCancelRoute,
                     },
                     {
-                      path: ":userId/edit",
+                      path: ":memberId/edit",
                       ...membersEditRoute,
                     },
                     {
-                      path: ":userId/delete",
+                      path: ":memberId/delete",
                       ...membersDeleteRoute,
                     },
                   ],

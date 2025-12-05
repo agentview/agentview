@@ -1,9 +1,9 @@
 import React from "react";
-import type { User } from "./shared/apiTypes";
+import type { Member } from "./shared/apiTypes";
 
 export type SessionContextValue = {
-  user: User;
-  members: User[];
+  me: Member;
+  members: Member[];
   locale: string;
 };
 

@@ -22,7 +22,7 @@ import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, SessionUpdateSchema, RunSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, UserSchema, UserUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type EndUser, type Run } from './shared/apiTypes'
+import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, SessionUpdateSchema, RunSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, MemberSchema, MemberUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type EndUser, type Run } from './shared/apiTypes'
 import { getConfigRow, BaseConfigSchema, BaseConfigSchemaToZod } from './getConfig'
 import { type BaseAgentViewConfig, type Metadata, type BaseRunConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
@@ -2372,41 +2372,41 @@ app.openapi(scoresPATCHRoute, async (c) => {
 /* --------- USERS --------- */
 
 
-// Users GET (list all users)
-const usersGETRoute = createRoute({
+// Members GET (list all users)
+const membersGETRoute = createRoute({
   method: 'get',
-  path: '/api/users',
+  path: '/api/members',
   responses: {
-    200: response_data(z.array(UserSchema)),
+    200: response_data(z.array(MemberSchema)),
     401: response_error(),
   },
 })
 
-app.openapi(usersGETRoute, async (c) => {
+app.openapi(membersGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const userPrincipal = requireUserPrincipal(principal);
 
-  const userRows = await db.select().from(users);
+  const members = await db.select().from(users);
 
-  return c.json(userRows.map((user) => ({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role ?? "user",
-    image: user.image ?? null,
-    createdAt: user.createdAt,
+  return c.json(members.map((member) => ({
+    id: member.id,
+    email: member.email,
+    name: member.name,
+    role: member.role ?? "user",
+    image: member.image ?? null,
+    createdAt: member.createdAt,
   })), 200);
 })
 
-// User POST (update role)
-const userPOSTRoute = createRoute({
+// Member POST (update role)
+const memberPOSTRoute = createRoute({
   method: 'post',
-  path: '/api/users/{userId}',
+  path: '/api/members/{memberId}',
   request: {
     params: z.object({
-      userId: z.string(),
+      memberId: z.string(),
     }),
-    body: body(UserUpdateSchema)
+    body: body(MemberUpdateSchema)
   },
   responses: {
     200: response_data(z.object({})),
@@ -2416,28 +2416,28 @@ const userPOSTRoute = createRoute({
   },
 })
 
-app.openapi(userPOSTRoute, async (c) => {
+app.openapi(memberPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   authorize(principal, { action: "admin" });
 
-  const { userId } = c.req.param()
+  const { memberId } = c.req.param()
   const body = await c.req.valid('json')
 
   await auth.api.setRole({
     headers: c.req.raw.headers,
-    body: { userId, role: body.role },
+    body: { userId: memberId, role: body.role },
   });
 
   return c.json({}, 200);
 })
 
 // User DELETE (delete user)
-const userDELETERoute = createRoute({
+const memberDELETERoute = createRoute({
   method: 'delete',
-  path: '/api/users/{userId}',
+  path: '/api/members/{memberId}',
   request: {
     params: z.object({
-      userId: z.string(),
+      memberId: z.string(),
     }),
   },
   responses: {
@@ -2448,19 +2448,22 @@ const userDELETERoute = createRoute({
   },
 })
 
-app.openapi(userDELETERoute, async (c) => {
+app.openapi(memberDELETERoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   authorize(principal, { action: "admin" });
 
-  const { userId } = c.req.param()
+  const { memberId } = c.req.param()
 
   await auth.api.removeUser({
     headers: c.req.raw.headers,
-    body: { userId },
+    body: { userId: memberId },
   });
 
   return c.json({}, 200);
 })
+
+
+
 
 /* --------- INVITATIONS --------- */
 

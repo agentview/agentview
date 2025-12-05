@@ -11,27 +11,27 @@ import type { ActionResponse } from "~/lib/errors";
 
 
 async function loader({ params }: LoaderFunctionArgs) {
-  const response = await apiFetch(`/api/users`);
+  const response = await apiFetch(`/api/members`);
 
   if (!response.ok) {
-    throw new Error('Failed to fetch users');
+    throw new Error('Failed to fetch members');
   }
 
-  const user = response.data.find((user: any) => user.id === params.userId);
+  const member = response.data.find((member: any) => member.id === params.memberId);
 
-  if (!user) {
-    throw new Error("User not found");
+  if (!member) {
+    throw new Error("Member not found");
   }
 
-  return { user }
+  return { member }
 }
 
 async function action({ request }: ActionFunctionArgs): Promise<ActionResponse | Response> {
   const formData = await request.formData();
-  const userId = formData.get("userId") as string;
+  const memberId = formData.get("memberId") as string;
   const role = formData.get("role") as "admin" | "user";
 
-  const response = await apiFetch(`/api/users/${userId}`, {
+  const response = await apiFetch(`/api/members/${memberId}`, {
     method: 'POST',
     body: { role },
   });
@@ -49,7 +49,7 @@ async function action({ request }: ActionFunctionArgs): Promise<ActionResponse |
 function Component() {
   const fetcher = useFetcher<ActionResponse>();
   const navigate = useNavigate();
-  const { user } = useLoaderData<typeof loader>();
+  const { member } = useLoaderData<typeof loader>();
   
   return <div className="bg-red-500">
     <Dialog open={true} onOpenChange={() => { navigate(-1) }}>
@@ -64,7 +64,7 @@ function Component() {
         <DialogBody className="space-y-5">
 
             <input type="hidden" name="_action" value="updateRole" />
-            <input type="hidden" name="userId" value={user.id} />
+            <input type="hidden" name="memberId" value={member.id} />
             
             {/* General error alert */}
             {fetcher.data?.ok === false && fetcher.data.error && fetcher.state === 'idle' && (
@@ -77,12 +77,12 @@ function Component() {
             
             <div className="space-y-2">
               <Label>Email</Label>
-              <div className="text-sm text-muted-foreground">{user.email}</div>
-              <input type="hidden" name="email" value={user.email} />
+              <div className="text-sm text-muted-foreground">{member.email}</div>
+              <input type="hidden" name="email" value={member.email} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
-                <Select defaultValue={user.role} name="role">
+                <Select defaultValue={member.role} name="role">
                 <SelectTrigger>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>

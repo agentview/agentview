@@ -8,26 +8,26 @@ import { apiFetch } from "~/lib/apiFetch";
 import type { ActionResponse } from "~/lib/errors";
 
 async function loader({ params }: LoaderFunctionArgs) {
-  const response = await apiFetch(`/api/users`);
+  const response = await apiFetch(`/api/members`);
 
   if (!response.ok) {
     throw new Error('Failed to fetch members');
   }
 
-  const user = response.data.find((user: any) => user.id === params.userId);
+  const member = response.data.find((member: any) => member.id === params.memberId);
 
-  if (!user) {
+  if (!member) {
     throw data({ message: "User not found" }, { status: 404 });
   }
 
-  return { user }
+  return { member }
 }
 
 async function action({ request }: ActionFunctionArgs): Promise<Response | ActionResponse> {
   const formData = await request.formData();
-  const userId = formData.get("userId") as string;
+  const memberId = formData.get("memberId") as string;
 
-  const response = await apiFetch(`/api/users/${userId}`, {
+  const response = await apiFetch(`/api/members/${memberId}`, {
     method: 'DELETE',
   });
 
@@ -44,7 +44,7 @@ async function action({ request }: ActionFunctionArgs): Promise<Response | Actio
 function Component() {
   const fetcher = useFetcher();
   const navigate = useNavigate();
-  const { user } = useLoaderData<typeof loader>();
+  const { member } = useLoaderData<typeof loader>();
   
   return (
     <div>
@@ -53,24 +53,24 @@ function Component() {
           
         <fetcher.Form method="post">
           <DialogHeader>
-            <DialogTitle>Delete User</DialogTitle>
+            <DialogTitle>Delete Member</DialogTitle>
           </DialogHeader>
 
           <DialogBody>
-            <input type="hidden" name="userId" value={user.id} />
+            <input type="hidden" name="memberId" value={member.id} />
             
             {/* General error alert */}
             {fetcher.data?.ok === false && fetcher.data.error && fetcher.state === 'idle' && (
               <Alert variant="destructive" className="mb-4">
                 <AlertCircleIcon />
-                <AlertTitle>User deletion failed.</AlertTitle>
+                <AlertTitle>Member deletion failed.</AlertTitle>
                 <AlertDescription>{fetcher.data.error.message}</AlertDescription>
               </Alert>
             )}
             
             <div className="space-y-2">
               <p className="text-sm">
-                Are you sure you want to delete <strong className="font-medium">{user.email}</strong>? This action cannot be undone.
+                Are you sure you want to delete <strong className="font-medium">{member.email}</strong>? This action cannot be undone.
               </p>
             </div>
             </DialogBody>
@@ -83,7 +83,7 @@ function Component() {
                 variant="destructive" 
                 disabled={fetcher.state !== "idle"}
               >
-                Delete User
+                Delete Member
               </Button>
             </DialogFooter>
           </fetcher.Form>

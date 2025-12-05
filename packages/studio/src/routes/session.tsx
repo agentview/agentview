@@ -58,7 +58,7 @@ function SessionPage() {
     const loaderData = useLoaderData<typeof loader>();
     const revalidator = useRevalidator();
     const navigate = useNavigate();
-    const { user } = useSessionContext();
+    const { me } = useSessionContext();
 
     const [session, setSession] = useState<SessionWithCollaboration>(loaderData.session)
 
@@ -246,7 +246,7 @@ function SessionPage() {
         <div className="flex-grow-1 border-r  flex flex-col">
             <Header className="py-1">
                 <HeaderTitle title={`Session ${session.handle}`} />
-                {session.endUser.simulatedBy === user.id && <ShareForm session={session} />}
+                {session.endUser.simulatedBy === me.id && <ShareForm session={session} />}
             </Header>
             <div className="flex-1 overflow-y-auto">
 
@@ -363,7 +363,7 @@ function SessionPage() {
             </div>
 
 
-            {session.endUser.simulatedBy === user.id && <InputForm session={session} agentConfig={agentConfig} styles={styles} />}
+            {session.endUser.simulatedBy === me.id && <InputForm session={session} agentConfig={agentConfig} styles={styles} />}
 
         </div>
 
@@ -650,7 +650,7 @@ function MessageFooter(props: MessageFooterProps) {
 
 
 function ScoreDialog({ session, item, itemConfig, open, onOpenChange }: { session: SessionWithCollaboration, item: SessionItemWithCollaboration, itemConfig?: SessionItemConfig, open: boolean, onOpenChange: (open: boolean) => void }) {
-    const { user } = useSessionContext();
+    const { me } = useSessionContext();
     const fetcher = useFetcher();
 
     const allScoreConfigs = itemConfig?.scores ?? [];
@@ -666,7 +666,7 @@ function ScoreDialog({ session, item, itemConfig, open, onOpenChange }: { sessio
 
     const defaultValues: Record<string, any> = {};
     for (const score of item.scores ?? []) {
-        if (score.deletedAt || score.createdBy !== user.id) {
+        if (score.deletedAt || score.createdBy !== me.id) {
             continue;
         }
         defaultValues[score.name] = score.value;
@@ -751,14 +751,14 @@ function ScoreDialog({ session, item, itemConfig, open, onOpenChange }: { sessio
 
 
 function ActionBarScoreForm({ session, item, scoreConfig }: { session: SessionWithCollaboration, item: SessionItemWithCollaboration, scoreConfig: ScoreConfig }) {
-    const { user } = useSessionContext();
+    const { me } = useSessionContext();
     const fetcher = useFetcher();
     const revalidator = useRevalidator();
 
     // Get the current score value for this user
     const score = item.scores?.find(
         score => score.name === scoreConfig.name &&
-            score.createdBy === user.id &&
+            score.createdBy === me.id &&
             !score.deletedAt
     );
 

@@ -1,7 +1,7 @@
 import { AlertCircleIcon } from "lucide-react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useFetcher, useRevalidator } from "react-router";
-import type { SessionItem, CommentMessage, Session, User, Score, SessionWithCollaboration, SessionItemWithCollaboration } from "~/lib/shared/apiTypes";
+import type { SessionItem, CommentMessage, Session, Member, Score, SessionWithCollaboration, SessionItemWithCollaboration } from "~/lib/shared/apiTypes";
 import { Button } from "~/components/ui/button";
 import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
 import { timeAgoShort } from "~/lib/timeAgo";
@@ -92,7 +92,7 @@ function getStackedCommentMessages(messages: CommentMessage[]): StackedCommentMe
 }
 
 export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ session, item, itemConfig, collapsed = false, singleLineMessageHeader = false, small = false }, ref) => {
-    const { members, user } = useSessionContext();
+    const { members, me } = useSessionContext();
     const fetcher = useFetcher();
 
     const visibleMessages = item.commentMessages.filter((m: any) => !m.deletedAt) ?? []
@@ -173,7 +173,7 @@ export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ sess
 
             <div className="flex flex-row gap-2">
 
-                <UserAvatar image={user.image} className="flex-shrink-0 mt-[6px]"/>
+                <UserAvatar image={me.image} className="flex-shrink-0 mt-[6px]"/>
 
                 <div className="flex-1">
                     {fetcher.state === 'idle' && fetcher.data?.ok === false && (
@@ -186,7 +186,7 @@ export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ sess
                     <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="space-y-2">
                         <div>
                             <TextEditor
-                                mentionItems={members.filter((member) => member.id !== user.id).map(member => ({
+                                mentionItems={members.filter((member) => member.id !== me.id).map(member => ({
                                     id: member.id,
                                     label: member.name ?? "Unknown"
                                 }))}
@@ -309,13 +309,13 @@ export function CommentsThread({ session, item, itemConfig, selected = false, on
 }
 
 
-export function CommentMessageHeader({ title, subtitle, actions, singleLineMessageHeader = false, user }: { title: string, subtitle?: string, actions?: React.ReactNode, singleLineMessageHeader?: boolean, user: User }) {
+export function CommentMessageHeader({ title, subtitle, actions, singleLineMessageHeader = false, member }: { title: string, subtitle?: string, actions?: React.ReactNode, singleLineMessageHeader?: boolean, member: Member }) {
 
     if (singleLineMessageHeader) {
         return <div className="flex flex-row justify-between mb-1">
 
             <div className="flex flex-row items-center gap-2">
-                <UserAvatar image={user.image} className="flex-shrink-0"/>
+                <UserAvatar image={member.image} className="flex-shrink-0"/>
                 <div className="text-sm font-medium">
                     {title}
                 </div>
@@ -357,14 +357,14 @@ export function CommentMessageItem({ message, item, itemConfig, session, compres
         throw new Error("Deleted messages don't have rendering code.")
     }
 
-    const { user, members } = useSessionContext();
+    const { me, members } = useSessionContext();
     const author = members.find((m) => m.id === message.userId);
     if (!author) {
         throw new Error("Author not found");
     }
 
     const fetcher = useFetcher();
-    const isOwn = author.id === user.id;
+    const isOwn = author.id === me.id;
 
     const createdAt = timeAgoShort(message.createdAt);
     const subtitle = createdAt + (message.updatedAt && message.updatedAt !== message.createdAt ? " · edited" : "")
@@ -398,7 +398,7 @@ export function CommentMessageItem({ message, item, itemConfig, session, compres
 
     return (
         <div>
-            <CommentMessageHeader title={author.name ?? author.email} subtitle={subtitle} singleLineMessageHeader={singleLineMessageHeader} user={author} />
+            <CommentMessageHeader title={author.name ?? author.email} subtitle={subtitle} singleLineMessageHeader={singleLineMessageHeader} member={author} />
 
             <div className="text-sm ml-8">
                 {isEditing ? (<div>
@@ -417,7 +417,7 @@ export function CommentMessageItem({ message, item, itemConfig, session, compres
                                 label={"Comment"}
                                 name={"comment"}
                                 control={(props) => <TextEditor
-                                    mentionItems={members.filter((member) => member.id !== user.id).map(member => ({
+                                    mentionItems={members.filter((member) => member.id !== me.id).map(member => ({
                                         id: member.id,
                                         label: member.name ?? "Unknown"
                                     }))}

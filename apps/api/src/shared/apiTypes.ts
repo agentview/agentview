@@ -212,7 +212,8 @@ export const ConfigCreateSchema = ConfigSchema.pick({
 
 export type ConfigCreate = z.infer<typeof ConfigCreateSchema>
 
-export const UserSchema = z.object({
+// member - user of organization, works in agentview panel, not end user
+export const MemberSchema = z.object({
     id: z.string(),
     email: z.string(),
     name: z.string(),
@@ -221,13 +222,13 @@ export const UserSchema = z.object({
     createdAt: z.iso.date(),
 })
 
-export const UserUpdateSchema = z.object({
+export const MemberUpdateSchema = z.object({
     role: z.enum(['admin', 'user']),
 })
 
-export type User = z.infer<typeof UserSchema>
+export type Member = z.infer<typeof MemberSchema>
 
-export type UserUpdate = z.infer<typeof UserUpdateSchema>
+export type MemberUpdate = z.infer<typeof MemberUpdateSchema>
 
 export const allowedSessionLists = ["prod", "playground_private", "playground_shared"]
 

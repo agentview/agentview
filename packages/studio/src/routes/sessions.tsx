@@ -104,7 +104,7 @@ function PaginationControls({ pagination, listParams }: { pagination: Pagination
 
 
 export function SessionCard({ session, listParams, sessionStats }: { session: SessionBase, listParams: ReturnType<typeof getListParams>, sessionStats: any }) {
-  const { user, members } = useSessionContext();
+  const { members } = useSessionContext();
   const date = session.createdAt;
 
   const unseenEvents = sessionStats.unseenEvents;

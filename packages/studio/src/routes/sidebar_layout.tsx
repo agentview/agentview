@@ -39,7 +39,7 @@ import { SessionContext } from "~/lib/SessionContext";
 import { apiFetch } from "~/lib/apiFetch";
 import { updateRemoteConfig } from "~/lib/remoteConfig";
 import { config } from "~/config";
-import { type User, allowedSessionLists } from "~/lib/shared/apiTypes";
+import { type Member, allowedSessionLists } from "~/lib/shared/apiTypes";
 import { Button } from "~/components/ui/button";
 import { getCurrentAgent } from "~/lib/currentAgent";
 import { matchPath } from "react-router";
@@ -64,7 +64,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   await updateRemoteConfig(config); // update schema on every page load
 
-  const membersResponse = await apiFetch<User[]>('/api/users');
+  const membersResponse = await apiFetch<Member[]>('/api/members');
 
   if (!membersResponse.ok) {
     throw data(membersResponse.error, { status: membersResponse.status });
@@ -96,7 +96,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     throw data("User not found", { status: 404 });
   }
 
-  const user: User = {
+  const member: Member = {
     id: session.data.user.id,
     email: session.data.user.email,
     name: session.data.user.name,
@@ -106,7 +106,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   return {
-    user,
+    me: member,
     members: membersResponse.data,
     locale,
     listStats,
@@ -115,7 +115,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 function Component() {
-  const { user, members, locale, listStats, agent } = useLoaderData<typeof loader>()
+  const { me, members, locale, listStats, agent } = useLoaderData<typeof loader>()
   const location = useLocation();
 
   // Helper function to get unseen count for a specific session type and list name
@@ -149,7 +149,7 @@ function Component() {
   
   const customRoutes = config.customRoutes?.filter(route => route.scope === "loggedIn");
 
-  return (<SessionContext.Provider value={{ user, members, locale }}>
+  return (<SessionContext.Provider value={{ me, members, locale }}>
 
     <SidebarProvider>
       <div className="flex h-screen bg-background w-full">
@@ -308,7 +308,7 @@ function Component() {
                 </SidebarMenu>
               </SidebarGroup>
 
-              { user.role === "admin" && <SidebarGroup>
+              { me.role === "admin" && <SidebarGroup>
                 <SidebarGroupLabel>Organisation</SidebarGroupLabel>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -328,7 +328,7 @@ function Component() {
                 </SidebarMenu>
               </SidebarGroup>}
 
-              { user.role === "admin" && <SidebarGroup>
+              { me.role === "admin" && <SidebarGroup>
                 <SidebarGroupLabel>Dev</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
@@ -372,11 +372,11 @@ function Component() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton>
-                      <UserAvatar image={user.image} />
+                      <UserAvatar image={me.image} />
                       {/* <UserIcon /> */}
                       <div className="flex flex-col items-start text-left">
-                        <span className="text-sm font-medium truncate">{user.name}</span>
-                        <span className="text-xs text-muted-foreground truncate">{user.email}</span>
+                        <span className="text-sm font-medium truncate">{me.name}</span>
+                        <span className="text-xs text-muted-foreground truncate">{me.email}</span>
                       </div>
                       <ChevronUp className="ml-auto" />
                     </SidebarMenuButton>

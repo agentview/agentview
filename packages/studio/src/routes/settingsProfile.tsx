@@ -37,7 +37,7 @@ async function action({
 
 function Component() {
   // const { user } = useLoaderData<typeof loader>();
-  const { user } = useSessionContext();
+  const { me } = useSessionContext();
 
   const editFetcher = useFetcher<ActionResponse>();
   const actionData = editFetcher.data;
@@ -74,7 +74,7 @@ function Component() {
             id="edit-email"
             type="email"
             name="email"
-            defaultValue={user.email}
+            defaultValue={me.email}
             disabled={true}
             readOnly
           />
@@ -85,7 +85,7 @@ function Component() {
           <Input
             id="edit-name"
             name="name"
-            defaultValue={user.name}
+            defaultValue={me.name}
             required
           />
           {editFetcher.state === 'idle' && actionData?.ok === false && actionData?.error.fieldErrors?.name && (
