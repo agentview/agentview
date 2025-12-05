@@ -43,6 +43,13 @@
       "when": 1764863120191,
       "tag": "0005_previous_garia",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1764931666119,
+      "tag": "0006_white_red_ghost",
+      "breakpoints": true
     }
   ]
 }

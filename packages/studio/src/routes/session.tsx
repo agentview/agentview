@@ -246,7 +246,7 @@ function SessionPage() {
         <div className="flex-grow-1 border-r  flex flex-col">
             <Header className="py-1">
                 <HeaderTitle title={`Session ${session.handle}`} />
-                {session.endUser.simulatedBy === me.id && <ShareForm session={session} />}
+                {session.user.createdBy === me.id && <ShareForm session={session} />}
             </Header>
             <div className="flex-1 overflow-y-auto">
 
@@ -363,7 +363,7 @@ function SessionPage() {
             </div>
 
 
-            {session.endUser.simulatedBy === me.id && <InputForm session={session} agentConfig={agentConfig} styles={styles} />}
+            {session.user.createdBy === me.id && <InputForm session={session} agentConfig={agentConfig} styles={styles} />}
 
         </div>
 
@@ -376,7 +376,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
     const versions = getVersions(session);
     const { members } = useSessionContext();
 
-    const simulatedBy = members.find((member) => member.id === session.endUser.simulatedBy);
+    const simulatedBy = members.find((member) => member.id === session.user.createdBy);
 
     return (
         <div className="w-full">
@@ -424,10 +424,10 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
 
 function ShareForm({ session }: { session: Session }) {
     const fetcher = useFetcher();
-    return <fetcher.Form method="put" action={`/end-users/${session.endUser.id}/share`}>
-        <input type="hidden" name="isShared" value={session.endUser.isShared ? "false" : "true"} />
+    return <fetcher.Form method="put" action={`/end-users/${session.user.id}/share`}>
+        <input type="hidden" name="isShared" value={session.user.isShared ? "false" : "true"} />
         <Button variant={"outline"} size="sm" type="submit">
-            <UsersIcon fill={session.endUser.isShared ? "black" : "none"} stroke={session.endUser.isShared ? "none" : "black"} /> {session.endUser.isShared ? "Shared" : "Share"}
+            <UsersIcon fill={session.user.isShared ? "black" : "none"} stroke={session.user.isShared ? "none" : "black"} /> {session.user.isShared ? "Shared" : "Share"}
         </Button>
     </fetcher.Form>
 }
@@ -483,7 +483,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
             body: JSON.stringify({
                 input: options.input,
                 id: session.id,
-                token: session.endUser.token
+                token: session.user.token
             }),
             signal: abortController.signal,
             ...(options ?? {}),
@@ -545,7 +545,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
                         submit={submit}
                         isRunning={isRunning}
                         session={enhanceSession(session)}
-                        token={session.endUser.token}
+                        token={session.user.token}
                     />
                 </div>
             )}

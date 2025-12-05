@@ -22,14 +22,14 @@ import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { EndUserSchema, EndUserCreateSchema, SessionSchema, SessionCreateSchema, SessionUpdateSchema, RunSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, MemberSchema, MemberUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type EndUser, type Run } from './shared/apiTypes'
+import { UserSchema, UserCreateSchema, SessionSchema, SessionCreateSchema, SessionUpdateSchema, RunSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, MemberSchema, MemberUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type User, type Run } from './shared/apiTypes'
 import { getConfigRow, BaseConfigSchema, BaseConfigSchemaToZod } from './getConfig'
 import { type BaseAgentViewConfig, type Metadata, type BaseRunConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
-import { getUsersCount } from './users'
+import { getTotalMemberCount } from './members'
 import { updateInboxes } from './updateInboxes'
 import { isInboxItemUnread } from './inboxItems'
-import { findEndUser, createEndUser } from './endUsers'
+import { findUser, createUser } from './users'
 import packageJson from '../package.json'
 import type { Transaction } from './types'
 import { findItemConfig, findItemConfigById, requireRunConfig } from './shared/configUtils'
@@ -117,25 +117,25 @@ async function verifyAndGetKey(bearer: string) { // this function exists just fo
   return maybeApiKey?.key;
 }
 
-type UserPrincipal = {
-  type: 'user',
+type MemberPrincipal = {
+  type: 'member',
   session: NonNullable<Awaited<ReturnType<(typeof getBetterAuthSession)>>>,
-  endUser?: EndUser // narrowing down scope
+  user?: User // narrowing down scope
 }
 
 type ApiKeyPrincipal = {
   type: 'apiKey',
   apiKey: NonNullable<Awaited<ReturnType<typeof verifyAndGetKey>>>,
-  endUser?: EndUser // narrowing down scope
+  user?: User // narrowing down scope
 }
 
-type EndUserPrincipal = {
-  type: 'endUser',
-  endUser: EndUser
+type UserPrincipal = {
+  type: 'user',
+  user: User
 }
 
-type PrivatePrincipal = UserPrincipal | ApiKeyPrincipal;
-type Principal = UserPrincipal | ApiKeyPrincipal | EndUserPrincipal;
+type PrivatePrincipal = MemberPrincipal | ApiKeyPrincipal;
+type Principal = MemberPrincipal | ApiKeyPrincipal | UserPrincipal;
 
 
 
@@ -150,30 +150,29 @@ function extractBearerToken(headers: Headers) {
   return rest.join(' ').trim()
 }
 
-function extractEndUserToken(headers: Headers) {
-  const xEndUserToken = headers.get('x-end-user-token')
-  if (!xEndUserToken) return null
-  return xEndUserToken.trim()
+function extractUserToken(headers: Headers) {
+  const xUserToken = headers.get('x-user-token')
+  if (!xUserToken) return null
+  return xUserToken.trim()
 }
 
 async function authn(headers: Headers): Promise<PrivatePrincipal> {
-  // See whether end-user header exists
-  let endUser: EndUser | undefined;
+  // See whether user header exists
+  let user: User | undefined;
 
-  const token = extractEndUserToken(headers)
+  const token = extractUserToken(headers)
   if (token) {
-    endUser = await findEndUser({ token });
-    if (!endUser) {
+    user = await findUser({ token });
+    if (!user) {
       throw new HTTPException(404, { message: "User not found." });
     }
   }
 
-  // users
-  const userSession = await auth.api.getSession({ headers })
-  if (userSession) {
-    return { type: 'user', session: userSession, endUser }
+  // members
+  const memberSession = await auth.api.getSession({ headers })
+  if (memberSession) {
+    return { type: 'member', session: memberSession, user }
   }
-
 
   // API Keys
   const bearer = extractBearerToken(headers)
@@ -186,20 +185,20 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
     })
 
     if (valid === true && !error && key) {
-      return { type: 'apiKey', apiKey: key, endUser }
+      return { type: 'apiKey', apiKey: key, user }
     }
   }
 
   throw new HTTPException(401, { message: "Unauthorized" });
 }
 
-async function authnEndUser(headers: Headers): Promise<EndUserPrincipal> {
-  const token = extractEndUserToken(headers)
+async function authnUser(headers: Headers): Promise<UserPrincipal> {
+  const token = extractUserToken(headers)
 
   if (token) {
-    const endUser = await findEndUser({ token })
-    if (endUser) {
-      return { type: 'endUser', endUser }
+    const user = await findUser({ token })
+    if (user) {
+      return { type: 'user', user }
     }
   }
 
@@ -208,8 +207,8 @@ async function authnEndUser(headers: Headers): Promise<EndUserPrincipal> {
 
 
 
-function requireUserPrincipal(principal: Principal) {
-  if (principal.type === 'user') {
+function requireMemberPrincipal(principal: Principal) {
+  if (principal.type === 'member') {
     return principal;
   }
   throw new HTTPException(401, { message: "Unauthorized" });
@@ -219,10 +218,10 @@ function requireUserPrincipal(principal: Principal) {
 
 type Action = {
   action: "end-user:read",
-  endUser: EndUser,
+  user: User,
 } | {
   action: "end-user:update",
-  endUser: EndUser
+  user: User
 } | {
   action: "end-user:create"
 } | {
@@ -236,22 +235,22 @@ function authorize(principal: Principal, action: Action) {
   // sessions / end-users actions
   if (action.action === "end-user:read" || action.action === "end-user:update" || action.action === "end-user:create") {
 
-    if (principal.type === 'endUser') { // only session:read for end users for now
+    if (principal.type === 'user') { // only session:read for end users for now
       if (action.action === "end-user:read") {
-        if (action.endUser.id === principal.endUser.id) {
+        if (action.user.id === principal.user.id) {
           return true;
         }
       }
     }
-    else if ((principal.type === 'apiKey' || principal.type === 'user') && principal.endUser) { // API_KEY or user, but end user is provided -> narrow down scope to end user
-      if ((action.action === "end-user:read" || action.action === "end-user:update") && action.endUser.id === principal.endUser.id) {
+    else if ((principal.type === 'apiKey' || principal.type === 'member') && principal.user) { // API_KEY or user, but end user is provided -> narrow down scope to end user
+      if ((action.action === "end-user:read" || action.action === "end-user:update") && action.user.id === principal.user.id) {
         return true;
       }
     }
-    else if (principal.type === 'user') {
-      const userId = principal.session.user.id
+    else if (principal.type === 'member') {
+      const memberId = principal.session.user.id
 
-      if (action.action === "end-user:read" && (!action.endUser.simulatedBy || action.endUser.isShared || (action.endUser.simulatedBy === userId))) { // sessions without owner or shared -> read access
+      if (action.action === "end-user:read" && (!action.user.createdBy || action.user.isShared || (action.user.createdBy === memberId))) { // sessions without owner or shared -> read access
         return true;
       }
 
@@ -259,7 +258,7 @@ function authorize(principal: Principal, action: Action) {
         return true;
       }
 
-      if (action.action === "end-user:update" && action.endUser.simulatedBy === userId) { // all access for your sessions
+      if (action.action === "end-user:update" && action.user.createdBy === memberId) { // all access for your sessions
         return true;
       }
 
@@ -270,7 +269,7 @@ function authorize(principal: Principal, action: Action) {
 
   }
   else if (action.action === "admin") {
-    if (principal.type === 'user' && principal.session.user.role === "admin") {
+    if (principal.type === 'member' && principal.session.user.role === "admin") {
       return true;
     }
   }
@@ -284,8 +283,8 @@ function authorize(principal: Principal, action: Action) {
 }
 
 // Can call this function after authorise safely
-function requireUserId(principal: Principal) {
-  if (principal.type === 'user') {
+function requireMemberId(principal: Principal) {
+  if (principal.type === 'member') {
     return principal.session.user.id;
   }
   else if (principal.type === 'apiKey') {
@@ -376,12 +375,12 @@ async function requireSessionItem(session: Awaited<ReturnType<typeof requireSess
 }
 
 
-async function requireEndUser({ id, externalId, token }: { id?: string, externalId?: string, token?: string }) {
-  const endUser = await findEndUser({ id, externalId, token })
-  if (!endUser) {
+async function requireUser({ id, externalId, token }: { id?: string, externalId?: string, token?: string }) {
+  const user = await findUser({ id, externalId, token })
+  if (!user) {
     throw new HTTPException(404, { message: "End user not found" });
   }
-  return endUser
+  return user
 }
 
 async function requireCommentMessageFromUser(item: SessionItemWithCollaboration, commentId: string, user: BetterAuthUser) {
@@ -667,58 +666,58 @@ async function deleteComment(
 // })
 
 
-const endUsersPOSTRoute = createRoute({
+const usersPOSTRoute = createRoute({
   method: 'post',
-  path: '/api/end-users',
+  path: '/api/users',
   request: {
-    body: body(EndUserCreateSchema)
+    body: body(UserCreateSchema)
   },
   responses: {
-    201: response_data(EndUserSchema)
+    201: response_data(UserSchema)
   },
 })
 
-app.openapi(endUsersPOSTRoute, async (c) => {
+app.openapi(usersPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   await authorize(principal, { action: "end-user:create" })
 
-  const userId = requireUserId(principal);
+  const memberId = requireMemberId(principal);
   const body = await c.req.valid('json')
 
-  const existingUserWithExternalId = body.externalId ? await findEndUser({ externalId: body.externalId }) : null;
+  const existingUserWithExternalId = body.externalId ? await findUser({ externalId: body.externalId }) : null;
   if (existingUserWithExternalId) {
     throw new HTTPException(422, { message: "End user with this external ID already exists" });
   }
 
-  const newEndUser = await createEndUser({
-    simulatedBy: userId,
+  const newUser = await createUser({
+    createdBy: memberId,
     isShared: body.isShared,
     externalId: body.externalId,
   })
 
-  return c.json(newEndUser, 201);
+  return c.json(newUser, 201);
 })
 
 
-const endUserMe = createRoute({
+const userMeRoute = createRoute({
   method: 'get',
-  path: '/api/end-users/me',
+  path: '/api/users/me',
   responses: {
-    200: response_data(EndUserSchema),
+    200: response_data(UserSchema),
     404: response_error()
   },
 })
 
-app.openapi(endUserMe, async (c) => {
+app.openapi(userMeRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  const endUser = principal.endUser;
+  const user = principal.user;
 
-  if (!endUser) {
+  if (!user) {
     throw new HTTPException(422, { message: "You must provide an end user token to access this endpoint." });
   }
 
-  await authorize(principal, { action: "end-user:read", endUser })
-  return c.json(endUser, 200);
+  await authorize(principal, { action: "end-user:read", user })
+  return c.json(user, 200);
 })
 
 const publicMeRoute = createRoute({
@@ -726,94 +725,94 @@ const publicMeRoute = createRoute({
   path: '/api/public/me',
   tags: ['public'],
   responses: {
-    200: response_data(EndUserSchema),
+    200: response_data(UserSchema),
     404: response_error()
   },
 })
 
 app.openapi(publicMeRoute, async (c) => {
-  const principal = await authnEndUser(c.req.raw.headers)
-  const endUser = principal.endUser;
+  const principal = await authnUser(c.req.raw.headers)
+  const user = principal.user;
 
-  await authorize(principal, { action: "end-user:read", endUser })
-  return c.json(endUser, 200);
+  await authorize(principal, { action: "end-user:read", user })
+  return c.json(user, 200);
 })
 
-const endUserGETRoute = createRoute({
+const userGETRoute = createRoute({
   method: 'get',
-  path: '/api/end-users/{id}',
+  path: '/api/users/{id}',
   request: {
     params: z.object({
       id: z.string(),
     }),
   },
   responses: {
-    200: response_data(EndUserSchema),
+    200: response_data(UserSchema),
     404: response_error()
   },
 })
 
-app.openapi(endUserGETRoute, async (c) => {
+app.openapi(userGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
   const { id } = c.req.param()
   requireUUID(id);
-  const endUser = await requireEndUser({ id })
+  const user = await requireUser({ id })
 
-  await authorize(principal, { action: "end-user:read", endUser })
+  await authorize(principal, { action: "end-user:read", user })
 
-  return c.json(endUser, 200);
+  return c.json(user, 200);
 })
 
-const endUserByExternalIdGETRoute = createRoute({
+const userByExternalIdGETRoute = createRoute({
   method: 'get',
-  path: '/api/end-users/by-external-id/{external_id}',
+  path: '/api/users/by-external-id/{external_id}',
   request: {
     params: z.object({
       external_id: z.string(),
     }),
   },
   responses: {
-    200: response_data(EndUserSchema),
+    200: response_data(UserSchema),
     404: response_error()
   },
 })
 
-app.openapi(endUserByExternalIdGETRoute, async (c) => {
+app.openapi(userByExternalIdGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
   const { external_id } = c.req.param()
-  const endUser = await requireEndUser({ externalId: external_id })
+  const user = await requireUser({ externalId: external_id })
 
-  await authorize(principal, { action: "end-user:read", endUser })
+  await authorize(principal, { action: "end-user:read", user })
 
-  return c.json(endUser, 200);
+  return c.json(user, 200);
 })
 
-const apiEndUsersPATCHRoute = createRoute({
+const apiUsersPATCHRoute = createRoute({
   method: 'patch',
-  path: '/api/end-users/{id}',
+  path: '/api/users/{id}',
   request: {
-    body: body(EndUserCreateSchema)
+    body: body(UserCreateSchema)
   },
   responses: {
-    200: response_data(EndUserSchema)
+    200: response_data(UserSchema)
   },
 })
 
 
-app.openapi(apiEndUsersPATCHRoute, async (c) => {
+app.openapi(apiUsersPATCHRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
   const { id } = c.req.param()
-  const endUser = await requireEndUser({ id })
+  const user = await requireUser({ id })
   const body = await c.req.valid('json')
 
-  await authorize(principal, { action: "end-user:update", endUser })
+  await authorize(principal, { action: "end-user:update", user })
 
-  const [updatedEndUser] = await db.update(endUsers).set(body).where(eq(endUsers.id, id)).returning();
+  const [updatedUser] = await db.update(endUsers).set(body).where(eq(endUsers.id, id)).returning();
 
-  return c.json(updatedEndUser, 200);
+  return c.json(updatedUser, 200);
 })
 
 
@@ -846,21 +845,21 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
     filters.push(eq(sessions.agent, agent));
   }
 
-  if (principal.type === 'user' || principal.type === 'apiKey') {
+  if (principal.type === 'member' || principal.type === 'apiKey') {
 
     if (list === "playground_shared") {
-      filters.push(and(isNotNull(endUsers.simulatedBy), eq(endUsers.isShared, true)));
+      filters.push(and(isNotNull(endUsers.createdBy), eq(endUsers.isShared, true)));
     }
     else if (list === "playground_private") {
-      if (principal.type === 'user') {
-        filters.push(and(eq(endUsers.simulatedBy, principal.session.user.id), eq(endUsers.isShared, false)));
+      if (principal.type === 'member') {
+        filters.push(and(eq(endUsers.createdBy, principal.session.user.id), eq(endUsers.isShared, false)));
       }
       else {
         throw new HTTPException(401, { message: "`playground_private` can only be used with provided logged in user id." });
       }
     }
     else if (list === "prod") {
-      filters.push(isNull(endUsers.simulatedBy));
+      filters.push(isNull(endUsers.createdBy));
     }
 
     if (endUserId) {
@@ -868,12 +867,12 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
     }
 
     // add extra filter if end user is provided -> narrow down scope to end user's sessions
-    if (principal.endUser) {
-      filters.push(eq(endUsers.id, principal.endUser.id));
+    if (principal.user) {
+      filters.push(eq(endUsers.id, principal.user.id));
     }
   }
-  else if (principal.type === 'endUser') {
-    filters.push(eq(endUsers.id, principal.endUser.id));
+  else if (principal.type === 'user') {
+    filters.push(eq(endUsers.id, principal.user.id));
   }
 
   return and(...filters);
@@ -888,7 +887,7 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
   const totalCountResult = await db
     .select({ count: sql<number>`count(*)` })
     .from(sessions)
-    .leftJoin(endUsers, eq(sessions.endUserId, endUsers.id))
+    .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
     .where(getSessionListFilter(params, principal));
 
   const totalCount = totalCountResult[0]?.count ?? 0;
@@ -897,7 +896,7 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
   const result = await db
     .select()
     .from(sessions)
-    .leftJoin(endUsers, eq(sessions.endUserId, endUsers.id))
+    .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
     .where(getSessionListFilter(params, principal))
     .orderBy(desc(sessions.updatedAt))
     .limit(limit)
@@ -971,13 +970,11 @@ const publicSessionsGETRoute = createRoute({
 })
 
 app.openapi(publicSessionsGETRoute, async (c) => {
-  const principal = await authnEndUser(c.req.raw.headers)
+  const principal = await authnUser(c.req.raw.headers)
   const params = c.req.query();
   const sessions = await getSessions(params, principal)
   return c.json(sessions, 200);
 })
-
-
 
 type StatsResponse = {
   unseenCount: number,
@@ -1004,7 +1001,7 @@ const sessionsGETStatsRoute = createRoute({
 
 app.openapi(sessionsGETStatsRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  const userPrincipal = requireUserPrincipal(principal);
+  const memberPrincipal = requireMemberPrincipal(principal);
 
   const { granular = false, ...params } = c.req.query();
 
@@ -1014,10 +1011,10 @@ app.openapi(sessionsGETStatsRoute, async (c) => {
     })
     .from(inboxItems)
     .leftJoin(sessions, eq(inboxItems.sessionId, sessions.id))
-    .leftJoin(endUsers, eq(sessions.endUserId, endUsers.id))
+    .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
     .where(
       and(
-        eq(inboxItems.userId, userPrincipal.session.user.id),
+        eq(inboxItems.userId, memberPrincipal.session.user.id),
         sql`${inboxItems.lastNotifiableEventId} > COALESCE(${inboxItems.lastReadEventId}, 0)`,
         getSessionListFilter(params, principal)
       )
@@ -1036,9 +1033,9 @@ app.openapi(sessionsGETStatsRoute, async (c) => {
     const sessionRows = await db.query.sessions.findMany({
       where: inArray(sessions.id, sessionIds),
       with: {
-        endUser: true,
+        user: true,
         inboxItems: {
-          where: eq(inboxItems.userId, userPrincipal.session.user.id),
+          where: eq(inboxItems.userId, memberPrincipal.session.user.id),
         },
       },
       orderBy: (session, { desc }: any) => [desc(session.updatedAt)],
@@ -1095,7 +1092,7 @@ app.openapi(sessionGETRoute, async (c) => {
 
   const session = await requireSession(session_id);
 
-  await authorize(principal, { action: "end-user:read", endUser: session.endUser });
+  await authorize(principal, { action: "end-user:read", user: session.user });
   return c.json(session, 200);
 })
 
@@ -1123,7 +1120,7 @@ app.openapi(sessionPATCHRoute, async (c) => {
 
   const body = await c.req.valid('json')
   const session = await requireSession(session_id);
-  authorize(principal, { action: "end-user:update", endUser: session.endUser });
+  authorize(principal, { action: "end-user:update", user: session.user });
 
   const config = await requireConfig()
   const agentConfig = await requireAgentConfig(config, session.agent)
@@ -1156,13 +1153,13 @@ const publicSessionGETRoute = createRoute({
 })
 
 app.openapi(publicSessionGETRoute, async (c) => {
-  const principal = await authnEndUser(c.req.raw.headers)
+  const principal = await authnUser(c.req.raw.headers)
 
   const { session_id } = c.req.param()
   requireUUID(session_id);
 
   const session = await requireSession(session_id);
-  authorize(principal, { action: "end-user:read", endUser: session.endUser });
+  authorize(principal, { action: "end-user:read", user: session.user });
 
   const sessionWithoutCollaboration = {
     ...session,
@@ -1198,27 +1195,27 @@ app.openapi(sessionsPOSTRoute, async (c) => {
   const config = await requireConfig()
   const agentConfig = await requireAgentConfig(config, body.agent)
 
-  const userId = requireUserId(principal);
+  const userId = requireMemberId(principal);
 
   // find end user or create new one if not found
-  const endUser = await (async () => {
-    if (principal.endUser) {
-      return principal.endUser;
+  const user = await (async () => {
+    if (principal.user) {
+      return principal.user;
     }
 
-    if (body.endUserId) {
-      return await requireEndUser({ id: body.endUserId });
+    if (body.userId) {
+      return await requireUser({ id: body.userId });
     }
 
-    if (body.endUserExternalId) {
-      return await requireEndUser({ externalId: body.endUserExternalId });
+    if (body.userExternalId) {
+      return await requireUser({ externalId: body.userExternalId });
     }
 
     authorize(principal, { action: "end-user:create" });
-    return await createEndUser({ simulatedBy: userId })
+    return await createUser({ createdBy: userId })
   })()
 
-  authorize(principal, { action: "end-user:update", endUser });
+  authorize(principal, { action: "end-user:update", user });
 
   /**
    * METADATA
@@ -1229,7 +1226,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
 
 
   const newSession = await db.transaction(async (tx) => {
-    const handleSuffix = endUser.simulatedBy ? "s" : "";
+    const handleSuffix = user.createdBy ? "s" : "";
 
     const sessionWithHighestHandleNumber = await tx.query.sessions.findFirst({
       orderBy: (sessions, { desc }) => [desc(sessions.handleNumber)],
@@ -1243,7 +1240,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
       handleSuffix: handleSuffix,
       metadata: metadata,
       agent: body.agent,
-      endUserId: endUser.id
+      userId: user.id
     }).returning();
 
     // add event (only for users, not endUsers)
@@ -1368,7 +1365,7 @@ app.openapi(sessionWatchRoute, async (c) => {
   const { session_id } = c.req.param()
   const session = await requireSession(session_id)
 
-  authorize(principal, { action: "end-user:read", endUser: session.endUser });
+  authorize(principal, { action: "end-user:read", user: session.user });
 
   const generator = watchSession(session);
 
@@ -1505,7 +1502,7 @@ const sessionSeenRoute = createRoute({
 
 app.openapi(sessionSeenRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  const userPrincipal = requireUserPrincipal(principal);
+  const userPrincipal = requireMemberPrincipal(principal);
 
   const { sessionId } = c.req.param()
 
@@ -1643,7 +1640,7 @@ app.openapi(runsPOSTRoute, async (c) => {
   const body = await c.req.valid('json')
   const session = await requireSession(body.sessionId);
 
-  authorize(principal, { action: "end-user:update", endUser: session.endUser });
+  authorize(principal, { action: "end-user:update", user: session.user });
 
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
@@ -1782,7 +1779,7 @@ app.openapi(runPATCHRoute, async (c) => {
   const run = await requireRun(run_id);
   const session = await requireSession(run.sessionId);
 
-  authorize(principal, { action: "end-user:update", endUser: session.endUser });
+  authorize(principal, { action: "end-user:update", user: session.user });
 
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
@@ -1883,7 +1880,7 @@ app.openapi(runKeepAliveRoute, async (c) => {
   const run = await requireRun(run_id);
   const session = await requireSession(run.sessionId);
 
-  authorize(principal, { action: "end-user:update", endUser: session.endUser });
+  authorize(principal, { action: "end-user:update", user: session.user });
 
   const status = run.status;
   const isFinished = status === 'completed' || status === 'failed' || status === 'cancelled';
@@ -1930,7 +1927,7 @@ app.openapi(runWatchRoute, async (c) => {
   const session_id = run.sessionId;
   const session = await requireSession(session_id)
 
-  authorize(principal, { action: "end-user:read", endUser: session.endUser });
+  authorize(principal, { action: "end-user:read", user: session.user });
 
   const lastRun = getLastRun(session)
 
@@ -2038,7 +2035,7 @@ const itemSeenRoute = createRoute({
 
 app.openapi(itemSeenRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  const userPrincipal = requireUserPrincipal(principal);
+  const userPrincipal = requireMemberPrincipal(principal);
 
   const { sessionId, itemId } = c.req.param()
 
@@ -2115,7 +2112,7 @@ const commentsPOSTRoute = createRoute({
 
 app.openapi(commentsPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  const userPrincipal = requireUserPrincipal(principal);
+  const userPrincipal = requireMemberPrincipal(principal);
 
   const body = await c.req.valid('json')
   const { sessionId, itemId } = c.req.param()
@@ -2152,7 +2149,7 @@ const commentsDELETERoute = createRoute({
 
 app.openapi(commentsDELETERoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  const userPrincipal = requireUserPrincipal(principal);
+  const userPrincipal = requireMemberPrincipal(principal);
 
   const { commentId, sessionId, itemId } = c.req.param()
   const session = await requireSession(sessionId)
@@ -2190,7 +2187,7 @@ const commentsPUTRoute = createRoute({
 
 app.openapi(commentsPUTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  const userPrincipal = requireUserPrincipal(principal);
+  const userPrincipal = requireMemberPrincipal(principal);
 
   const { sessionId, itemId, commentId } = c.req.param()
   const body = await c.req.valid('json')
@@ -2236,7 +2233,7 @@ const scoresGETRoute = createRoute({
 
 app.openapi(scoresGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  const userPrincipal = requireUserPrincipal(principal);
+  const userPrincipal = requireMemberPrincipal(principal);
 
   const { sessionId, itemId } = c.req.param()
 
@@ -2286,7 +2283,7 @@ const scoresPATCHRoute = createRoute({
 
 app.openapi(scoresPATCHRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  const userPrincipal = requireUserPrincipal(principal);
+  const userPrincipal = requireMemberPrincipal(principal);
 
   const { sessionId, itemId } = c.req.param()
   const inputScores = await c.req.valid('json');
@@ -2384,7 +2381,7 @@ const membersGETRoute = createRoute({
 
 app.openapi(membersGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  const userPrincipal = requireUserPrincipal(principal);
+  const userPrincipal = requireMemberPrincipal(principal);
 
   const members = await db.select().from(users);
 
@@ -2485,7 +2482,7 @@ app.openapi(invitationsPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   authorize(principal, { action: "admin" });
 
-  const inviterId = requireUserId(principal);
+  const inviterId = requireMemberId(principal);
 
   const body = await c.req.valid('json')
 
@@ -2651,7 +2648,7 @@ const configPutRoute = createRoute({
 app.openapi(configPutRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   authorize(principal, { action: "config" });
-  const userId = requireUserId(principal);
+  const userId = requireMemberId(principal);
 
   const body = await c.req.valid('json')
   const configRow = await getConfigRow()
@@ -2692,7 +2689,7 @@ const statusRoute = createRoute({
 })
 
 app.openapi(statusRoute, async (c) => {
-  const hasUsers = await getUsersCount() > 0;
+  const hasUsers = await getTotalMemberCount() > 0;
   return c.json({ status: "ok", is_active: hasUsers }, 200);
 })
 

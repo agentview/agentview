@@ -5,7 +5,7 @@ async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
   const isShared = formData.get("isShared") === "true" ;
   
-  const response = await apiFetch(`/api/end-users/${params.endUserId}`, {
+  const response = await apiFetch(`/api/users/${params.userId}`, {
     method: "PATCH",
     body: { isShared },
   });
@@ -26,7 +26,7 @@ async function action({ request, params }: ActionFunctionArgs) {
 //   );
 // }
 
-export const endUserShareRoute: RouteObject = {
+export const userShareRoute: RouteObject = {
   // Component,
   action,
 }

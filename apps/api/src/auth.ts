@@ -7,7 +7,7 @@ import { users } from "./schemas/auth-schema";
 import { getValidInvitation, acceptInvitation, getInvitation } from "./invitations";
 import { eq } from "drizzle-orm";
 import { areThereRemainingAdmins } from "./areThereRemainingAdmins";
-import { getUsersCount } from "./users";
+import { getTotalMemberCount } from "./members";
 import { getStudioURL } from "./getStudioURL";
 import { colorValues } from "./shared/colors";
 
@@ -57,7 +57,7 @@ export const auth = betterAuth({
             else if (ctx.path === "/sign-up/email") {
 
                 // first admin
-                if (await getUsersCount() === 0) {
+                if (await getTotalMemberCount() === 0) {
                     return;
                 }
 
@@ -85,19 +85,19 @@ export const auth = betterAuth({
         }),
         after: createAuthMiddleware(async (ctx) => {
             if (ctx.path === "/sign-up/email") {
-                const usersCount = await getUsersCount()
+                const totalMembersCount = await getTotalMemberCount()
 
                 // Generate image property: ${color}:${firstLetterFromName}
                 const randomColor = colorValues[Math.floor(Math.random() * colorValues.length)];
                 const firstLetter = ctx.body.name ? ctx.body.name.charAt(0).toUpperCase() : "A";
                 const image = `color:${randomColor}:${firstLetter}`;
 
-                if (usersCount === 0) {
+                if (totalMembersCount === 0) {
                     throw new APIError("BAD_REQUEST", {
                         message: "Unreachable.",
                     });
                 }
-                else if (usersCount === 1) {
+                else if (totalMembersCount === 1) {
                     await db.update(users).set({
                         role: "admin",
                         image: image

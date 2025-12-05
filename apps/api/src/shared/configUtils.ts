@@ -280,6 +280,7 @@ function baseConfigSchema<T extends z.ZodType>(jsonSchemaSchema: T) {
                 input: BaseSessionItemConfigSchema,
                 output: BaseSessionItemConfigSchema,
                 steps: z.array(BaseSessionItemConfigSchemaWithTools).optional(),
+                validateSteps: z.boolean().optional(),
                 metadata: z.record(z.string(), jsonSchemaSchema).optional(),
                 allowUnknownMetadata: z.boolean().optional(),
             })).optional(),
@@ -300,7 +301,7 @@ function isJSONSchema(value: any): boolean { // temporarily simple check
 export function serializeConfig(config: any) {    
     const { data, success, error } = BaseConfigSchemaZodToJsonSchema.safeParse(config);
     if (!success) {
-        throw new Error("Invalid config", { cause: error.issues });
+        throw new AgentViewError("Invalid config", 422, { cause: error.issues });
     }
     return data;
 }

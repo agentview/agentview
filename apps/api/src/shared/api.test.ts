@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll } from 'vitest'
 import { AgentView, AgentViewClient } from './AgentView'
-import type { EndUser, Run } from './apiTypes';
+import type { User, Run } from './apiTypes';
 import { z } from 'zod';
 
 const apiKey = 'QnUveLvkStSMbjRCCzfbkBtlngakfLLoHFyaARUroWvTPoqALxxpZSPRuYIUMGbR'
@@ -12,20 +12,20 @@ const av = new AgentView({
 })
 
 describe('API', () => {
-  let initEndUser1: EndUser
-  let initEndUser2: EndUser
+  let initUser1: User
+  let initUser2: User
   const EXTERNAL_ID_1 = Math.random().toString(36).slice(2)
   const EXTERNAL_ID_2 = Math.random().toString(36).slice(2)
 
   beforeAll(async () => {
-    initEndUser1 = await av.createEndUser({ externalId: EXTERNAL_ID_1 })
-    initEndUser2 = await av.createEndUser({ externalId: EXTERNAL_ID_2 })
+    initUser1 = await av.createUser({ externalId: EXTERNAL_ID_1 })
+    initUser2 = await av.createUser({ externalId: EXTERNAL_ID_2 })
 
-    expect(initEndUser1).toBeDefined()
-    expect(initEndUser1.externalId).toBe(EXTERNAL_ID_1)
+    expect(initUser1).toBeDefined()
+    expect(initUser1.externalId).toBe(EXTERNAL_ID_1)
 
-    expect(initEndUser2).toBeDefined()
-    expect(initEndUser2.externalId).toBe(EXTERNAL_ID_2)
+    expect(initUser2).toBeDefined()
+    expect(initUser2.externalId).toBe(EXTERNAL_ID_2)
   })
 
 
@@ -48,7 +48,6 @@ describe('API', () => {
       agents: [
         {
           name: "test",
-          url: "https://test.com",
           runs: [
             {
               input: { schema: inputSchema },
@@ -85,12 +84,12 @@ describe('API', () => {
 
 
   async function createSession() {
-    return await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+    return await av.createSession({ agent: "test", userId: initUser1.id })
   }
 
   describe("end users", () => {
     test("creating another user with the same external id should fail", async () => {
-      await expect(av.createEndUser({ externalId: EXTERNAL_ID_1 })).rejects.toThrowError(expect.objectContaining({
+      await expect(av.createUser({ externalId: EXTERNAL_ID_1 })).rejects.toThrowError(expect.objectContaining({
         statusCode: 422,
         message: expect.any(String),
       }))
@@ -100,45 +99,45 @@ describe('API', () => {
       const EXTERNAL_ID = Math.random().toString(36).slice(2);
       const NEW_EXTERNAL_ID = EXTERNAL_ID + '1';
 
-      const endUser = await av.createEndUser({ externalId: EXTERNAL_ID, isShared: false })
-      let updatedEndUser = await av.updateEndUser({ id: endUser.id, externalId: NEW_EXTERNAL_ID, isShared: true })
-      expect(updatedEndUser).toBeDefined()
-      expect(updatedEndUser.externalId).toBe(NEW_EXTERNAL_ID)
-      expect(updatedEndUser.isShared).toBe(true)
+      const user = await av.createUser({ externalId: EXTERNAL_ID, isShared: false })
+      let updatedUser = await av.updateUser({ id: user.id, externalId: NEW_EXTERNAL_ID, isShared: true })
+      expect(updatedUser).toBeDefined()
+      expect(updatedUser.externalId).toBe(NEW_EXTERNAL_ID)
+      expect(updatedUser.isShared).toBe(true)
 
-      updatedEndUser = await av.getEndUser({ id: endUser.id })
-      expect(updatedEndUser).toBeDefined()
-      expect(updatedEndUser.externalId).toBe(NEW_EXTERNAL_ID)
-      expect(updatedEndUser.isShared).toBe(true)
+      updatedUser = await av.getUser({ id: user.id })
+      expect(updatedUser).toBeDefined()
+      expect(updatedUser.externalId).toBe(NEW_EXTERNAL_ID)
+      expect(updatedUser.isShared).toBe(true)
     })
 
     describe("get by id", () => {
 
       test("existing ids", async () => {
-        const endUser1 = await av.getEndUser({ id: initEndUser1.id })
-        expect(endUser1).toBeDefined()
-        expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
+        const user1 = await av.getUser({ id: initUser1.id })
+        expect(user1).toBeDefined()
+        expect(user1.externalId).toBe(EXTERNAL_ID_1)
 
-        const endUser2 = await av.getEndUser({ id: initEndUser2.id })
-        expect(endUser2).toBeDefined()
-        expect(endUser2.externalId).toBe(EXTERNAL_ID_2)
+        const user2 = await av.getUser({ id: initUser2.id })
+        expect(user2).toBeDefined()
+        expect(user2.externalId).toBe(EXTERNAL_ID_2)
       })
 
       test("not found", async () => {
-        await expect(av.getEndUser({ id: 'xxx' })).rejects.toThrowError(expect.objectContaining({
+        await expect(av.getUser({ id: 'xxx' })).rejects.toThrowError(expect.objectContaining({
           statusCode: 404,
           message: expect.any(String),
         }))
       })
 
       test("succeeeds when scoped with own token", async () => {
-        const endUser1 = await av.as(initEndUser1).getEndUser({ id: initEndUser1.id })
-        expect(endUser1).toBeDefined()
-        expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
+        const user1 = await av.as(initUser1).getUser({ id: initUser1.id })
+        expect(user1).toBeDefined()
+        expect(user1.externalId).toBe(EXTERNAL_ID_1)
       })
 
       test("fails when scoped with another user's token", async () => {
-        await expect(av.as(initEndUser1).getEndUser({ id: initEndUser2.id })).rejects.toThrowError(expect.objectContaining({
+        await expect(av.as(initUser1).getUser({ id: initUser2.id })).rejects.toThrowError(expect.objectContaining({
           statusCode: 401,
           message: expect.any(String),
           }))
@@ -147,26 +146,26 @@ describe('API', () => {
 
       describe("get by external id", () => {
         test("existing external ids", async () => {
-          const endUser1 = await av.getEndUser({ externalId: EXTERNAL_ID_1 })
-        expect(endUser1).toBeDefined()
-        expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
+          const user1 = await av.getUser({ externalId: EXTERNAL_ID_1 })
+        expect(user1).toBeDefined()
+        expect(user1.externalId).toBe(EXTERNAL_ID_1)
       })
 
       test("not found", async () => {
-        await expect(av.getEndUser({ externalId: 'unknown_external_id' })).rejects.toThrowError(expect.objectContaining({
+        await expect(av.getUser({ externalId: 'unknown_external_id' })).rejects.toThrowError(expect.objectContaining({
           statusCode: 404,
           message: expect.any(String),
         }))
       })
 
       test("succeeeds when scoped with own token", async () => {
-        const endUser1 = await av.as(initEndUser1).getEndUser({ externalId: EXTERNAL_ID_1 })
-        expect(endUser1).toBeDefined()
-        expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
+        const user1 = await av.as(initUser1).getUser({ externalId: EXTERNAL_ID_1 })
+        expect(user1).toBeDefined()
+        expect(user1.externalId).toBe(EXTERNAL_ID_1)
       })
 
       test("fails when scoped with another user's token", async () => {
-        await expect(av.as(initEndUser1).getEndUser({ externalId: EXTERNAL_ID_1 })).rejects.toThrowError(expect.objectContaining({
+        await expect(av.as(initUser2).getUser({ externalId: EXTERNAL_ID_1 })).rejects.toThrowError(expect.objectContaining({
           statusCode: 401,
           message: expect.any(String),
         }))
@@ -175,17 +174,17 @@ describe('API', () => {
 
     describe("get me", () => {
       test("works", async () => {
-        const endUser1 = await av.as(initEndUser1).getEndUser()
-        expect(endUser1).toBeDefined()
-        expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
+        const user1 = await av.as(initUser1).getUser()
+        expect(user1).toBeDefined()
+        expect(user1.externalId).toBe(EXTERNAL_ID_1)
 
-        const endUser2 = await av.as(initEndUser2).getEndUser()
-        expect(endUser2).toBeDefined()
-        expect(endUser2.externalId).toBe(EXTERNAL_ID_2)
+        const user2 = await av.as(initUser2).getUser()
+        expect(user2).toBeDefined()
+        expect(user2.externalId).toBe(EXTERNAL_ID_2)
       })
 
       test("fails for bad token", async () => {
-        await expect(av.as('xxx').getEndUser()).rejects.toThrowError(expect.objectContaining({
+        await expect(av.as('xxx').getUser()).rejects.toThrowError(expect.objectContaining({
           statusCode: 404,
           message: expect.any(String),
         }))
@@ -200,25 +199,25 @@ describe('API', () => {
       test("works for existing users", async () => {
         const avPublic1 = new AgentViewClient({
           apiUrl,
-          endUserToken: initEndUser1.token
+          userToken: initUser1.token
         })
-        const endUser1 = await avPublic1.getMe()
-        expect(endUser1).toBeDefined()
-        expect(endUser1.externalId).toBe(EXTERNAL_ID_1)
+        const user1 = await avPublic1.getMe()
+        expect(user1).toBeDefined()
+        expect(user1.externalId).toBe(EXTERNAL_ID_1)
 
         const avPublic2 = new AgentViewClient({
           apiUrl,
-          endUserToken: initEndUser2.token
+          userToken: initUser2.token
         })
-        const endUser2 = await avPublic2.getMe()
-        expect(endUser2).toBeDefined()
-        expect(endUser2.externalId).toBe(EXTERNAL_ID_2)
+        const user2 = await avPublic2.getMe()
+        expect(user2).toBeDefined()
+        expect(user2.externalId).toBe(EXTERNAL_ID_2)
       })
 
       test("fails for unknown key", async () => {
         const avPublic1 = new AgentViewClient({
           apiUrl,
-          endUserToken: "xxx"
+          userToken: "xxx"
         })
 
         await expect(avPublic1.getMe()).rejects.toThrowError(expect.objectContaining({
@@ -230,12 +229,12 @@ describe('API', () => {
 
     describe("get session by id", () => {
       test("works for own session", async () => {
-        await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
-        const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+        await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
+        const session = await av.createSession({ agent: "test", userId: initUser1.id })
 
         const avPublic1 = new AgentViewClient({
           apiUrl,
-          endUserToken: initEndUser1.token
+          userToken: initUser1.token
         })
 
         const fetchedSession = await avPublic1.getSession({ id: session.id })
@@ -243,12 +242,12 @@ describe('API', () => {
       })
 
       test("fails for someone else's session", async () => {
-        await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
-        const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+        await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
+        const session = await av.createSession({ agent: "test", userId: initUser1.id })
 
         const avPublic2 = new AgentViewClient({
           apiUrl,
-          endUserToken: initEndUser2.token
+          userToken: initUser2.token
         })
 
         await expect(avPublic2.getSession({ id: session.id })).rejects.toThrowError(expect.objectContaining({
@@ -262,7 +261,7 @@ describe('API', () => {
   describe("configs", () => {
 
     test("works", async () => {
-      const CONFIG = { agents: [{ name: "test", url: "https://test.com" }] };
+      const CONFIG = { agents: [{ name: "test"  }] };
 
       let configRow = await av.__updateConfig({ config: CONFIG })
       expect(configRow.config).toEqual(CONFIG);
@@ -270,7 +269,7 @@ describe('API', () => {
       configRow = await av.__getConfig();
       expect(configRow.config).toEqual(CONFIG);
 
-      const CONFIG_2 = { agents: [{ name: "test2", url: "https://test2.com" }] };
+      const CONFIG_2 = { agents: [{ name: "test2" }] };
 
       configRow = await av.__updateConfig({ config: CONFIG_2 })
       expect(configRow.config).toEqual(CONFIG_2);
@@ -298,26 +297,26 @@ describe('API', () => {
 
   describe("sessions", async () => {
     test("create", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
 
-      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      const session = await av.createSession({ agent: "test", userId: initUser1.id })
       expect(session).toMatchObject({
         agent: "test",
         metadata: {},
         runs: [],
-        endUser: {
-          id: initEndUser1.id,
+        user: {
+          id: initUser1.id,
           externalId: EXTERNAL_ID_1,
           isShared: false,
-          token: initEndUser1.token,
+          token: initUser1.token,
         }
       })
     })
 
     test("create - fails at wrong agent", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
 
-      await expect(av.createSession({ agent: "wrong_agent", endUserId: initEndUser1.id })).rejects.toThrowError(expect.objectContaining({
+      await expect(av.createSession({ agent: "wrong_agent", userId: initUser1.id })).rejects.toThrowError(expect.objectContaining({
         statusCode: 404,
         message: expect.any(String),
       }))
@@ -325,20 +324,20 @@ describe('API', () => {
 
 
     test("get by id for existing session", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
 
-      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      const session = await av.createSession({ agent: "test", userId: initUser1.id })
       const fetchedSession = await av.getSession({ id: session.id })
       expect(fetchedSession).toMatchObject({
         agent: "test",
         metadata: {},
         runs: [],
-        endUserId: initEndUser1.id,
+        userId: initUser1.id,
       })
     })
 
     test("get by id - wrong id", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
 
       await expect(av.getSession({ id: 'xxx' })).rejects.toThrowError(expect.objectContaining({
         statusCode: 404,
@@ -413,9 +412,9 @@ describe('API', () => {
 
     // METADATA TESTS
     test("create / with known metadata / saved", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { product_id: z.string() } }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { product_id: z.string() } }] } })
 
-      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id, metadata: { product_id: "123" } })
+      const session = await av.createSession({ agent: "test", userId: initUser1.id, metadata: { product_id: "123" } })
       expect(session).toMatchObject({
         agent: "test",
         metadata: {
@@ -425,9 +424,9 @@ describe('API', () => {
     })
 
     test("create / optional & nullable metadata / all saved as null", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { x: z.nullable(z.string()), y: z.nullable(z.number()) } }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { x: z.nullable(z.string()), y: z.nullable(z.number()) } }] } })
 
-      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id })
+      const session = await av.createSession({ agent: "test", userId: initUser1.id })
       expect(session).toMatchObject({
         agent: "test",
         metadata: {
@@ -438,9 +437,9 @@ describe('API', () => {
     })
 
     test("create / with known metadata + allowUnknownMetadata=false / saved", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { product_id: z.string() }, allowUnknownMetadata: false }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { product_id: z.string() }, allowUnknownMetadata: false }] } })
 
-      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id, metadata: { product_id: "123" } })
+      const session = await av.createSession({ agent: "test", userId: initUser1.id, metadata: { product_id: "123" } })
       expect(session).toMatchObject({
         agent: "test",
         metadata: {
@@ -450,9 +449,9 @@ describe('API', () => {
     })
 
     test("create / with unknown metadata / saved", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com" }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
 
-      const session = await av.createSession({ agent: "test", endUserId: initEndUser1.id, metadata: { product_id: "123" } })
+      const session = await av.createSession({ agent: "test", userId: initUser1.id, metadata: { product_id: "123" } })
       expect(session).toMatchObject({
         agent: "test",
         metadata: {
@@ -462,18 +461,18 @@ describe('API', () => {
     })
 
     test("create / with unknown metadata + allowUnknownMetadata=false / failed", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", allowUnknownMetadata: false }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" , allowUnknownMetadata: false }] } })
 
-      await expect(av.createSession({ agent: "test", endUserId: initEndUser1.id, metadata: { product_id: "123" } })).rejects.toThrowError(expect.objectContaining({
+      await expect(av.createSession({ agent: "test", userId: initUser1.id, metadata: { product_id: "123" } })).rejects.toThrowError(expect.objectContaining({
         statusCode: 422,
         message: expect.any(String),
       }))
     })
 
     test("create / with incompatible metadata / fails", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { product_id: z.string() } }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { product_id: z.string() } }] } })
 
-      await expect(av.createSession({ agent: "test", endUserId: initEndUser1.id, metadata: { product_id: 123 } })).rejects.toThrowError(expect.objectContaining({
+      await expect(av.createSession({ agent: "test", userId: initUser1.id, metadata: { product_id: 123 } })).rejects.toThrowError(expect.objectContaining({
         statusCode: 422,
         message: expect.any(String),
       }))
@@ -481,9 +480,9 @@ describe('API', () => {
 
 
     test("update metadata", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false }] } })
 
-      const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, endUserId: initEndUser1.id })
+      const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, userId: initUser1.id })
 
       const updated = await av.updateSession({ id: session.id, metadata: { field1: "B", field2: 1 } })
       expect(updated.metadata).toEqual({ field1: "B", field2: 1 })
@@ -493,9 +492,9 @@ describe('API', () => {
     })
 
     test("update metadata - partial update", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false }] } })
 
-      const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, endUserId: initEndUser1.id })
+      const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, userId: initUser1.id })
 
       const updated = await av.updateSession({ id: session.id, metadata: { field1: "B" } })
       expect(updated.metadata).toEqual({ field1: "B", field2: 0 })
@@ -505,9 +504,9 @@ describe('API', () => {
     })
 
     test("update metadata - make field null", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { field1: z.string(), field2: z.number().nullable() }, allowUnknownMetadata: false }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { field1: z.string(), field2: z.number().nullable() }, allowUnknownMetadata: false }] } })
 
-      const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, endUserId: initEndUser1.id })
+      const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, userId: initUser1.id })
 
       const updated = await av.updateSession({ id: session.id, metadata: { field2: null } })
       expect(updated.metadata).toEqual({ field1: "A", field2: null })
@@ -517,9 +516,9 @@ describe('API', () => {
     })
 
     test("update metadata only - validation enforced", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test", url: "https://test.com", metadata: { product_id: z.string() }, allowUnknownMetadata: false }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { product_id: z.string() }, allowUnknownMetadata: false }] } })
 
-      const session = await av.createSession({ agent: "test", metadata: { product_id: "A" }, endUserId: initEndUser1.id })
+      const session = await av.createSession({ agent: "test", metadata: { product_id: "A" }, userId: initUser1.id })
 
       await expect(av.updateSession({ id: session.id, metadata: { wrong: "x" } })).rejects.toThrowError(expect.objectContaining({
         statusCode: 422,
@@ -616,7 +615,7 @@ describe('API', () => {
         ],
         lastRunStatus: [undefined],
         validateSteps: true,
-        error: 422
+        error: 422,
       },
       {
         title: "input, 2 steps, no output",
@@ -773,7 +772,7 @@ describe('API', () => {
         counter++;
 
         for (const lastRunStatus of testCase.lastRunStatus) {
-          const title = `${testCase.title} / run ${counter} / ${lastRunStatus} -> ${testCase.error ? `error ${testCase.error}` : "ok"}`
+          const title = `${testCase.title} / scenario ${counter} / ${lastRunStatus} -> ${testCase.error ? `error ${testCase.error}` : "ok"}`
 
           const testFn = testCase.only ? test.only : test;
 
@@ -920,11 +919,11 @@ describe('API', () => {
       }))
     })
 
-    test("endUserToken scoped permissions", async () => {
+    test("userToken scoped permissions", async () => {
       await updateConfig()
       const session = await createSession()
 
-      await expect(av.as(initEndUser2).createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
+      await expect(av.as(initUser2).createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
         statusCode: 401,
         message: expect.any(String),
       }))

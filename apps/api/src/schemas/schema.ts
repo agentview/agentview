@@ -33,7 +33,7 @@ export const endUsers = pgTable("end_users", {
 
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-  simulatedBy: text('simulated_by').references(() => users.id, { onDelete: 'set null' }),
+  createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
   isShared: boolean("is_shared").notNull().default(false),
 
   token: text("token").notNull().unique(),
@@ -60,7 +60,7 @@ export const sessions = pgTable("sessions", {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   metadata: jsonb("metadata"),
-  endUserId: uuid("end_user_id").notNull().references(() => endUsers.id, { onDelete: 'cascade' }),
+  userId: uuid("end_user_id").notNull().references(() => endUsers.id, { onDelete: 'cascade' }),
   agent: varchar("agent", { length: 255 }).notNull(),
 }, (table) => [uniqueIndex('sessions_handle_unique').on(table.handleNumber, table.handleSuffix)]);
 
@@ -202,8 +202,8 @@ export const configs = pgTable('configs', {
 export const sessionRelations = relations(sessions, ({ many, one }) => ({
   sessionItems: many(sessionItems),
   runs: many(runs),
-  endUser: one(endUsers, {
-    fields: [sessions.endUserId],
+  user: one(endUsers, {
+    fields: [sessions.userId],
     references: [endUsers.id],
   }),
   inboxItems: many(inboxItems),
@@ -216,8 +216,8 @@ export const sessionRelations = relations(sessions, ({ many, one }) => ({
 
 export const endUserRelations = relations(endUsers, ({ many, one }) => ({
   sessions: many(sessions),
-  simulatedBy: one(users, {
-    fields: [endUsers.simulatedBy],
+  createdBy: one(users, {
+    fields: [endUsers.createdBy],
     references: [users.id],
   }),
 }));

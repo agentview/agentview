@@ -1,7 +1,7 @@
 import { 
   type Session, 
-  type EndUser, 
-  type EndUserCreate,
+  type User, 
+  type UserCreate,
   type Run,
   type RunCreate,
   type RunUpdate,
@@ -19,18 +19,18 @@ import { enhanceSession } from './sessionUtils'
 export interface AgentViewOptions {
   apiUrl: string
   apiKey: string
-  endUserToken?: string
+  userToken?: string
 }
 
 export class AgentView {
   private apiUrl: string
   private apiKey: string
-  private endUserToken?: string
+  private userToken?: string
 
   constructor(options: AgentViewOptions) {
     this.apiUrl = options.apiUrl.replace(/\/$/, '') // remove trailing slash
     this.apiKey = options.apiKey
-    this.endUserToken = options.endUserToken
+    this.userToken = options.userToken
   }
 
   private async request<T>(
@@ -42,8 +42,8 @@ export class AgentView {
       'Content-Type': 'application/json',
     }
 
-    if (this.endUserToken) {
-      headers['X-End-User-Token'] = this.endUserToken;
+    if (this.userToken) {
+      headers['X-User-Token'] = this.userToken;
     }
 
     headers['Authorization'] = `Bearer ${this.apiKey}`
@@ -83,39 +83,31 @@ export class AgentView {
     return await this.request<Run>('PATCH', `/api/runs/${options.id}`, options)
   }
 
-  async createEndUser(options?: EndUserCreate): Promise<EndUser> {
-    return await this.request<EndUser>('POST', `/api/end-users`, options ?? {})
+  async createUser(options?: UserCreate): Promise<User> {
+    return await this.request<User>('POST', `/api/users`, options ?? {})
   }
 
-  async getEndUser(options?: { id: string } | { token: string } | { externalId: string } | undefined): Promise<EndUser> {
+  async getUser(options?: { id: string } | { token: string } | { externalId: string } | undefined): Promise<User> {
     if (!options) {
-      return await this.request<EndUser>('GET', `/api/end-users/me`)
+      return await this.request<User>('GET', `/api/users/me`)
     }
     if ('id' in options) {
-      return await this.request<EndUser>('GET', `/api/end-users/${options.id}`)
+      return await this.request<User>('GET', `/api/users/${options.id}`)
     }
     if ('token' in options) {
-      if (this.endUserToken && this.endUserToken !== options.token) {
-        throw new Error('Cannot get end user with token when scoped with another user\'s token')
+      if (this.userToken && this.userToken !== options.token) {
+        throw new Error('Cannot get user with token when scoped with another user\'s token')
       }
-      return await this.as(options.token).request<EndUser>('GET', `/api/end-users/me`)
+      return await this.as(options.token).request<User>('GET', `/api/users/me`)
     }
     if ('externalId' in options) {
-      return await this.request<EndUser>('GET', `/api/end-users/by-external-id/${options.externalId}`)
+      return await this.request<User>('GET', `/api/users/by-external-id/${options.externalId}`)
     }
     throw new Error('Invalid options')
   }
 
-  // async getEndUserByExternalId(options: { externalId: string }): Promise<EndUser> {
-  //   return await this.request<EndUser>('GET', `/api/end-users/by-external-id/${options.externalId}`, undefined)
-  // }
-
-  // async getEndUserMe(): Promise<EndUser> {
-  //   return await this.request<EndUser>('GET', `/api/end-users/me`)
-  // }
-
-  async updateEndUser(options: EndUserCreate & { id: string }): Promise<EndUser> {
-    return await this.request<EndUser>('PUT', `/api/end-users/${options.id}`, options)
+  async updateUser(options: UserCreate & { id: string }): Promise<User> {
+    return await this.request<User>('PATCH', `/api/users/${options.id}`, options)
   }
 
   async __getConfig(): Promise<Config> {
@@ -126,13 +118,13 @@ export class AgentView {
     return await this.request<Config>('PUT', `/api/config`, { ...body, config: serializeConfig(body.config) })
   }
 
-  as(endUserOrToken: EndUser | string) {
-    const endUserToken = typeof endUserOrToken === 'string' ? endUserOrToken : endUserOrToken.token;
+  as(userOrToken: User | string) {
+    const userToken = typeof userOrToken === 'string' ? userOrToken : userOrToken.token;
 
     return new AgentView({
       apiUrl: this.apiUrl,
       apiKey: this.apiKey,
-      endUserToken,
+      userToken,
     })
   }
 }
@@ -142,16 +134,16 @@ export class AgentView {
 
 export interface AgentViewClientOptions {
   apiUrl: string
-  endUserToken: string
+  userToken: string
 }
 
 export class AgentViewClient {
   private apiUrl: string
-  private endUserToken: string
+  private userToken: string
 
   constructor(options: AgentViewClientOptions) {
     this.apiUrl = options.apiUrl.replace(/\/$/, '') // remove trailing slash
-    this.endUserToken = options.endUserToken
+    this.userToken = options.userToken
   }
 
   private async request<T>(
@@ -163,7 +155,7 @@ export class AgentViewClient {
       'Content-Type': 'application/json',
     }
 
-    headers['X-End-User-Token'] = this.endUserToken;
+    headers['X-User-Token'] = this.userToken;
 
     const response = await fetch(`${this.apiUrl}${path}`, {
       method,
@@ -180,8 +172,8 @@ export class AgentViewClient {
     return await response.json()
   }
 
-  async getMe(): Promise<EndUser> {
-    return await this.request<EndUser>('GET', `/api/public/me`)
+  async getMe(): Promise<User> {
+    return await this.request<User>('GET', `/api/public/me`)
   }
 
   async getSession(options: { id: string }) {

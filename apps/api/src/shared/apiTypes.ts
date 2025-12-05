@@ -1,26 +1,24 @@
 import z from 'zod'
 
 
-export const EndUserSchema = z.object({
+export const UserSchema = z.object({
     id: z.string(),
     externalId: z.string().nullable(),
     createdAt: z.iso.date(),
     updatedAt: z.iso.date(),
-    simulatedBy: z.string().nullable(),
+    createdBy: z.string().nullable(),
     isShared: z.boolean(),
     token: z.string(),
 })
 
-export type EndUser = z.infer<typeof EndUserSchema>
+export type User = z.infer<typeof UserSchema>
 
-export const EndUserCreateSchema = EndUserSchema.pick({
+export const UserCreateSchema = UserSchema.pick({
     isShared: true,
     externalId: true,
 }).partial()
 
-export type EndUserCreate = z.infer<typeof EndUserCreateSchema>
-
-
+export type UserCreate = z.infer<typeof UserCreateSchema>
 
 export const InvitationSchema = z.object({
     id: z.string(),
@@ -156,8 +154,8 @@ export const SessionBaseSchema = z.object({
     createdAt: z.iso.date(),
     updatedAt: z.iso.date(),
     metadata: z.record(z.string(), z.any()).nullable(),
-    endUser: EndUserSchema,
-    endUserId: z.string(), // potential bloat
+    user: UserSchema,
+    userId: z.string(), // potential bloat
     state: z.any().nullable().optional(),
 })
 
@@ -178,8 +176,8 @@ export type SessionWithCollaboration = z.infer<typeof SessionWithCollaborationSc
 export const SessionCreateSchema = z.object({
     agent: z.string(),
     metadata: z.record(z.string(), z.any()).optional(),
-    endUserId: z.string().optional(),
-    endUserExternalId: z.string().optional(),
+    userId: z.string().optional(),
+    userExternalId: z.string().optional(),
 })
 
 export type SessionCreate = z.infer<typeof SessionCreateSchema>

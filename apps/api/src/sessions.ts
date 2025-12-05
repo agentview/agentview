@@ -28,7 +28,7 @@ export async function fetchSession(session_id: string, tx?: Transaction): Promis
   const row = await (tx || db).query.sessions.findFirst({
     where,
     with: {
-      endUser: true,
+      user: true,
       runs: {
         columns: {
           id: true,
@@ -74,8 +74,8 @@ export async function fetchSession(session_id: string, tx?: Transaction): Promis
     updatedAt: row.updatedAt,
     metadata: row.metadata,
     agent: row.agent,
-    endUser: row.endUser,
-    endUserId: row.endUser.id,
+    user: row.user,
+    userId: row.user.id,
     runs: row.runs.filter((run, index) => run.status === "in_progress" || run.status === "completed" || index === row.runs.length - 1),
     state
   } as SessionWithCollaboration;
