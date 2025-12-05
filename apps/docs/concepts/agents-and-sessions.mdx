@@ -54,13 +54,13 @@ const session = await av.createSession({ agent: "simple_agent" })
 
 // Create a complete run with input, output and reasoning step
 await av.createRun({
+    sessionId: session.id,
     items: [
         { type: "message", role: "user", content: "Hello, I'm Bob" },
         { type: "reasoning", content: "Hmm, this is a very complex question..." },
         { type: "message", role: "assistant", content: "Hey, nice to meet you :)" }
     ],
-    sessionId: session.id
-    status: "complete",
+    status: "complete"
 })
 
 const updatedSession = await av.getSession({ id: session.id })
@@ -194,7 +194,7 @@ export default defineConfig({
     // ...
     agents: [
         {
-            name: "very_simple_agent",
+            name: "my_agent",
             metadata: {
                 product_id: z.string()
             }
@@ -224,7 +224,7 @@ export default defineConfig({
     // ...
     agents: [
         {
-            name: "very_simple_agent",
+            name: "my_agent",
             metadata: {
                 product_id: z.string(),
             },
@@ -232,6 +232,34 @@ export default defineConfig({
         }
     ]
 });
+```
+
+#### Updating metafields
+
+You can change the value of metafield via `av.updateSession`:
+
+```ts
+await av.updateSession({
+    id: session.id,
+    metadata: {
+        product_id: "new_updated_id"
+    }
+})
+```
+
+If you have multiple metafields, if you do not include them in the update, they will be left unchanged.
+
+#### Clearing metafields
+
+You can clear metafield by setting it to `null`:
+
+```ts
+await av.updateSession({
+    id: session.id,
+    metadata: {
+        product_id: null
+    }
+})
 ```
 
 ## Runs
@@ -255,7 +283,9 @@ console.log(run.status) // in_progress
 
 ### Run status
 
-The run `status` can be `in_progress`, `complete` or `failed`. After the run is created it automatically has `in_progress` value. When the run is `in_progress`, the session won't accept any new runs. Below, the second `av.createRun` will result in an exception:
+The run `status` can have one of the following values: `in_progress`, `complete`, `failed` or `cancelled`.
+
+After the run is created it automatically has `in_progress` value. When the run is `in_progress`, the session won't accept any new runs. Below, the second `av.createRun` will result in an exception:
 
 ```ts
 await av.createRun({
@@ -273,6 +303,8 @@ await av.createRun({
 }) // throws AgentViewError, you can have only one in_progress run at a time!
 ```
 
+This mechanism protects your agent endpoint from being called multiple times concurrently with the same input.
+
 ### Adding items
 
 You can call `av.updateRun` as many times as you want to keep adding items.
@@ -287,7 +319,7 @@ await av.updateRun({
 })
 ```
 
- We highly recommend using streaming and sending data to AgentView as soon as they appear. It allows for better retry / resume logic later. 
+ We highly recommend using streaming and sending data to AgentView as soon as they appear. It allows for better resume logic later.
 
  ### Ending Run
 
@@ -316,24 +348,33 @@ const run = await av.updateRun({
 })
 ```
 
-When the run is finished (`failed` or `complete`), you can't change its status nor add items anymore. 
+Whenever user drops the connection or clicks a "stop" button, it's technically not an error state. `cancelled` status is used to indicate this case:
 
-### Retrying failed sessions
+```ts
+await av.updateRun({
+    id: run.id,
+    status: "cancelled"
+})
+```
 
-If the last session run was failed, you can still create a new run. If you do it, the last failed run items will be removed from the history and the items from your new run will be appended to the last successful run (the one before the failed one):
+When the run is finished (`complete`, `failed` or `cancelled`), you can't change its status nor add items anymore. 
 
-Retry logic with keeping only the user message:
+### Retry runs
+
+If the last session run was `failed` or `cancelled`, you can still create a new run. If you do it, the last run (the one that was `failed` or `cancelled`) will be removed from the history and the new run will be appended to the last successful run:
+
+Retry logic with keeping only the input message from the failed run:
 
 ```ts
 if (session.lastRun === "failed") { // retry logic
     await av.createRun({
-        items: [session.lastRun.items[0]],
+        items: [session.lastRun.items[0]], // the first item is the input message
         sessionId
     })
 }
 ```
 
-Resume (all the items from previous failed run preserved):
+### Resume runs
 
 ```ts
 if (session.lastRun === "failed") { // retry logic
@@ -369,7 +410,7 @@ export default defineConfig({
     // ...
     agents: [
         {
-            name: "very_simple_agent",
+            name: "my_agent",
             runs: [
                 {
                     metadata: {

@@ -5,7 +5,7 @@ description: "Handle errors gracefully."
 
 As you can see, AgentView does a lot to make sure your app state is always correct. It handles items and metadata validation and orchestrates the session lifecycle thanks to a run state.
 
-Any time an error occurs, AgnetView will throw an exception which is an instance of `AgentViewError`. It has `body` and `statusCode` propreties so that it's trivial to just redirect it directly to the user as HTTP responses from your endpoint:
+Any time an error occurs, AgentView will throw an exception which is an instance of `AgentViewError`. It has `body` and `statusCode` propreties so that it's trivial to just redirect it directly to the user as HTTP responses from your endpoint:
 
 ```typescript
 import 'dotenv/config'

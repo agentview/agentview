@@ -1,8 +1,8 @@
 ---
-title: "Users and Authentication"
+title: "Users"
 ---
 
-Every session in AgentView is connected with a User. This is very helpful because we might have multiple sessions connected with teh same user which allows for memory, etc.
+Every session in AgentView is connected with a User. This is very helpful because we might have multiple sessions connected with teh same user which allows for better organisation, memory, etc.
 
 When you create a session without specifically pointing at any user, a new anonymous user will be created under the hood.
 
@@ -17,7 +17,7 @@ User object has 3 properties:
 - `externalId` - unique user id from host platform (for example Shopify), so that you can easily match users
 - `token` - user's authentication token
 
-The `token` should be send over to the client's browser so that you can use AgnetView API on the client side. 
+The `token` should be send over to the client's browser so that you can use AgentView API on the client side. 
 
 ### Creating Users
 
@@ -54,7 +54,7 @@ await av.createSession({ agent, endUserToken: "user_token" })
 
 The AgentView API key is secret and shouldn't be sent to the browser (or any other client-side app).
 
-However, you can still use AgnetView API directly on the client-side if you have user token: 
+However, you can still use AgentView API directly on the client-side if you have user token: 
 
 ```ts
 const av = new AgentView({

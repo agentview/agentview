@@ -60,7 +60,7 @@ The scores, messages, flows might be different, so that's why you can provide a 
 
 ## GETTING STARTED
 
-Let's build a simple agent with AgnetView.
+Let's build a simple agent with AgentView.
 
 ```
 npm create agentview@latest my-agentview-project
@@ -335,7 +335,7 @@ The philosophy behind architecture:
 
 ## What is AgentView?
 
-AgentView is an open-source scaffolding that helps AI engineers build conversational agents like support bots, shopping assistants, etc. I call it AMS - Agnet Managemnet System, because it reminds of CMS.  
+AgentView is an open-source scaffolding that helps AI engineers build conversational agents like support bots, shopping assistants, etc. I call it AMS - Agent Managemnet System, because it reminds of CMS.  
 
 Core ideas around AgentView:
 - It assumes **AI Engineer writes AI with code**. It's not a no-code builder. 

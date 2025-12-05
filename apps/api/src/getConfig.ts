@@ -45,6 +45,7 @@ function baseConfigSchema<T extends z.ZodType>(jsonSchemaSchema: T) {
                 input: BaseSessionItemConfigSchema,
                 output: BaseSessionItemConfigSchema,
                 steps: z.array(BaseSessionItemConfigSchemaWithTools).optional(),
+                validateSteps: z.boolean().optional(),
                 metadata: z.record(z.string(), jsonSchemaSchema).optional(),
                 allowUnknownMetadata: z.boolean().optional(),
             })).optional(),

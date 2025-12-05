@@ -313,7 +313,7 @@ One of the key features of AgentView is collaboration. It should be easy to disc
 
 So far `my_super_agent` was very simple. Let's create a more advanced  example. We're gonna build a weather agent, that is capable of calling `weather_tool` for checking weather in given location.
 
-To show the flexibility of AgnetView, let's use AgentSDK instead of pure Responses API for a change:
+To show the flexibility of AgentView, let's use AgentSDK instead of pure Responses API for a change:
 
 ```typescript
 const weatherAgent = new Agent({

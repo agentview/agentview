@@ -1,147 +1,123 @@
 ---
-title: "Items Validation"
-description: "Keep your agent data in check."
+title: "Schema Validation"
 ---
 
-The default settings of AgentView are very relaxed not to overload you with annoying errors during development. However, you can provide schemas to provide stronger validation.
+AgentView is schema-less. Your stored session items don't have enforced structure similar to SQL databases.
+
+However, AgentView still makes heavy use of schemas:
+- they provide protection at the *insert* time for the current agent version. You're sure incorrect data won't be inserted.
+- they're used for matching
 
 ### Input and Output
 
-The following code says that `very_simple_agent` has a single run.
+Here's an example of how you can define input and output schemas for your agent:
 
 ```typescript
 export default defineConfig({
-    // ...
-    agents: [
+  // ...
+  agents: [
+    {
+      name: "my_agent",
+      runs: [
         {
-            name: "very_simple_agent",
-            runs: [
-                {
-                    input: {
-                        schema: {
-                            type: "message",
-                            role: "user",
-                            content: z.string(),
-                        }
-                    },
-                    output: {
-                        schema: {
-                            type: "message",
-                            role: "assistant",
-                            content: z.string(),
-                        }
-                    }
-                }
-            ]
+          input: {
+            schema: z.object({
+                type: z.literal("message"),
+                role: z.literal("user"),
+                content: z.string(),
+            })
+          },
+          output: {
+            schema: z.object({
+                type: z.literal("message"),
+                role: z.literal("assistant"),
+                content: z.string(),
+            })
+          }
         }
-        // ...
-    ]
+      ]
+    }
+    // ...
+  ]
 })
 ```
 
-Here's what's happens now:
-1. When you create a run with `av.createRun`, the first item in `items` array is treated as "input".
-2. AgentView scans all the available runs from the agent config and matches the `input`.
-3. If it found a matching run, all the validation will be done according this run settings. So in this case, it's gonna make sure that the last item in items array (output) matches the `output` schema.
+If you try to start a run with input that doesn't match the input schema, AgentView will throw an error:
 
+```ts
+// (!) throws
+await av.createRun({
+  items: [
+    { type: "message", role: "user", content: 100 }
+  ],
+})
+```
+
+The output of the run will be validated against the output schema:
 
 ```ts
 // Correct, output matches input
 await av.createRun({
-    items: [
-        { type: "message", role: "user", content: "Hello I'm Bob." }
-        { type: "message", role: "assistant", content: "Hello Bob, how are you?" }
-    ],
-    status: "complete",
+  items: [
+    { type: "message", role: "user", content: "Hello I'm Bob." }
+    { type: "message", role: "assistant", content: "Hello Bob, how are you?" }
+  ],
+  status: "complete",
 })
 
-// Throws, incorrect output for a given input
+// (!) throws, incorrect output for a given input
 await av.createRun({
-    items: [
-        { type: "message", role: "user", content: "Hello I'm Bob." }
-        { type: "message", content: "Hello Bob, how are you?" } // no "role"
-    ],
-    status: "complete",
+  items: [
+    { type: "message", role: "user", content: "Hello I'm Bob." }
+    { type: "message", content: "Hello Bob, how are you?" } // no "role"
+  ],
+  status: "complete",
 })
 ```
-
-By default, if AgnetView can't find a run based on input item, it will fallback to "unknown run" which allows for any item shape. So this is still possible:
-
-```ts
-// Can't match any run -> unknown run -> allow
-await av.createRun({
-    items: [
-        { type: "blah" }
-        { type: "message", content: "Hello Bob, how are you?" }
-    ],
-    status: "complete",
-})
-```
-
-You can disable this behaviour:
-
-```typescript
-export default defineConfig({
-    // ...
-    agents: [
-        {
-            name: "very_simple_agent",
-            runs: [
-                // ...
-            ],
-            allowUnknownRuns: false
-        }
-        // ...
-    ]
-})
-```
-
-Now, an input item of new run **must** match at least one input from the runs array.
 
 ### Steps
 
-For now we just validated input and output, which is first and and last items of a run. The items between input and output are called "steps". You can make sure steps conform to the schemas you provide:
+Items between input and output are called "steps". By default they're not validated against any schema. If you want to enabled validation set `validateSteps` flag to `true`:
 
 ```typescript
 export default defineConfig({
-    // ...
-    agents: [
+  // ...
+  agents: [
+    {
+      name: "my_agent",
+      runs: [
         {
-            name: "very_simple_agent",
-            runs: [
-                {
-                    input: {
-                        schema: {
-                            type: "message",
-                            role: "user",
-                            content: z.string(),
-                        }
-                    },
-                    steps: [
-                        {
-                            schema: {
-                                type: "reasoning",
-                                content: z.string()
-                            }
-                        }
-                    ]
-                    output: {
-                        schema: {
-                            type: "message",
-                            role: "assistant",
-                            content: z.string(),
-                        }
-                    }
-                }
-            ],
-            allowUnknownSteps: false
+          input: {
+            schema: z.object({
+              type: z.literal("message"),
+              role: z.literal("user"),
+              content: z.string(),
+            }),
+          },
+          steps: [
+            {
+              schema: z.object({
+                type: z.literal("reasoning"),
+                content: z.string(),
+              }),
+            },
+          ],
+          output: {
+            schema: z.object({
+              type: z.literal("message"),
+              role: z.literal("assistant"),
+              content: z.string(),
+            }),
+          },
+          validateSteps: true,
         },
-        // ...
-    ]
+      ],
+    },
+  ],
 })
 ```
 
-In this example only the reasoning steps with string content are allowed. Please keep in mind you must set `allowUnknownSteps` to `false`. Without it, even if no matching stpe is found, AgentView will treat the step as unknown and allow it to be added.
+Now if you try to add an incorrect step, you'll get an error.
 
 ### Tool calls
 
@@ -151,53 +127,109 @@ AgentView allows to represent this in the schema:
 
 ```typescript
 export default defineConfig({
-    agents: [
+  agents: [
+    {
+      name: "my_agent",
+      runs: [
         {
-            name: "very_simple_agent",
-            runs: [
-                {
-                    input: /* ... */,
-                    output: /* ... */,
-                    steps: [
-                        {
-                            schema: {
-                                type: "function_call",
-                                name: "weather_tool",
-                                callId: z.string().meta({ callId: true })
-                            },
-                            callResult: {
-                                schema: {
-                                    type: "function_call_result",
-                                    callId: z.string().meta({ callId: true })
-                                },
-                            }
-                        },
-                        // ...
-                    ]
-                }
-            ],
-            allowUnknownSteps: false
+          input: /* ... */,
+          output: /* ... */,
+          steps: [
+            {
+              schema: z.looseObject({
+                type: z.literal("function_call"),
+                name: z.string(),
+                callId: z.string().meta({ callId: true })
+              }),
+              callResult: {
+                schema: z.looseObject({
+                  type: z.literal("function_call_result"),
+                  callId: z.string().meta({ callId: true })
+                }),
+              }
+            },
+            // ...
+          ]
         }
-    ]
+      ],
+      allowUnknownSteps: false
+    }
+  ]
 })
 ```
 
-In this scenario AgentView will make sure that every weather function call has appropriate result.
+`.meta{ callId }` marks the field as a tool call id.
 
-### Strict validation
+There are a bunch of validations done automatically:
+- there might be only one tool call with a given call id
+- there might be only one tool result for this id, must be in the same run, and must be after the tool call
 
-By default the items are matched loosely, which means that unknown keys will be treated as a match and saved. You can force strict matching by setting `allowUnknownItemKeys` flag to `false`:
+### Loose validation
+
+Whenever you define the schema as `z.object`, **any field that is not defined in the schema won't be saved**.
+
+Let's look at this schema:
 
 ```typescript
 export default defineConfig({
-    agents: [
+  // ...
+  agents: [
+    {
+      name: "my_agent",
+      runs: [
         {
-            name: "my_super_agent",
-            runs: [
-                // ...
-            ],            
-            allowUnknownItemKeys: false
+          input: {
+            schema: z.object({
+                type: z.literal("message"),
+                role: z.literal("user"),
+                content: z.string(),
+            })
+          },
+          output: {
+            schema: z.object({
+                type: z.literal("message"),
+                role: z.literal("assistant"),
+                content: z.string(),
+            })
+          }
         }
-    ]
+      ]
+    }
+    // ...
+  ]
 })
 ```
+
+If you add an additional field to the item, it won't be saved:
+```ts
+const run = await av.createRun({
+  items: [
+    { type: "message", role: "user", content: "Hello I'm Bob.", additional: "field" }
+  ],
+})
+
+console.log(run.items[0])
+// { type: "message", role: "user", content: "Hello I'm Bob." } - no "additional" field!
+```
+
+If you want to allow for additional fields, you can use `z.looseObject`:
+
+```ts
+{
+  schema: z.looseObject({
+    type: z.literal("message"),
+    role: z.literal("user"),
+    content: z.string(),
+  })
+}
+```
+
+This is very handy because often there are bunch of fields you want to validate and some more "open" model artifacts that should just be saved as is without thinking over their format.
+
+### Multiple runs
+
+You can you define multiple run types for an agent. Here's how matching algorithm works:
+1. Whenever you add or update the run, AgentView first matches the run input item against all the available runs, to find the run.
+2. If it finds a match, it will use the run schemas to validate the rest of the items in the run.
+
+This implies that run inputs must be "distinguishable" from each other on the schema level. If 2 schemas match the same input, AgentView will treat this as an error.

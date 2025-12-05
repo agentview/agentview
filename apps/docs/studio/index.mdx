@@ -3,7 +3,7 @@
 
 ## Displaying Session Items
 
-By default, the AgnetView Studio will just show JSON representation of the items.
+By default, the AgentView Studio will just show JSON representation of the items.
 
 You can provide a custom view for each session item in your agent by using `displayComponent` property:
 
@@ -12,7 +12,7 @@ export default defineConfig({
     // ...
     agents: [
         {
-            name: "very_simple_agent",
+            name: "my_agent",
             runs: [
                 {
                     input: {
@@ -58,7 +58,7 @@ Tool calls come in pairs: call and result. In case of paralell tool calls blocks
 export default defineConfig({
     agents: [
         {
-            name: "very_simple_agent",
+            name: "my_agent",
             runs: [
                 {
                     input: /* ... */,
@@ -135,7 +135,7 @@ export default defineConfig({
     // ...
     agents: [
         {
-            name: "very_simple_agent",
+            name: "my_agent",
             runs: [
                 {
                     input: {
@@ -234,7 +234,7 @@ export default defineConfig({
     // ...
     agents: [
         {
-            name: "very_simple_agent",
+            name: "my_agent",
             metadata: {
                 product_id: z.string()
             },
@@ -266,7 +266,7 @@ export default defineConfig({
     // ...
     agents: [
         {
-            name: "very_simple_agent",
+            name: "my_agent",
             metadata: {
                 product_id: z.string()
             },
