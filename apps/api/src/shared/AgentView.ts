@@ -9,6 +9,8 @@ import {
   type SessionUpdate,
   type Config,
   type ConfigCreate,
+  type SessionsGetQueryParams,
+  type SessionsPaginatedResponse,
 } from './apiTypes'
 
 import { type AgentViewErrorBody, type AgentViewErrorDetails, AgentViewError } from './AgentViewError'
@@ -69,6 +71,23 @@ export class AgentView {
 
   async getSession(options: { id: string }) {
     return enhanceSession(await this.request<Session>('GET', `/api/sessions/${options.id}`, undefined))
+  }
+
+  async getSessions(options?: SessionsGetQueryParams) {
+    let path = `/api/sessions`;
+    if (options) {
+      const params = new URLSearchParams();
+      if (options.agent) params.append('agent', options.agent);
+      if (options.page) params.append('page', options.page.toString());
+      if (options.limit) params.append('limit', options.limit.toString());
+      if (options.userId) params.append('userId', options.userId);
+      if (options.list) params.append('list', options.list);
+      const queryString = params.toString();
+      if (queryString) {
+        path += `?${queryString}`;
+      }
+    }
+    return await this.request<SessionsPaginatedResponse>('GET', path, undefined)
   }
 
   async updateSession(options: { id: string } & SessionUpdate) {

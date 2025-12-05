@@ -195,6 +195,27 @@ export const ScoreCreateSchema = ScoreSchema.pick({
     commentId: true,
 })
 
+export const allowedSessionLists = ["prod", "playground_private", "playground_shared"]
+
+export const PublicSessionsGetQueryParamsSchema = z.object({
+    agent: z.string().optional(),
+    page: z.string().optional(),
+    limit: z.string().optional()
+  });
+  
+export const SessionsGetQueryParamsSchema = PublicSessionsGetQueryParamsSchema.extend({
+    userId: z.string().optional(),
+    list: z.enum(allowedSessionLists).optional(),
+})
+
+
+export type PublicSessionsGetQueryParams = z.infer<typeof PublicSessionsGetQueryParamsSchema>
+export type SessionsGetQueryParams = z.infer<typeof SessionsGetQueryParamsSchema>
+
+
+
+
+
 export const ConfigSchema = z.object({
     id: z.string(),
     config: z.any(),
@@ -227,8 +248,6 @@ export const MemberUpdateSchema = z.object({
 export type Member = z.infer<typeof MemberSchema>
 
 export type MemberUpdate = z.infer<typeof MemberUpdateSchema>
-
-export const allowedSessionLists = ["prod", "playground_private", "playground_shared"]
 
 export const PaginationSchema = z.object({
   page: z.number(),

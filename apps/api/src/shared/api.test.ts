@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll } from 'vitest'
 import { AgentView, AgentViewClient } from './AgentView'
-import type { User, Run } from './apiTypes';
+import type { User, Run, Session } from './apiTypes';
 import { z } from 'zod';
 
 const apiKey = 'QnUveLvkStSMbjRCCzfbkBtlngakfLLoHFyaARUroWvTPoqALxxpZSPRuYIUMGbR'
@@ -546,6 +546,104 @@ describe('API', () => {
         statusCode: 422,
         message: expect.any(String),
       }))
+    })
+
+    describe.only("list sessions", () => {
+      const TEST_SESSIONS_COUNT = 20
+      let testSessions: Session[] = []
+      let agentName = 'agent_' + Math.random().toString(36).slice(2)
+
+      // TODO:
+      // - add sessions for 2 users.
+
+      beforeAll(async () => {
+        await av.__updateConfig({ config: { agents: [{ name: agentName  }] } })
+        
+        // Create 20 sessions for testing
+        testSessions = []
+        for (let i = 0; i < TEST_SESSIONS_COUNT; i++) {
+          const session = await av.createSession({ agent: agentName, userId: initUser1.id })
+          testSessions.push(session)
+          // Small delay to ensure different updatedAt timestamps
+          await new Promise(resolve => setTimeout(resolve, 10))
+        }
+      })
+
+      test("list sessions without pagination - returns all sessions", async () => {
+        const result = await av.getSessions({ agent: agentName })
+
+        expect(result.sessions).toBeDefined()
+        expect(Array.isArray(result.sessions)).toBe(true)
+        expect(result.sessions.length).toEqual(TEST_SESSIONS_COUNT)
+        
+        expect(result.pagination).toMatchObject({
+          page: 1,
+          totalCount: TEST_SESSIONS_COUNT,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        })
+      })
+
+      test("list sessions with pagination - 5 items per page, first page", async () => {
+        const result = await av.getSessions({ agent: agentName, limit: "5", page: "1" })
+        
+        expect(result.sessions).toBeDefined()
+        expect(result.sessions.length).toBe(5)
+        expect(result.pagination).toBeDefined()
+        expect(result.pagination.totalCount).toEqual(TEST_SESSIONS_COUNT)
+        expect(result.pagination.page).toBe(1)
+        expect(result.pagination.limit).toBe(5)
+        expect(result.pagination.totalPages).toEqual(Math.ceil(TEST_SESSIONS_COUNT / 5))
+        expect(result.pagination.hasNextPage).toBe(true)
+        expect(result.pagination.hasPreviousPage).toBe(false)
+      })
+
+      test("list sessions with pagination - 5 items per page, second page", async () => {
+        const result = await av.getSessions({ agent: agentName, limit: "5", page: "2" })
+        
+        expect(result.sessions).toBeDefined()
+        expect(result.sessions.length).toBe(5)
+        expect(result.pagination).toBeDefined()
+        expect(result.pagination.page).toBe(2)
+        expect(result.pagination.limit).toBe(5)
+        expect(result.pagination.hasNextPage).toBe(true)
+        expect(result.pagination.hasPreviousPage).toBe(true)
+      })
+
+      test("list sessions with pagination - 5 items per page, last page", async () => {
+        const totalSessions = testSessions.length
+        const itemsPerPage = 5
+        const lastPage = Math.ceil(totalSessions / itemsPerPage)
+        
+        const result = await av.getSessions({ agent: agentName, limit: "5", page: lastPage.toString() })
+        
+        expect(result.sessions).toBeDefined()
+        expect(result.sessions.length).toBeGreaterThan(0)
+        expect(result.sessions.length).toBeLessThanOrEqual(5)
+        expect(result.pagination).toBeDefined()
+        expect(result.pagination.page).toBe(lastPage)
+        expect(result.pagination.limit).toBe(5)
+        expect(result.pagination.hasNextPage).toBe(false)
+        expect(result.pagination.hasPreviousPage).toBe(lastPage > 1)
+      })
+
+      test("list sessions with pagination - different page numbers", async () => {
+        const page3 = await av.getSessions({ limit: "5", page: "3" })
+        expect(page3.pagination.page).toBe(3)
+        expect(page3.sessions.length).toBe(5)
+
+        const page4 = await av.getSessions({ limit: "5", page: "4" })
+        expect(page4.pagination.page).toBe(4)
+        expect(page4.sessions.length).toBe(5)
+      })
+
+      test("list sessions - page number exceeds maximum (999999) should error", async () => {
+        await expect(av.getSessions({ agent: agentName, page: "999999" })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 422,
+          message: expect.stringContaining("1000"),
+        }))
+      })
     })
   })
 

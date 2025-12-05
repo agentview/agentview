@@ -22,7 +22,14 @@ import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { UserSchema, UserCreateSchema, SessionSchema, SessionCreateSchema, SessionUpdateSchema, RunSchema, type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, MemberSchema, MemberUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type User, type Run } from './shared/apiTypes'
+import { 
+  UserSchema, 
+  UserCreateSchema,
+   SessionSchema, 
+   SessionCreateSchema,
+    SessionUpdateSchema, 
+    RunSchema, 
+    type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, MemberSchema, MemberUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type User, type Run, type PublicSessionsGetQueryParams, type SessionsGetQueryParams, PublicSessionsGetQueryParamsSchema, SessionsGetQueryParamsSchema } from './shared/apiTypes'
 import { getConfigRow, BaseConfigSchema, BaseConfigSchemaToZod } from './getConfig'
 import { type BaseAgentViewConfig, type Metadata, type BaseRunConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
@@ -819,24 +826,13 @@ app.openapi(apiUsersPATCHRoute, async (c) => {
 /**
  * SESSIONS
  */
-const PublicSessionsGetQueryParamsSchema = z.object({
-  agent: z.string().optional(),
-  page: z.string().optional(),
-  limit: z.string().optional()
-});
-
-const SessionsGetQueryParamsSchema = PublicSessionsGetQueryParamsSchema.extend({
-  endUserId: z.string().optional(),
-  list: z.enum(allowedSessionLists).optional(),
-})
-
 
 const DEFAULT_LIMIT = 50
 const DEFAULT_PAGE = 1
 
 
 function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchema>, principal: Principal) {
-  const { agent, list, endUserId } = params;
+  const { agent, list, userId } = params;
 
   const filters: any[] = []
 
@@ -861,8 +857,8 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
       filters.push(isNull(endUsers.createdBy));
     }
 
-    if (endUserId) {
-      filters.push(eq(endUsers.id, endUserId));
+    if (userId) {
+      filters.push(eq(endUsers.id, userId));
     }
 
     // add extra filter if end user is provided -> narrow down scope to end user's sessions
@@ -880,9 +876,14 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
 async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>, principal: Principal) {
   const limit = Math.max(parseInt(params.limit ?? DEFAULT_LIMIT.toString()) || DEFAULT_LIMIT, 1);
   const page = Math.max(parseInt(params.page ?? DEFAULT_PAGE.toString()) || DEFAULT_PAGE, 1);
+  
+  const MAX_PAGE = 1000;
+  if (page > MAX_PAGE) {
+    throw new HTTPException(422, { message: `Page number cannot exceed ${MAX_PAGE}` });
+  }
+  
   const offset = (page - 1) * limit;
 
-  console.log('filter', getSessionListFilter(params, principal))
   // Get total count for pagination metadata
   const totalCountResult = await db
     .select({ count: sql<number>`cast(count(*) as integer)` })
