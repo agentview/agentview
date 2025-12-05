@@ -396,7 +396,7 @@ async function requireCommentMessageFromUser(item: SessionItemWithCollaboration,
   return comment
 }
 
-function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: boolean = true, inputMetadata: Record<string, any>, existingMetadata: Record<string, any> | undefined | null): any {
+function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: boolean = true, inputMetadata: Record<string, any>, existingMetadata: Record<string, any> | undefined | null): Record<string, any> {
   let schema = z.object(metadataConfig ?? {});
   if (allowUnknownKeys) {
     schema = schema.loose();
@@ -425,7 +425,6 @@ function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: b
 
   const result = schema.safeParse(metadata);
   if (!result.success) {
-    console.log('issues', result.error.issues);
     throw new AgentViewError("Error parsing the metadata.", 422, { code: 'parse.schema', issues: result.error.issues });
   }
   return result.data;
@@ -907,10 +906,10 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
     handle: row.sessions.handleNumber.toString() + (row.sessions.handleSuffix ?? ""),
     createdAt: row.sessions.createdAt,
     updatedAt: row.sessions.updatedAt,
-    metadata: row.sessions.metadata,
+    metadata: row.sessions.metadata as Record<string, any>,
     agent: row.sessions.agent,
-    endUser: row.end_users!,
-    endUserId: row.end_users!.id,
+    user: row.end_users!,
+    userId: row.end_users!.id,
   }));
 
   // Calculate pagination metadata
@@ -1195,14 +1194,11 @@ app.openapi(sessionsPOSTRoute, async (c) => {
   const config = await requireConfig()
   const agentConfig = await requireAgentConfig(config, body.agent)
 
-  const userId = requireMemberId(principal);
+  const memberId = requireMemberId(principal);
 
-  // find end user or create new one if not found
+  console.log('XXX');
+  // find user or create new one if not found
   const user = await (async () => {
-    if (principal.user) {
-      return principal.user;
-    }
-
     if (body.userId) {
       return await requireUser({ id: body.userId });
     }
@@ -1211,19 +1207,22 @@ app.openapi(sessionsPOSTRoute, async (c) => {
       return await requireUser({ externalId: body.userExternalId });
     }
 
+    if (principal.user) {
+      return principal.user;
+    }
+
     authorize(principal, { action: "end-user:create" });
-    return await createUser({ createdBy: userId })
+    return await createUser({ createdBy: memberId })
   })()
+
+  console.log('YYY', user);
 
   authorize(principal, { action: "end-user:update", user });
 
   /**
    * METADATA
    */
-
   const metadata = parseMetadata(agentConfig.metadata, agentConfig.allowUnknownMetadata, body.metadata ?? {}, {});
-
-
 
   const newSession = await db.transaction(async (tx) => {
     const handleSuffix = user.createdBy ? "s" : "";
@@ -1246,7 +1245,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     // add event (only for users, not endUsers)
     const [event] = await tx.insert(events).values({
       type: 'session_created',
-      authorId: userId,
+      authorId: memberId,
       payload: {
         session_id: newSessionRow.id,
       }

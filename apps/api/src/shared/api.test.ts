@@ -296,7 +296,7 @@ describe('API', () => {
   })
 
   describe("sessions", async () => {
-    test("create", async () => {
+    test("create for specific user", async () => {
       await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
 
       const session = await av.createSession({ agent: "test", userId: initUser1.id })
@@ -313,6 +313,26 @@ describe('API', () => {
       })
     })
 
+    test("create for no user (creates new user)", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
+
+      const session = await av.createSession({ agent: "test" })
+      expect(session.userId).toBeDefined()
+
+      const fetchedSession = await av.as(session.user).getSession({ id: session.id });
+      expect(fetchedSession).toMatchObject(session)
+    })
+
+    test("create session for other user with 'as' -> should throw", async () => {
+      await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
+
+      await expect(av.as(initUser1).createSession({ agent: "test", userId: initUser2.id })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 401,
+        message: expect.any(String),
+      }))
+      
+    })
+
     test("create - fails at wrong agent", async () => {
       await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
 
@@ -321,6 +341,8 @@ describe('API', () => {
         message: expect.any(String),
       }))
     })
+
+
 
 
     test("get by id for existing session", async () => {

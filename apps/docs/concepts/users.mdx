@@ -2,12 +2,13 @@
 title: "Users"
 ---
 
-Every session in AgentView is connected with a User. This is very helpful because we might have multiple sessions connected with teh same user which allows for better organisation, memory, etc.
+Every session in AgentView belongs to a **User**. 
+
 
 When you create a session without specifically pointing at any user, a new anonymous user will be created under the hood.
 
 ```ts
-const session = await av.createSession({ agent: "my_simple_agent" });
+const session = await av.createSession({ agent: "my_agent" });
 
 console.log(session.user) // { id: "...", externalId: "...", token: "..." }
 ```
@@ -15,28 +16,33 @@ console.log(session.user) // { id: "...", externalId: "...", token: "..." }
 User object has 3 properties:
 - `id` - AgentView id
 - `externalId` - unique user id from host platform (for example Shopify), so that you can easily match users
-- `token` - user's authentication token
+- `token` - user's secure authentication token
 
-The `token` should be send over to the client's browser so that you can use AgentView API on the client side. 
+### Create user
 
-### Creating Users
-
-You can create user manually using `av.createEndUser`
+You can create user manually using `av.createUser`
 
 ```ts
-const user1 = await av.createEndUser({ externalId: "..." }) // with external id
-
-const user2 = await av.createEndUser() // without external id
+const user1 = await av.createUser({ externalId: "..." }) // with external id
+const user2 = await av.createUser() // without external id
 ```
 
-### Fetching Users
+### Update user
+
+You can update user manually using `av.updateUser`
+
+```ts
+await av.updateUser({ id: "user_id", externalId: "new_external_id" });
+```
+
+### Get user
 
 You can fetch user by using id, external id or token:
 
 ```ts
-await av.getEndUser({ agent, endUserId: "user_id" })
-await av.getEndUser({ agent, endUserExternalId: "user_external_id" })
-await av.getEndUser({ agent, endUserToken: "user_token" })
+await av.getUser({ id: "user_id" })
+await av.getUser({ externalId: "user_external_id" })
+await av.getUser({ token: "user_token" })
 ```
 
 ### Creating Sessions for specific user
@@ -44,24 +50,54 @@ await av.getEndUser({ agent, endUserToken: "user_token" })
 You can create a session for a particular user:
 
 ```ts
-await av.createSession({ agent, endUserId: "user_id" })
-await av.createSession({ agent, endUserExternalId: "user_external_id" })
-await av.createSession({ agent, endUserToken: "user_token" })
+await av.createSession({ agent, userId: "user_id" });
 ```
 
+## Narrowing down scope
 
-### Client-Side Authentication
-
-The AgentView API key is secret and shouldn't be sent to the browser (or any other client-side app).
-
-However, you can still use AgentView API directly on the client-side if you have user token: 
+It you initiate `AgentView` client with API Key, this API Key grants you access to all the users:
 
 ```ts
 const av = new AgentView({
-    apiUrl: "http://localhost:3000",
-    endUserToken: "user_token"
+    apiUrl: "http://localhost:1990",
+    apiKey: "your_api_key"
 });
+
+const user = await av.getUser({ id: "user_id" }); // access granted
 ```
 
-Such instance of `AgentView` has read-only access to this user's sessions, memories, etc.
+Often, especially in your Agent Endpoint, you'll want to narrow down the scope of the action to a specific user. You want to call `av.getSession` or `av.createSession` as a specific user, and if user doesn't have permissions to the specific session or creating new one, the operation should throw an error.
 
+It's possible to do it by scope narrowing by using `as` method of `AgentView` class:
+
+```ts
+const av = new AgentView({
+    apiUrl: "http://localhost:1990",
+    apiKey: "your_api_key"
+});
+
+const bob = await av.createUser();
+const alice = await av.createUser();
+
+const bobSession = await av.as(bob).createSession({ agent: "my_agent" }); // this session belongs to bob
+
+await av.as(bob).getSession({ id: bobSession.id }); // access granted
+await av.as(alice).getSession({ id: bobSession.id }); // (!) will throw, it's not session from Alice
+
+// will throw if session belongs to a different user
+const session = await av.as(user).getSession({ id: session.id });
+
+const user = await av.getUser({ id: "bob" });
+
+// create session for the user "bob"
+const session = await av.as(user).createSession({ agent: "my_agent" });
+
+// will throw if session belongs to a different user
+const session = await av.as(user).getSession({ id: session.id });
+
+// delete session for the user
+await av.as(user).deleteSession({ id: session.id });
+
+// get user for the user
+const user = await av.as(user).getUser({ id: "user_id" });
+```
