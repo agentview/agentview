@@ -6,7 +6,7 @@ AgentView is schema-less. Your stored session items don't have enforced structur
 
 However, AgentView still makes heavy use of schemas:
 - they provide protection at the *insert* time for the current agent version. You're sure incorrect data won't be inserted.
-- they're used for matching
+- we're using schemas for matching items. For example, withotu providing the schema AgentView can't know which `displayComponent` belongs to which item
 
 ### Input and Output
 

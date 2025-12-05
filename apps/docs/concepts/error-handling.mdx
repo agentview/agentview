@@ -1,11 +1,12 @@
 ---
 title: "Error Handling"
-description: "Handle errors gracefully."
 ---
 
-As you can see, AgentView does a lot to make sure your app state is always correct. It handles items and metadata validation and orchestrates the session lifecycle thanks to a run state.
+In your Agent Endpoint you'll make a good bunch of calls to AgentView calls: creating or fetching users, creating or fetching sessions, adding and updating runs, etc. Each of those operations can fail, which protects your app state from being corrupted. For example, user might not have access to the requested session or you can't start a new run because other one hasn't finished yet.
 
-Any time an error occurs, AgentView will throw an exception which is an instance of `AgentViewError`. It has `body` and `statusCode` propreties so that it's trivial to just redirect it directly to the user as HTTP responses from your endpoint:
+AgentView makes it easy for your endpoit to easily handle errors and return them as correct HTTP responses with the correct status code and body.
+
+Any time an error occurs, AgentView will throw an exception which is an instance of `AgentViewError` with `body` and `statusCode`:
 
 ```typescript
 import 'dotenv/config'
@@ -23,36 +24,10 @@ const av = new AgentView({
 })
 
 app.post('/chat', async (c) => {
-  const { sessionId, input, endUserToken } = await c.req.json();
-
-  // create or get session
-  const session = sessionId ?
-    await av.sessions.get({ id: sessionId, endUserToken }):
-    await av.sessions.create({ agent: "my_simple_agent" })
-
-  // create run
-  const run = await av.createRun({ input, sessionId: session.id });
-
-  // generate response
-  const response = await client.responses.create({
-    model: "gpt-5-nano",
-    input: [...session.history, input]
-  });
-
-  // push items and close run (the last item of output is assistant message)
-  await av.updateRun({
-    id: run.id
-    items: response.output,
-  })
-
-  return c.json({
-    output: response.output,
-    sessionId: session.id,
-    token: session.endUser.token
-  })
+  // your chat endpoint...
 })
 
-// Handle AgentViewError
+// Error handling
 app.onError((error, c) => {
   if (error instanceof AgentViewError) {
     return c.json(error.body, error.status);
@@ -65,10 +40,4 @@ serve({
 }, (info) => {
   console.log(`Agent API server is running on http://localhost:${info.port}`)
 })
-```
-
-You can now call from your browser:
-
-```ts
-
 ```

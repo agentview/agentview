@@ -66,7 +66,7 @@ const av = new AgentView({
 const user = await av.getUser({ id: "user_id" }); // access granted
 ```
 
-Often, especially in your Agent Endpoint, you'll want to narrow down the scope of the action to a specific user. You want to call `av.getSession` or `av.createSession` as a specific user, and if user doesn't have permissions to the specific session or creating new one, the operation should throw an error.
+In your Agent Endpoint you might want to narrow down the scope of the action to a specific user. You want to call `av.getSession` or `av.createSession` as a specific user, and if user doesn't have permissions to the specific session or creating new one, the operation should throw an error. This provides a great security layer for your Agent Endpoint.
 
 It's possible to do it by scope narrowing by using `as` method of `AgentView` class:
 
@@ -84,3 +84,5 @@ const bobSession = await av.as(bob).createSession({ agent: "my_agent" }); // thi
 await av.as(bob).getSession({ id: bobSession.id }); // access granted
 await av.as(alice).getSession({ id: bobSession.id }); // (!) throws, it's not session from Alice
 ```
+
+Under the hood `as` adds `X-User-Token` header to the API request with the user's token to scope the request to the specific user.
