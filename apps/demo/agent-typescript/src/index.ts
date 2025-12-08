@@ -29,7 +29,7 @@ app.post('/simple_chat', async (c) => {
   // Create new session or fetch existing one and authorize user's access to the session.
   const session = id ?
     await av.as(user).getSession({ id }) : 
-    await av.as(user).createSession({ agent: "simple_chat" });
+    await av.as(user).createSession({ agent: "simple_chat", environment: "production" });
 
   // Create a new run
   // 1. session is now locked - no more runs can be started until this one finishes.
@@ -39,9 +39,6 @@ app.post('/simple_chat', async (c) => {
     items: [input], 
     version: "0.0.1"
   });
-
-  console.log('waiting for 60 seconds');
-  await new Promise(resolve => setTimeout(resolve, 60000));
 
   let response : Awaited<ReturnType<typeof client.responses.create>>;
 

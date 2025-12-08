@@ -552,7 +552,7 @@ describe('API', () => {
       }))
     })
 
-    describe.only("get session list", () => {
+    describe("get session list", () => {
       const USER_1_SESSIONS_COUNT = 20
       const USER_2_SESSIONS_COUNT = 7
       const TOTAL_SESSIONS_COUNT = USER_1_SESSIONS_COUNT + USER_2_SESSIONS_COUNT

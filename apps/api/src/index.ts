@@ -696,7 +696,7 @@ app.openapi(usersPOSTRoute, async (c) => {
   }
 
   const newUser = await createUser({
-    createdBy: memberId,
+    createdBy: body.environment === 'production' ? null : memberId,
     isShared: body.isShared,
     externalId: body.externalId,
   })
@@ -1230,7 +1230,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     }
 
     authorize(principal, { action: "end-user:create" });
-    return await createUser({ createdBy: memberId })
+    return await createUser({ createdBy: body.environment === 'production' ? null : memberId, isShared: body.isShared })
   })()
 
   authorize(principal, { action: "end-user:update", user });

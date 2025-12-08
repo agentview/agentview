@@ -10,10 +10,13 @@ export function generateUserToken(): string {
 }
 
 export async function createUser(values?: { externalId?: string | null, isShared?: boolean, createdBy?: string | null }) {
+  const createdBy = values?.createdBy ?? null;
+  const isShared = createdBy ? false : (values?.isShared ?? false);
+
   const [newEndUser] = await db.insert(endUsers).values({
     externalId: values?.externalId ?? null,
-    isShared: values?.isShared ?? false,
-    createdBy: values?.createdBy ?? null,
+    isShared,
+    createdBy,
     token: generateUserToken(),
   }).returning()
 
