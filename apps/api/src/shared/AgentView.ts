@@ -112,7 +112,7 @@ export class AgentView {
     return await this.request<User>('POST', `/api/users`, { env: this.env, ...options })
   }
 
-  async getUser(options?: { id: string } | { token: string } | { externalId: string, env: Env } | undefined): Promise<User> {
+  async getUser(options?: { id: string } | { token: string } | { externalId: string, env?: Env } | undefined): Promise<User> {
     if (!options) {
       return await this.request<User>('GET', `/api/users/me`)
     }
@@ -126,7 +126,7 @@ export class AgentView {
       return await this.as(options.token).request<User>('GET', `/api/users/me`)
     }
     if ('externalId' in options) {
-      return await this.request<User>('GET', `/api/users/by-external-id/${options.externalId}`)
+      return await this.request<User>('GET', `/api/users/by-external-id/${options.externalId}?env=${options.env ?? this.env}`)
     }
     throw new Error('Invalid options')
   }
@@ -213,7 +213,13 @@ export class PublicAgentView {
     if (options?.agent) params.append('agent', options.agent);
     if (options?.page) params.append('page', options.page.toString());
     if (options?.limit) params.append('limit', options.limit.toString());
-    return await this.request<SessionsPaginatedResponse>('GET', path, undefined)
+
+    const queryString = params.toString();
+    if (queryString) {
+      path += `?${queryString}`;
+    }
+
+    return await this.request<SessionsPaginatedResponse>('GET', path)
   }
 }
 

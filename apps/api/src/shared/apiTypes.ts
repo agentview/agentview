@@ -159,6 +159,7 @@ export const SessionBaseSchema = z.object({
   metadata: z.record(z.string(), z.any()).nullable(),
   user: UserSchema,
   userId: z.string(), // potential bloat
+  env: EnvSchema, // this is actually user.env, but allows to "think user-less"
   state: z.any().nullable().optional(),
 })
 

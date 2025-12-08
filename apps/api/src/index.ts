@@ -938,6 +938,7 @@ async function getSessions(params: SessionsGetQueryParams, principal: Principal)
     metadata: row.sessions.metadata as Record<string, any>,
     agent: row.sessions.agent,
     user: row.end_users!,
+    env: row.end_users!.env,
     userId: row.end_users!.id,
   }));
 

@@ -163,7 +163,7 @@ describe('API', () => {
     })
 
     describe("get by external id", () => {
-      test.only("existing external ids", async () => {
+      test("existing external ids", async () => {
         const user1 = await av.getUser({ externalId: EXTERNAL_ID_1 })
         expect(user1).toBeDefined()
         expect(user1.externalId).toBe(EXTERNAL_ID_1)
@@ -328,7 +328,7 @@ describe('API', () => {
         user: {
           id: initUser1.id,
           externalId: EXTERNAL_ID_1,
-          isShared: false,
+          env: "playground",
           token: initUser1.token,
         }
       })
