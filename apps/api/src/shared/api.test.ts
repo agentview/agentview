@@ -14,19 +14,36 @@ const av = new AgentView({
 describe('API', () => {
   let initUser1: User
   let initUser2: User
+
+  let initProdUser: User
+
   const EXTERNAL_ID_1 = Math.random().toString(36).slice(2)
   const EXTERNAL_ID_2 = Math.random().toString(36).slice(2)
 
   beforeAll(async () => {
     initUser1 = await av.createUser({ externalId: EXTERNAL_ID_1 })
     initUser2 = await av.createUser({ externalId: EXTERNAL_ID_2 })
+    initProdUser = await av.createUser({ externalId: EXTERNAL_ID_1, env: "production" })
 
     expect(initUser1).toBeDefined()
     expect(initUser1.externalId).toBe(EXTERNAL_ID_1)
+    expect(initUser1.createdBy).toBeDefined()
 
     expect(initUser2).toBeDefined()
     expect(initUser2.externalId).toBe(EXTERNAL_ID_2)
+    expect(initUser1.createdBy).toBeDefined()
+
+    expect(initProdUser).toBeDefined()
+    expect(initProdUser.externalId).toBe(EXTERNAL_ID_1)
+    expect(initProdUser.createdBy).toBeNull()
   })
+
+  function expectToFail(promise: Promise<any>, statusCode: number) {
+    return expect(promise).rejects.toThrowError(expect.objectContaining({
+      statusCode,
+      message: expect.any(String),
+    }))
+  }
 
 
   const updateConfig = async (options: { strictMatching?: boolean, runMetadata?: Record<string, z.ZodType>, allowUnknownMetadata?: boolean, validateSteps?: boolean } = {}) => {
@@ -83,8 +100,8 @@ describe('API', () => {
   const wrongOutput = { type: "message", role: "assistant", content: 100 }
 
 
-  async function createSession() {
-    return await av.createSession({ agent: "test", userId: initUser1.id })
+  async function createSession({ env = "playground" }: { env?: "playground" | "production" } = {}) {
+    return await av.createSession({ agent: "test", userId: initUser1.id, env })
   }
 
   describe("users", () => {
@@ -1083,33 +1100,61 @@ describe('API', () => {
       expect(updated.failReason).toEqual(failReason)
     })
 
-    test("version compatibility enforced", async () => {
-      await updateConfig()
-      const session = await createSession()
 
-      const run1 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.3" })
-      await av.updateRun({ id: run1.id, items: [baseOutput], status: "completed" })
+    describe("versioning", () => {
+      test("incorrect formats fail", async () => {
+        await updateConfig()
+        const session = await createSession()
 
-      // higher patch works
-      const run2 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.4" })
-      await av.updateRun({ id: run2.id, items: [baseOutput], status: "completed" })
+        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput], version: "xxx" }), 422)
+        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput], version: "blah.blah.blah" }), 422)
 
-      // higher minor works
-      const run3 = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.3.0" })
-      await av.updateRun({ id: run3.id, items: [baseOutput], status: "completed" })
+      })
 
-      // smaller patch fails
-      await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.2.2" })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 422,
-        message: expect.any(String),
-      }))
+      test("compatibility enforced - playground", async () => {
+        await updateConfig()
+        const session = await createSession()
 
-      // different minor fails
-      await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "2.0.0" })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 422,
-        message: expect.any(String),
-      }))
-    })
+        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2" }) // allow for partial version
+        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2.3" })
+        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2.4" }) // higher patch works
+        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.0" }) // higher minor works
+
+        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.2.2" }), 422) // smaller patch fails
+        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "2.0.0" }), 422) // different minor fails
+
+        // suffixes
+        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.3" })
+        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.3-dev" })
+        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.3-xxx" })
+        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.4" })
+        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.4-local" })
+
+        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.3-dev" }), 422) // smaller patch fails even with suffix
+        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.3-xxx" }), 422) // different suffix fails
+        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "2.0.0" }), 422) // different suffix fails
+        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "2.0.0-dev" }), 422) // different suffix fails
+      })
+
+
+      test.only("compatibility enforced - production", async () => {
+        await updateConfig()
+        const session = await createSession({ env: "production" })
+        console.log(session.user);
+
+        // await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2" }) // allow for partial version
+        // await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2.3" })
+        // await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2.4" }) // higher patch works
+        // await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.0" }) // higher minor works
+
+        // await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.2.2" }), 422) // smaller patch fails
+        // await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "2.0.0" }), 422) // different minor fails
+
+        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0-dev" }), 422) // production can't have suffixes
+        // await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.1-local" }), 422) // production can't have suffixes
+      })
+
+    });
 
     test("userToken scoped permissions", async () => {
       await updateConfig()

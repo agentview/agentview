@@ -1,5 +1,8 @@
 import z from 'zod'
 
+export const envAllowedValues = ['production', 'playground', 'shared-playground'] as const;
+
+export const EnvSchema = z.enum(envAllowedValues);
 
 export const UserSchema = z.object({
     id: z.string(),
@@ -7,19 +10,15 @@ export const UserSchema = z.object({
     createdAt: z.iso.date(),
     updatedAt: z.iso.date(),
     createdBy: z.string().nullable(),
-    isShared: z.boolean(),
+    env: EnvSchema,
     token: z.string(),
 })
 
 export type User = z.infer<typeof UserSchema>
 
-export const EnvSchema = z.enum(['production', 'playground']);
-
-export const UserCreateSchema = UserSchema.pick({
-    isShared: true,
-    externalId: true,
-}).partial().extend({
-    env: EnvSchema.optional(),
+export const UserCreateSchema = z.object({
+    externalId: z.enum(envAllowedValues).nullable(),
+    env: EnvSchema
 })
 
 export type UserCreate = z.infer<typeof UserCreateSchema>
@@ -42,18 +41,16 @@ export const InvitationCreateSchema = z.object({
 export const VersionSchema = z.object({
     id: z.string(),
     version: z.string(),
-    env: z.string(),
-    metadata: z.any(),
     createdAt: z.iso.date(),
 })
 
-export const VersionCreateSchema = z.object({
-    version: z.string(),
-    env: z.string().optional(),
-    metadata: z.any().optional(),
-})
+// export const VersionCreateSchema = z.object({
+//     version: z.string(),
+//     env: z.string().optional(),
+//     metadata: z.any().optional(),
+// })
 
-export type VersionCreate = z.infer<typeof VersionCreateSchema>
+// export type VersionCreate = z.infer<typeof VersionCreateSchema>
 
 
 export const ScoreSchema = z.object({
@@ -113,7 +110,7 @@ export const RunSchema = z.object({
     finishedAt: z.iso.date().nullable(),
     status: z.string(),
     failReason: z.any().nullable(),
-    version: VersionSchema.nullable(),
+    version: VersionSchema,
     metadata: z.record(z.string(), z.any()).nullable(),
     sessionItems: z.array(SessionItemSchema),
 
@@ -124,7 +121,7 @@ export const RunSchema = z.object({
 export const RunCreateSchema = z.object({
     sessionId: z.string(),
     items: z.array(z.record(z.string(), z.any())),
-    version: z.union([VersionCreateSchema, z.string()]),
+    version: z.string(),
     metadata: z.record(z.string(), z.any()).optional(),
     status: z.enum(['in_progress', 'completed', 'cancelled', 'failed']).optional(),
     state: z.any().optional(),
@@ -182,8 +179,6 @@ export const SessionCreateSchema = z.object({
     metadata: z.record(z.string(), z.any()).optional(),
     userId: z.string().optional(),
     userExternalId: z.string().optional(),
-    // about new user
-    isShared: z.boolean().optional(),
     env: EnvSchema.optional(),
 })
 
@@ -202,8 +197,6 @@ export const ScoreCreateSchema = ScoreSchema.pick({
     commentId: true,
 })
 
-export const allowedSessionLists = ["prod", "playground_private", "playground_shared"]
-
 export const PublicSessionsGetQueryParamsSchema = z.object({
     agent: z.string().optional(),
     page: z.union([z.number(), z.string()]).optional(),
@@ -212,7 +205,7 @@ export const PublicSessionsGetQueryParamsSchema = z.object({
   
 export const SessionsGetQueryParamsSchema = PublicSessionsGetQueryParamsSchema.extend({
     userId: z.string().optional(),
-    list: z.enum(allowedSessionLists).optional(),
+    env: EnvSchema.optional(),
 })
 
 

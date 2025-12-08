@@ -29,7 +29,8 @@ import {
    SessionCreateSchema,
     SessionUpdateSchema, 
     RunSchema, 
-    type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, MemberSchema, MemberUpdateSchema, allowedSessionLists, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type User, type Run, type PublicSessionsGetQueryParams, type SessionsGetQueryParams, PublicSessionsGetQueryParamsSchema, SessionsGetQueryParamsSchema } from './shared/apiTypes'
+    type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, MemberSchema, MemberUpdateSchema, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type User, type Run, type PublicSessionsGetQueryParams, type SessionsGetQueryParams, PublicSessionsGetQueryParamsSchema, SessionsGetQueryParamsSchema, 
+    EnvSchema} from './shared/apiTypes'
 import { getConfigRow, BaseConfigSchema, BaseConfigSchemaToZod } from './getConfig'
 import { type BaseAgentViewConfig, type Metadata, type BaseRunConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
@@ -257,7 +258,7 @@ function authorize(principal: Principal, action: Action) {
     else if (principal.type === 'member') {
       const memberId = principal.session.user.id
 
-      if (action.action === "end-user:read" && (!action.user.createdBy || action.user.isShared || (action.user.createdBy === memberId))) { // sessions without owner or shared -> read access
+      if (action.action === "end-user:read" && (action.user.env === 'production' || action.user.env === 'shared-playground' || (action.user.env === 'playground' && action.user.createdBy === memberId))) { // sessions without owner or shared -> read access
         return true;
       }
 
@@ -382,8 +383,8 @@ async function requireSessionItem(session: Awaited<ReturnType<typeof requireSess
 }
 
 
-async function requireUser({ id, externalId, token }: { id?: string, externalId?: string, token?: string }) {
-  const user = await findUser({ id, externalId, token })
+async function requireUser(arg: Parameters<typeof findUser>[0]) {
+  const user = await findUser(arg)
   if (!user) {
     throw new HTTPException(404, { message: "End user not found" });
   }
@@ -690,14 +691,9 @@ app.openapi(usersPOSTRoute, async (c) => {
   const memberId = requireMemberId(principal);
   const body = await c.req.valid('json')
 
-  const existingUserWithExternalId = body.externalId ? await findUser({ externalId: body.externalId }) : null;
-  if (existingUserWithExternalId) {
-    throw new HTTPException(422, { message: "End user with this external ID already exists" });
-  }
-
   const newUser = await createUser({
-    createdBy: body.env === 'production' ? null : memberId,
-    isShared: body.isShared,
+    createdBy: memberId,
+    env: body.env,
     externalId: body.externalId,
   })
 
@@ -774,6 +770,9 @@ const userByExternalIdGETRoute = createRoute({
   method: 'get',
   path: '/api/users/by-external-id/{external_id}',
   request: {
+    query: z.object({
+      env: EnvSchema,
+    }),
     params: z.object({
       external_id: z.string(),
     }),
@@ -788,7 +787,9 @@ app.openapi(userByExternalIdGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
   const { external_id } = c.req.param()
-  const user = await requireUser({ externalId: external_id })
+  const { env } = c.req.query()
+
+  const user = await requireUser({ externalId: external_id, env: env as z.infer<typeof EnvSchema> })
 
   await authorize(principal, { action: "end-user:read", user })
 
@@ -832,7 +833,7 @@ const DEFAULT_PAGE = 1
 
 
 function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchema>, principal: Principal) {
-  const { agent, list, userId } = params;
+  const { agent, env, userId } = params;
 
   const filters: any[] = []
 
@@ -842,19 +843,19 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
 
   if (principal.type === 'member' || principal.type === 'apiKey') {
 
-    if (list === "playground_shared") {
-      filters.push(and(isNotNull(endUsers.createdBy), eq(endUsers.isShared, true)));
+    if (!env) {
+      throw new HTTPException(422, { message: "`env` is required" });
     }
-    else if (list === "playground_private") {
+
+    filters.push(eq(endUsers.env, env));
+
+    if (env === "playground") {
       if (principal.type === 'member') {
-        filters.push(and(eq(endUsers.createdBy, principal.session.user.id), eq(endUsers.isShared, false)));
+        filters.push(eq(endUsers.createdBy, principal.session.user.id));
       }
       else {
-        throw new HTTPException(401, { message: "`playground_private` can only be used with provided logged in user id." });
+        throw new HTTPException(401, { message: "`playground` can only be used with provided logged in user id." });
       }
-    }
-    else if (list === "prod") {
-      filters.push(isNull(endUsers.createdBy));
     }
 
     if (userId) {
@@ -969,7 +970,7 @@ const sessionsGETRoute = createRoute({
 app.openapi(sessionsGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const params = c.req.query();
-  const sessions = await getSessions(params, principal)
+  const sessions = await getSessions(params as SessionsGetQueryParams, principal)
   return c.json(sessions, 200);
 })
 
@@ -990,7 +991,7 @@ const publicSessionsGETRoute = createRoute({
 app.openapi(publicSessionsGETRoute, async (c) => {
   const principal = await authnUser(c.req.raw.headers)
   const params = c.req.query();
-  const sessions = await getSessions(params, principal)
+  const sessions = await getSessions(params as PublicSessionsGetQueryParams, principal)
   return c.json(sessions, 200);
 })
 
@@ -1222,7 +1223,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     }
 
     if (body.userExternalId) {
-      return await requireUser({ externalId: body.userExternalId });
+      return await requireUser({ externalId: body.userExternalId, env: body.env as z.infer<typeof EnvSchema> });
     }
 
     if (principal.user) {
@@ -1230,7 +1231,8 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     }
 
     authorize(principal, { action: "end-user:create" });
-    return await createUser({ createdBy: body.env === 'production' ? null : memberId, isShared: body.isShared })
+
+    return await createUser({ createdBy: memberId, env: body.env as z.infer<typeof EnvSchema> }) // default user doesn't have external id, it's just empty
   })()
 
   authorize(principal, { action: "end-user:update", user });
@@ -1537,22 +1539,38 @@ app.openapi(sessionSeenRoute, async (c) => {
 /* --------- RUNS --------- */
 
 
-function parseVersion(version: string): { major: number, minor: number, patch: number } | undefined {
-  // Accept version strings like '1.2.3', 'v1.2.3', possibly with suffixes like '-beta'
-  const m = version.match(/^v?(\d+)\.(\d+)\.(\d+)/);
+type ParsedVersion = {
+  major: number;
+  minor: number;
+  patch: number;
+  suffix?: string;
+};
+
+function parseVersion(version: string): ParsedVersion | undefined {
+  // Accept version strings like '1.2.3', 'v1.2.3', '1', '1.2', possibly with suffixes like '-beta', '-alpha.1'
+  // Normalize: '1' -> '1.0.0', '1.2' -> '1.2.0'
+  const m = version.match(/^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-(.+))?$/);
   if (!m) return undefined;
-  const major = Number(m[1]), minor = Number(m[2]), patch = Number(m[3]);
+  
+  const major = Number(m[1]);
+  const minor = m[2] !== undefined ? Number(m[2]) : 0;
+  const patch = m[3] !== undefined ? Number(m[3]) : 0;
+  const suffix = m[4];
+  
   if (Number.isNaN(major) || Number.isNaN(minor) || Number.isNaN(patch)) return undefined;
-  return { major, minor, patch };
+  
+  return { major, minor, patch, ...(suffix ? { suffix } : {}) };
 }
 
-function compareVersions(v1: { major: number, minor: number, patch: number }, v2: { major: number, minor: number, patch: number }): number {
+function compareVersions(v1: ParsedVersion, v2: ParsedVersion): number {
   // Returns: -1 if v1 < v2, 0 if v1 === v2, 1 if v1 > v2
+  // Note: Suffixes are ignored for comparison purposes
   if (v1.major !== v2.major) return v1.major < v2.major ? -1 : 1;
   if (v1.minor !== v2.minor) return v1.minor < v2.minor ? -1 : 1;
   if (v1.patch !== v2.patch) return v1.patch < v2.patch ? -1 : 1;
   return 0;
 }
+
 
 function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[], items: any[], status: 'in_progress' | 'completed' | 'cancelled' | 'failed') {
   const validateSteps = runConfig.validateSteps ?? false;
@@ -1676,11 +1694,15 @@ app.openapi(runsPOSTRoute, async (c) => {
   }
 
   /** Version compatibility checking **/
-  const version = typeof body.version === 'string' ? { version: body.version } : body.version;
-
-  const parsedVersion = parseVersion(version.version);
+  const parsedVersion = parseVersion(body.version);
   if (!parsedVersion) {
-    throw new HTTPException(422, { message: "Invalid version number format. Should be like '1.2.3'" });
+    throw new HTTPException(422, { message: "Invalid version number format. Should be like '1.2.3-xxx'" });
+  }
+
+  console.log('session.user.createdBy', session.user.createdBy);
+  console.log('parsedVersion', parsedVersion);
+  if (!session.user.createdBy && parsedVersion.suffix) { // production sessions can't have suffixes
+    throw new HTTPException(422, { message: "Production sessions can't have suffixed versions." });
   }
 
   if (lastRun?.version) { // compare semantic versions when previous version exists
@@ -1733,15 +1755,11 @@ app.openapi(runsPOSTRoute, async (c) => {
 
   // Create run and items
   await db.transaction(async (tx) => {
-    const env = version.env || 'dev';
-
     await db.insert(versions).values({
-      version: version.version,
-      env,
-      metadata: version.metadata,
+      version: body.version,
     }).onConflictDoNothing();
 
-    const [versionRow] = await tx.select().from(versions).where(and(eq(versions.version, version.version), eq(versions.env, env))).limit(1);
+    const [versionRow] = await tx.select().from(versions).where(eq(versions.version, body.version)).limit(1);
 
     const [newRun] = await tx.insert(runs).values({
       sessionId: body.sessionId,

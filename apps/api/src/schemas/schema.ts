@@ -35,7 +35,7 @@ export const endUsers = pgTable("end_users", {
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   
   createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
-  isShared: boolean("is_shared").notNull().default(false),
+  env: varchar("env", { length: 24 }).notNull().$type<'production' | 'playground' | 'shared-playground'>(), // production, playground, shared-playground
 
   token: text("token").notNull().unique(),
   
@@ -102,10 +102,8 @@ export const sessionItems = pgTable("session_items", {
 export const versions = pgTable("versions", {
   id: uuid("id").primaryKey().defaultRandom(),
   version: varchar("version", { length: 255 }).notNull(),
-  env: varchar("env", { length: 255 }).notNull(),
-  metadata: jsonb("metadata"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-}, (table) => [uniqueIndex('version_env_unique').on(table.version, table.env)]);
+}, (table) => [uniqueIndex('version_unique').on(table.version)]);
 
 // Comment messages within sessions
 export const commentMessages = pgTable('comment_messages', {

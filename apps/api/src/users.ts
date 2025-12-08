@@ -2,6 +2,9 @@ import { db } from './db'
 import { endUsers } from './schemas/schema'
 import { eq, and, gt } from 'drizzle-orm'
 import { randomBytes } from 'crypto'
+import type { z } from 'better-auth'
+import type { EnvSchema } from './shared/apiTypes'
+import { AgentViewError } from './shared/AgentViewError'
 // import jwt from 'jsonwebtoken'
 
 
@@ -9,14 +12,18 @@ export function generateUserToken(): string {
   return randomBytes(32).toString('hex')
 }
 
-export async function createUser(values?: { externalId?: string | null, isShared?: boolean, createdBy?: string | null }) {
-  const createdBy = values?.createdBy ?? null;
-  const isShared = createdBy ? false : (values?.isShared ?? false);
+export async function createUser(values: { createdBy: string, env: z.infer<typeof EnvSchema>, externalId?: string | null }) {
+  if (values.externalId) {
+    const existingUserWithExternalId = await findUser({ externalId: values.externalId, env: values.env })
+    if (existingUserWithExternalId) {
+      throw new AgentViewError('User with this external ID already exists', 422)
+    }
+  }
 
   const [newEndUser] = await db.insert(endUsers).values({
-    externalId: values?.externalId ?? null,
-    isShared,
-    createdBy,
+    externalId: values.externalId ?? null,
+    createdBy: values.env === 'production' ? null : values.createdBy,
+    env: values.env,
     token: generateUserToken(),
   }).returning()
 
@@ -92,24 +99,39 @@ export async function createUser(values?: { externalId?: string | null, isShared
 //   }
 // }
 
-export async function findUser({ id, externalId, token }: { id?: string, externalId?: string, token?: string }) {
-  if (id) {
+
+
+type FindUserByIdOptions = {
+  id: string
+}
+
+type FindUserByExternalIdOptions = {
+  externalId: string,
+  env: z.infer<typeof EnvSchema>
+}
+
+type FindUserByTokenOptions = {
+  token: string
+}
+
+export async function findUser(args: FindUserByIdOptions | FindUserByExternalIdOptions | FindUserByTokenOptions) {
+  if ('id' in args) {
     return await db.query.endUsers.findFirst({
-      where: eq(endUsers.id, id),
+      where: eq(endUsers.id, args.id),
     });
   }
 
-  if (externalId) {
+  if ('externalId' in args) {
     return await db.query.endUsers.findFirst({
-      where: eq(endUsers.externalId, externalId),
+      where: and(eq(endUsers.externalId, args.externalId), eq(endUsers.env, args.env)),
     });
   }
 
-  if (token) {
+  if ('token' in args) {
     return await db.query.endUsers.findFirst({
-      where: eq(endUsers.token, token), // fixme: this is terrible
+      where: eq(endUsers.token, args.token), // fixme: this is terrible
     });
   }
 
-  return undefined;
+  return undefined;  
 }

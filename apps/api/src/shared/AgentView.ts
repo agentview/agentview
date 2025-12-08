@@ -12,6 +12,7 @@ import {
   type SessionsGetQueryParams,
   type SessionsPaginatedResponse,
   type PublicSessionsGetQueryParams,
+  EnvSchema,
 } from './apiTypes'
 
 import { type AgentViewErrorBody, type AgentViewErrorDetails, AgentViewError } from './AgentViewError'
@@ -19,21 +20,26 @@ import { serializeConfig } from './configUtils'
 
 import { enhanceSession } from './sessionUtils'
 
+import { z } from 'zod'
+
 export interface AgentViewOptions {
   apiUrl: string
   apiKey: string
   userToken?: string
+  env?: z.infer<typeof EnvSchema>
 }
 
 export class AgentView {
   private apiUrl: string
   private apiKey: string
+  private env: z.infer<typeof EnvSchema>
   private userToken?: string
 
   constructor(options: AgentViewOptions) {
     this.apiUrl = options.apiUrl.replace(/\/$/, '') // remove trailing slash
     this.apiKey = options.apiKey
     this.userToken = options.userToken
+    this.env = options.env ?? 'playground'
   }
 
   private async request<T>(
@@ -67,7 +73,7 @@ export class AgentView {
   }
 
   async createSession(options: SessionCreate) {
-    return enhanceSession(await this.request<Session>('POST', `/api/sessions`, options))
+    return enhanceSession(await this.request<Session>('POST', `/api/sessions`, { ...options, env: options.env ?? this.env }))
   }
 
   async getSession(options: { id: string }) {
@@ -82,7 +88,8 @@ export class AgentView {
       if (options.page) params.append('page', options.page.toString());
       if (options.limit) params.append('limit', options.limit.toString());
       if (options.userId) params.append('userId', options.userId);
-      if (options.list) params.append('list', options.list);
+      params.append('env', options.env ?? this.env);
+
       const queryString = params.toString();
       if (queryString) {
         path += `?${queryString}`;
