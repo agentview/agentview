@@ -39,7 +39,7 @@ export const endUsers = pgTable("end_users", {
 
   token: text("token").notNull().unique(),
   
-}, (table) => [uniqueIndex('end_user_external_id_unique').on(table.externalId)]);
+}, (table) => [uniqueIndex('end_user_external_id_env_unique').on(table.externalId, table.env)]);
 
 // export const endUserAuthSessions = pgTable("end_user_auth_sessions", {
 //   id: uuid("id").primaryKey().defaultRandom(),

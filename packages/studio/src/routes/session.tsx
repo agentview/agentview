@@ -410,7 +410,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
                     <PropertyListTextValue>
                         {versions.length === 0 && <span className="text-muted-foreground">-</span>}
                         {versions.length > 0 && <div className="flex flex-row gap-1">{versions.map(version => {
-                            const versionString = (version?.version ?? "") + "." + (version?.env ?? "")
+                            const versionString = version?.version ?? "";
                             return <Pill key={versionString}>{versionString}</Pill>
                         })}</div>}
                     </PropertyListTextValue>
@@ -423,13 +423,14 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
 }
 
 function ShareForm({ session }: { session: Session }) {
-    const fetcher = useFetcher();
-    return <fetcher.Form method="put" action={`/users/${session.user.id}/share`}>
-        <input type="hidden" name="isShared" value={session.user.isShared ? "false" : "true"} />
-        <Button variant={"outline"} size="sm" type="submit">
-            <UsersIcon fill={session.user.isShared ? "black" : "none"} stroke={session.user.isShared ? "none" : "black"} /> {session.user.isShared ? "Shared" : "Share"}
-        </Button>
-    </fetcher.Form>
+    return <div>FIX ME</div>
+    // const fetcher = useFetcher();
+    // return <fetcher.Form method="put" action={`/users/${session.user.id}/share`}>
+    //     <input type="hidden" name="isShared" value={session.user.isShared ? "false" : "true"} />
+    //     <Button variant={"outline"} size="sm" type="submit">
+    //         <UsersIcon fill={session.user.isShared ? "black" : "none"} stroke={session.user.isShared ? "none" : "black"} /> {session.user.isShared ? "Shared" : "Share"}
+    //     </Button>
+    // </fetcher.Form>
 }
 
 // const inputComponent = ({ session, userToken }) => {

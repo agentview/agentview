@@ -1,4 +1,4 @@
-import { allowedSessionLists } from "./shared/apiTypes";
+import { envAllowedValues, type Env } from "./shared/apiTypes";
 import { config } from "~/config";
 
 export function getAgentParamAndCheckForRedirect(request: Request) {
@@ -22,17 +22,26 @@ export function getAgentParamAndCheckForRedirect(request: Request) {
 
 export function getListParamsAndCheckForRedirect(request: Request) {
     const url = new URL(request.url);
-    let list = url.searchParams.get('list')
 
+    let envParam = url.searchParams.get('env')
+    let env: Env;
     let needsRedirect = false;
 
-    if (!list) {
-        list = "prod";
+    if (!envParam) {
+        envParam = "production";
         needsRedirect = true;
     }
-
-    if (!allowedSessionLists.includes(list)) {
-        throw new Error(`[session list] invalid list: ${list}. Allowed lists are: ${allowedSessionLists.join(", ")}`);
+    if (envParam === "production" || !envParam) {
+        env = "production";
+    }
+    else if (envParam === "shared-playground") {
+        env = "shared-playground";
+    }
+    else if (envParam === "playground") {
+        env = "playground";
+    }
+    else {
+        throw new Error(`[session list] invalid env: ${envParam}. Allowed envs are: ${envAllowedValues.join(", ")}`);
     }
 
     let agent = url.searchParams.get('agent');
@@ -49,7 +58,7 @@ export function getListParamsAndCheckForRedirect(request: Request) {
     const page = url.searchParams.get('page') ?? undefined
     const limit = url.searchParams.get('limit') ?? undefined
 
-    const listParams = { list, agent, page, limit };
+    const listParams = { env, agent, page, limit };
 
     return {
         listParams,

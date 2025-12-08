@@ -39,7 +39,7 @@ import { SessionContext } from "~/lib/SessionContext";
 import { apiFetch } from "~/lib/apiFetch";
 import { updateRemoteConfig } from "~/lib/remoteConfig";
 import { config } from "~/config";
-import { type Member, allowedSessionLists } from "~/lib/shared/apiTypes";
+import { type Env, type Member, envAllowedValues } from "~/lib/shared/apiTypes";
 import { Button } from "~/components/ui/button";
 import { getCurrentAgent } from "~/lib/currentAgent";
 import { matchPath } from "react-router";
@@ -79,15 +79,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
     for (const agentConfig of config.agents) {
       listStats[agentConfig.name] = {};
 
-      for (const list of allowedSessionLists) {
-        const statsUrl = `/api/sessions/stats?agent=${agentConfig.name}&list=${list}`;
+      for (const env of envAllowedValues) {
+        const statsUrl = `/api/sessions/stats?agent=${agentConfig.name}&env=${env}`;
         const statsResponse = await apiFetch<{ unseenCount: number, hasMentions: boolean }>(statsUrl);
 
         if (!statsResponse.ok) {
           throw data(statsResponse.error, { status: statsResponse.status });
         }
 
-        listStats[agentConfig.name][list] = statsResponse.data;
+        listStats[agentConfig.name][env] = statsResponse.data;
       }
     }
   }
@@ -119,8 +119,8 @@ function Component() {
   const location = useLocation();
 
   // Helper function to get unseen count for a specific session type and list name
-  const getUnseenCount = (sessionType: string, listName: string) => {
-    return listStats[sessionType]?.[listName]?.unseenCount ?? 0
+  const getUnseenCount = (sessionType: string, env: Env) => {
+    return listStats[sessionType]?.[env]?.unseenCount ?? 0
   }
 
   const isMenuLinkActive = (linkPath: string) => {
@@ -132,9 +132,9 @@ function Component() {
     if (linkPath.startsWith("/sessions")) {
       const pathParams = new URLSearchParams(linkUrl.search)
       const currentParams = new URLSearchParams(location.search)
-      const listMatch = pathParams.get('list') === currentParams.get('list')
+      const envMatch = pathParams.get('env') === currentParams.get('env')
       const agentMatch = pathParams.get('agent') === currentParams.get('agent')
-      return listMatch && agentMatch
+      return envMatch && agentMatch
     }
 
     return true
@@ -143,9 +143,9 @@ function Component() {
   const isSettings = isMenuLinkActive("/settings")
 
   // Get unseen counts for badges
-  const prodUnseenCount = getUnseenCount(agent, "prod")
-  const playgroundPrivateUnseenCount = getUnseenCount(agent, "playground_private")
-  const playgroundSharedUnseenCount = getUnseenCount(agent, "playground_shared")
+  const prodUnseenCount = getUnseenCount(agent, "production")
+  const playgroundUnseenCount = getUnseenCount(agent, "playground")
+  const sharedPlaygroundUnseenCount = getUnseenCount(agent, "shared-playground")
   
   const customRoutes = config.customRoutes?.filter(route => route.scope === "loggedIn");
 
@@ -182,7 +182,7 @@ function Component() {
 
               <SidebarMenuItem>
 
-                <Form action={`/sessions/new?agent=${agent}&list=playground_private`} method="post" className="flex flex-col items-stretch relative mt-1 px-1">
+                <Form action={`/sessions/new?agent=${agent}&env=playground`} method="post" className="flex flex-col items-stretch relative mt-1 px-1">
                   <Button variant="outline" size="sm" type="submit">
                     <PlusIcon className="h-4 w-4" />
                     New Session
@@ -199,8 +199,8 @@ function Component() {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=prod`)} className={"justify-between"}>
-                        <Link to={`/sessions?agent=${agent}&list=prod`}>
+                      <SidebarMenuButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&env=production`)} className={"justify-between"}>
+                        <Link to={`/sessions?agent=${agent}&env=production`}>
                           <div className="flex flex-row items-center gap-2"><MessageCircle className="h-4 w-4" /> Production</div>
                           {prodUnseenCount > 0 && <NotificationBadge>{prodUnseenCount}</NotificationBadge>}
                         </Link>
@@ -210,18 +210,18 @@ function Component() {
                       <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
                       <SidebarMenuSub className="mr-0 pr-0">
                         <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=playground_private`)} className={"justify-between"}>
-                            <Link to={`/sessions?agent=${agent}&list=playground_private`}>
+                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&env=playground`)} className={"justify-between"}>
+                            <Link to={`/sessions?agent=${agent}&env=playground`}>
                               <div>Private</div>
-                              {playgroundPrivateUnseenCount > 0 && <NotificationBadge>{playgroundPrivateUnseenCount}</NotificationBadge>}
+                              {playgroundUnseenCount > 0 && <NotificationBadge>{playgroundUnseenCount}</NotificationBadge>}
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                         <SidebarMenuSubItem >
-                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&list=playground_shared`)}  className={"justify-between"}>
-                            <Link to={`/sessions?agent=${agent}&list=playground_shared`}>
+                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&env=shared-playground`)}  className={"justify-between"}>
+                            <Link to={`/sessions?agent=${agent}&env=shared-playground`}>
                               <div>Shared</div>
-                              {playgroundSharedUnseenCount > 0 && <NotificationBadge>{playgroundSharedUnseenCount}</NotificationBadge>}
+                              {sharedPlaygroundUnseenCount > 0 && <NotificationBadge>{sharedPlaygroundUnseenCount}</NotificationBadge>}
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>

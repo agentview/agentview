@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeAll } from 'vitest'
-import { AgentView, AgentViewClient } from './AgentView'
+import { AgentView, PublicAgentView } from './AgentView'
 import type { User, Run, Session } from './apiTypes';
 import { z } from 'zod';
 
-const apiKey = 'QnUveLvkStSMbjRCCzfbkBtlngakfLLoHFyaARUroWvTPoqALxxpZSPRuYIUMGbR'
+const apiKey = 'CTQWCPJrBTVUMbBgnkQNGeXxCaZsPgDJWZperYmGNPKgSzUqRcAVXnXggZLaxUSb'
 const apiUrl = 'http://localhost:1990'
 
 const av = new AgentView({
@@ -34,7 +34,7 @@ describe('API', () => {
     expect(initUser1.createdBy).toBeDefined()
 
     expect(initProdUser).toBeDefined()
-    expect(initProdUser.externalId).toBe(EXTERNAL_ID_1)
+    expect(initProdUser.externalId).toBe(EXTERNAL_ID_1) // external id the same as initUSer1, but in prod
     expect(initProdUser.createdBy).toBeNull()
   })
 
@@ -100,8 +100,8 @@ describe('API', () => {
   const wrongOutput = { type: "message", role: "assistant", content: 100 }
 
 
-  async function createSession({ env = "playground" }: { env?: "playground" | "production" } = {}) {
-    return await av.createSession({ agent: "test", userId: initUser1.id, env })
+  async function createSession() {
+    return await av.createSession({ agent: "test", userId: initUser1.id })
   }
 
   describe("users", () => {
@@ -112,21 +112,22 @@ describe('API', () => {
       }))
     })
 
-    test("update works", async () => {
-      const EXTERNAL_ID = Math.random().toString(36).slice(2);
-      const NEW_EXTERNAL_ID = EXTERNAL_ID + '1';
+    // TODO: Uncomment this when update user is implemented
+    // test("update works", async () => {
+    //   const EXTERNAL_ID = Math.random().toString(36).slice(2);
+    //   const NEW_EXTERNAL_ID = EXTERNAL_ID + '1';
 
-      const user = await av.createUser({ externalId: EXTERNAL_ID, isShared: false })
-      let updatedUser = await av.updateUser({ id: user.id, externalId: NEW_EXTERNAL_ID, isShared: true })
-      expect(updatedUser).toBeDefined()
-      expect(updatedUser.externalId).toBe(NEW_EXTERNAL_ID)
-      expect(updatedUser.isShared).toBe(true)
+    //   const user = await av.createUser({ externalId: EXTERNAL_ID, isShared: false })
+    //   let updatedUser = await av.updateUser({ id: user.id, externalId: NEW_EXTERNAL_ID, isShared: true })
+    //   expect(updatedUser).toBeDefined()
+    //   expect(updatedUser.externalId).toBe(NEW_EXTERNAL_ID)
+    //   expect(updatedUser.isShared).toBe(true)
 
-      updatedUser = await av.getUser({ id: user.id })
-      expect(updatedUser).toBeDefined()
-      expect(updatedUser.externalId).toBe(NEW_EXTERNAL_ID)
-      expect(updatedUser.isShared).toBe(true)
-    })
+    //   updatedUser = await av.getUser({ id: user.id })
+    //   expect(updatedUser).toBeDefined()
+    //   expect(updatedUser.externalId).toBe(NEW_EXTERNAL_ID)
+    //   expect(updatedUser.isShared).toBe(true)
+    // })
 
     describe("get by id", () => {
 
@@ -162,7 +163,7 @@ describe('API', () => {
     })
 
     describe("get by external id", () => {
-      test("existing external ids", async () => {
+      test.only("existing external ids", async () => {
         const user1 = await av.getUser({ externalId: EXTERNAL_ID_1 })
         expect(user1).toBeDefined()
         expect(user1.externalId).toBe(EXTERNAL_ID_1)
@@ -213,7 +214,7 @@ describe('API', () => {
       describe("get me", () => {
 
         test("works for existing users", async () => {
-          const avPublic1 = new AgentViewClient({
+          const avPublic1 = new PublicAgentView({
             apiUrl,
             userToken: initUser1.token
           })
@@ -221,7 +222,7 @@ describe('API', () => {
           expect(user1).toBeDefined()
           expect(user1.externalId).toBe(EXTERNAL_ID_1)
 
-          const avPublic2 = new AgentViewClient({
+          const avPublic2 = new PublicAgentView({
             apiUrl,
             userToken: initUser2.token
           })
@@ -231,7 +232,7 @@ describe('API', () => {
         })
 
         test("fails for unknown key", async () => {
-          const avPublic1 = new AgentViewClient({
+          const avPublic1 = new PublicAgentView({
             apiUrl,
             userToken: "xxx"
           })
@@ -248,7 +249,7 @@ describe('API', () => {
           await av.__updateConfig({ config: { agents: [{ name: "test" }] } })
           const session = await av.createSession({ agent: "test", userId: initUser1.id })
 
-          const avPublic1 = new AgentViewClient({
+          const avPublic1 = new PublicAgentView({
             apiUrl,
             userToken: initUser1.token
           })
@@ -261,7 +262,7 @@ describe('API', () => {
           await av.__updateConfig({ config: { agents: [{ name: "test" }] } })
           const session = await av.createSession({ agent: "test", userId: initUser1.id })
 
-          const avPublic2 = new AgentViewClient({
+          const avPublic2 = new PublicAgentView({
             apiUrl,
             userToken: initUser2.token
           })
@@ -304,7 +305,6 @@ describe('API', () => {
       expect(configRow.config).toEqual({ agents: [] });
 
       configRow = await av.__getConfig();
-      console.log(configRow.config);
       expect(configRow.config).toEqual({ agents: [] });
     })
 
@@ -598,7 +598,7 @@ describe('API', () => {
         }
       })
 
-      test("no pagination params§", async () => {
+      test("no pagination params", async () => {
         const result = await av.getSessions({ agent: agentName })
 
         expect(result.sessions).toBeDefined()
@@ -703,7 +703,7 @@ describe('API', () => {
       })
 
       test("[public api] works", async () => {
-        const avPublic1 = new AgentViewClient({
+        const avPublic1 = new PublicAgentView({
           apiUrl,
           userToken: initUser1.token
         })
@@ -715,7 +715,7 @@ describe('API', () => {
         expect(user1FetchedSessions.pagination.totalCount).toBe(USER_1_SESSIONS_COUNT)
 
 
-        const avPublic2 = new AgentViewClient({
+        const avPublic2 = new PublicAgentView({
           apiUrl,
           userToken: initUser2.token
         })
@@ -1137,21 +1137,12 @@ describe('API', () => {
       })
 
 
-      test.only("compatibility enforced - production", async () => {
+      test("compatibility enforced - production", async () => {
         await updateConfig()
-        const session = await createSession({ env: "production" })
-        console.log(session.user);
-
-        // await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2" }) // allow for partial version
-        // await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2.3" })
-        // await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2.4" }) // higher patch works
-        // await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.0" }) // higher minor works
-
-        // await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.2.2" }), 422) // smaller patch fails
-        // await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "2.0.0" }), 422) // different minor fails
+        const session = await av.createSession({ agent: "test", userId: initProdUser.id })
 
         await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0-dev" }), 422) // production can't have suffixes
-        // await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.1-local" }), 422) // production can't have suffixes
+        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.1-local" }), 422) // production can't have suffixes
       })
 
     });

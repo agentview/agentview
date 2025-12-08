@@ -5,4 +5,4 @@ export * from "./types";
 export * from "./lib/shared/apiTypes";
 
 export { AgentViewError } from "./lib/shared/AgentViewError";
-export { AgentView, AgentViewClient } from "./lib/shared/AgentView";
+export { AgentView, PublicAgentView } from "./lib/shared/AgentView";

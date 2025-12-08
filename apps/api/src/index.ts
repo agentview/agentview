@@ -693,7 +693,7 @@ app.openapi(usersPOSTRoute, async (c) => {
 
   const newUser = await createUser({
     createdBy: memberId,
-    env: body.env,
+    env: body.env ?? 'playground',
     externalId: body.externalId,
   })
 
@@ -787,7 +787,7 @@ app.openapi(userByExternalIdGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
   const { external_id } = c.req.param()
-  const { env } = c.req.query()
+  const { env } = c.req.valid("query")
 
   const user = await requireUser({ externalId: external_id, env: env as z.infer<typeof EnvSchema> })
 
@@ -831,7 +831,6 @@ app.openapi(apiUsersPATCHRoute, async (c) => {
 const DEFAULT_LIMIT = 50
 const DEFAULT_PAGE = 1
 
-
 function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchema>, principal: Principal) {
   const { agent, env, userId } = params;
 
@@ -843,28 +842,39 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
 
   if (principal.type === 'member' || principal.type === 'apiKey') {
 
-    if (!env) {
-      throw new HTTPException(422, { message: "`env` is required" });
+    if (!env && !userId) {
+      throw new HTTPException(422, { message: "You must set either `env` or `userId` to make this request." });
+    }
+    if (env && userId) {
+      throw new HTTPException(422, { message: "You must set either `env` or `userId`, not both." });
+    }
+    if (userId && principal.user) {
+      throw new HTTPException(422, { message: "You can't set both X-User-Token and userId query param" });
     }
 
-    filters.push(eq(endUsers.env, env));
-
-    if (env === "playground") {
-      if (principal.type === 'member') {
-        filters.push(eq(endUsers.createdBy, principal.session.user.id));
-      }
-      else {
-        throw new HTTPException(401, { message: "`playground` can only be used with provided logged in user id." });
-      }
+    if (env) { // env
+      filters.push(eq(endUsers.env, env));
     }
 
-    if (userId) {
+    if (userId) { // explicit user
       filters.push(eq(endUsers.id, userId));
     }
 
-    // add extra filter if end user is provided -> narrow down scope to end user's sessions
-    if (principal.user) {
+    if (principal.user) { // "as a user"
       filters.push(eq(endUsers.id, principal.user.id));
+    }
+
+    if (env === "playground") {
+      
+      if (principal.type === 'member') {
+        filters.push(eq(endUsers.createdBy, principal.session.user.id));
+      }
+      else if (principal.type === 'apiKey') {
+        filters.push(eq(endUsers.createdBy, principal.apiKey.userId));
+      }
+      // else {
+      //   throw new HTTPException(401, { message: "`playground` can only be used with provided logged in user id." });
+      // }
     }
   }
   else if (principal.type === 'user') {
@@ -890,7 +900,7 @@ function normalizeNumberParam(value: number | string | undefined, defaultValue: 
   return Math.max(numValue, 1);
 }
 
-async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>, principal: Principal) {
+async function getSessions(params: SessionsGetQueryParams, principal: Principal) {
   const limit = normalizeNumberParam(params.limit, DEFAULT_LIMIT);
   const page = normalizeNumberParam(params.page, DEFAULT_PAGE);
   
@@ -969,8 +979,8 @@ const sessionsGETRoute = createRoute({
 
 app.openapi(sessionsGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  const params = c.req.query();
-  const sessions = await getSessions(params as SessionsGetQueryParams, principal)
+  const params = c.req.valid("query");
+  const sessions = await getSessions(params, principal)
   return c.json(sessions, 200);
 })
 
@@ -990,8 +1000,8 @@ const publicSessionsGETRoute = createRoute({
 
 app.openapi(publicSessionsGETRoute, async (c) => {
   const principal = await authnUser(c.req.raw.headers)
-  const params = c.req.query();
-  const sessions = await getSessions(params as PublicSessionsGetQueryParams, principal)
+  const params = c.req.valid("query");
+  const sessions = await getSessions(params, principal)
   return c.json(sessions, 200);
 })
 
@@ -1022,7 +1032,7 @@ app.openapi(sessionsGETStatsRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const memberPrincipal = requireMemberPrincipal(principal);
 
-  const { granular = false, ...params } = c.req.query();
+  const { granular = false, ...params } = c.req.valid("query");
 
   const result = await db
     .select({
@@ -1222,12 +1232,17 @@ app.openapi(sessionsPOSTRoute, async (c) => {
       return await requireUser({ id: body.userId });
     }
 
-    if (body.userExternalId) {
-      return await requireUser({ externalId: body.userExternalId, env: body.env as z.infer<typeof EnvSchema> });
-    }
+    // if (body.userExternalId) {
+    //   return await requireUser({ externalId: body.userExternalId, env: body.env as z.infer<typeof EnvSchema> });
+    // }
 
     if (principal.user) {
       return principal.user;
+    }
+
+    // We must create user, for that env must be defined
+    if (!body.env) {
+      throw new HTTPException(422, { message: "You must provide 'env' parameter, since you didn't provide 'userId' nor 'X-User-Token'." });
     }
 
     authorize(principal, { action: "end-user:create" });

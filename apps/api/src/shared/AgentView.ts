@@ -1,6 +1,6 @@
-import { 
-  type Session, 
-  type User, 
+import {
+  type Session,
+  type User,
   type UserCreate,
   type Run,
   type RunCreate,
@@ -9,10 +9,10 @@ import {
   type SessionUpdate,
   type Config,
   type ConfigCreate,
+  type Env,
   type SessionsGetQueryParams,
   type SessionsPaginatedResponse,
   type PublicSessionsGetQueryParams,
-  EnvSchema,
 } from './apiTypes'
 
 import { type AgentViewErrorBody, type AgentViewErrorDetails, AgentViewError } from './AgentViewError'
@@ -20,26 +20,24 @@ import { serializeConfig } from './configUtils'
 
 import { enhanceSession } from './sessionUtils'
 
-import { z } from 'zod'
-
 export interface AgentViewOptions {
   apiUrl: string
   apiKey: string
   userToken?: string
-  env?: z.infer<typeof EnvSchema>
+  env?: Env
 }
 
 export class AgentView {
   private apiUrl: string
   private apiKey: string
-  private env: z.infer<typeof EnvSchema>
   private userToken?: string
+  private env: Env
 
   constructor(options: AgentViewOptions) {
     this.apiUrl = options.apiUrl.replace(/\/$/, '') // remove trailing slash
     this.apiKey = options.apiKey
     this.userToken = options.userToken
-    this.env = options.env ?? 'playground'
+    this.env = options.env ?? "playground";
   }
 
   private async request<T>(
@@ -73,7 +71,7 @@ export class AgentView {
   }
 
   async createSession(options: SessionCreate) {
-    return enhanceSession(await this.request<Session>('POST', `/api/sessions`, { ...options, env: options.env ?? this.env }))
+    return enhanceSession(await this.request<Session>('POST', `/api/sessions`, { env: this.env, ...options }))
   }
 
   async getSession(options: { id: string }) {
@@ -82,19 +80,19 @@ export class AgentView {
 
   async getSessions(options?: SessionsGetQueryParams) {
     let path = `/api/sessions`;
-    if (options) {
-      const params = new URLSearchParams();
-      if (options.agent) params.append('agent', options.agent);
-      if (options.page) params.append('page', options.page.toString());
-      if (options.limit) params.append('limit', options.limit.toString());
-      if (options.userId) params.append('userId', options.userId);
-      params.append('env', options.env ?? this.env);
+    const params = new URLSearchParams();
 
-      const queryString = params.toString();
-      if (queryString) {
-        path += `?${queryString}`;
-      }
+    if (options?.agent) params.append('agent', options.agent);
+    if (options?.page) params.append('page', options.page.toString());
+    if (options?.limit) params.append('limit', options.limit.toString());
+    if (options?.userId) params.append('userId', options.userId);
+    params.append('env', options?.env ?? this.env);
+
+    const queryString = params.toString();
+    if (queryString) {
+      path += `?${queryString}`;
     }
+
     return await this.request<SessionsPaginatedResponse>('GET', path, undefined)
   }
 
@@ -111,10 +109,10 @@ export class AgentView {
   }
 
   async createUser(options?: UserCreate): Promise<User> {
-    return await this.request<User>('POST', `/api/users`, options ?? {})
+    return await this.request<User>('POST', `/api/users`, { env: this.env, ...options })
   }
 
-  async getUser(options?: { id: string } | { token: string } | { externalId: string } | undefined): Promise<User> {
+  async getUser(options?: { id: string } | { token: string } | { externalId: string, env: Env } | undefined): Promise<User> {
     if (!options) {
       return await this.request<User>('GET', `/api/users/me`)
     }
@@ -159,16 +157,18 @@ export class AgentView {
 
 
 
-export interface AgentViewClientOptions {
+
+
+export interface PublicAgentViewOptions {
   apiUrl: string
   userToken: string
 }
 
-export class AgentViewClient {
+export class PublicAgentView {
   private apiUrl: string
   private userToken: string
 
-  constructor(options: AgentViewClientOptions) {
+  constructor(options: PublicAgentViewOptions) {
     this.apiUrl = options.apiUrl.replace(/\/$/, '') // remove trailing slash
     this.userToken = options.userToken
   }
@@ -209,17 +209,13 @@ export class AgentViewClient {
 
   async getSessions(options?: PublicSessionsGetQueryParams) {
     let path = `/api/public/sessions`;
-    if (options) {
-      const params = new URLSearchParams();
-      if (options.agent) params.append('agent', options.agent);
-      if (options.page) params.append('page', options.page.toString());
-      if (options.limit) params.append('limit', options.limit.toString());
-      const queryString = params.toString();
-      if (queryString) {
-        path += `?${queryString}`;
-      }
-    }
-
+    const params = new URLSearchParams();
+    if (options?.agent) params.append('agent', options.agent);
+    if (options?.page) params.append('page', options.page.toString());
+    if (options?.limit) params.append('limit', options.limit.toString());
     return await this.request<SessionsPaginatedResponse>('GET', path, undefined)
   }
 }
+
+type WithOptional<T, K extends keyof T> =
+  Omit<T, K> & Partial<Pick<T, K>>;
