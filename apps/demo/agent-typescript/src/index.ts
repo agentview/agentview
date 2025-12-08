@@ -24,12 +24,12 @@ app.post('/simple_chat', async (c) => {
   // Create a new user or authenticate if token exists.
   const user = token ? 
     await av.getUser({ token }) : 
-    await av.createUser();
+    await av.createUser({ env: "production" });
 
   // Create new session or fetch existing one and authorize user's access to the session.
   const session = id ?
     await av.as(user).getSession({ id }) : 
-    await av.as(user).createSession({ agent: "simple_chat", environment: "production" });
+    await av.as(user).createSession({ agent: "simple_chat" });
 
   // Create a new run
   // 1. session is now locked - no more runs can be started until this one finishes.

@@ -87,7 +87,7 @@ describe('API', () => {
     return await av.createSession({ agent: "test", userId: initUser1.id })
   }
 
-  describe("end users", () => {
+  describe("users", () => {
     test("creating another user with the same external id should fail", async () => {
       await expect(av.createUser({ externalId: EXTERNAL_ID_1 })).rejects.toThrowError(expect.objectContaining({
         statusCode: 422,

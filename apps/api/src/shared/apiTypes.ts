@@ -13,14 +13,13 @@ export const UserSchema = z.object({
 
 export type User = z.infer<typeof UserSchema>
 
-export const EnvironmentSchema = z.enum(['production', 'playground']);
-export type Environment = z.infer<typeof EnvironmentSchema>
+export const EnvSchema = z.enum(['production', 'playground']);
 
 export const UserCreateSchema = UserSchema.pick({
     isShared: true,
     externalId: true,
 }).partial().extend({
-    environment: EnvironmentSchema.optional(),
+    env: EnvSchema.optional(),
 })
 
 export type UserCreate = z.infer<typeof UserCreateSchema>
@@ -185,7 +184,7 @@ export const SessionCreateSchema = z.object({
     userExternalId: z.string().optional(),
     // about new user
     isShared: z.boolean().optional(),
-    environment: EnvironmentSchema.optional(),
+    env: EnvSchema.optional(),
 })
 
 export type SessionCreate = z.infer<typeof SessionCreateSchema>
