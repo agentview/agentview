@@ -572,10 +572,12 @@ describe('API', () => {
     describe("get session list", () => {
       const USER_1_SESSIONS_COUNT = 20
       const USER_2_SESSIONS_COUNT = 7
+      const PROD_USER_SESSIONS_COUNT = 20
       const TOTAL_SESSIONS_COUNT = USER_1_SESSIONS_COUNT + USER_2_SESSIONS_COUNT
 
       let user1Sessions: Session[] = []
       let user2Sessions: Session[] = []
+      let prodUserSessions: Session[] = []
 
       let agentName = 'agent_' + Math.random().toString(36).slice(2)
 
@@ -594,6 +596,13 @@ describe('API', () => {
         for (let i = 0; i < USER_2_SESSIONS_COUNT; i++) {
           const session = await av.createSession({ agent: agentName, userId: initUser2.id })
           user2Sessions.push(session)
+          await new Promise(resolve => setTimeout(resolve, 10)) // Small delay to ensure different updatedAt timestamps
+        }
+
+        prodUserSessions = []
+        for (let i = 0; i < PROD_USER_SESSIONS_COUNT; i++) {
+          const session = await av.createSession({ agent: agentName, userId: initProdUser.id })
+          prodUserSessions.push(session)
           await new Promise(resolve => setTimeout(resolve, 10)) // Small delay to ensure different updatedAt timestamps
         }
       })
