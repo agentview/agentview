@@ -11,6 +11,7 @@ import {
   type ConfigCreate,
   type SessionsGetQueryParams,
   type SessionsPaginatedResponse,
+  type PublicSessionsGetQueryParams,
 } from './apiTypes'
 
 import { type AgentViewErrorBody, type AgentViewErrorDetails, AgentViewError } from './AgentViewError'
@@ -197,5 +198,21 @@ export class AgentViewClient {
 
   async getSession(options: { id: string }) {
     return enhanceSession(await this.request<Session>('GET', `/api/public/sessions/${options.id}`))
+  }
+
+  async getSessions(options?: PublicSessionsGetQueryParams) {
+    let path = `/api/public/sessions`;
+    if (options) {
+      const params = new URLSearchParams();
+      if (options.agent) params.append('agent', options.agent);
+      if (options.page) params.append('page', options.page.toString());
+      if (options.limit) params.append('limit', options.limit.toString());
+      const queryString = params.toString();
+      if (queryString) {
+        path += `?${queryString}`;
+      }
+    }
+
+    return await this.request<SessionsPaginatedResponse>('GET', path, undefined)
   }
 }

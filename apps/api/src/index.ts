@@ -873,13 +873,29 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
   return and(...filters);
 }
 
+function normalizeNumberParam(value: number | string | undefined, defaultValue: number) {
+  let numValue : number;
+
+  if (!value) {
+    numValue = defaultValue;
+  }
+  else if (typeof value === 'string') {
+    numValue = parseInt(value);
+  }
+  else {
+    numValue = value;
+  }
+
+  return Math.max(numValue, 1);
+}
+
 async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>, principal: Principal) {
-  const limit = Math.max(parseInt(params.limit ?? DEFAULT_LIMIT.toString()) || DEFAULT_LIMIT, 1);
-  const page = Math.max(parseInt(params.page ?? DEFAULT_PAGE.toString()) || DEFAULT_PAGE, 1);
+  const limit = normalizeNumberParam(params.limit, DEFAULT_LIMIT);
+  const page = normalizeNumberParam(params.page, DEFAULT_PAGE);
   
-  const MAX_PAGE = 1000;
-  if (page > MAX_PAGE) {
-    throw new HTTPException(422, { message: `Page number cannot exceed ${MAX_PAGE}` });
+  const MAX_LIMIT = 1000;
+  if (limit > MAX_LIMIT) {
+    throw new HTTPException(422, { message: `Page limit cannot exceed ${MAX_LIMIT}` });
   }
   
   const offset = (page - 1) * limit;
@@ -890,8 +906,6 @@ async function getSessions(params: z.infer<typeof SessionsGetQueryParamsSchema>,
     .from(sessions)
     .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
     .where(getSessionListFilter(params, principal));
-
-    console.log('totalCountResult', totalCountResult);
 
   const totalCount = totalCountResult[0]?.count ?? 0;
 

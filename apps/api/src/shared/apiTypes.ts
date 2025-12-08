@@ -199,8 +199,8 @@ export const allowedSessionLists = ["prod", "playground_private", "playground_sh
 
 export const PublicSessionsGetQueryParamsSchema = z.object({
     agent: z.string().optional(),
-    page: z.string().optional(),
-    limit: z.string().optional()
+    page: z.union([z.number(), z.string()]).optional(),
+    limit: z.union([z.number(), z.string()]).optional()
   });
   
 export const SessionsGetQueryParamsSchema = PublicSessionsGetQueryParamsSchema.extend({

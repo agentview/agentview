@@ -140,13 +140,13 @@ describe('API', () => {
         await expect(av.as(initUser1).getUser({ id: initUser2.id })).rejects.toThrowError(expect.objectContaining({
           statusCode: 401,
           message: expect.any(String),
-          }))
-        })
+        }))
       })
+    })
 
-      describe("get by external id", () => {
-        test("existing external ids", async () => {
-          const user1 = await av.getUser({ externalId: EXTERNAL_ID_1 })
+    describe("get by external id", () => {
+      test("existing external ids", async () => {
+        const user1 = await av.getUser({ externalId: EXTERNAL_ID_1 })
         expect(user1).toBeDefined()
         expect(user1.externalId).toBe(EXTERNAL_ID_1)
       })
@@ -190,78 +190,82 @@ describe('API', () => {
         }))
       })
     })
-  })
 
-  describe("PUBLIC API", () => {
+    describe("PUBLIC API", () => {
 
-    describe("get me", () => {
+      describe("get me", () => {
 
-      test("works for existing users", async () => {
-        const avPublic1 = new AgentViewClient({
-          apiUrl,
-          userToken: initUser1.token
+        test("works for existing users", async () => {
+          const avPublic1 = new AgentViewClient({
+            apiUrl,
+            userToken: initUser1.token
+          })
+          const user1 = await avPublic1.getMe()
+          expect(user1).toBeDefined()
+          expect(user1.externalId).toBe(EXTERNAL_ID_1)
+
+          const avPublic2 = new AgentViewClient({
+            apiUrl,
+            userToken: initUser2.token
+          })
+          const user2 = await avPublic2.getMe()
+          expect(user2).toBeDefined()
+          expect(user2.externalId).toBe(EXTERNAL_ID_2)
         })
-        const user1 = await avPublic1.getMe()
-        expect(user1).toBeDefined()
-        expect(user1.externalId).toBe(EXTERNAL_ID_1)
 
-        const avPublic2 = new AgentViewClient({
-          apiUrl,
-          userToken: initUser2.token
+        test("fails for unknown key", async () => {
+          const avPublic1 = new AgentViewClient({
+            apiUrl,
+            userToken: "xxx"
+          })
+
+          await expect(avPublic1.getMe()).rejects.toThrowError(expect.objectContaining({
+            statusCode: 401,
+            message: expect.any(String),
+          }))
         })
-        const user2 = await avPublic2.getMe()
-        expect(user2).toBeDefined()
-        expect(user2.externalId).toBe(EXTERNAL_ID_2)
       })
 
-      test("fails for unknown key", async () => {
-        const avPublic1 = new AgentViewClient({
-          apiUrl,
-          userToken: "xxx"
+      describe("get session by id", () => {
+        test("works for own session", async () => {
+          await av.__updateConfig({ config: { agents: [{ name: "test" }] } })
+          const session = await av.createSession({ agent: "test", userId: initUser1.id })
+
+          const avPublic1 = new AgentViewClient({
+            apiUrl,
+            userToken: initUser1.token
+          })
+
+          const fetchedSession = await avPublic1.getSession({ id: session.id })
+          expect(fetchedSession).toMatchObject(session)
         })
 
-        await expect(avPublic1.getMe()).rejects.toThrowError(expect.objectContaining({
-          statusCode: 401,
-          message: expect.any(String),
-        }))
+        test("fails for someone else's session", async () => {
+          await av.__updateConfig({ config: { agents: [{ name: "test" }] } })
+          const session = await av.createSession({ agent: "test", userId: initUser1.id })
+
+          const avPublic2 = new AgentViewClient({
+            apiUrl,
+            userToken: initUser2.token
+          })
+
+          await expect(avPublic2.getSession({ id: session.id })).rejects.toThrowError(expect.objectContaining({
+            statusCode: 401,
+            message: expect.any(String),
+          }))
+        })
       })
     })
 
-    describe("get session by id", () => {
-      test("works for own session", async () => {
-        await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
-        const session = await av.createSession({ agent: "test", userId: initUser1.id })
 
-        const avPublic1 = new AgentViewClient({
-          apiUrl,
-          userToken: initUser1.token
-        })
-
-        const fetchedSession = await avPublic1.getSession({ id: session.id })
-        expect(fetchedSession).toMatchObject(session)
-      })
-
-      test("fails for someone else's session", async () => {
-        await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
-        const session = await av.createSession({ agent: "test", userId: initUser1.id })
-
-        const avPublic2 = new AgentViewClient({
-          apiUrl,
-          userToken: initUser2.token
-        })
-
-        await expect(avPublic2.getSession({ id: session.id })).rejects.toThrowError(expect.objectContaining({
-          statusCode: 401,
-          message: expect.any(String),
-        }))
-      })
-    })
   })
+
+
 
   describe("configs", () => {
 
     test("works", async () => {
-      const CONFIG = { agents: [{ name: "test"  }] };
+      const CONFIG = { agents: [{ name: "test" }] };
 
       let configRow = await av.__updateConfig({ config: CONFIG })
       expect(configRow.config).toEqual(CONFIG);
@@ -282,7 +286,7 @@ describe('API', () => {
       let configRow = await av.__updateConfig({ config: { agents: [], animal: "cat" } })
       expect(configRow.config).toEqual({ agents: [] });
 
-      configRow = await av.__getConfig(); 
+      configRow = await av.__getConfig();
       console.log(configRow.config);
       expect(configRow.config).toEqual({ agents: [] });
     })
@@ -297,7 +301,7 @@ describe('API', () => {
 
   describe("sessions", async () => {
     test("create for specific user", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" }] } })
 
       const session = await av.createSession({ agent: "test", userId: initUser1.id })
       expect(session).toMatchObject({
@@ -314,7 +318,7 @@ describe('API', () => {
     })
 
     test("create for no user (creates new user)", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" }] } })
 
       const session = await av.createSession({ agent: "test" })
       expect(session.userId).toBeDefined()
@@ -324,17 +328,17 @@ describe('API', () => {
     })
 
     test("create session for other user with 'as' -> should throw", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" }] } })
 
       await expect(av.as(initUser1).createSession({ agent: "test", userId: initUser2.id })).rejects.toThrowError(expect.objectContaining({
         statusCode: 401,
         message: expect.any(String),
       }))
-      
+
     })
 
     test("create - fails at wrong agent", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" }] } })
 
       await expect(av.createSession({ agent: "wrong_agent", userId: initUser1.id })).rejects.toThrowError(expect.objectContaining({
         statusCode: 404,
@@ -346,7 +350,7 @@ describe('API', () => {
 
 
     test("get by id for existing session", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" }] } })
 
       const session = await av.createSession({ agent: "test", userId: initUser1.id })
       const fetchedSession = await av.getSession({ id: session.id })
@@ -359,7 +363,7 @@ describe('API', () => {
     })
 
     test("get by id - wrong id", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" }] } })
 
       await expect(av.getSession({ id: 'xxx' })).rejects.toThrowError(expect.objectContaining({
         statusCode: 404,
@@ -369,7 +373,7 @@ describe('API', () => {
 
     test("history and lastRun are generated correctly as new runs are created", async () => {
       await updateConfig()
-      
+
       let session = await createSession()
       expect(session.items).toEqual([])
       expect(session.lastRun).toBeUndefined()
@@ -400,7 +404,7 @@ describe('API', () => {
 
     test("state works properly", async () => {
       await updateConfig()
-      
+
       let session = await createSession()
       expect(session.state).toBeNull();
 
@@ -434,7 +438,7 @@ describe('API', () => {
 
     // METADATA TESTS
     test("create / with known metadata / saved", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { product_id: z.string() } }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test", metadata: { product_id: z.string() } }] } })
 
       const session = await av.createSession({ agent: "test", userId: initUser1.id, metadata: { product_id: "123" } })
       expect(session).toMatchObject({
@@ -446,7 +450,7 @@ describe('API', () => {
     })
 
     test("create / optional & nullable metadata / all saved as null", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { x: z.nullable(z.string()), y: z.nullable(z.number()) } }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test", metadata: { x: z.nullable(z.string()), y: z.nullable(z.number()) } }] } })
 
       const session = await av.createSession({ agent: "test", userId: initUser1.id })
       expect(session).toMatchObject({
@@ -459,7 +463,7 @@ describe('API', () => {
     })
 
     test("create / with known metadata + allowUnknownMetadata=false / saved", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { product_id: z.string() }, allowUnknownMetadata: false }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test", metadata: { product_id: z.string() }, allowUnknownMetadata: false }] } })
 
       const session = await av.createSession({ agent: "test", userId: initUser1.id, metadata: { product_id: "123" } })
       expect(session).toMatchObject({
@@ -471,7 +475,7 @@ describe('API', () => {
     })
 
     test("create / with unknown metadata / saved", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test"  }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test" }] } })
 
       const session = await av.createSession({ agent: "test", userId: initUser1.id, metadata: { product_id: "123" } })
       expect(session).toMatchObject({
@@ -483,7 +487,7 @@ describe('API', () => {
     })
 
     test("create / with unknown metadata + allowUnknownMetadata=false / failed", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test" , allowUnknownMetadata: false }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test", allowUnknownMetadata: false }] } })
 
       await expect(av.createSession({ agent: "test", userId: initUser1.id, metadata: { product_id: "123" } })).rejects.toThrowError(expect.objectContaining({
         statusCode: 422,
@@ -492,7 +496,7 @@ describe('API', () => {
     })
 
     test("create / with incompatible metadata / fails", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { product_id: z.string() } }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test", metadata: { product_id: z.string() } }] } })
 
       await expect(av.createSession({ agent: "test", userId: initUser1.id, metadata: { product_id: 123 } })).rejects.toThrowError(expect.objectContaining({
         statusCode: 422,
@@ -502,7 +506,7 @@ describe('API', () => {
 
 
     test("update metadata", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test", metadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false }] } })
 
       const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, userId: initUser1.id })
 
@@ -514,7 +518,7 @@ describe('API', () => {
     })
 
     test("update metadata - partial update", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test", metadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false }] } })
 
       const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, userId: initUser1.id })
 
@@ -526,7 +530,7 @@ describe('API', () => {
     })
 
     test("update metadata - make field null", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { field1: z.string(), field2: z.number().nullable() }, allowUnknownMetadata: false }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test", metadata: { field1: z.string(), field2: z.number().nullable() }, allowUnknownMetadata: false }] } })
 
       const session = await av.createSession({ agent: "test", metadata: { field1: "A", field2: 0 }, userId: initUser1.id })
 
@@ -538,7 +542,7 @@ describe('API', () => {
     })
 
     test("update metadata only - validation enforced", async () => {
-      await av.__updateConfig({ config: { agents: [{ name: "test" , metadata: { product_id: z.string() }, allowUnknownMetadata: false }] } })
+      await av.__updateConfig({ config: { agents: [{ name: "test", metadata: { product_id: z.string() }, allowUnknownMetadata: false }] } })
 
       const session = await av.createSession({ agent: "test", metadata: { product_id: "A" }, userId: initUser1.id })
 
@@ -548,60 +552,68 @@ describe('API', () => {
       }))
     })
 
-    describe.only("list sessions", () => {
-      const TEST_SESSIONS_COUNT = 20
-      let testSessions: Session[] = []
+    describe.only("get session list", () => {
+      const USER_1_SESSIONS_COUNT = 20
+      const USER_2_SESSIONS_COUNT = 7
+      const TOTAL_SESSIONS_COUNT = USER_1_SESSIONS_COUNT + USER_2_SESSIONS_COUNT
+
+      let user1Sessions: Session[] = []
+      let user2Sessions: Session[] = []
+
       let agentName = 'agent_' + Math.random().toString(36).slice(2)
 
-      // TODO:
-      // - add sessions for 2 users.
-
       beforeAll(async () => {
-        await av.__updateConfig({ config: { agents: [{ name: agentName  }] } })
-        
+        await av.__updateConfig({ config: { agents: [{ name: agentName }] } })
+
         // Create 20 sessions for testing
-        testSessions = []
-        for (let i = 0; i < TEST_SESSIONS_COUNT; i++) {
+        user1Sessions = []
+        for (let i = 0; i < USER_1_SESSIONS_COUNT; i++) {
           const session = await av.createSession({ agent: agentName, userId: initUser1.id })
-          testSessions.push(session)
-          // Small delay to ensure different updatedAt timestamps
-          await new Promise(resolve => setTimeout(resolve, 10))
+          user1Sessions.push(session)
+          await new Promise(resolve => setTimeout(resolve, 10)) // Small delay to ensure different updatedAt timestamps
+        }
+
+        user2Sessions = []
+        for (let i = 0; i < USER_2_SESSIONS_COUNT; i++) {
+          const session = await av.createSession({ agent: agentName, userId: initUser2.id })
+          user2Sessions.push(session)
+          await new Promise(resolve => setTimeout(resolve, 10)) // Small delay to ensure different updatedAt timestamps
         }
       })
 
-      test("list sessions without pagination - returns all sessions", async () => {
+      test("no pagination params§", async () => {
         const result = await av.getSessions({ agent: agentName })
 
         expect(result.sessions).toBeDefined()
         expect(Array.isArray(result.sessions)).toBe(true)
-        expect(result.sessions.length).toEqual(TEST_SESSIONS_COUNT)
-        
+        expect(result.sessions.length).toEqual(TOTAL_SESSIONS_COUNT)
+
         expect(result.pagination).toMatchObject({
           page: 1,
-          totalCount: TEST_SESSIONS_COUNT,
+          totalCount: TOTAL_SESSIONS_COUNT,
           totalPages: 1,
           hasNextPage: false,
           hasPreviousPage: false,
         })
       })
 
-      test("list sessions with pagination - 5 items per page, first page", async () => {
-        const result = await av.getSessions({ agent: agentName, limit: "5", page: "1" })
-        
+      test("5 items per page, first page", async () => {
+        const result = await av.getSessions({ agent: agentName, limit: 5, page: 1 })
+
         expect(result.sessions).toBeDefined()
         expect(result.sessions.length).toBe(5)
         expect(result.pagination).toBeDefined()
-        expect(result.pagination.totalCount).toEqual(TEST_SESSIONS_COUNT)
+        expect(result.pagination.totalCount).toEqual(TOTAL_SESSIONS_COUNT)
         expect(result.pagination.page).toBe(1)
         expect(result.pagination.limit).toBe(5)
-        expect(result.pagination.totalPages).toEqual(Math.ceil(TEST_SESSIONS_COUNT / 5))
+        expect(result.pagination.totalPages).toEqual(Math.ceil(TOTAL_SESSIONS_COUNT / 5))
         expect(result.pagination.hasNextPage).toBe(true)
         expect(result.pagination.hasPreviousPage).toBe(false)
       })
 
-      test("list sessions with pagination - 5 items per page, second page", async () => {
-        const result = await av.getSessions({ agent: agentName, limit: "5", page: "2" })
-        
+      test("5 items per page, second page", async () => {
+        const result = await av.getSessions({ agent: agentName, limit: 5, page: 2 })
+
         expect(result.sessions).toBeDefined()
         expect(result.sessions.length).toBe(5)
         expect(result.pagination).toBeDefined()
@@ -611,13 +623,12 @@ describe('API', () => {
         expect(result.pagination.hasPreviousPage).toBe(true)
       })
 
-      test("list sessions with pagination - 5 items per page, last page", async () => {
-        const totalSessions = testSessions.length
+      test("5 items per page, last page", async () => {
         const itemsPerPage = 5
-        const lastPage = Math.ceil(totalSessions / itemsPerPage)
-        
-        const result = await av.getSessions({ agent: agentName, limit: "5", page: lastPage.toString() })
-        
+        const lastPage = Math.ceil(TOTAL_SESSIONS_COUNT / itemsPerPage)
+
+        const result = await av.getSessions({ agent: agentName, limit: 5, page: lastPage })
+
         expect(result.sessions).toBeDefined()
         expect(result.sessions.length).toBeGreaterThan(0)
         expect(result.sessions.length).toBeLessThanOrEqual(5)
@@ -625,25 +636,80 @@ describe('API', () => {
         expect(result.pagination.page).toBe(lastPage)
         expect(result.pagination.limit).toBe(5)
         expect(result.pagination.hasNextPage).toBe(false)
-        expect(result.pagination.hasPreviousPage).toBe(lastPage > 1)
+        expect(result.pagination.hasPreviousPage).toBe(true)
       })
 
-      test("list sessions with pagination - different page numbers", async () => {
-        const page3 = await av.getSessions({ limit: "5", page: "3" })
+
+      test("5 items per page, page well beyond last page", async () => {
+        const itemsPerPage = 5
+        const lastPage = Math.ceil(TOTAL_SESSIONS_COUNT / itemsPerPage)
+
+        const result = await av.getSessions({ agent: agentName, limit: 5, page: 100 })
+
+        expect(result.sessions).toBeDefined()
+        expect(result.sessions.length).toEqual(0)
+        expect(result.pagination).toBeDefined()
+        expect(result.pagination.page).toBe(100)
+        expect(result.pagination.limit).toBe(5)
+        expect(result.pagination.hasNextPage).toBe(false)
+        expect(result.pagination.hasPreviousPage).toBe(true)
+      })
+
+      test("different page numbers", async () => {
+        const page3 = await av.getSessions({ limit: 5, page: 3 })
         expect(page3.pagination.page).toBe(3)
         expect(page3.sessions.length).toBe(5)
 
-        const page4 = await av.getSessions({ limit: "5", page: "4" })
+        const page4 = await av.getSessions({ limit: 5, page: 4 })
         expect(page4.pagination.page).toBe(4)
         expect(page4.sessions.length).toBe(5)
       })
 
-      test("list sessions - page number exceeds maximum (999999) should error", async () => {
-        await expect(av.getSessions({ agent: agentName, page: "999999" })).rejects.toThrowError(expect.objectContaining({
+      test("page limit exceeds maximum (999999) should error", async () => {
+        await expect(av.getSessions({ agent: agentName, limit: 999999 })).rejects.toThrowError(expect.objectContaining({
           statusCode: 422,
-          message: expect.stringContaining("1000"),
+          message: expect.any(String)
         }))
       })
+
+      test("user scoping works", async () => {
+        const user1FetchedSessions = await av.as(initUser1).getSessions({ agent: agentName, limit: 10 })
+        const user2FetchedSessions = await av.as(initUser2).getSessions({ agent: agentName, limit: 10 })
+
+        expect(user1FetchedSessions.sessions.length).toBe(10)
+        expect(user1FetchedSessions.sessions.every(session => session.userId === initUser1.id)).toBe(true)
+        expect(user1FetchedSessions.pagination.totalCount).toBe(USER_1_SESSIONS_COUNT)
+
+        expect(user2FetchedSessions.sessions.length).toBe(7)
+        expect(user2FetchedSessions.sessions.every(session => session.userId === initUser2.id)).toBe(true)
+        expect(user2FetchedSessions.pagination.totalCount).toBe(USER_2_SESSIONS_COUNT)
+      })
+
+      test("[public api] works", async () => {
+        const avPublic1 = new AgentViewClient({
+          apiUrl,
+          userToken: initUser1.token
+        })
+
+        const user1FetchedSessions = await avPublic1.getSessions({ agent: agentName, limit: 10 })
+
+        expect(user1FetchedSessions.sessions.length).toBe(10)
+        expect(user1FetchedSessions.sessions.every(session => session.userId === initUser1.id)).toBe(true)
+        expect(user1FetchedSessions.pagination.totalCount).toBe(USER_1_SESSIONS_COUNT)
+
+
+        const avPublic2 = new AgentViewClient({
+          apiUrl,
+          userToken: initUser2.token
+        })
+
+        const user2FetchedSessions = await avPublic2.getSessions({ agent: agentName, limit: 10 })
+
+        expect(user2FetchedSessions.sessions.length).toBe(7)
+        expect(user2FetchedSessions.sessions.every(session => session.userId === initUser2.id)).toBe(true)
+        expect(user2FetchedSessions.pagination.totalCount).toBe(USER_2_SESSIONS_COUNT)
+      })
+
     })
   })
 
@@ -704,12 +770,12 @@ describe('API', () => {
 
     // TODO: Better error messages from bad matches!!!
 
-    const baseTestCases : Array<{ title: string, scenarios: any[], lastRunStatus: ("in_progress" | "completed" | "failed" | undefined)[], error?: number | null, validateSteps?: boolean, strictMatching?: boolean, only?: boolean }> = [
+    const baseTestCases: Array<{ title: string, scenarios: any[], lastRunStatus: ("in_progress" | "completed" | "failed" | undefined)[], error?: number | null, validateSteps?: boolean, strictMatching?: boolean, only?: boolean }> = [
       {
         title: "just input & output",
         scenarios: [
-          [ [baseInput, baseOutput] ],
-          [ [baseInput], [baseOutput] ]
+          [[baseInput, baseOutput]],
+          [[baseInput], [baseOutput]]
         ],
         lastRunStatus: ["completed", "failed"],
         error: null
@@ -717,10 +783,10 @@ describe('API', () => {
       {
         title: "input, 2 items, output",
         scenarios: [
-          [ [baseInput, baseStep, baseStep, baseOutput] ],
-          [ [baseInput], [baseStep], [baseStep], [baseOutput] ],
-          [ [baseInput], [baseStep, baseStep], [baseOutput] ],
-          [ [baseInput], [baseStep, baseStep, baseOutput] ],
+          [[baseInput, baseStep, baseStep, baseOutput]],
+          [[baseInput], [baseStep], [baseStep], [baseOutput]],
+          [[baseInput], [baseStep, baseStep], [baseOutput]],
+          [[baseInput], [baseStep, baseStep, baseOutput]],
         ],
         lastRunStatus: ["completed", "failed", undefined], // in_progress (undefined) doesn't throw because we don't validate steps -> therefore output can be treated as step. 
         error: null
@@ -728,10 +794,10 @@ describe('API', () => {
       {
         title: "input, 2 items, output",
         scenarios: [
-          [ [baseInput, baseStep, baseStep, baseOutput] ],
-          [ [baseInput], [baseStep], [baseStep], [baseOutput] ],
-          [ [baseInput], [baseStep, baseStep], [baseOutput] ],
-          [ [baseInput], [baseStep, baseStep, baseOutput] ],
+          [[baseInput, baseStep, baseStep, baseOutput]],
+          [[baseInput], [baseStep], [baseStep], [baseOutput]],
+          [[baseInput], [baseStep, baseStep], [baseOutput]],
+          [[baseInput], [baseStep, baseStep, baseOutput]],
         ],
         lastRunStatus: [undefined],
         validateSteps: true,
@@ -740,9 +806,9 @@ describe('API', () => {
       {
         title: "input, 2 steps, no output",
         scenarios: [
-          [ [baseInput, baseStep, baseStep] ],
-          [ [baseInput], [baseStep], [baseStep] ],
-          [ [baseInput], [baseStep, baseStep] ],
+          [[baseInput, baseStep, baseStep]],
+          [[baseInput], [baseStep], [baseStep]],
+          [[baseInput], [baseStep, baseStep]],
         ],
         lastRunStatus: ["failed"],
         error: null
@@ -750,9 +816,9 @@ describe('API', () => {
       {
         title: "input, 2 items, no output",
         scenarios: [
-          [ [baseInput, baseStep, baseStep] ],
-          [ [baseInput], [baseStep], [baseStep] ],
-          [ [baseInput], [baseStep, baseStep] ],
+          [[baseInput, baseStep, baseStep]],
+          [[baseInput], [baseStep], [baseStep]],
+          [[baseInput], [baseStep, baseStep]],
         ],
         lastRunStatus: ["completed"],
         error: 422
@@ -760,7 +826,7 @@ describe('API', () => {
       {
         title: "single item",
         scenarios: [
-          [ [baseInput] ],
+          [[baseInput]],
         ],
         lastRunStatus: ["completed"],
         error: 422
@@ -768,7 +834,7 @@ describe('API', () => {
       {
         title: "single item",
         scenarios: [
-          [ [baseInput] ],
+          [[baseInput]],
         ],
         lastRunStatus: ["failed"],
         error: null
@@ -778,10 +844,10 @@ describe('API', () => {
       {
         title: "loose matching -> extra fields saved",
         scenarios: [
-          [ [baseInputExt, baseStepExt, baseStepExt, baseOutputExt] ],
-          [ [baseInputExt], [baseStepExt], [baseStepExt], [baseOutputExt] ],
-          [ [baseInputExt], [baseStepExt, baseStepExt], [baseOutputExt] ],
-          [ [baseInputExt], [baseStepExt, baseStepExt, baseOutputExt] ],
+          [[baseInputExt, baseStepExt, baseStepExt, baseOutputExt]],
+          [[baseInputExt], [baseStepExt], [baseStepExt], [baseOutputExt]],
+          [[baseInputExt], [baseStepExt, baseStepExt], [baseOutputExt]],
+          [[baseInputExt], [baseStepExt, baseStepExt, baseOutputExt]],
         ],
         lastRunStatus: ["completed", "failed"],
         error: null
@@ -790,9 +856,9 @@ describe('API', () => {
         title: "strict matching -> extra fields trimmed",
         strictMatching: true,
         scenarios: [
-          [ [baseInputExt, baseOutputExt] ],
-          [ [baseInput], [baseStep, baseStep], [baseOutputExt] ],
-          [ [baseInput, baseStep, baseStep, baseOutputExt] ],
+          [[baseInputExt, baseOutputExt]],
+          [[baseInput], [baseStep, baseStep], [baseOutputExt]],
+          [[baseInput, baseStep, baseStep, baseOutputExt]],
         ],
         lastRunStatus: ["completed"],
         error: null
@@ -800,9 +866,9 @@ describe('API', () => {
       {
         title: "incorrect input item",
         scenarios: [
-          [ [wrongInput] ],
-          [ [wrongInput, baseStep] ],
-          [ [wrongInput, baseStep, baseStep, baseOutput] ]
+          [[wrongInput]],
+          [[wrongInput, baseStep]],
+          [[wrongInput, baseStep, baseStep, baseOutput]]
         ],
         lastRunStatus: ["completed", "failed"],
         error: 422
@@ -810,9 +876,9 @@ describe('API', () => {
       {
         title: "incorrect output item",
         scenarios: [
-          [ [baseInput, baseStep, wrongOutput] ],
-          [ [baseInput], [baseStep], [wrongOutput] ],
-          [ [baseInput], [baseStep, wrongOutput] ],
+          [[baseInput, baseStep, wrongOutput]],
+          [[baseInput], [baseStep], [wrongOutput]],
+          [[baseInput], [baseStep, wrongOutput]],
         ],
         lastRunStatus: ["completed"],
         error: 422
@@ -820,9 +886,9 @@ describe('API', () => {
       {
         title: "incorrect output item",
         scenarios: [
-          [ [baseInput, baseStep, wrongOutput] ],
-          [ [baseInput], [baseStep], [wrongOutput] ],
-          [ [baseInput], [baseStep, wrongOutput] ],
+          [[baseInput, baseStep, wrongOutput]],
+          [[baseInput], [baseStep], [wrongOutput]],
+          [[baseInput], [baseStep, wrongOutput]],
         ],
         lastRunStatus: ["failed"],
         error: null // when there is no step validation and status becomes "failed", we don't know if the last item was output or step
@@ -830,9 +896,9 @@ describe('API', () => {
       {
         title: "incorrect step item, validateSteps=false",
         scenarios: [
-          [ [baseInput, baseStep, wrongStep] ],
-          [ [baseInput], [baseStep], [wrongStep] ],
-          [ [baseInput], [baseStep, wrongStep] ],
+          [[baseInput, baseStep, wrongStep]],
+          [[baseInput], [baseStep], [wrongStep]],
+          [[baseInput], [baseStep, wrongStep]],
         ],
         // validateSteps: false -> default
         lastRunStatus: [undefined],
@@ -841,9 +907,9 @@ describe('API', () => {
       {
         title: "incorrect step item, validateSteps=true",
         scenarios: [
-          [ [baseInput, baseStep, wrongStep] ],
-          [ [baseInput], [baseStep], [wrongStep] ],
-          [ [baseInput], [baseStep, wrongStep] ],
+          [[baseInput, baseStep, wrongStep]],
+          [[baseInput], [baseStep], [wrongStep]],
+          [[baseInput], [baseStep, wrongStep]],
         ],
         validateSteps: true,
         lastRunStatus: [undefined],
@@ -853,10 +919,10 @@ describe('API', () => {
       {
         title: "tool calls, correct call, sequential",
         scenarios: [
-          [ [baseInput, fun1Call("xxx"), funResult("xxx"), baseOutput ] ],
-          [ [baseInput, fun1Call("xxx"), funResult("xxx"), fun2Call("yyy"), funResult("yyy"), baseOutput ] ],
-          [ [baseInput], [fun1Call("id1")], [funResult("id1")], [fun2Call("id2")], [funResult("id2")], [baseOutput] ],
-          [ [baseInput], [fun1Call("id1")], [funResult("id1"), fun2Call("id2")], [funResult("id2"), baseOutput] ],
+          [[baseInput, fun1Call("xxx"), funResult("xxx"), baseOutput]],
+          [[baseInput, fun1Call("xxx"), funResult("xxx"), fun2Call("yyy"), funResult("yyy"), baseOutput]],
+          [[baseInput], [fun1Call("id1")], [funResult("id1")], [fun2Call("id2")], [funResult("id2")], [baseOutput]],
+          [[baseInput], [fun1Call("id1")], [funResult("id1"), fun2Call("id2")], [funResult("id2"), baseOutput]],
         ],
         validateSteps: true,
         lastRunStatus: ["completed", "failed"],
@@ -865,7 +931,7 @@ describe('API', () => {
       {
         title: "tool calls, correct call, paralell",
         scenarios: [
-          [ [baseInput, fun1Call("1"), fun2Call("2"), fun1Call("3"), funResult("3"), funResult("1"), funResult("2"), baseOutput ] ],
+          [[baseInput, fun1Call("1"), fun2Call("2"), fun1Call("3"), funResult("3"), funResult("1"), funResult("2"), baseOutput]],
         ],
         validateSteps: true,
         lastRunStatus: ["completed", "failed"],
@@ -874,11 +940,11 @@ describe('API', () => {
       {
         title: "tool calls, not matching result",
         scenarios: [
-          [ [baseInput, funResult("xxx") ] ],
-          [ [baseInput], [funResult("xxx") ] ],
+          [[baseInput, funResult("xxx")]],
+          [[baseInput], [funResult("xxx")]],
 
-          [ [baseInput, fun1Call("xxx"), funResult("xxx_different") ] ],
-          [ [baseInput], [fun1Call("xxx")], [funResult("xxx_different") ] ],
+          [[baseInput, fun1Call("xxx"), funResult("xxx_different")]],
+          [[baseInput], [fun1Call("xxx")], [funResult("xxx_different")]],
         ],
         validateSteps: true,
         lastRunStatus: [undefined],
@@ -902,14 +968,14 @@ describe('API', () => {
             const session = await createSession()
 
             let run: Run | undefined;
-            let expected_history : any[] = [];
+            let expected_history: any[] = [];
 
             for (const iteration of scenario) {
               const isLast = iteration === scenario[scenario.length - 1];
               const isFirst = iteration === scenario[0];
 
-              let expectedStatus : string;
-              let expectedHasFinishedAt : boolean;
+              let expectedStatus: string;
+              let expectedHasFinishedAt: boolean;
               let promise: any;
 
               if (isFirst && isLast) {
@@ -1003,11 +1069,13 @@ describe('API', () => {
 
       const failReason = { message: "oops" }
 
-      await expect(av.updateRun({ id: run.id, items: [baseStep], failReason })).rejects.toThrowError(expect.objectContaining({statusCode: 422,
+      await expect(av.updateRun({ id: run.id, items: [baseStep], failReason })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 422,
         message: expect.any(String),
       }))
-      
-      await expect(av.updateRun({ id: run.id, items: [baseOutput], failReason, status: "completed" })).rejects.toThrowError(expect.objectContaining({statusCode: 422,
+
+      await expect(av.updateRun({ id: run.id, items: [baseOutput], failReason, status: "completed" })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 422,
         message: expect.any(String),
       }))
 
@@ -1208,7 +1276,7 @@ describe('API', () => {
       expect(run.metadata).toMatchObject({
         product_id: "123",
       })
-        
+
       run = await av.updateRun({ id: run.id, items: [baseOutput], status: "completed", metadata: { product_id: "456" } })
       expect(run.metadata).toMatchObject({
         product_id: "456",
