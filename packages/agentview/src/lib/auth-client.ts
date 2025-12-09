@@ -2,12 +2,15 @@ import { createAuthClient } from "better-auth/react"
 import { adminClient, apiKeyClient } from "better-auth/client/plugins"
 import { config } from "~/config"
 
-const authBaseUrl = new URL('/api/auth', config.baseUrl).toString();
+export function createBetterAuthClient({ baseURL }: { baseURL: string }) {
+    return createAuthClient({
+        baseURL,
+        plugins: [
+            adminClient(),
+            apiKeyClient()
+        ]
+    })
+}
 
-export const authClient = createAuthClient({
-    baseURL: authBaseUrl, // The base URL of your auth server,
-    plugins: [
-        adminClient(),
-        apiKeyClient()
-    ]
-})
+
+export const authClient = createBetterAuthClient({ baseURL: new URL('/api/auth', config.baseUrl).toString() })

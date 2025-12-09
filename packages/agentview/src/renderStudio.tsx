@@ -6,6 +6,7 @@ export async function renderStudio(rootElement: HTMLElement | null, config: Agen
   if (!rootElement) {
     throw new Error("Root element not found");
   }
+
   (window as any).agentview = {
     config
   }

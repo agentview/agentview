@@ -2,17 +2,18 @@
     "name": "tests",
     "type": "module",
     "scripts": {
-      "test": "vitest"
+        "test": "vitest"
     },
     "dependencies": {
-      "agentview": "workspace:*",
-      "vitest": "^4.0.7",
-      "zod": "^4.1.12"
+        "agentview": "workspace:*",
+        "vitest": "^4.0.7",
+        "zod": "^4.1.12",
+        "better-auth": "^1.2.12"
     },
     "devDependencies": {
-    "dotenv": "^17.1.0",
-      "@types/node": "^20.11.17",
-      "tsx": "^4.7.1",
-      "typescript": "^5.8.3"
+        "dotenv": "^17.1.0",
+        "@types/node": "^20.11.17",
+        "tsx": "^4.7.1",
+        "typescript": "^5.8.3"
     }
-  }
+}

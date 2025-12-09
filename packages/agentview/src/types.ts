@@ -1,10 +1,9 @@
 import type { RouteObject } from "react-router";
-import type { BaseScoreConfig, BaseSessionItemConfig, BaseAgentConfig, BaseAgentViewConfig, BaseRunConfig, Metadata } from "./lib/shared/configTypes";
+import type { BaseScoreConfig, BaseSessionItemConfig, BaseAgentConfig, BaseAgentViewConfig, BaseRunConfig } from "./lib/shared/configTypes";
 import type { Run, Session } from "./lib/shared/apiTypes";
 import { enhanceSession } from "./lib/shared/sessionUtils";
-import { z, type ZodType } from "zod";
+import { z } from "zod";
 import type { BaseError } from "./lib/errors";
-import { requireAgentConfig } from "./lib/shared/configUtils";
 
 
 export type CustomRoute = {
