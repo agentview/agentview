@@ -9,8 +9,8 @@
     "start:api": "tsx src/index.ts",
     "start:worker": "tsx src/worker.ts",
     "build": "tsc --noEmit && tsc",
-    "db:clear": "tsx scripts/clear-db.ts",
-    "db:test": "tsx scripts/test-db.ts",
+    "db:clear": "tsx scripts/db-clear.ts",
+    "db:test": "tsx scripts/db-test.ts",
     "docker:build": "tsx scripts/docker-build.ts",
     "test": "vitest"
   },
