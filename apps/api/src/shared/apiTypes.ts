@@ -35,6 +35,8 @@ export const InvitationSchema = z.object({
   invitedBy: z.string().nullable(),
 })
 
+export type Invitation = z.infer<typeof InvitationSchema>
+
 export const InvitationCreateSchema = z.object({
   email: z.email(),
   role: z.enum(['admin', 'user']),
