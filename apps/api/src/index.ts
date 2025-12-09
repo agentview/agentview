@@ -22,15 +22,16 @@ import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
-import { 
-  UserSchema, 
+import {
+  UserSchema,
   UserCreateSchema,
-   SessionSchema, 
-   SessionCreateSchema,
-    SessionUpdateSchema, 
-    RunSchema, 
-    type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, MemberSchema, MemberUpdateSchema, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type User, type Run, type PublicSessionsGetQueryParams, type SessionsGetQueryParams, PublicSessionsGetQueryParamsSchema, SessionsGetQueryParamsSchema, 
-    EnvSchema} from './shared/apiTypes'
+  SessionSchema,
+  SessionCreateSchema,
+  SessionUpdateSchema,
+  RunSchema,
+  type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, MemberSchema, MemberUpdateSchema, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type User, type Run, type PublicSessionsGetQueryParams, type SessionsGetQueryParams, PublicSessionsGetQueryParamsSchema, SessionsGetQueryParamsSchema,
+  EnvSchema
+} from './shared/apiTypes'
 import { getConfigRow, BaseConfigSchema, BaseConfigSchemaToZod } from './getConfig'
 import { type BaseAgentViewConfig, type Metadata, type BaseRunConfig } from './shared/configTypes'
 import { users } from './schemas/auth-schema'
@@ -95,6 +96,21 @@ app.onError((error, c) => {
 
 app.use('*', cors({
   origin: [getStudioURL()],
+  // origin: (origin) => {
+  //   if (!origin) return;
+
+  //   try {
+  //     const url = new URL(origin)
+
+  //     const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.endsWith('.localhost')
+
+  //     if (isLocalhost) {
+  //       return origin;
+  //     }
+  //   } catch {
+  //     return;
+  //   }
+  // },
   credentials: true,
 }))
 
@@ -104,9 +120,8 @@ app.on(["POST", "GET"], "/api/auth/*", (c) => {
   return auth.handler(c.req.raw);
 });
 
+
 /** --------- UTILS --------- */
-
-
 async function getBetterAuthSession(headers: Headers) { // this function exists just for type inference below
   const userSession = await auth.api.getSession({ headers })
   if (userSession) {
@@ -865,7 +880,7 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
     }
 
     if (env === "playground") {
-      
+
       if (principal.type === 'member') {
         filters.push(eq(endUsers.createdBy, principal.session.user.id));
       }
@@ -885,7 +900,7 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
 }
 
 function normalizeNumberParam(value: number | string | undefined, defaultValue: number) {
-  let numValue : number;
+  let numValue: number;
 
   if (!value) {
     numValue = defaultValue;
@@ -903,12 +918,12 @@ function normalizeNumberParam(value: number | string | undefined, defaultValue: 
 async function getSessions(params: SessionsGetQueryParams, principal: Principal) {
   const limit = normalizeNumberParam(params.limit, DEFAULT_LIMIT);
   const page = normalizeNumberParam(params.page, DEFAULT_PAGE);
-  
+
   const MAX_LIMIT = 1000;
   if (limit > MAX_LIMIT) {
     throw new HTTPException(422, { message: `Page limit cannot exceed ${MAX_LIMIT}` });
   }
-  
+
   const offset = (page - 1) * limit;
 
   // Get total count for pagination metadata
@@ -1344,13 +1359,13 @@ async function* watchSession(initSession: Session) {
         }
 
         const runFieldsToCompare = ['id', 'status', 'finishedAt', 'failReason', 'metadata'] as const;
-  
+
         for (const field of runFieldsToCompare) {
           if (JSON.stringify(prevLastRun![field] ?? null) !== JSON.stringify(lastRun[field] ?? null)) {
             changedFields[field] = lastRun[field];
           }
         }
-  
+
         if (Object.keys(changedFields).length > 0) {
           yield {
             event: 'run.updated',
@@ -1567,14 +1582,14 @@ function parseVersion(version: string): ParsedVersion | undefined {
   // Normalize: '1' -> '1.0.0', '1.2' -> '1.2.0'
   const m = version.match(/^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-(.+))?$/);
   if (!m) return undefined;
-  
+
   const major = Number(m[1]);
   const minor = m[2] !== undefined ? Number(m[2]) : 0;
   const patch = m[3] !== undefined ? Number(m[3]) : 0;
   const suffix = m[4];
-  
+
   if (Number.isNaN(major) || Number.isNaN(minor) || Number.isNaN(patch)) return undefined;
-  
+
   return { major, minor, patch, ...(suffix ? { suffix } : {}) };
 }
 
@@ -1953,7 +1968,7 @@ app.openapi(runKeepAliveRoute, async (c) => {
     status,
     expiresAt
   }).where(eq(runs.id, run.id));
-  
+
   return c.json({
     expiresAt
   }, 200);
