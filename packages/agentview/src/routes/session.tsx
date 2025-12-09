@@ -110,6 +110,7 @@ function SessionPage() {
         }
 
         navigate(`?${currentSearchParams.toString()}`, { replace: true });
+
     }
 
     useEffect(() => {

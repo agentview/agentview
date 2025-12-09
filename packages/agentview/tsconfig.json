@@ -16,7 +16,9 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["./src/*"],
-      "~": ["./src/index.tsx"]
+      "~": ["./src/index.tsx"],
+      "agentview/*": ["./src/*"],
+      "agentview": ["./src/index.tsx"]
     },
     "outDir": "./dist",
     "esModuleInterop": true,
