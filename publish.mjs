@@ -7,16 +7,17 @@ const REPO_ROOT = process.cwd();
 
 // Packages whose versions should be kept in sync with the root version
 const ALL_PACKAGES = [
-  'apps/studio',
   'apps/api',
+  'apps/docs',
+  'apps/tests',
   'packages/create-agentview',
-  'packages/studio',
+  'packages/agentview',
 ];
 
 // Packages to build and publish (npm)
 const PACKAGES = [
   'packages/create-agentview',
-  'packages/studio',
+  'packages/agentview',
 ];
 
 function run(cmd, opts = {}) {

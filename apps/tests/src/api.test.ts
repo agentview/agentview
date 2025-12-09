@@ -1,14 +1,21 @@
+import 'dotenv/config'
 import { describe, test, expect, beforeAll } from 'vitest'
-import { AgentView, PublicAgentView } from './AgentView'
-import type { User, Run, Session } from './apiTypes';
+import { AgentView, PublicAgentView } from 'agentview'
+import type { User, Run, Session } from 'agentview';
 import { z } from 'zod';
 
-const apiKey = 'CTQWCPJrBTVUMbBgnkQNGeXxCaZsPgDJWZperYmGNPKgSzUqRcAVXnXggZLaxUSb'
-const apiUrl = 'http://localhost:1990'
+if (!process.env.AGENTVIEW_API_BASE_URL) {
+  throw new Error('AGENTVIEW_API_BASE_URL is not set')
+}
+if (!process.env.AGENTVIEW_API_KEY) {
+  throw new Error('AGENTVIEW_API_KEY is not set')
+}
+
+const apiUrl = process.env.AGENTVIEW_API_BASE_URL
 
 const av = new AgentView({
   apiUrl,
-  apiKey
+  apiKey: process.env.AGENTVIEW_API_KEY,
 })
 
 describe('API', () => {

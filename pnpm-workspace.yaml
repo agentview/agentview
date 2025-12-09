@@ -2,4 +2,5 @@ packages:
   - "packages/*"
   - "apps/api"
   - "apps/docs"
+  - "apps/tests"
   - "apps/demo/*"
