@@ -9,9 +9,18 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc && tsc-alias && cp src/styles.css dist/styles.css && cp -R src/tailwindcss-typography/src dist/tailwindcss-typography/src",
-    "dev": "vite dev",
-    "typecheck": "tsc --noEmit"
+    "watch:tsc": "tsc -w --preserveWatchOutput",
+    "build:tsc": "tsc",
+
+    "watch:alias": "tsc-alias -w",
+    "build:alias": "tsc-alias",
+
+    "build:assets": "cp src/styles.css dist/styles.css && cp -R src/tailwindcss-typography/src dist/tailwindcss-typography/src",
+    "watch:assets": "chokidar 'src/**/*.{css,ts,tsx,js}' -c \"npm run build:assets\"",
+
+    "build": "npm run build:tsc && npm run build:alias && npm run build:assets",
+    "dev": "concurrently \"npm run watch:tsc\" \"npm run watch:alias\"",
+    "dev:studio": "vite dev"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -93,6 +102,7 @@
     "typescript": "^5.8.3",
     "vite": "^6.3.3",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^4.0.7"
+    "vitest": "^4.0.7",
+    "concurrently": "^9.2.1"
   }
 }

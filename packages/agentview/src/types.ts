@@ -87,9 +87,10 @@ export type AgentConfig = BaseAgentConfig<RunConfig> & {
   newSessionComponent?: NewSessionComponent;
   inputComponent?: AgentInputComponent;
   run?: RunConfig;
+  test: number;
 }
 
 export type AgentViewConfig = BaseAgentViewConfig<AgentConfig> & {
   apiBaseUrl: string;
-  customRoutes?: CustomRoute[],
+  customRoutes?: CustomRoute[]
 }
