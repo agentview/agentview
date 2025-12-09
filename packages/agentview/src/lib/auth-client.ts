@@ -13,4 +13,4 @@ export function createBetterAuthClient({ baseURL }: { baseURL: string }) {
 }
 
 
-export const authClient = createBetterAuthClient({ baseURL: new URL('/api/auth', config.baseUrl).toString() })
+export const authClient = createBetterAuthClient({ baseURL: new URL('/api/auth', config.apiBaseUrl).toString() })

@@ -19,7 +19,7 @@ type APIOptions = {
 }
 
 export async function apiFetch<T = any>(endpoint: string, options: APIOptions = { method: 'GET', body: undefined }): Promise<APIResponse<T>> {
-    const url = new URL(endpoint, config.baseUrl).toString();
+    const url = new URL(endpoint, config.apiBaseUrl).toString();
 
     const response = await fetch(url, {
         ...options,

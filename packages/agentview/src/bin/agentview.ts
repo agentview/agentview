@@ -140,7 +140,7 @@ async function loadConfig(configPath: string): Promise<AgentViewConfig> {
 }
 
 function getBaseUrl(config: AgentViewConfig): string {
-  const baseUrl = config.baseUrl;
+  const baseUrl = config.apiBaseUrl;
   if (!baseUrl) {
     throw new Error("baseUrl is required in Agent View config.");
   }

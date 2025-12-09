@@ -21,20 +21,20 @@ import { serializeConfig } from './configUtils'
 import { enhanceSession } from './sessionUtils'
 
 export interface AgentViewOptions {
-  apiUrl: string
+  apiBaseUrl: string
   apiKey: string
   userToken?: string
   env?: Env
 }
 
 export class AgentView {
-  private apiUrl: string
+  private apiBaseUrl: string
   private apiKey: string
   private userToken?: string
   private env: Env
 
   constructor(options: AgentViewOptions) {
-    this.apiUrl = options.apiUrl.replace(/\/$/, '') // remove trailing slash
+    this.apiBaseUrl = options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
     this.apiKey = options.apiKey
     this.userToken = options.userToken
     this.env = options.env ?? "playground";
@@ -55,7 +55,7 @@ export class AgentView {
 
     headers['Authorization'] = `Bearer ${this.apiKey}`
 
-    const response = await fetch(`${this.apiUrl}${path}`, {
+    const response = await fetch(`${this.apiBaseUrl}${path}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
@@ -147,7 +147,7 @@ export class AgentView {
     const userToken = typeof userOrToken === 'string' ? userOrToken : userOrToken.token;
 
     return new AgentView({
-      apiUrl: this.apiUrl,
+      apiBaseUrl: this.apiBaseUrl,
       apiKey: this.apiKey,
       userToken,
     })
@@ -160,16 +160,16 @@ export class AgentView {
 
 
 export interface PublicAgentViewOptions {
-  apiUrl: string
+  apiBaseUrl: string
   userToken: string
 }
 
 export class PublicAgentView {
-  private apiUrl: string
+  private apiBaseUrl: string
   private userToken: string
 
   constructor(options: PublicAgentViewOptions) {
-    this.apiUrl = options.apiUrl.replace(/\/$/, '') // remove trailing slash
+    this.apiBaseUrl = options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
     this.userToken = options.userToken
   }
 
@@ -184,7 +184,7 @@ export class PublicAgentView {
 
     headers['X-User-Token'] = this.userToken;
 
-    const response = await fetch(`${this.apiUrl}${path}`, {
+    const response = await fetch(`${this.apiBaseUrl}${path}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,

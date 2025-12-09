@@ -10,9 +10,8 @@ import { Colors } from "~/lib/shared/colors";
 import { CustomPage } from "./CustomPage";
 
 export default defineConfig({
-  baseUrl: "http://localhost:1990",
+  apiBaseUrl: "http://localhost:1990",
   agents: [
-    
     {
       name: "simple_chat",
       runs: [

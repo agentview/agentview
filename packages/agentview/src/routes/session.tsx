@@ -119,7 +119,7 @@ function SessionPage() {
         (async () => {
 
             try {
-                const url = new URL(`/api/sessions/${session.id}/watch`, config.baseUrl).toString();
+                const url = new URL(`/api/sessions/${session.id}/watch`, config.apiBaseUrl).toString();
 
                 const response = await fetch(url, {
                     credentials: 'include', // ensure cookies are sent
