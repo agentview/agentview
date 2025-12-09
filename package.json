@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.4-beta.14",
   "scripts": {
-    "publish": "node ./publish.mjs"
+    "publish": "node ./publish.mjs",
+    "db:clear": "pnpm --filter ./apps/api db:clear",
+    "api:dev": "pnpm --filter ./apps/api dev",
+    "seed-users": "pnpm --filter ./apps/tests seed-users"
   }
 }

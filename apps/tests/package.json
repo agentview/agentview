@@ -2,7 +2,8 @@
     "name": "tests",
     "type": "module",
     "scripts": {
-        "test": "vitest"
+        "test": "vitest",
+        "seed-users": "tsx src/seedUsers.ts"
     },
     "dependencies": {
         "agentview": "workspace:*",

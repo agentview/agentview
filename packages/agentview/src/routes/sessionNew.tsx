@@ -31,24 +31,22 @@ async function action({ request, params }: ActionFunctionArgs): Promise<ActionRe
     return redirect(`/sessions/new?${toQueryParams(listParams)}`, { status: 303 });
   }
 
-
-
-  const clientResponse = await apiFetch('/api/users', {
+  const userResponse = await apiFetch('/api/users', {
     method: 'POST',
     body: {
-      isShared: false
+      env: "playground",
     }
   });
 
-  if (!clientResponse.ok) {
-    throw data(clientResponse.error, { status: clientResponse.status });
+  if (!userResponse.ok) {
+    throw data(userResponse.error, { status: userResponse.status });
   }
   
   const sessionResponse = await apiFetch('/api/sessions', {
     method: 'POST',
     body: {
       agent: agentConfig.name,
-      clientId: clientResponse.data.id,
+      userId: userResponse.data.id,
       metadata: payload?.metadata
     }
   });
@@ -79,8 +77,6 @@ function Component() {
 
         {agentConfig.newSessionComponent && <agentConfig.newSessionComponent
           submit={(values) => { 
-
-            console.log('submit!!!', values);
             fetcher.submit(values ?? {}, { method: 'post', encType: 'application/json' }) 
           }}
           isRunning={fetcher.state === "submitting"}
