@@ -1,5 +1,6 @@
 import 'dotenv/config'
-import { authClient, authHeaders, inviteMember } from './auth-client'
+import { authClient, inviteMember } from './authClient'
+import { updateEnvFile } from './updateEnvFile'
 
 async function main() {
   // First sign up - admin user
@@ -8,6 +9,15 @@ async function main() {
     password: "blablabla",
     name: "Admin"
   });
+
+  // Create API key for admin user
+  const { key } = await authClient.apiKey.create({
+    name: "main"
+  })
+
+  // Let's write the API key to the .env file
+  console.log('API Key: ' + key)
+  updateEnvFile("AGENTVIEW_API_KEY", key);
 
   // Invite Bob and Alice
   const bobInvitation = await inviteMember("bob@acme.com", "user");
