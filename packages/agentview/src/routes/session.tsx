@@ -34,7 +34,6 @@ import { debugRun } from "~/lib/debugRun";
 import { ErrorBoundary } from "~/components/internal/ErrorBoundary";
 import { enhanceSession } from "~/lib/shared/sessionUtils";
 
-
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<SessionWithCollaboration>(`/api/sessions/${params.id}`);
 
@@ -42,7 +41,6 @@ async function loader({ request, params }: LoaderFunctionArgs) {
         throw data(response.error, { status: response.status })
     }
 
-    console.log('re-loaded');
     return {
         session: response.data,
         listParams: getListParams(request)
