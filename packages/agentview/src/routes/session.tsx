@@ -422,7 +422,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
 }
 
 function ShareForm({ session }: { session: Session }) {
-    return <div>FIX ME</div>
+    return <div>FIX ME 8</div>
     // const fetcher = useFetcher();
     // return <fetcher.Form method="put" action={`/users/${session.user.id}/share`}>
     //     <input type="hidden" name="isShared" value={session.user.isShared ? "false" : "true"} />
