@@ -24,7 +24,7 @@ app.post('/simple_chat', async (c) => {
   // Create a new user or authenticate if token exists.
   const user = token ? 
     await av.getUser({ token }) : 
-    await av.createUser({ env: "production" });
+    await av.createUser();
 
   // Create new session or fetch existing one and authorize user's access to the session.
   const session = id ?
