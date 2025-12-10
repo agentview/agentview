@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { Book, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
 import { defineConfig } from "agentview";
-import { Button } from "agentview/components/ui/button";
-import { UserMessage, AssistantMessage, UserMessageInput, BaseItem } from "agentview/components/session-item";
-import { PillSelect } from "agentview/components/PillSelect";
-import { ToggleGroupControl } from "agentview/components/ToggleGroup";
-import { OptionDisplay } from "agentview/components/OptionDisplay";
-import { Colors } from "agentview/lib/shared/colors";
+import { Button } from "@agentview/studio/components/ui/button";
+import { UserMessage, AssistantMessage, UserMessageInput, BaseItem } from "@agentview/studio/components/session-item";
+import { PillSelect } from "@agentview/studio/components/PillSelect";
+import { ToggleGroupControl } from "@agentview/studio/components/ToggleGroup";
+import { OptionDisplay } from "@agentview/studio/components/OptionDisplay";
+import { Colors } from "agentview/colors";
 import { CustomPage } from "./src/CustomPage";
 
 export default defineConfig({

@@ -25,7 +25,7 @@ import type { BaseError } from "~/lib/errors";
 import { DisplayProperties } from "~/components/DisplayProperties";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import z from "zod";
+import { z } from "zod";
 import { Form as HookForm } from "~/components/ui/form";
 import { Pill } from "~/components/Pill";
 import { useRerender } from "~/hooks/useRerender";

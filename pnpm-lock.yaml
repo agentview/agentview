@@ -119,6 +119,9 @@ importers:
 
   apps/examples/ts-basic/studio:
     dependencies:
+      '@agentview/studio':
+        specifier: workspace:*
+        version: link:../../../../packages/studio
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.63.0(react@19.2.0))

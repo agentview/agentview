@@ -1,4 +1,4 @@
-import { Header, HeaderTitle } from "agentview/components/header"
+import { Header, HeaderTitle } from "@agentview/studio/components/header"
 
 export function CustomPage() {
   return <div className="flex-1">

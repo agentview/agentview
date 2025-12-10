@@ -1,4 +1,4 @@
-import z from 'zod'
+import { z } from 'zod'
 
 export const envAllowedValues = ['production', 'playground', 'shared-playground'] as const;
 

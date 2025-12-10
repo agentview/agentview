@@ -14,7 +14,7 @@ import { config } from "~/config";
 import { findItemConfig, requireAgentConfig } from "agentview/configUtils";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import z from "zod";
+import { z } from "zod";
 import { Form } from "../ui/form";
 import React from "react";
 import { type AgentViewConfig, type SessionItemConfig } from "agentview/types";

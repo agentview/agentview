@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "agentview": "workspace:*",
+    "@agentview/studio": "workspace:*",
     "react": "^19.1",
     "react-dom": "^19.1",
     "react-hook-form": "^7.63.0",
