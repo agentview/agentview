@@ -10,10 +10,10 @@ To learn about project read docs. You can find them in `apps/docs`. `apps/docs/d
 
 ## Backend
 
-AgentView has a backend API server. It's in `apps/api`. Everything related to backend server is in this repo (http server code, `docker-compose.yml`, workers, etc).
+AgentView has a backend API server. It's in `apps/api`. Everything related to backend server is in this package (http server code, `docker-compose.yml`, workers, etc).
 
 To run infra, run `docker compose up` in the `apps/api` (just postgres)
-Then you can run server & workers with `npm run dev`.
+Then you can run http server with `npm run dev:http`, workers with `npm run dev:workers` or just `npm run dev` to run both (both must be running).
 
 ### Migrations
 
