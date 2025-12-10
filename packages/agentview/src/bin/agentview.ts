@@ -1,218 +1,223 @@
 #!/usr/bin/env node
-
 import 'dotenv/config'
-import fs from "node:fs";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
-
-import type { AgentViewConfig } from "../types";
 import { serializeConfig } from "../lib/shared/configUtils";
 
-const DEFAULT_CONFIG_FILES = [
-  "agentviewconfig.ts",
-  "agentviewconfig.tsx",
-  "agentviewconfig.js"
-];
+console.log("HELLO MORDO 23");
+console.log(serializeConfig);
 
-const HELP_TEXT = `Usage: agentview <command> [options]
 
-Commands:
-  config push [--config <path>]   Send the config file to the AgentView server once
-  config watch [--config <path>]  Watch the config file and sync on every change
-  help                            Show this message
+// import fs from "node:fs";
+// import path from "node:path";
+// import { pathToFileURL } from "node:url";
 
-Options:
-  -c, --config <path>             Path to agentviewconfig.ts (defaults to common filenames in the current directory)`;
+// import type { AgentViewConfig } from "../types";
+// import { serializeConfig } from "../lib/shared/configUtils";
 
-async function main() {
-  const [, , ...args] = process.argv;
+// const DEFAULT_CONFIG_FILES = [
+//   "agentviewconfig.ts",
+//   "agentviewconfig.tsx",
+//   "agentviewconfig.js"
+// ];
 
-  if (args.length === 0 || args[0] === "help" || args.includes("--help") || args.includes("-h")) {
-    printHelp();
-    return;
-  }
+// const HELP_TEXT = `Usage: agentview <command> [options]
 
-  const [command, subcommand, ...rest] = args;
+// Commands:
+//   config push [--config <path>]   Send the config file to the AgentView server once
+//   config watch [--config <path>]  Watch the config file and sync on every change
+//   help                            Show this message
 
-  if (command !== "config") {
-    console.error(`Unknown command "${command}".`);
-    printHelp(1);
-    return;
-  }
+// Options:
+//   -c, --config <path>             Path to agentviewconfig.ts (defaults to common filenames in the current directory)`;
 
-  if (subcommand !== "push" && subcommand !== "watch") {
-    console.error(`Unknown subcommand "${subcommand}".`);
-    printHelp(1);
-    return;
-  }
+// async function main() {
+//   const [, , ...args] = process.argv;
 
-  let configPath: string;
-  try {
-    configPath = resolveConfigPath(rest);
-  } catch (error) {
-    console.error((error as Error).message);
-    process.exit(1);
-    return;
-  }
+//   if (args.length === 0 || args[0] === "help" || args.includes("--help") || args.includes("-h")) {
+//     printHelp();
+//     return;
+//   }
 
-  try {
-    if (subcommand === "push") {
-      await pushConfig(configPath);
-    } else {
-      await watchConfig(configPath);
-    }
-  } catch (error) {
-    console.error((error as Error).message);
-    process.exit(1);
-  }
-}
+//   const [command, subcommand, ...rest] = args;
 
-function printHelp(exitCode = 0) {
-  console.log(HELP_TEXT);
-  if (exitCode !== null) {
-    process.exit(exitCode);
-  }
-}
+//   if (command !== "config") {
+//     console.error(`Unknown command "${command}".`);
+//     printHelp(1);
+//     return;
+//   }
 
-function resolveConfigPath(args: string[]): string {
-  const optionIndex = args.findIndex((arg) => arg === "--config" || arg === "-c");
+//   if (subcommand !== "push" && subcommand !== "watch") {
+//     console.error(`Unknown subcommand "${subcommand}".`);
+//     printHelp(1);
+//     return;
+//   }
 
-  if (optionIndex !== -1) {
-    const explicitPath = args[optionIndex + 1];
-    if (!explicitPath) {
-      throw new Error("Missing value for --config");
-    }
+//   let configPath: string;
+//   try {
+//     configPath = resolveConfigPath(rest);
+//   } catch (error) {
+//     console.error((error as Error).message);
+//     process.exit(1);
+//     return;
+//   }
 
-    const resolvedPath = path.resolve(process.cwd(), explicitPath);
-    if (!fs.existsSync(resolvedPath)) {
-      throw new Error(`Config file not found at ${explicitPath}`);
-    }
-    return resolvedPath;
-  }
+//   try {
+//     if (subcommand === "push") {
+//       await pushConfig(configPath);
+//     } else {
+//       await watchConfig(configPath);
+//     }
+//   } catch (error) {
+//     console.error((error as Error).message);
+//     process.exit(1);
+//   }
+// }
 
-  for (const candidate of DEFAULT_CONFIG_FILES) {
-    const candidatePath = path.resolve(process.cwd(), candidate);
-    if (fs.existsSync(candidatePath)) {
-      return candidatePath;
-    }
-  }
+// function printHelp(exitCode = 0) {
+//   console.log(HELP_TEXT);
+//   if (exitCode !== null) {
+//     process.exit(exitCode);
+//   }
+// }
 
-  throw new Error(
-    `Could not find config file. Looked for: ${DEFAULT_CONFIG_FILES.join(
-      ", ",
-    )}. Try --config <path>.`,
-  );
-}
+// function resolveConfigPath(args: string[]): string {
+//   const optionIndex = args.findIndex((arg) => arg === "--config" || arg === "-c");
 
-async function loadConfig(configPath: string): Promise<AgentViewConfig> {
-  const absolutePath = path.resolve(configPath);
-  const specifier = pathToFileURL(absolutePath).href + `?t=${Date.now()}`;
-  const ext = path.extname(absolutePath).toLowerCase();
+//   if (optionIndex !== -1) {
+//     const explicitPath = args[optionIndex + 1];
+//     if (!explicitPath) {
+//       throw new Error("Missing value for --config");
+//     }
 
-  let moduleExports: any;
-  try {
-    if (ext === ".js" || ext === ".mjs" || ext === ".cjs") {
-      moduleExports = await import(specifier);
-    } else {
-      const { tsImport } = await import("tsx/esm/api");
-      moduleExports = await tsImport(specifier, { parentURL: import.meta.url });
-    }
-  } catch (error: any) {
-    if (error?.code === "ERR_MODULE_NOT_FOUND") {
-      throw new Error(
-        `Cannot load ${configPath}. If it's a TypeScript file, ensure "tsx" is installed.`,
-      );
-    }
-    throw error;
-  }
+//     const resolvedPath = path.resolve(process.cwd(), explicitPath);
+//     if (!fs.existsSync(resolvedPath)) {
+//       throw new Error(`Config file not found at ${explicitPath}`);
+//     }
+//     return resolvedPath;
+//   }
 
-  const config =
-    moduleExports?.default ??
-    moduleExports?.config ??
-    moduleExports?.agentviewConfig ??
-    moduleExports;
+//   for (const candidate of DEFAULT_CONFIG_FILES) {
+//     const candidatePath = path.resolve(process.cwd(), candidate);
+//     if (fs.existsSync(candidatePath)) {
+//       return candidatePath;
+//     }
+//   }
 
-  if (!config || typeof config !== "object") {
-    throw new Error(`No config export found in ${configPath}`);
-  }
+//   throw new Error(
+//     `Could not find config file. Looked for: ${DEFAULT_CONFIG_FILES.join(
+//       ", ",
+//     )}. Try --config <path>.`,
+//   );
+// }
 
-  return config as AgentViewConfig;
-}
+// async function loadConfig(configPath: string): Promise<AgentViewConfig> {
+//   const absolutePath = path.resolve(configPath);
+//   const specifier = pathToFileURL(absolutePath).href + `?t=${Date.now()}`;
+//   const ext = path.extname(absolutePath).toLowerCase();
 
-function getBaseUrl(config: AgentViewConfig): string {
-  const baseUrl = config.apiBaseUrl;
-  if (!baseUrl) {
-    throw new Error("baseUrl is required in Agent View config.");
-  }
-  return baseUrl;
-}
+//   let moduleExports: any;
+//   try {
+//     if (ext === ".js" || ext === ".mjs" || ext === ".cjs") {
+//       moduleExports = await import(specifier);
+//     } else {
+//       const { tsImport } = await import("tsx/esm/api");
+//       moduleExports = await tsImport(specifier, { parentURL: import.meta.url });
+//     }
+//   } catch (error: any) {
+//     if (error?.code === "ERR_MODULE_NOT_FOUND") {
+//       throw new Error(
+//         `Cannot load ${configPath}. If it's a TypeScript file, ensure "tsx" is installed.`,
+//       );
+//     }
+//     throw error;
+//   }
 
-function getAPIKey(): string {
-  const apiKey = process.env.AGENTVIEW_API_KEY;
-  if (!apiKey) {
-    throw new Error("you must set AGENTVIEW_API_KEY env var to push config.");
-  }
-  return apiKey;
-}
+//   const config =
+//     moduleExports?.default ??
+//     moduleExports?.config ??
+//     moduleExports?.agentviewConfig ??
+//     moduleExports;
 
-async function pushConfig(configPath: string) {
-  const config = await loadConfig(configPath);
-  const serializedConfig = serializeConfig(config);
-  const baseUrl = getBaseUrl(config);
-  const apiKey = getAPIKey();
-  const endpoint = new URL("/api/config", baseUrl);
+//   if (!config || typeof config !== "object") {
+//     throw new Error(`No config export found in ${configPath}`);
+//   }
 
-  const response = await fetch(endpoint.toString(), {
-    method: "PUT",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-    body: JSON.stringify({ config: serializedConfig }),
-  });
+//   return config as AgentViewConfig;
+// }
 
-  const responseText = await response.text();
-  let responseJson: any = null;
+// function getBaseUrl(config: AgentViewConfig): string {
+//   const baseUrl = config.apiBaseUrl;
+//   if (!baseUrl) {
+//     throw new Error("baseUrl is required in Agent View config.");
+//   }
+//   return baseUrl;
+// }
 
-  if (responseText) {
-    try {
-      responseJson = JSON.parse(responseText);
-    } catch {
-      responseJson = responseText;
-    }
-  }
+// function getAPIKey(): string {
+//   const apiKey = process.env.AGENTVIEW_API_KEY;
+//   if (!apiKey) {
+//     throw new Error("you must set AGENTVIEW_API_KEY env var to push config.");
+//   }
+//   return apiKey;
+// }
 
-  if (!response.ok) {
-    const details =
-      typeof responseJson === "string"
-        ? responseJson
-        : responseJson?.message || JSON.stringify(responseJson);
-    throw new Error(`Failed to push config (${response.status}): ${details ?? "unknown error"}`);
-  }
+// async function pushConfig(configPath: string) {
+//   const config = await loadConfig(configPath);
+//   const serializedConfig = serializeConfig(config);
+//   const baseUrl = getBaseUrl(config);
+//   const apiKey = getAPIKey();
+//   const endpoint = new URL("/api/config", baseUrl);
 
-  console.log(`Config pushed to ${endpoint.origin} (${response.status})`);
-}
+//   const response = await fetch(endpoint.toString(), {
+//     method: "PUT",
+//     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+//     body: JSON.stringify({ config: serializedConfig }),
+//   });
 
-async function watchConfig(configPath: string) {
-  const relativePath = path.relative(process.cwd(), configPath) || configPath;
-  console.log(`Watching ${relativePath} for changes...`);
+//   const responseText = await response.text();
+//   let responseJson: any = null;
 
-  const pushAndReport = async () => {
-    try {
-      await pushConfig(configPath);
-    } catch (error) {
-      console.error((error as Error).message);
-    }
-  };
+//   if (responseText) {
+//     try {
+//       responseJson = JSON.parse(responseText);
+//     } catch {
+//       responseJson = responseText;
+//     }
+//   }
 
-  await pushAndReport();
+//   if (!response.ok) {
+//     const details =
+//       typeof responseJson === "string"
+//         ? responseJson
+//         : responseJson?.message || JSON.stringify(responseJson);
+//     throw new Error(`Failed to push config (${response.status}): ${details ?? "unknown error"}`);
+//   }
 
-  let debounceTimer: NodeJS.Timeout | null = null;
-  fs.watch(configPath, { persistent: true }, () => {
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
-    debounceTimer = setTimeout(() => {
-      pushAndReport();
-    }, 100);
-  });
-}
+//   console.log(`Config pushed to ${endpoint.origin} (${response.status})`);
+// }
 
-void main();
+// async function watchConfig(configPath: string) {
+//   const relativePath = path.relative(process.cwd(), configPath) || configPath;
+//   console.log(`Watching ${relativePath} for changes...`);
+
+//   const pushAndReport = async () => {
+//     try {
+//       await pushConfig(configPath);
+//     } catch (error) {
+//       console.error((error as Error).message);
+//     }
+//   };
+
+//   await pushAndReport();
+
+//   let debounceTimer: NodeJS.Timeout | null = null;
+//   fs.watch(configPath, { persistent: true }, () => {
+//     if (debounceTimer) {
+//       clearTimeout(debounceTimer);
+//     }
+//     debounceTimer = setTimeout(() => {
+//       pushAndReport();
+//     }, 100);
+//   });
+// }
+
+// void main();
