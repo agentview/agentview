@@ -14,7 +14,6 @@
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "baseUrl": ".",
-    "rootDir": ".",
     "paths": {
       "~/*": ["./src/*"],
       "~": ["./src/index.tsx"],

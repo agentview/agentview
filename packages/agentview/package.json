@@ -9,17 +9,16 @@
     "dist"
   ],
   "scripts": {
+    "clean": "rm -Rf dist",
     "watch:tsc": "tsc -w --preserveWatchOutput",
     "build:tsc": "tsc",
-
     "watch:alias": "tsc-alias -w",
     "build:alias": "tsc-alias",
-
-    "build:assets": "cp src/styles.css dist/styles.css && cp -R src/tailwindcss-typography/src dist/tailwindcss-typography/src",
-    "watch:assets": "chokidar 'src/**/*.{css,ts,tsx,js}' -c \"npm run build:assets\"",
-
-    "build": "npm run build:tsc && npm run build:alias && npm run build:assets",
-    "dev": "concurrently \"npm run watch:tsc\" \"npm run watch:alias\"",
+    "build:tailwindcss-typography": "mkdir -p dist/tailwindcss-typography && cp -R src/tailwindcss-typography/src dist/tailwindcss-typography/src",
+    "build:styles": "cp src/styles.css dist/styles.css",
+    "watch:styles": "npx chokidar 'src/styles.css' -c \"npm run build:styles\"",
+    "build": "npm run build:tsc && npm run build:alias && npm run build:tailwindcss-typography && npm run build:styles",
+    "dev": "concurrently -n tsc,alias,styles -c blue,magenta,cyan \"npm run watch:tsc\" \"npm run watch:alias\" \"npm run watch:styles\"",
     "dev:studio": "vite dev"
   },
   "main": "./dist/index.js",
@@ -64,6 +63,8 @@
     "@tiptap/react": "^3.0.7",
     "@tiptap/suggestion": "^3.0.7",
     "better-auth": "^1.2.12",
+    "chokidar": "^5.0.0",
+    "chokidar-cli": "^3.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -97,12 +98,12 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^5.1.2",
+    "concurrently": "^9.2.1",
     "tailwindcss": "^4.1.4",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.8.3",
     "vite": "^6.3.3",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^4.0.7",
-    "concurrently": "^9.2.1"
+    "vitest": "^4.0.7"
   }
 }
