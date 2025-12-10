@@ -2,9 +2,6 @@
   "name": "agentview",
   "version": "0.0.4-beta.14",
   "type": "module",
-  "bin": {
-    "agentview": "./src/bin/agentview.ts"
-  },
   "files": [
     "dist"
   ],
@@ -16,6 +13,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./*": "./src/*.ts"
+  },
+  "bin": {
+    "agentview": "./dist/bin/agentview.js"
   },
   "publishConfig": {
     "access": "public",
