@@ -13,6 +13,9 @@ AgentView has a backend API server. It's in `apps/api`. Everything related to ba
 To run infra, run `docker compose up` in the `apps/api` (just postgres)
 Then you can run http server with `npm run dev:http`, workers with `npm run dev:workers` or just `npm run dev` to run both (both must be running).
 
+Server will be running on port defined by env: `AGENTVIEW_API_PORT`.
+Postgres URL and credentials also depend on envs, the exact env names can be found here: `apps/api/.env` (remember that if environment have those envs defined, then it will override values from `.env`).
+
 The API exposed by backend is called AgentView API.
 
 ### Clearing db
@@ -24,6 +27,8 @@ You can clear entire system state with `npm run db:clear` in `apps/api`. If you 
 You can run `npm run seed-users` in `apps/tests` to generate example users (it's done directly via AgentView API). You can also build your own script or add users however you want.
 
 The seed scripts generates API Key for the admin user. This is important because most operations require API Key, so save it. We use consistent environment variables naming across the projects, so you can simply save it to `AGENTVIEW_API_KEY` env and all code in `apps/tests` and example projects should run correctly.
+
+Seeding is *not* indempotent! Always clear db before running it.
 
 ### Migrations
 
