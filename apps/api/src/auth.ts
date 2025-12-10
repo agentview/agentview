@@ -9,7 +9,7 @@ import { eq } from "drizzle-orm";
 import { areThereRemainingAdmins } from "./areThereRemainingAdmins";
 import { getTotalMemberCount } from "./members";
 import { getStudioURL } from "./getStudioURL";
-import { colorValues } from "./shared/colors";
+import { colorValues } from "agentview/colors";
 
 export const auth = betterAuth({
     trustedOrigins: [getStudioURL()],

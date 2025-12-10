@@ -1,6 +1,6 @@
 import { events } from "./schemas/schema";
 import { type InferSelectModel, sql } from "drizzle-orm";
-import type { SessionItem, Session } from "./shared/apiTypes";
+import type { SessionItem, Session } from "agentview/apiTypes";
 import { inboxItems } from "./schemas/schema";
 import type { Transaction } from "./types";
 import { isInboxItemUnread } from "./inboxItems";

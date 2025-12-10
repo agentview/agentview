@@ -3,7 +3,7 @@ import { db } from "./db"
 import { sessionItems, sessions } from "./schemas/schema"
 import type { Transaction } from "./types";
 import { isUUID } from "./isUUID";
-import type { SessionWithCollaboration } from "./shared/apiTypes";
+import type { SessionWithCollaboration } from "agentview/apiTypes";
 
 
 export async function fetchSession(session_id: string, tx?: Transaction): Promise<SessionWithCollaboration | undefined> {

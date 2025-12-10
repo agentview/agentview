@@ -1,4 +1,4 @@
-import type { RunBody } from "./shared/apiTypes";
+import type { RunBody } from "agentview/apiTypes";
 
 export interface AgentErrorResponse {
   message: string

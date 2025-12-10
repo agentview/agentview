@@ -1,0 +1,164 @@
+import { createBrowserRouter, type NonIndexRouteObject, type RouteObject } from "react-router";
+import { sidebarLayoutRoute } from "./routes/sidebar_layout";
+import { homeRoute } from "./routes/home";
+import { membersRoute } from "./routes/members";
+import { membersInviteRoute } from "./routes/membersInvite";
+import { membersInviteCancelRoute } from "./routes/membersInviteCancel";
+import { membersEditRoute } from "./routes/membersEdit";
+import { membersDeleteRoute } from "./routes/membersDelete";
+import { emailsRoute } from "./routes/emails";
+import { emailDetailRoute } from "./routes/emailDetail";
+import { userShareRoute } from "./routes/userShare";
+import { sessionsRoute } from "./routes/sessions";
+import { sessionsIndexRoute } from "./routes/sessionsIndex";
+import { sessionNewRoute } from "./routes/sessionNew";
+import { sessionRoute } from "./routes/session";
+import { sessionItemRoute } from "./routes/sessionItem";
+import { sessionItemCommentsRoute } from "./routes/sessionItemComments";
+import { sessionItemCommentRoute } from "./routes/sessionItemComment";
+import { configsRoute } from "./routes/configs";
+import { logoutRoute } from "./routes/logout";
+import { loginRoute } from "./routes/login";
+import { signupRoute } from "./routes/signup";
+import { rootRoute } from "./root";
+import { sessionRunRoute } from "./routes/sessionRun";
+import { settingsRoute } from "./routes/settings";
+import { settingsProfileRoute } from "./routes/settingsProfile";
+import { settingsApiKeysRoute } from "./routes/settingsApiKeys";
+import type { AgentViewConfig } from "agentview/types";
+import { sessionItemScoresRoute } from "./routes/sessionItemScores";
+import { settingsPasswordRoute } from "./routes/settingsPassword";
+
+export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObject[] {
+  const defaultRoutes = (customRoutes?.filter(route => route.scope === "default") || []).map(route => route.route);
+  const loggedInRoutes = (customRoutes?.filter(route => route.scope === "loggedIn") || []).map(route => route.route);
+
+  return [
+    {
+      path: "/",
+      ...rootRoute,
+      children: [
+        {
+          path: "/",
+          ...sidebarLayoutRoute,
+          children: [
+            {
+              ...homeRoute,
+              index: true,
+            },
+            {
+              path: "settings",
+              ...settingsRoute,
+              children: [
+                {
+                  path: "profile",
+                  ...settingsProfileRoute,
+                },
+                {
+                  path: "api-keys",
+                  ...settingsApiKeysRoute,
+                },
+                {
+                  path: "password",
+                  ...settingsPasswordRoute,
+                },
+                {
+                  path: "members",
+                  ...membersRoute,
+                  children: [
+                    {
+                      path: "invitations/new",
+                      ...membersInviteRoute,
+                    },
+                    {
+                      path: "invitations/:invitationId/cancel",
+                      ...membersInviteCancelRoute,
+                    },
+                    {
+                      path: ":memberId/edit",
+                      ...membersEditRoute,
+                    },
+                    {
+                      path: ":memberId/delete",
+                      ...membersDeleteRoute,
+                    },
+                  ],
+                },
+                {
+                  path: "config",
+                  ...configsRoute,
+                },
+                {
+                  path: "emails",
+                  ...emailsRoute,
+                },
+                {
+                  path: "emails/:id",
+                  ...emailDetailRoute,
+                },
+              ]
+            },
+            {
+              path: "users/:userId/share",
+              ...userShareRoute,
+            },
+            {
+              path: "sessions",
+              ...sessionsRoute,
+              children: [
+                {
+                  ...sessionsIndexRoute,
+                  index: true,
+                },
+                {
+                  path: "new",
+                  ...sessionNewRoute,
+                },
+                {
+                  path: ":id",
+                  ...sessionRoute,
+                  children: [
+                    {
+                      path: "items/:itemId",
+                      ...sessionItemRoute,
+                    },
+                    {
+                      path: "runs/:runId",
+                      ...sessionRunRoute,
+                    },
+                    {
+                      path: "items/:itemId/comments",
+                      ...sessionItemCommentsRoute,
+                    },
+                    {
+                      path: "items/:itemId/comments/:commentId",
+                      ...sessionItemCommentRoute,
+                    },
+                    {
+                      path: "items/:itemId/scores",
+                      ...sessionItemScoresRoute,
+                    }
+                  ],
+                },
+              ],
+            },
+            ...loggedInRoutes
+          ],
+        },
+        {
+          path: "logout",
+          ...logoutRoute
+        },
+        {
+          path: "login",
+          ...loginRoute
+        },
+        {
+          path: "signup",
+          ...signupRoute
+        },
+        ...defaultRoutes
+      ],
+    } as NonIndexRouteObject
+  ]
+}

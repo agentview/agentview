@@ -3,8 +3,8 @@ import { endUsers } from './schemas/schema'
 import { eq, and, gt } from 'drizzle-orm'
 import { randomBytes } from 'crypto'
 import type { z } from 'better-auth'
-import type { EnvSchema } from './shared/apiTypes'
-import { AgentViewError } from './shared/AgentViewError'
+import type { EnvSchema } from 'agentview/apiTypes'
+import { AgentViewError } from 'agentview/AgentViewError'
 // import jwt from 'jsonwebtoken'
 
 

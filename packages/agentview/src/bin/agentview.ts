@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import 'dotenv/config'
-import { serializeConfig } from "../lib/shared/configUtils.js";
+import { serializeConfig } from "../configUtils.js";
 
 console.log("HELLO MORDO 23");
 console.log(serializeConfig);

@@ -3,7 +3,6 @@ import { configs } from "./schemas/schema";
 import { desc } from "drizzle-orm";
 import { convertJsonSchemaToZod } from 'zod-from-json-schema';
 import { z } from "zod";
-import type { BaseAgentViewConfig, Metadata } from "./shared/configTypes";
 
 const JsonSchema = z.record(z.string(), z.any()).superRefine((value, ctx) => {
     const valid = isJSONSchema(value)

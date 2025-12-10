@@ -1,9 +1,8 @@
 import type { RouteObject } from "react-router";
-import type { BaseScoreConfig, BaseSessionItemConfig, BaseAgentConfig, BaseAgentViewConfig, BaseRunConfig } from "./lib/shared/configTypes";
-import type { Run, Session } from "./lib/shared/apiTypes";
-import { enhanceSession } from "./lib/shared/sessionUtils";
+import type { BaseScoreConfig, BaseSessionItemConfig, BaseAgentConfig, BaseAgentViewConfig, BaseRunConfig } from "./configTypes.js";
+import type { Run, Session } from "./apiTypes.js";
+import { enhanceSession } from "./sessionUtils.js";
 import { z } from "zod";
-import type { BaseError } from "./lib/errors";
 
 
 export type CustomRoute = {
@@ -26,7 +25,7 @@ export type FormComponentProps<TSchema extends z.ZodTypeAny> = {
   submit: (value: z.infer<TSchema> | null) => void,
   cancel: () => void,
   isRunning: boolean,
-  error?: BaseError,
+  error?: any,
   schema: TSchema,
 }
 

@@ -21,7 +21,7 @@ import { fetchSession } from './sessions'
 import { callAgentAPI, AgentAPIError } from './agentApi'
 import { getStudioURL } from './getStudioURL'
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { getActiveRuns, getAllSessionItems, getLastRun } from './shared/sessionUtils'
+import { getActiveRuns, getAllSessionItems, getLastRun } from 'agentview/sessionUtils'
 import {
   UserSchema,
   UserCreateSchema,
@@ -31,9 +31,9 @@ import {
   RunSchema,
   type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, MemberSchema, MemberUpdateSchema, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type User, type Run, type PublicSessionsGetQueryParams, type SessionsGetQueryParams, PublicSessionsGetQueryParamsSchema, SessionsGetQueryParamsSchema,
   EnvSchema
-} from './shared/apiTypes'
+} from 'agentview/apiTypes'
 import { getConfigRow, BaseConfigSchema, BaseConfigSchemaToZod } from './getConfig'
-import { type BaseAgentViewConfig, type Metadata, type BaseRunConfig } from './shared/configTypes'
+import { type BaseAgentViewConfig, type Metadata, type BaseRunConfig } from 'agentview/configTypes'
 import { users } from './schemas/auth-schema'
 import { getTotalMemberCount } from './members'
 import { updateInboxes } from './updateInboxes'
@@ -41,9 +41,10 @@ import { isInboxItemUnread } from './inboxItems'
 import { findUser, createUser } from './users'
 import packageJson from '../package.json'
 import type { Transaction } from './types'
-import { findItemConfig, findItemConfigById, requireRunConfig } from './shared/configUtils'
-import { equalJSON } from './shared/equalJSON'
-import { AgentViewError } from './shared/AgentViewError'
+import { findItemConfig, findItemConfigById, requireRunConfig } from 'agentview/configUtils'
+import { equalJSON } from 'agentview/equalJSON'
+import { AgentViewError } from 'agentview/AgentViewError'
+
 
 console.log("Migrating database...");
 await migrate(db, { migrationsFolder: './drizzle' });
