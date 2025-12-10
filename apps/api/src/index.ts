@@ -326,7 +326,7 @@ async function requireConfig(): Promise<BaseAgentViewConfig> {
     throw new HTTPException(404, { message: "Config not found" });
   }
 
-  return BaseConfigSchemaToZod.parse(configRow.config) as BaseAgentViewConfig
+  return BaseConfigSchemaToZod.parse(configRow.config)
   // const parsedConfig = await getParsedConfig()
   // if (!parsedConfig) {
   //   throw new HTTPException(404, { message: "Config not found" });
