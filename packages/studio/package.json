@@ -11,10 +11,10 @@
     "build:tsc": "tsc",
     "watch:alias": "tsc-alias -w",
     "build:alias": "tsc-alias",
-    "build:tailwindcss-typography": "mkdir -p dist/tailwindcss-typography && cp -R src/tailwindcss-typography/src dist/tailwindcss-typography/src",
+    "build:tailwindcss-typography": "mkdir -p dist/tailwindcss-typography/src && cp -R src/tailwindcss-typography/src/* dist/tailwindcss-typography/src/",
     "build:styles": "cp src/styles.css dist/styles.css",
     "watch:styles": "npx chokidar 'src/styles.css' -c \"npm run build:styles\"",
-    "build": "npm run build:tsc && npm run build:alias && npm run build:tailwindcss-typography && npm run build:styles",
+    "build": "npx tsup && npm run build:alias && npm run build:tailwindcss-typography && npm run build:styles",
     "dev": "concurrently -n tsc,alias,styles -c blue,magenta,cyan \"npm run watch:tsc\" \"npm run watch:alias\" \"npm run watch:styles\"",
     "dev:studio": "vite dev"
   },
