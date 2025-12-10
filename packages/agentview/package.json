@@ -9,8 +9,8 @@
     "dist"
   ],
   "scripts": {
-    "clean": "rm -Rf dist",
-    "build": "tsup"
+    "dev": "tsup --watch",
+    "build": "tsup --clean"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -30,7 +30,8 @@
     "react": "^19.1.0",
     "react-router": "^7.5.3",
     "zod": "^4.1.11",
-    "zod-from-json-schema": "workspace:*"
+    "zod-from-json-schema": "workspace:*",
+    "dotenv": "^17.1.0"
   },
   "devDependencies": {
     "tsx": "^4.20.3",
