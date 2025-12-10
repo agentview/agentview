@@ -8,6 +8,7 @@
     "dev": "concurrently \"npm run dev:http\" \"npm run dev:worker\"",
     "start:http": "tsx src/index.ts",
     "start:worker": "tsx src/worker.ts",
+    "kill:http": "bash -c 'kill -9 $(lsof -t -i :${AGENTVIEW_API_PORT}) || true'",
     "build": "tsc --noEmit && tsc",
     "db:clear": "tsx scripts/db-clear.ts",
     "db:test": "tsx scripts/db-test.ts",
