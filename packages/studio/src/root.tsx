@@ -1,5 +1,5 @@
 import { isRouteErrorResponse, Outlet, useRouteError, type IndexRouteObject, type NonIndexRouteObject, type RouteObject } from "react-router";
-import { Toaster } from "~/components/ui/sonner";
+import { Toaster } from "./components/ui/sonner";
 
 function Component() {
   return <main>

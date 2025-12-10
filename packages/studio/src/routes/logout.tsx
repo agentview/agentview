@@ -1,5 +1,5 @@
 import { redirect, data, type RouteObject } from "react-router";
-import { authClient } from "~/lib/auth-client";
+import { authClient } from "../lib/auth-client";
 
 async function loader() {
   const sessionResponse = await authClient.getSession()

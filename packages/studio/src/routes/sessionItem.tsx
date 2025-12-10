@@ -1,10 +1,10 @@
 import { data, useLoaderData, useOutletContext, useParams, useRevalidator } from "react-router";
 import type { RouteObject } from "react-router";
-import { Header, HeaderTitle } from "~/components/header";
+import { Header, HeaderTitle } from "../components/header";
 import type { Session, SessionWithCollaboration } from "agentview/apiTypes";
 import { getAllSessionItems } from "agentview/sessionUtils";
-import { CommentsThreadRaw } from "~/components/internal/comments";
-import { apiFetch } from "~/lib/apiFetch";
+import { CommentsThreadRaw } from "../components/internal/comments";
+import { apiFetch } from "../lib/apiFetch";
 import { useEffect } from "react";
 
 function Component() {

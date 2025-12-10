@@ -1,6 +1,6 @@
 import type { AgentInputComponentProps, FormComponentProps, SessionItemDisplayComponentProps } from "agentview/types";
 import { marked } from "marked";
-import { cn } from "~/lib/utils";
+import { cn } from "../lib/utils";
 import { useState } from "react";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "./ui/input-group";
 import { ArrowUpIcon, PauseIcon } from "lucide-react";

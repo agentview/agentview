@@ -1,5 +1,5 @@
 import { envAllowedValues, type Env } from "agentview/apiTypes";
-import { config } from "~/config";
+import { config } from "../config";
 
 export function getAgentParamAndCheckForRedirect(request: Request) {
     const url = new URL(request.url);

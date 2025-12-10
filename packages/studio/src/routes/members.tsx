@@ -7,13 +7,13 @@ import {
   TableHead,
   TableRow,
   TableCell,
-} from "~/components/ui/table";
-import { Button } from "~/components/ui/button";
+} from "../components/ui/table";
+import { Button } from "../components/ui/button";
 import { Plus } from "lucide-react";
-import { Badge } from "~/components/ui/badge";
-import { Header, HeaderTitle } from "~/components/header";
-import { authClient } from "~/lib/auth-client";
-import { apiFetch } from "~/lib/apiFetch";
+import { Badge } from "../components/ui/badge";
+import { Header, HeaderTitle } from "../components/header";
+import { authClient } from "../lib/auth-client";
+import { apiFetch } from "../lib/apiFetch";
 
 
 async function loader() {

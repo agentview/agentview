@@ -1,6 +1,6 @@
 import { createAuthClient } from "better-auth/react"
 import { adminClient, apiKeyClient } from "better-auth/client/plugins"
-import { config } from "~/config"
+import { config } from "../config"
 
 export function createBetterAuthClient({ baseURL }: { baseURL: string }) {
     return createAuthClient({

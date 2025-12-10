@@ -1,37 +1,37 @@
 import { useLoaderData, useFetcher, Outlet, Link, Form, data, useParams, useSearchParams, useNavigate, useRevalidator } from "react-router";
 import type { LoaderFunctionArgs, RouteObject } from "react-router";
-import { Button } from "~/components/ui/button";
-import { Header, HeaderTitle } from "~/components/header";
+import { Button } from "../components/ui/button";
+import { Header, HeaderTitle } from "../components/header";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { parseSSE } from "~/lib/parseSSE";
-import { apiFetch } from "~/lib/apiFetch";
+import { parseSSE } from "../lib/parseSSE";
+import { apiFetch } from "../lib/apiFetch";
 import { getLastRun, getAllSessionItems, getVersions, getActiveRuns, enhanceSession } from "agentview/sessionUtils";
 import { type Run, type RunWithCollaboration, type Session, type SessionItem, type SessionItemWithCollaboration, type SessionWithCollaboration } from "agentview/apiTypes";
-import { getListParams, toQueryParams } from "~/lib/listParams";
-import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
+import { getListParams, toQueryParams } from "../lib/listParams";
+import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "../components/PropertyList";
 import { AlertCircleIcon, BugIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, ExternalLinkIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageCirclePlusIcon, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, SquareTerminal, TagsIcon, TerminalIcon, ThumbsDown, ThumbsDownIcon, ThumbsUp, ThumbsUpIcon, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
-import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
-import { useSessionContext } from "~/lib/SessionContext";
+import { useFetcherSuccess } from "../hooks/useFetcherSuccess";
+import { useSessionContext } from "../lib/SessionContext";
 import type { SessionItemConfig, AgentConfig, ScoreConfig } from "agentview/types";
-import { AVFormField } from "~/components/internal/form";
-import { ItemsWithCommentsLayout } from "~/components/internal/ItemsWithCommentsLayout";
-import { CommentsThread } from "~/components/internal/comments";
-import { Popover, PopoverTrigger, PopoverContent } from "~/components/ui/popover";
-import { config } from "~/config";
+import { AVFormField } from "../components/internal/form";
+import { ItemsWithCommentsLayout } from "../components/internal/ItemsWithCommentsLayout";
+import { CommentsThread } from "../components/internal/comments";
+import { Popover, PopoverTrigger, PopoverContent } from "../components/ui/popover";
+import { config } from "../config";
 import { findItemConfigById, findMatchingRunConfigs, requireAgentConfig } from "agentview/configUtils";
-import { Loader } from "~/components/internal/Loader";
-import { Alert, AlertDescription } from "~/components/ui/alert";
-import type { BaseError } from "~/lib/errors";
-import { DisplayProperties } from "~/components/DisplayProperties";
+import { Loader } from "../components/internal/Loader";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import type { BaseError } from "../lib/errors";
+import { DisplayProperties } from "../components/DisplayProperties";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form as HookForm } from "~/components/ui/form";
-import { Pill } from "~/components/Pill";
-import { useRerender } from "~/hooks/useRerender";
-import { AssistantMessage, StepItem, UserMessage } from "~/components/session-item";
-import { debugRun } from "~/lib/debugRun";
-import { ErrorBoundary } from "~/components/internal/ErrorBoundary";
+import { Form as HookForm } from "../components/ui/form";
+import { Pill } from "../components/Pill";
+import { useRerender } from "../hooks/useRerender";
+import { AssistantMessage, StepItem, UserMessage } from "../components/session-item";
+import { debugRun } from "../lib/debugRun";
+import { ErrorBoundary } from "../components/internal/ErrorBoundary";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<SessionWithCollaboration>(`/api/sessions/${params.id}`);
@@ -421,7 +421,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
 }
 
 function ShareForm({ session }: { session: Session }) {
-    return <div>FIX ME 8</div>
+    return <div>FIX ME 14</div>
     // const fetcher = useFetcher();
     // return <fetcher.Form method="put" action={`/users/${session.user.id}/share`}>
     //     <input type="hidden" name="isShared" value={session.user.isShared ? "false" : "true"} />

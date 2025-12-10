@@ -1,11 +1,11 @@
-import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "~/components/ui/dialog";
+import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import type { ActionFunctionArgs, LoaderFunctionArgs, RouteObject } from "react-router";
 import { data, redirect, useFetcher, useLoaderData, useNavigate } from "react-router";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { AlertCircleIcon } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { apiFetch } from "~/lib/apiFetch";
-import type { ActionResponse } from "~/lib/errors";
+import { Button } from "../components/ui/button";
+import { apiFetch } from "../lib/apiFetch";
+import type { ActionResponse } from "../lib/errors";
 
 async function loader({ params }: LoaderFunctionArgs) {
   const response = await apiFetch(`/api/members`);

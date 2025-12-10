@@ -1,7 +1,7 @@
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
-import { cn } from "~/lib/utils"
+import { cn } from "../lib/utils"
 import { Button } from "./ui/button"
 import { Pill } from "./Pill"
 import type { ControlComponentProps } from "agentview/types"

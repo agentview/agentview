@@ -14,12 +14,6 @@
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "baseUrl": ".",
-    "paths": {
-      "~/*": ["./src/*"],
-      "~": ["./src/index.tsx"],
-      "agentview/*": ["./src/*"],
-      "agentview": ["./src/index.tsx"]
-    },
     "outDir": "./dist",
     "esModuleInterop": true,
     "verbatimModuleSyntax": true,

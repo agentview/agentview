@@ -2,15 +2,15 @@ import React from "react";
 import { useFetcher } from "react-router";
 import type { RouteObject } from "react-router";
 
-import { Header, HeaderTitle } from "~/components/header";
-import { Button } from "~/components/ui/button";
-import { Label } from "~/components/ui/label";
-import { Input } from "~/components/ui/input";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Header, HeaderTitle } from "../components/header";
+import { Button } from "../components/ui/button";
+import { Label } from "../components/ui/label";
+import { Input } from "../components/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { AlertCircleIcon } from "lucide-react";
-import { betterAuthErrorToBaseError, type ActionResponse } from "~/lib/errors";
-import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
-import { authClient } from "~/lib/auth-client";
+import { betterAuthErrorToBaseError, type ActionResponse } from "../lib/errors";
+import { useFetcherSuccess } from "../hooks/useFetcherSuccess";
+import { authClient } from "../lib/auth-client";
 import { toast } from "sonner";
 
 async function action({

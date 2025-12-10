@@ -2,9 +2,9 @@ import { TerminalIcon } from "lucide-react";
 import { useFetcher, useLoaderData } from "react-router";
 import type { RouteObject } from "react-router";
 
-import { Header, HeaderTitle } from "~/components/header";
-import { Button } from "~/components/ui/button";
-import { getRemoteConfig } from "~/lib/remoteConfig";
+import { Header, HeaderTitle } from "../components/header";
+import { Button } from "../components/ui/button";
+import { getRemoteConfig } from "../lib/remoteConfig";
 
 async function loader() {
   return { config: await getRemoteConfig() };

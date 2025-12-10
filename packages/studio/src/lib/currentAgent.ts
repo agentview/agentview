@@ -1,4 +1,4 @@
-import { config } from "~/config";
+import { config } from "../config";
 
 function isValidAgent(agent: string) {
     return config.agents?.some((a) => a.name === agent);

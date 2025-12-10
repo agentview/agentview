@@ -1,12 +1,12 @@
 import { redirect, Form, useActionData, useFetcher, data, useLoaderData } from "react-router";
 import type { ActionFunctionArgs, LoaderFunctionArgs, RouteObject } from "react-router";
-import { Header, HeaderTitle } from "~/components/header";
-import { apiFetch } from "~/lib/apiFetch";
-import { getListParams, toQueryParams } from "~/lib/listParams";
-import { type ActionResponse } from "~/lib/errors";
-import { config } from "~/config";
+import { Header, HeaderTitle } from "../components/header";
+import { apiFetch } from "../lib/apiFetch";
+import { getListParams, toQueryParams } from "../lib/listParams";
+import { type ActionResponse } from "../lib/errors";
+import { config } from "../config";
 import { requireAgentConfig } from "agentview/configUtils";
-import { AVFormError } from "~/components/internal/form";
+import { AVFormError } from "../components/internal/form";
 
 async function loader({ request }: LoaderFunctionArgs) {
   const listParams = getListParams(request);

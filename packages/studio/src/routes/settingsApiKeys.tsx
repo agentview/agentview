@@ -2,14 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useLoaderData, useFetcher, data, useRevalidator } from "react-router";
 import type { LoaderFunctionArgs, RouteObject, ActionFunctionArgs } from "react-router";
 
-import { Header, HeaderTitle } from "~/components/header";
-import { Button } from "~/components/ui/button";
-import { Label } from "~/components/ui/label";
-import { Input } from "~/components/ui/input";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Header, HeaderTitle } from "../components/header";
+import { Button } from "../components/ui/button";
+import { Label } from "../components/ui/label";
+import { Input } from "../components/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { AlertCircleIcon, CopyIcon, KeyRoundIcon, Loader2Icon } from "lucide-react";
-import { betterAuthErrorToBaseError, type ActionResponse } from "~/lib/errors";
-import { authClient } from "~/lib/auth-client";
+import { betterAuthErrorToBaseError, type ActionResponse } from "../lib/errors";
+import { authClient } from "../lib/auth-client";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -19,8 +19,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "~/components/ui/dialog";
-import { useFetcherSuccess } from "~/hooks/useFetcherSuccess";
+} from "../components/ui/dialog";
+import { useFetcherSuccess } from "../hooks/useFetcherSuccess";
 
 async function action({
   request,

@@ -7,9 +7,9 @@ import {
   TableHead,
   TableRow,
   TableCell,
-} from "~/components/ui/table";
-import { Header, HeaderTitle } from "~/components/header";
-import { apiFetch } from "~/lib/apiFetch";
+} from "../components/ui/table";
+import { Header, HeaderTitle } from "../components/header";
+import { apiFetch } from "../lib/apiFetch";
 
 async function loader() {
   const response = await apiFetch(`/api/dev/emails`);

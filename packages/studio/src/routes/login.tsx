@@ -1,13 +1,13 @@
 import { redirect, Form, useActionData, data, type LoaderFunctionArgs, type ActionFunctionArgs, type RouteObject } from "react-router";
-import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import { AlertCircleIcon } from "lucide-react";
-import { betterAuthErrorToBaseError, type ActionResponse } from "~/lib/errors";
-import { authClient } from "~/lib/auth-client";
-import { apiFetch } from "~/lib/apiFetch";
+import { betterAuthErrorToBaseError, type ActionResponse } from "../lib/errors";
+import { authClient } from "../lib/auth-client";
+import { apiFetch } from "../lib/apiFetch";
 
 function redirectUrl(request: Request) {
   const url = new URL(request.url);

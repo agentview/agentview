@@ -30,20 +30,20 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
 } from "../components/ui/sidebar"
-import { NotificationBadge } from "~/components/internal/NotificationBadge";
+import { NotificationBadge } from "../components/internal/NotificationBadge";
 
 // Removed Framework Mode type import
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "~/components/ui/dropdown-menu";
-import { authClient } from "~/lib/auth-client";
-import { SessionContext } from "~/lib/SessionContext";
-import { apiFetch } from "~/lib/apiFetch";
-import { updateRemoteConfig } from "~/lib/remoteConfig";
-import { config } from "~/config";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
+import { authClient } from "../lib/auth-client";
+import { SessionContext } from "../lib/SessionContext";
+import { apiFetch } from "../lib/apiFetch";
+import { updateRemoteConfig } from "../lib/remoteConfig";
+import { config } from "../config";
 import { type Env, type Member, envAllowedValues } from "agentview/apiTypes";
-import { Button } from "~/components/ui/button";
-import { getCurrentAgent } from "~/lib/currentAgent";
+import { Button } from "../components/ui/button";
+import { getCurrentAgent } from "../lib/currentAgent";
 import { matchPath } from "react-router";
-import { UserAvatar } from "~/components/internal/UserAvatar";
+import { UserAvatar } from "../components/internal/UserAvatar";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await authClient.getSession()

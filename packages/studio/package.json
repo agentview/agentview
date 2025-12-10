@@ -18,20 +18,36 @@
     "dev": "concurrently -n tsc,alias,styles -c blue,magenta,cyan \"npm run watch:tsc\" \"npm run watch:alias\" \"npm run watch:styles\"",
     "dev:studio": "vite dev"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./*": {
-      "types": "./dist/*.d.ts",
-      "import": "./dist/*.js",
-      "require": "./dist/*.cjs"
-    },
+    ".": "./src/index.ts",
+    "./components/*": "./src/components/*.tsx",
+    "./components/ui/*": "./src/components/ui/*.tsx",
     "./styles.css": {
-      "default": "./dist/styles.css"
+      "default": "./src/styles.css"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "import": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+      },
+      "./components/*": {
+        "import": "./dist/components/*.js",
+        "types": "./dist/components/*.d.ts"
+      },
+      "./components/ui/*": {
+        "import": "./dist/components/ui/*.js",
+        "types": "./dist/components/ui/*.d.ts"
+      },
+      "./styles.css": {
+        "default": "./dist/styles.css"
+      }
     }
   },
   "dependencies": {

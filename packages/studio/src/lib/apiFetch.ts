@@ -1,5 +1,5 @@
 import type { BaseError } from "./errors";
-import { config } from "~/config";
+import { config } from "../config";
 
 type APISuccessResponse<T> = Response & {
     ok: true;

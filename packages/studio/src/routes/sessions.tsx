@@ -1,16 +1,16 @@
 import { useLoaderData, Outlet, Link, Form, data, NavLink, redirect } from "react-router";
 import type { LoaderFunctionArgs, RouteObject } from "react-router";
 
-import { Button } from "~/components/ui/button";
+import { Button } from "../components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon, MessageCircle, PlusIcon, UserIcon } from "lucide-react";
-import { Header, HeaderTitle } from "~/components/header";
-import { getListParams, getListParamsAndCheckForRedirect, toQueryParams } from "~/lib/listParams";
-import { apiFetch } from "~/lib/apiFetch";
+import { Header, HeaderTitle } from "../components/header";
+import { getListParams, getListParamsAndCheckForRedirect, toQueryParams } from "../lib/listParams";
+import { apiFetch } from "../lib/apiFetch";
 import type { Pagination, SessionBase, SessionsPaginatedResponse } from "agentview/apiTypes";
-import { timeAgoShort } from "~/lib/timeAgo";
-import { useSessionContext } from "~/lib/SessionContext";
-import { NotificationBadge, NotificationDot } from "~/components/internal/NotificationBadge";
-import { UserAvatar } from "~/components/internal/UserAvatar";
+import { timeAgoShort } from "../lib/timeAgo";
+import { useSessionContext } from "../lib/SessionContext";
+import { NotificationBadge, NotificationDot } from "../components/internal/NotificationBadge";
+import { UserAvatar } from "../components/internal/UserAvatar";
 
 async function loader({ request }: LoaderFunctionArgs) {
   const { listParams, needsRedirect } = getListParamsAndCheckForRedirect(request);

@@ -1,4 +1,4 @@
-import { apiFetch } from "~/lib/apiFetch";
+import { apiFetch } from "../lib/apiFetch";
 import type { ActionFunctionArgs, RouteObject } from "react-router";
 
 async function action({ request, params }: ActionFunctionArgs) {

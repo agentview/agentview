@@ -1,20 +1,20 @@
 import { data, useLoaderData, useNavigate, useOutletContext, useParams, useRevalidator } from "react-router";
 import type { LoaderFunctionArgs, RouteObject } from "react-router";
-import { Header, HeaderTitle } from "~/components/header";
+import { Header, HeaderTitle } from "../components/header";
 import type { Session } from "agentview/apiTypes";
 import { getAllSessionItems } from "agentview/sessionUtils";
-import { apiFetch } from "~/lib/apiFetch";
+import { apiFetch } from "../lib/apiFetch";
 import { useEffect } from "react";
-import { Button } from "~/components/ui/button";
-import { getListParams, toQueryParams } from "~/lib/listParams";
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "~/components/ui/dialog";
-import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "~/components/PropertyList";
+import { Button } from "../components/ui/button";
+import { getListParams, toQueryParams } from "../lib/listParams";
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "../components/PropertyList";
 import { TerminalIcon } from "lucide-react";
 import { requireRunConfig, requireAgentConfig } from "agentview/configUtils";
-import { config } from "~/config";
-import { DisplayProperties } from "~/components/DisplayProperties";
-import type { ActionResponse } from "~/lib/errors";
-import { debugRun } from "~/lib/debugRun";
+import { config } from "../config";
+import { DisplayProperties } from "../components/DisplayProperties";
+import type { ActionResponse } from "../lib/errors";
+import { debugRun } from "../lib/debugRun";
 
 function loader({ request, params }: LoaderFunctionArgs) {
     const listParams = getListParams(request);

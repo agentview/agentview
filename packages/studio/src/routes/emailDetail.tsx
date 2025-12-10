@@ -1,8 +1,8 @@
 import { useLoaderData, data } from "react-router";
 import type { LoaderFunctionArgs, RouteObject } from "react-router";
-import { Card, CardContent } from "~/components/ui/card";
-import { Header, HeaderTitle } from "~/components/header";
-import { apiFetch } from "~/lib/apiFetch";
+import { Card, CardContent } from "../components/ui/card";
+import { Header, HeaderTitle } from "../components/header";
+import { apiFetch } from "../lib/apiFetch";
 
 async function loader({ params }: LoaderFunctionArgs) {
   const response = await apiFetch(`/api/dev/emails/${params.id}`);

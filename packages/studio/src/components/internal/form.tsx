@@ -4,8 +4,8 @@ import type { ControllerRenderProps, FieldValues } from "react-hook-form";
 import { Alert } from "../ui/alert";
 import { AlertCircleIcon, ArrowUpIcon, ChevronDownIcon, PauseIcon, ThumbsDown, ThumbsUp } from "lucide-react";
 import { AlertDescription } from "../ui/alert";
-import type { BaseError } from "~/lib/errors";
-import { cn } from "~/lib/utils";
+import type { BaseError } from "../../lib/errors";
+import { cn } from "../../lib/utils";
 
 
 export type AVFormControlProps<TInput = any, TOutput = TInput> = Partial<ControllerRenderProps<FieldValues, any>> & {

@@ -6,10 +6,10 @@ import Text from '@tiptap/extension-text'
 import Mention, { type MentionNodeAttrs } from '@tiptap/extension-mention'
 import { UndoRedo, Placeholder} from '@tiptap/extensions'
 import { computePosition, flip, shift, offset } from '@floating-ui/dom'
-import { cn } from '~/lib/utils'
+import { cn } from '../../lib/utils'
 import { type SuggestionProps } from '@tiptap/suggestion'
 import Linkify from "linkify-react";
-import { useOnFormReset } from '~/hooks/useOnFormReset';
+import { useOnFormReset } from '../../hooks/useOnFormReset';
 
 // export const MENTION_STYLES = 'bg-cyan-50 text-cyan-800 px-1 py-0.5 rounded-md'
 export const MENTION_STYLES = 'text-cyan-700'

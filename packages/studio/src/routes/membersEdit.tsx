@@ -1,13 +1,13 @@
-import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "~/components/ui/dialog";
+import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import type { ActionFunctionArgs, LoaderFunctionArgs, RouteObject } from "react-router";
 import { redirect, useFetcher, useLoaderData, useNavigate } from "react-router";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { AlertCircleIcon } from "lucide-react";
-import { Label } from "~/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
-import { Button } from "~/components/ui/button";
-import { apiFetch } from "~/lib/apiFetch";
-import type { ActionResponse } from "~/lib/errors";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Button } from "../components/ui/button";
+import { apiFetch } from "../lib/apiFetch";
+import type { ActionResponse } from "../lib/errors";
 
 
 async function loader({ params }: LoaderFunctionArgs) {
