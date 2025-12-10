@@ -11,10 +11,10 @@ if (!process.env.AGENTVIEW_API_KEY) {
   throw new Error('AGENTVIEW_API_KEY is not set')
 }
 
-const apiUrl = process.env.AGENTVIEW_API_BASE_URL
+const apiBaseUrl = process.env.AGENTVIEW_API_BASE_URL
 
 const av = new AgentView({
-  apiUrl,
+  apiBaseUrl,
   apiKey: process.env.AGENTVIEW_API_KEY,
 })
 
@@ -221,7 +221,7 @@ describe('API', () => {
 
         test("works for existing users", async () => {
           const avPublic1 = new PublicAgentView({
-            apiUrl,
+            apiBaseUrl,
             userToken: initUser1.token
           })
           const user1 = await avPublic1.getMe()
@@ -229,7 +229,7 @@ describe('API', () => {
           expect(user1.externalId).toBe(EXTERNAL_ID_1)
 
           const avPublic2 = new PublicAgentView({
-            apiUrl,
+            apiBaseUrl,
             userToken: initUser2.token
           })
           const user2 = await avPublic2.getMe()
@@ -239,7 +239,7 @@ describe('API', () => {
 
         test("fails for unknown key", async () => {
           const avPublic1 = new PublicAgentView({
-            apiUrl,
+            apiBaseUrl,
             userToken: "xxx"
           })
 
@@ -256,7 +256,7 @@ describe('API', () => {
           const session = await av.createSession({ agent: "test", userId: initUser1.id })
 
           const avPublic1 = new PublicAgentView({
-            apiUrl,
+            apiBaseUrl,
             userToken: initUser1.token
           })
 
@@ -269,7 +269,7 @@ describe('API', () => {
           const session = await av.createSession({ agent: "test", userId: initUser1.id })
 
           const avPublic2 = new PublicAgentView({
-            apiUrl,
+            apiBaseUrl,
             userToken: initUser2.token
           })
 
@@ -719,7 +719,7 @@ describe('API', () => {
 
       test("[public api] works", async () => {
         const avPublic1 = new PublicAgentView({
-          apiUrl,
+          apiBaseUrl,
           userToken: initUser1.token
         })
 
@@ -731,7 +731,7 @@ describe('API', () => {
 
 
         const avPublic2 = new PublicAgentView({
-          apiUrl,
+          apiBaseUrl,
           userToken: initUser2.token
         })
 
