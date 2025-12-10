@@ -6,17 +6,11 @@
     "dist"
   ],
   "scripts": {
-    "clean": "rm -Rf dist",
-    "watch:tsc": "tsc -w --preserveWatchOutput",
-    "build:tsc": "tsc",
-    "watch:alias": "tsc-alias -w",
-    "build:alias": "tsc-alias",
+    "build:ts": "tsup",
     "build:tailwindcss-typography": "mkdir -p dist/tailwindcss-typography/src && cp -R src/tailwindcss-typography/src/* dist/tailwindcss-typography/src/",
     "build:styles": "cp src/styles.css dist/styles.css",
-    "watch:styles": "npx chokidar 'src/styles.css' -c \"npm run build:styles\"",
-    "build": "npx tsup && npm run build:alias && npm run build:tailwindcss-typography && npm run build:styles",
-    "dev": "concurrently -n tsc,alias,styles -c blue,magenta,cyan \"npm run watch:tsc\" \"npm run watch:alias\" \"npm run watch:styles\"",
-    "dev:studio": "vite dev"
+    "build": "npm run build:ts && npm run build:tailwindcss-typography && npm run build:styles",
+    "dev": "vite dev"
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -115,7 +109,6 @@
     "@vitejs/plugin-react": "^5.1.2",
     "concurrently": "^9.2.1",
     "tailwindcss": "^4.1.4",
-    "tsc-alias": "^1.8.16",
     "typescript": "^5.8.3",
     "vite": "^6.3.3",
     "vite-tsconfig-paths": "^5.1.4",
