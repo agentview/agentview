@@ -210,6 +210,7 @@ export const PublicSessionsGetQueryParamsSchema = z.object({
 export const SessionsGetQueryParamsSchema = PublicSessionsGetQueryParamsSchema.extend({
   userId: z.string().optional(),
   env: EnvSchema.optional(), // necessary if userId is not provided
+  starred: z.union([z.boolean(), z.literal('true'), z.literal('false')]).optional(),
 })
 
 export type PublicSessionsGetQueryParams = z.infer<typeof PublicSessionsGetQueryParamsSchema>

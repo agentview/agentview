@@ -71,6 +71,13 @@
       "when": 1765205519876,
       "tag": "0009_burly_maestro",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1765389728904,
+      "tag": "0010_certain_blob",
+      "breakpoints": true
     }
   ]
 }

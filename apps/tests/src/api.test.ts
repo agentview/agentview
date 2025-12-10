@@ -743,6 +743,83 @@ describe('API', () => {
       })
 
     })
+
+    describe("starred sessions", () => {
+      let testSession1: Session
+      let testSession2: Session
+      const starredAgentName = 'starred_agent_' + Math.random().toString(36).slice(2)
+
+      beforeAll(async () => {
+        await av.__updateConfig({ config: { agents: [{ name: starredAgentName }] } })
+        testSession1 = await av.createSession({ agent: starredAgentName, userId: initUser1.id })
+        testSession2 = await av.createSession({ agent: starredAgentName, userId: initUser1.id })
+      })
+
+      test("session is not starred by default", async () => {
+        const result = await av.isSessionStarred(testSession1.id)
+        expect(result.starred).toBe(false)
+      })
+
+      test("can star a session", async () => {
+        const result = await av.starSession(testSession1.id)
+        expect(result.starred).toBe(true)
+
+        const checkResult = await av.isSessionStarred(testSession1.id)
+        expect(checkResult.starred).toBe(true)
+      })
+
+      test("starring same session twice is idempotent", async () => {
+        // testSession1 is already starred from previous test
+        const result = await av.starSession(testSession1.id)
+        expect(result.starred).toBe(true)
+
+        const checkResult = await av.isSessionStarred(testSession1.id)
+        expect(checkResult.starred).toBe(true)
+      })
+
+      test("can unstar a session", async () => {
+        const result = await av.unstarSession(testSession1.id)
+        expect(result.starred).toBe(false)
+
+        const checkResult = await av.isSessionStarred(testSession1.id)
+        expect(checkResult.starred).toBe(false)
+      })
+
+      test("unstarring an unstarred session is idempotent", async () => {
+        // testSession1 is already unstarred from previous test
+        const result = await av.unstarSession(testSession1.id)
+        expect(result.starred).toBe(false)
+
+        const checkResult = await av.isSessionStarred(testSession1.id)
+        expect(checkResult.starred).toBe(false)
+      })
+
+      test("starred filter returns only starred sessions", async () => {
+        // Star session1, leave session2 unstarred
+        await av.starSession(testSession1.id)
+
+        const starredSessions = await av.getSessions({ agent: starredAgentName, starred: true })
+        expect(starredSessions.sessions.some(s => s.id === testSession1.id)).toBe(true)
+        expect(starredSessions.sessions.some(s => s.id === testSession2.id)).toBe(false)
+
+        // Star session2 as well
+        await av.starSession(testSession2.id)
+        const updatedStarredSessions = await av.getSessions({ agent: starredAgentName, starred: true })
+        expect(updatedStarredSessions.sessions.some(s => s.id === testSession1.id)).toBe(true)
+        expect(updatedStarredSessions.sessions.some(s => s.id === testSession2.id)).toBe(true)
+
+        // Cleanup
+        await av.unstarSession(testSession1.id)
+        await av.unstarSession(testSession2.id)
+      })
+
+      test("starring non-existent session returns 404", async () => {
+        await expect(av.starSession('00000000-0000-0000-0000-000000000000')).rejects.toThrowError(expect.objectContaining({
+          statusCode: 404,
+          message: expect.any(String),
+        }))
+      })
+    })
   })
 
 

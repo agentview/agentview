@@ -87,6 +87,7 @@ export class AgentView {
     if (options?.page) params.append('page', options.page.toString());
     if (options?.limit) params.append('limit', options.limit.toString());
     if (options?.userId) params.append('userId', options.userId);
+    if (options?.starred) params.append('starred', 'true');
     params.append('env', options?.env ?? this.env);
 
     const queryString = params.toString();
@@ -99,6 +100,18 @@ export class AgentView {
 
   async updateSession(options: { id: string } & SessionUpdate) {
     return enhanceSession(await this.request<Session>('PATCH', `/api/sessions/${options.id}`, options))
+  }
+
+  async starSession(sessionId: string): Promise<{ starred: boolean }> {
+    return await this.request<{ starred: boolean }>('PUT', `/api/sessions/${sessionId}/star`, undefined)
+  }
+
+  async unstarSession(sessionId: string): Promise<{ starred: boolean }> {
+    return await this.request<{ starred: boolean }>('DELETE', `/api/sessions/${sessionId}/star`, undefined)
+  }
+
+  async isSessionStarred(sessionId: string): Promise<{ starred: boolean }> {
+    return await this.request<{ starred: boolean }>('GET', `/api/sessions/${sessionId}/star`, undefined)
   }
 
   async createRun(options: RunCreate): Promise<Run> {

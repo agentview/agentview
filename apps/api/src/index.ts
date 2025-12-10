@@ -10,7 +10,7 @@ import type { User as BetterAuthUser, ZodError } from "better-auth";
 import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi'
 import { swaggerUI } from '@hono/swagger-ui'
 import { db } from './db'
-import { endUsers, sessions, sessionItems, runs, emails, commentMessages, commentMessageEdits, commentMentions, versions, scores, configs, events, inboxItems } from './schemas/schema'
+import { endUsers, sessions, sessionItems, runs, emails, commentMessages, commentMessageEdits, commentMentions, versions, scores, configs, events, inboxItems, starredSessions } from './schemas/schema'
 import { eq, desc, and, inArray, ne, gt, isNull, isNotNull, or, gte, sql, countDistinct, DrizzleQueryError, type InferSelectModel } from 'drizzle-orm'
 import { response_data, response_error, body } from './hono_utils'
 import { isUUID } from './isUUID'
@@ -927,12 +927,88 @@ async function getSessions(params: SessionsGetQueryParams, principal: Principal)
 
   const offset = (page - 1) * limit;
 
+  // Build base filter
+  const baseFilter = getSessionListFilter(params, principal);
+
+  // Handle starred filter - requires joining with starredSessions table
+  const isStarred = params.starred === true || params.starred === 'true';
+  if (isStarred) {
+    if (principal.type === 'user') {
+      throw new HTTPException(422, { message: "starred filter is only available for staff users" });
+    }
+    const memberId = requireMemberId(principal);
+
+    // Get total count for pagination metadata
+    const totalCountResult = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(sessions)
+      .innerJoin(starredSessions, and(
+        eq(starredSessions.sessionId, sessions.id),
+        eq(starredSessions.userId, memberId)
+      ))
+      .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
+      .where(baseFilter);
+
+    const totalCount = totalCountResult[0]?.count ?? 0;
+
+    // Get sessions with pagination
+    const result = await db
+      .select({
+        sessions: sessions,
+        end_users: endUsers,
+      })
+      .from(sessions)
+      .innerJoin(starredSessions, and(
+        eq(starredSessions.sessionId, sessions.id),
+        eq(starredSessions.userId, memberId)
+      ))
+      .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
+      .where(baseFilter)
+      .orderBy(desc(sessions.updatedAt))
+      .limit(limit)
+      .offset(offset);
+
+    const sessionsResult = result.map((row) => ({
+      id: row.sessions.id,
+      handle: row.sessions.handleNumber.toString() + (row.sessions.handleSuffix ?? ""),
+      createdAt: row.sessions.createdAt,
+      updatedAt: row.sessions.updatedAt,
+      metadata: row.sessions.metadata as Record<string, any>,
+      agent: row.sessions.agent,
+      user: row.end_users!,
+      env: row.end_users!.env,
+      userId: row.end_users!.id,
+    }));
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasNextPage = page < totalPages;
+    const hasPreviousPage = page > 1;
+    const currentPageStart = offset + 1;
+    const currentPageEnd = Math.min(offset + limit, totalCount);
+
+    return {
+      sessions: sessionsResult,
+      pagination: {
+        totalCount,
+        totalPages,
+        page,
+        limit,
+        hasNextPage,
+        hasPreviousPage,
+        currentPageStart,
+        currentPageEnd,
+      }
+    };
+  }
+
+  // Regular (non-starred) query
   // Get total count for pagination metadata
   const totalCountResult = await db
     .select({ count: sql<number>`cast(count(*) as integer)` })
     .from(sessions)
     .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
-    .where(getSessionListFilter(params, principal));
+    .where(baseFilter);
 
   const totalCount = totalCountResult[0]?.count ?? 0;
 
@@ -941,7 +1017,7 @@ async function getSessions(params: SessionsGetQueryParams, principal: Principal)
     .select()
     .from(sessions)
     .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
-    .where(getSessionListFilter(params, principal))
+    .where(baseFilter)
     .orderBy(desc(sessions.updatedAt))
     .limit(limit)
     .offset(offset);
@@ -1181,6 +1257,106 @@ app.openapi(sessionPATCHRoute, async (c) => {
 
   const updatedSession = await requireSession(session_id);
   return c.json(updatedSession, 200);
+})
+
+// Star a session
+const sessionStarPUTRoute = createRoute({
+  method: 'put',
+  path: '/api/sessions/{session_id}/star',
+  request: {
+    params: z.object({
+      session_id: z.string(),
+    }),
+  },
+  responses: {
+    200: response_data(z.object({ starred: z.boolean() })),
+    401: response_error(),
+    404: response_error(),
+  },
+})
+
+app.openapi(sessionStarPUTRoute, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+  const { session_id } = c.req.param()
+
+  const memberId = requireMemberId(principal);
+  const session = await requireSession(session_id);
+  authorize(principal, { action: "end-user:read", user: session.user });
+
+  await db.insert(starredSessions).values({
+    userId: memberId,
+    sessionId: session_id,
+  }).onConflictDoNothing();
+
+  return c.json({ starred: true }, 200);
+})
+
+// Unstar a session
+const sessionStarDELETERoute = createRoute({
+  method: 'delete',
+  path: '/api/sessions/{session_id}/star',
+  request: {
+    params: z.object({
+      session_id: z.string(),
+    }),
+  },
+  responses: {
+    200: response_data(z.object({ starred: z.boolean() })),
+    401: response_error(),
+    404: response_error(),
+  },
+})
+
+app.openapi(sessionStarDELETERoute, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+  const { session_id } = c.req.param()
+
+  const memberId = requireMemberId(principal);
+  const session = await requireSession(session_id);
+  authorize(principal, { action: "end-user:read", user: session.user });
+
+  await db.delete(starredSessions).where(
+    and(
+      eq(starredSessions.userId, memberId),
+      eq(starredSessions.sessionId, session_id)
+    )
+  );
+
+  return c.json({ starred: false }, 200);
+})
+
+// Check if session is starred
+const sessionStarGETRoute = createRoute({
+  method: 'get',
+  path: '/api/sessions/{session_id}/star',
+  request: {
+    params: z.object({
+      session_id: z.string(),
+    }),
+  },
+  responses: {
+    200: response_data(z.object({ starred: z.boolean() })),
+    401: response_error(),
+    404: response_error(),
+  },
+})
+
+app.openapi(sessionStarGETRoute, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+  const { session_id } = c.req.param()
+
+  const memberId = requireMemberId(principal);
+  const session = await requireSession(session_id);
+  authorize(principal, { action: "end-user:read", user: session.user });
+
+  const star = await db.query.starredSessions.findFirst({
+    where: and(
+      eq(starredSessions.userId, memberId),
+      eq(starredSessions.sessionId, session_id)
+    )
+  });
+
+  return c.json({ starred: !!star }, 200);
 })
 
 const publicSessionGETRoute = createRoute({

@@ -197,6 +197,15 @@ export const configs = pgTable('configs', {
   createdBy: text('created_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
 });
 
+export const starredSessions = pgTable('starred_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  sessionId: uuid('session_id').notNull().references(() => sessions.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+}, (table) => [
+  unique().on(table.userId, table.sessionId)
+]);
+
 
 export const sessionRelations = relations(sessions, ({ many, one }) => ({
   sessionItems: many(sessionItems),
@@ -206,6 +215,7 @@ export const sessionRelations = relations(sessions, ({ many, one }) => ({
     references: [endUsers.id],
   }),
   inboxItems: many(inboxItems),
+  starredSessions: many(starredSessions),
 
   // state: one(sessionItems, {
   //   fields: [sessions.id],
@@ -356,6 +366,18 @@ export const inboxItemsRelations = relations(inboxItems, ({ one, many }) => ({
 
 export const usersRelations = relations(users, ({ many }) => ({
   inboxItems: many(inboxItems),
+  starredSessions: many(starredSessions),
+}));
+
+export const starredSessionsRelations = relations(starredSessions, ({ one }) => ({
+  user: one(users, {
+    fields: [starredSessions.userId],
+    references: [users.id],
+  }),
+  session: one(sessions, {
+    fields: [starredSessions.sessionId],
+    references: [sessions.id],
+  }),
 }));
 
 
@@ -383,6 +405,7 @@ export const schema = {
   events,
   inboxItems,
   configs,
+  starredSessions,
 
   // endUserAuthSessionsRelations,
   sessionRelations,
@@ -399,4 +422,5 @@ export const schema = {
   scoresRelations,
   inboxItemsRelations,
   usersRelations,
+  starredSessionsRelations,
 }
