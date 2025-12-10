@@ -14,7 +14,7 @@ import { endUsers, sessions, sessionItems, runs, emails, commentMessages, commen
 import { eq, desc, and, inArray, ne, gt, isNull, isNotNull, or, gte, sql, countDistinct, DrizzleQueryError, type InferSelectModel } from 'drizzle-orm'
 import { response_data, response_error, body } from './hono_utils'
 import { isUUID } from './isUUID'
-import { extractMentions } from './utils'
+import { extractMentions } from './extractMentions'
 import { auth } from './auth'
 import { createInvitation, cancelInvitation, getPendingInvitations, getValidInvitation } from './invitations'
 import { fetchSession } from './sessions'
@@ -42,7 +42,7 @@ import { findUser, createUser } from './users'
 import packageJson from '../package.json'
 import type { Transaction } from './types'
 import { findItemConfig, findItemConfigById, requireRunConfig } from 'agentview/configUtils'
-import { equalJSON } from 'agentview/equalJSON'
+import { equalJSON } from './equalJSON'
 import { AgentViewError } from 'agentview/AgentViewError'
 
 

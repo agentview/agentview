@@ -1,4 +1,4 @@
-import { extractMentions } from "./utils";
+import { extractMentions } from "./extractMentions";
 
 // Simple tests for mention extraction
 console.log("Testing mention extraction...");
