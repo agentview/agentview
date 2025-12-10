@@ -19,9 +19,11 @@ The API exposed by backend is called AgentView API.
 
 You can clear entire system state with `npm run db:clear` in `apps/api`. If you need to do it -> no worries, just do it.
 
-### Seeding users after clearing db
+### Seeding users after clearing db, setting up API Key
 
-You can run `npm run seed-users` in `apps/tests`. It runs a script that adds users via AgentView API: admin, user1 and user2. It also generates API Key for admin, so that you can use it in later testing.
+You can run `npm run seed-users` in `apps/tests` to generate example users (it's done directly via AgentView API). You can also build your own script or add users however you want.
+
+The seed scripts generates API Key for the admin user. This is important because most operations require API Key, so save it. We use consistent environment variables naming across the projects, so you can simply save it to `AGENTVIEW_API_KEY` env and all code in `apps/tests` and example projects should run correctly.
 
 ### Migrations
 
@@ -54,7 +56,7 @@ In order to send this file to the backend, you can simply run `npx agentview con
 
 In order to open UI Studio go to `apps/examples/{project}/studio` and run `npm run dev` to open UI Studio. *Do not do it* unless I explicitly say to do it.
 
-### Agent
+### Agent Endpoint
 
 Each example project has agent subproject: `apps/examples/{project}/agent`. Agent is a tiny http server with Agent Endpoint (described in docs).
 
@@ -71,4 +73,4 @@ Do not play with UI unless I explicitly say to do so.
 - be concise
 - if something is unclear ask clarifying question
 - do not touch UI Studio unless explicitly said to do it.
-- when you build backend features, always add tests in `apps/tests`, try to use our SDK, you can extend it if you need to.
+- when you build backend features, please test features "end-to-end", which means directly on the API. The best way to do it is to add tests in `apps/tests`. Try to use our SDK if possible, we want to be dogfooding our SDK. You can extend it if you need. For operations related to authentication also use API directly, the easiest way to do it is via better-auth client SDK (check out `seed-users` script in `apps/tests`).
