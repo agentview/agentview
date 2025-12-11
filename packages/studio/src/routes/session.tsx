@@ -276,16 +276,16 @@ function SessionPage() {
                                     return null;
                                 }
                                 content = <div className="pl-[10%] relative">
-                                    <Component value={item.content} />
+                                    <Component item={item.content} sessionItem={item} run={run} session={session} />
                                 </div>
                             }
                             else if (itemConfigMatch?.type === "output") {
                                 const Component = itemConfigMatch?.itemConfig?.displayComponent ?? AssistantMessage;
-                                content = <Component value={item.content} />
+                                content = <Component item={item.content} sessionItem={item} run={run} session={session} />
                             }
                             else {
                                 const Component = itemConfigMatch?.itemConfig?.displayComponent ?? StepItem;
-                                content = <Component value={item.content} />
+                                content = <Component item={item.content} sessionItem={item} run={run} session={session} />
                             }
 
                             return {

@@ -5,6 +5,51 @@ import { useState } from "react";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "./ui/input-group";
 import { ArrowUpIcon, PauseIcon } from "lucide-react";
 import { z } from "zod";
+import { cva, type VariantProps } from "class-variance-authority";
+
+
+// MessageWrapper (ghost, outline, fill): title, content (children)
+
+const messageWrapperVariants = cva(
+    "",
+    {
+      variants: {
+        variant: {
+          ghost:
+            "",
+          outline:
+            "px-3 py-2 rounded-lg border",
+          fill:
+            "px-3 py-2 rounded-lg bg-gray-50",
+        }
+      },
+      defaultVariants: {
+        variant: "ghost",
+      },
+    }
+  )
+
+
+export function MessageWrapper({ 
+    variant = "ghost", 
+    title, 
+    children 
+}: VariantProps<typeof messageWrapperVariants> & { title?: string, children: React.ReactNode }) {
+
+    return <div className={cn(messageWrapperVariants({ variant }))}>
+        {title && (
+            <div className="text-sm text-black mb-1 font-medium">
+                {title}
+            </div>
+        )}
+        <div>
+            {children}
+        </div>
+    </div>
+}
+
+
+
 
 export function Markdown({ text, isMuted }: { text: string, isMuted?: boolean }) {
     return <div
@@ -58,6 +103,10 @@ export function AssistantMessage({ value }: { value: string }) {
 export function StepItem({ value }: SessionItemDisplayComponentProps<any>) {
     // const title = role ? `${type} · ${role}` : type
     return <BaseItem value={value} variant="muted" />
+}
+
+export function UserMessageOutline() {
+
 }
 
 export function UserMessageInput(props: { isRunning: boolean, onCancel: () => void, onSubmit: (value: string) => void, placeholder?: string }) {

@@ -1,51 +1,89 @@
-# Studio
+---
+title: "Studio"
+description: "\"Look at your data\" in a beautiful way."
+---
 
+import { MyJSXSnippet } from "/snippets/test.jsx"
+import { Test } from "/snippets/test.jsx"
 
-## Displaying Session Items
+<div className="bg-red-500">
+dupa
+</div>
 
-By default, the AgentView Studio will just show JSON representation of the items.
+<TestSnippet />
 
-You can provide a custom view for each session item in your agent by using `displayComponent` property:
+<Test />
 
-```tsx
+<MyJSXSnippet />
+
+AgentView comes with a Studio, a powerful and collaborative data viewer for your agents. It's designed with following principles in mind:
+- **focus on non-technical users** - we want studio to provide Notion-like simplicity to encourage business stakeholders and subject-matter experts to look at the data and leave feedback.
+- **collaboration** - we want studio to be a collaborative environment, where all the users can see the data and leave feedback.
+- **customisation** - every domain is different, which requires different way of displaying data.
+
+AgentView Studio is designed to be extremely customisable. You can provide custom components to any part of the experience. It's shipped as a React package so that it's possible.
+
+## Customizing Session View 
+
+Let's dig into how to customize how your sessions look in the Studio.
+
+### Session Items
+
+First and most important customisation is providing a custom view for session items. You can do this by providing a custom component to `displayComponent` property of the session item:
+
+```tsx highlight={18,29,41}
+import { z } from "zod";
+import { defineConfig } from "agentview";
+import { UserMessage, AssistantMessage, UserMessageInput, BaseItem } from "@agentview/studio/components/session-item";
+
 export default defineConfig({
-    // ...
-    agents: [
+  apiBaseUrl: "http://localhost:1990",
+  agents: [
+    {
+      name: "simple_chat",
+      runs: [
         {
-            name: "my_agent",
-            runs: [
-                {
-                    input: {
-                        schema: {
-                            type: "message",
-                            role: "user",
-                            content: z.string(),
-                        },
-                        displayComponent: ({ data }) => <UserMessage>{data.content}</UserMessage>
-                    },
-                    steps: [
-                        {
-                            schema: {
-                                type: "reasoning",
-                                content: z.string()
-                            },
-                            displayComponent: ({ data }) => <StepBlock title="Thinking">{ data.content }</StepBlock>
-                        }
-                    ]
-                    output: {
-                        schema: {
-                            type: "message",
-                            role: "assistant",
-                            content: z.string(),
-                        },                            
-                        displayComponent: ({ data }) => <AssistantMessage>{ data.content }</AssistantMessage>
-                    }
-                }
-            ]
-        },
-        // ...
-    ]
-})
+          input: {
+            schema: z.object({
+              type: z.literal("message"),
+              role: z.literal("user"),
+              content: z.string(),
+            }),
+            displayComponent: ({ item }) => <UserMessage value={item} />,
+          },
+          steps: [
+            {
+              schema: z.looseObject({
+                type: z.literal("reasoning"),
+                summary: z.array(z.object({
+                  type: z.literal("summary_text"),
+                  text: z.string(),
+                })),
+              }),
+              displayComponent: ({ item }) => <BaseItem title="Thinking" value={item[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
+            }
+          ],
+          output: {
+            schema: z.looseObject({
+              type: z.literal("message"),
+              role: z.literal("assistant"),
+              content: z.array(z.object({
+                type: z.literal("output_text"),
+                text: z.string(),
+              })),
+            }),
+            displayComponent: ({ item }) => <AssistantMessage value={item[0]?.text} />
+          }
+        }
+      ],
+      inputComponent: ({ submit, cancel, isRunning }) => <UserMessageInput
+        onSubmit={(val) => submit("http://localhost:3000/simple_chat", { input: { content: val, type: "message", role: "user" } })}
+        onCancel={cancel}
+        isRunning={isRunning}
+      />
+    }
+  ]
+});
 ```
 
 ### Tool calls

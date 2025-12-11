@@ -1,6 +1,6 @@
 import type { RouteObject } from "react-router";
 import type { BaseScoreConfig, BaseSessionItemConfig, BaseAgentConfig, BaseAgentViewConfig, BaseRunConfig } from "./configTypes.js";
-import type { Run, Session } from "./apiTypes.js";
+import type { Run, Session, SessionItem } from "./apiTypes.js";
 import { enhanceSession } from "./sessionUtils.js";
 import { z } from "zod";
 
@@ -11,9 +11,6 @@ export type CustomRoute = {
   title: React.ReactNode,
 }
 
-export type DisplayComponentProps<T = any> = {
-  value: T,
-}
 
 export type DisplayProperty<TInputArgs = any> = {
   title: string;
@@ -48,16 +45,17 @@ export type ScoreConfig<TValue = any> = BaseScoreConfig & {
   actionBarComponent?: ControlComponent<TValue>;
 }
 
-export type SessionItemDisplayComponentProps<T=any> = DisplayComponentProps<T>;
+export type SessionItemDisplayComponentProps<TItemSchema extends z.ZodTypeAny = z.ZodAny> = {
+  item: z.infer<TItemSchema>,
+  sessionItem: SessionItem;
+  run: Run;
+  session: Session;
+}
 
 export type SessionItemConfig = BaseSessionItemConfig<ScoreConfig> & {
-  displayComponent?: React.ComponentType<DisplayComponentProps> | null;
+  displayComponent?: React.ComponentType<SessionItemDisplayComponentProps> | null;
   callResult?: SessionItemConfig;
 };
-
-// export type SessionInputItemConfig = SessionItemConfig & {
-//   inputComponent?: FormComponent<any>;
-// };
 
 export type RunConfig = BaseRunConfig<SessionItemConfig, SessionItemConfig> & {
   title?: string;
