@@ -122,6 +122,10 @@ export class AgentView {
     return await this.request<Run>('PATCH', `/api/runs/${options.id}`, options)
   }
 
+  async keepAliveRun(options: { id: string }): Promise<{ expiresAt: string | null }> {
+    return await this.request<{ expiresAt: string | null }>('POST', `/api/runs/${options.id}/keep-alive`, undefined)
+  }
+
   async createUser(options?: UserCreate): Promise<User> {
     return await this.request<User>('POST', `/api/users`, { env: this.env, ...options })
   }

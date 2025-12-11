@@ -47,7 +47,7 @@ async function processExpiredRuns() {
 // Run every 5 seconds
 setInterval(() => {
   processExpiredRuns();
-}, 5000);
+}, 1000);
 
 // Run immediately on startup
 processExpiredRuns();

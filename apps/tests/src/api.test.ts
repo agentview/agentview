@@ -1417,6 +1417,126 @@ describe('API', () => {
     })
 
   })
+
+  describe("keep-alive and expiration", () => {
+    const SHORT_TIMEOUT = 3000; // 3 seconds - worker runs every 1s
+
+    const updateConfigWithTimeout = async (idleTimeout: number) => {
+      const inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() })
+      const outputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("assistant"), content: z.string() })
+
+      const config = {
+        agents: [
+          {
+            name: "test",
+            runs: [
+              {
+                input: { schema: inputSchema },
+                output: { schema: outputSchema },
+                idleTimeout,
+              }
+            ]
+          }
+        ]
+      }
+
+      await av.__updateConfig({ config })
+    }
+
+    test("keepAliveRun returns expiresAt timestamp for in_progress run", async () => {
+      await updateConfigWithTimeout(SHORT_TIMEOUT)
+      const session = await av.createSession({ agent: "test", userId: initUser1.id })
+      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+
+      expect(run.status).toBe("in_progress")
+
+      const result = await av.keepAliveRun({ id: run.id })
+      expect(result.expiresAt).not.toBeNull()
+      expect(typeof result.expiresAt).toBe("string")
+
+      // expiresAt should be in the future
+      const expiresAtTime = new Date(result.expiresAt!).getTime()
+      expect(expiresAtTime).toBeGreaterThan(Date.now())
+    })
+
+    test("keepAliveRun returns null expiresAt for completed run", async () => {
+      await updateConfigWithTimeout(SHORT_TIMEOUT)
+      const session = await av.createSession({ agent: "test", userId: initUser1.id })
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [baseInput, baseOutput],
+        version: "1.0.0",
+        status: "completed"
+      })
+
+      expect(run.status).toBe("completed")
+
+      const result = await av.keepAliveRun({ id: run.id })
+      expect(result.expiresAt).toBeNull()
+    })
+
+    test("run expires when idle timeout passes without keep-alive", async () => {
+      await updateConfigWithTimeout(SHORT_TIMEOUT)
+      const session = await av.createSession({ agent: "test", userId: initUser1.id })
+      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+
+      expect(run.status).toBe("in_progress")
+
+      // Wait for expiration (timeout + worker interval buffer)
+      // Worker runs every 5 seconds, so wait timeout + 6s to be safe
+      await new Promise(resolve => setTimeout(resolve, SHORT_TIMEOUT*2))
+
+      const updatedSession = await av.getSession({ id: session.id })
+
+      expect(updatedSession.lastRun).toBeDefined()
+      expect(updatedSession.lastRun!.status).toBe("failed")
+      expect(updatedSession.lastRun!.failReason).toMatchObject({ message: "Timeout" })
+    }, 10000) // 10s timeout for this test
+
+    test("keep-alive prevents expiration", async () => {
+      await updateConfigWithTimeout(SHORT_TIMEOUT)
+      const session = await av.createSession({ agent: "test", userId: initUser1.id })
+      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+
+      expect(run.status).toBe("in_progress")
+
+      // Keep the run alive by calling keepAliveRun before timeout expires
+      // Call it 3 times with 3s intervals (total 9s) while timeout is 6s
+      for (let i = 0; i < 3; i++) {
+        await new Promise(resolve => setTimeout(resolve, SHORT_TIMEOUT / 2))
+        const result = await av.keepAliveRun({ id: run.id })
+        expect(result.expiresAt).not.toBeNull()
+      }
+
+      // Run should still be in_progress
+      const updatedSession = await av.getSession({ id: session.id })
+      const stillAliveRun = updatedSession.runs?.find(r => r.id === run.id)
+
+      expect(stillAliveRun).toBeDefined()
+      expect(stillAliveRun!.status).toBe("in_progress")
+    }, 10000) // 20s timeout for this test
+
+    test("update run also resets expiration timer", async () => {
+      await updateConfigWithTimeout(SHORT_TIMEOUT)
+      const session = await av.createSession({ agent: "test", userId: initUser1.id })
+      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+
+      expect(run.status).toBe("in_progress")
+
+      // Wait half the timeout time, then update the run with output (should reset timer)
+      await new Promise(resolve => setTimeout(resolve, SHORT_TIMEOUT / 2))
+      await av.updateRun({ id: run.id, items: [baseOutput], status: "in_progress" })
+
+      // Wait another full timeout time
+      await new Promise(resolve => setTimeout(resolve, SHORT_TIMEOUT))
+
+      const updatedSession = await av.getSession({ id: session.id })
+      const stillAliveRun = updatedSession.runs?.find(r => r.id === run.id)
+
+      expect(stillAliveRun).toBeDefined()
+      expect(stillAliveRun!.status).toBe("in_progress")
+    }, 15000) // 15s timeout for this test
+  })
 });
 
 

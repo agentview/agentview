@@ -42,6 +42,7 @@ function baseConfigSchema<T extends z.ZodType>(jsonSchemaSchema: T) {
                 validateSteps: z.boolean().optional(),
                 metadata: z.record(z.string(), jsonSchemaSchema).optional(),
                 allowUnknownMetadata: z.boolean().optional(),
+                idleTimeout: z.number().optional(),
             })).optional(),
         })).optional(),
     })

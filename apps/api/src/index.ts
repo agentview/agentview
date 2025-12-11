@@ -1882,7 +1882,7 @@ const runsPOSTRoute = createRoute({
   },
 })
 
-const EXPIRATION_TIME = 1000 * 60; // 60 seconds
+const DEFAULT_IDLE_TIME = 1000 * 60; // 60 seconds
 
 app.openapi(runsPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
@@ -1959,7 +1959,8 @@ app.openapi(runsPOSTRoute, async (c) => {
 
   const isFinished = status === 'completed' || status === 'cancelled' || status === 'failed';
   const finishedAt = isFinished ? new Date().toISOString() : null;
-  const expiresAt = isFinished ? null : new Date(Date.now() + EXPIRATION_TIME).toISOString();
+  const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
+  const expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
 
   // Create run and items
   await db.transaction(async (tx) => {
@@ -2079,7 +2080,8 @@ app.openapi(runPATCHRoute, async (c) => {
 
   const isFinished = status === 'completed' || status === 'failed' || status === 'cancelled';
   const finishedAt = run.finishedAt ?? (isFinished ? new Date().toISOString() : null);
-  const expiresAt = isFinished ? null : new Date(Date.now() + EXPIRATION_TIME).toISOString();
+  const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
+  const expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
 
   await db.transaction(async (tx) => {
     if (parsedItems.length > 0) {
@@ -2137,9 +2139,15 @@ app.openapi(runKeepAliveRoute, async (c) => {
 
   authorize(principal, { action: "end-user:update", user: session.user });
 
+  const config = await requireConfig();
+  const agentConfig = requireAgentConfig(config, session.agent);
+  const inputItem = run.sessionItems[0].content;
+  const runConfig = requireRunConfig(agentConfig, inputItem);
+
   const status = run.status;
   const isFinished = status === 'completed' || status === 'failed' || status === 'cancelled';
-  const expiresAt = isFinished ? null : new Date(Date.now() + EXPIRATION_TIME).toISOString();
+  const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
+  const expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
 
   await db.update(runs).set({
     status,
