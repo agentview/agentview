@@ -166,10 +166,10 @@ function Component() {
 
 function ComponentWrapper({ children, title }: { children: React.ReactNode, title?: string }) {
   return (
-    <div>
+    <div className="max-w-3xl">
       {title && <h4 className="text-sm text-muted-foreground font-medium mb-1">{title}</h4>}
 
-      <div className="mb-8 mt-2 border rounded-md p-6">
+      <div className="mb-8 mt-2 border rounded-md p-16">
         {children}
       </div>
 
