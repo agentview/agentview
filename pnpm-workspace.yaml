@@ -3,5 +3,4 @@ packages:
   - "apps/api"
   - "apps/docs"
   - "apps/tests"
-  - "apps/examples/*/agent"
-  - "apps/examples/*/studio"
+  - "apps/examples/*"
