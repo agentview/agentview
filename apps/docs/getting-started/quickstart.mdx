@@ -3,7 +3,7 @@ title: "Quick Start"
 description: "Start building with AgentView in minutes"
 ---
 
-### Create a project
+## Create a project
 
 Start by creating AgentView project:
 
@@ -17,6 +17,7 @@ This will install example project in `my-agentview-project/` dir. Go to the proj
 cd my-agentview-project
 ```
 
+{/* <div>
 The root directory of the project has a following structure:
 1. `studio/` - Studio React app
 2. `agent-python/` - demo Agent Endpoint written in Python + FastAPI
@@ -24,42 +25,40 @@ The root directory of the project has a following structure:
 4. `docker-compose.yml` - since there's no cloud yet, you'll need to set up AgentView Server via docker-compose.
 
 Depending on preference how you want to write AI code you can use either `ai-python/` or `agent-typescript/`. You'll need `studio/` in both cases.
+</div> */}
 
-### Run AgentView Server
+## Run AgentView Server
 
 <Note>AgentView is in beta, so for now you have to self-host the server. We're working on the cloud service, keep an eye on updates!</Note>
 
-To run AgentView server locally you need to install it via docker compose. Just run:
+To run AgentView server locally you need to install it via docker compose. There's a `docker-compose.yml` file in the root directory of the project. Just run:
 
 ```bash
 docker compose up -d
 ```
 
-Visit `http://localhost:1990/api/status` to see if the server is running. If you get 200 response with `{ "status": "ok", ... }` it means it's all good.
+Visit `http://localhost:1990/api/health` to see if the server is running. If you get 200 response with `{ "status": "ok", ... }` it means it's all good.
 
-AgentView server exposes AgentView API, which is used by Studio and your apps. 
+The API exposed by AgentView server is called **AgentView API**. It's used by Studio and your apps.
 
+## Run Studio
 
-### Install Studio
-
-Before we continue, let's install and run the studio:
+Before we continue, let's run the studio:
 
 ```bash
-cd studio
 npm install
 npm run dev
 ```
 
 Now go to the `localhost:1989` URL and register as the first admin user.
 
-### Generate API Key
+## Generate API Key
 
 Go to `Settings > API Keys` and grab your personal API key.
 
-### Configure your first agent
+## Configure your first agent
 
-The most important file in the AgentView ecosystem is `agentview.config.tsx`. It lives in your Studio project (`studio/agentview.config.tsx`), but it's automatically synced with the AgentView Server.
-
+At the root of the project there's a `agentview.config.tsx` file. All the configuration of AgentView is done via this file. It's used both by Studio and AgentView Server (Studio detects config file changes and synchronizes it with the Server).
 Let's take a look at it:
 
 ```typescript
@@ -125,23 +124,21 @@ Each item comes with a schema defined with Zod, used for validation and data int
 
 `inputComponent` and `displayComponent` define how the input and output will be displayed in the Studio, we'll cover them later in this section.
 
-### Your Agent Endpoint
+## Your Agent Endpoint
 
 When you build an AI agent you have to create a HTTP endpoint that takes user message and generates AI responses. We call this endpoint "Agent Endpoint".
 
 With AgentView you can write your Agent Endpoint in any language or framework you want.
 
-The example Agent Endpoint in Typescript is in `agent-typescript`. Let's run it:
+The example Agent Endpoint is in `agent.ts` file. Let's run it:
 
-```
-cd agent-typescript
-npm install
-npm run dev
+```bash
+npx tsx watch agent.ts
 ```
 
 Your Agent Endpoint server should be running at `localhost:3000`.
 
-Let's take a look at `src/index.ts`:
+It's a simple Hono HTTP server exposing a single stateful AI endpoint `POST /simple_chat` and using OpenAPI Responses API to generate AI responses. Let's take a quick look:
 
 ```typescript
 import 'dotenv/config'
@@ -245,11 +242,11 @@ serve({
 })
 ```
 
-As you can see it's a simple Hono HTTP server exposing a single stateful AI endpoint `POST /simple_chat`:
+As you can see:
 1. The AI logic is made with Responses API.
 2. AgentView SDK handles sessions, session state, users, authorization, persistence, errors, etc. 
 
-#### Test your agent
+### Test your agent
 
 Call your Agent Endpoint to initiate a new conversation:
 
@@ -287,13 +284,13 @@ curl -i -X POST --json '{ "input": { "type": "message", "role": "user", "content
 
 This triggers `422` error, as the input is not a string. AgentView handles the validation and provides a correct HTTP status code.
 
-## Studio
+### Test in Studio
 
 Open `http://localhost:1989` in the browser to open the Studio. Go to `Playground > Private`. At the top you should see the sessions we just created via curl.
 
-You can already comment on the output, mention other team members, like/dislike the response, etc.
+You can already comment on the output, mention other team members, like/dislike the response, etc. You can also create a new Playground Session by clicking on "Create Session" at the top of the sidebar.
 
-### Custom components
+## Custom components
 
 Let's get back to `agentview.config.tsx` and highlight `displayComponent` and `inputComponent` for our `simple_chat` agent:
 

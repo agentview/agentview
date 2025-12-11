@@ -26,7 +26,7 @@ async function loader({ request }: LoaderFunctionArgs) {
   }
 
   // If it's a new installation redirect to signup
-  const statusResponse = await apiFetch<{ is_active: boolean }>('/api/status');
+  const statusResponse = await apiFetch<{ is_active: boolean }>('/api/health');
 
   if (!statusResponse.ok) {
     throw data(statusResponse.error, {

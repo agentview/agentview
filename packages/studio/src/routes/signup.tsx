@@ -17,7 +17,7 @@ async function loader({ request }: LoaderFunctionArgs): Promise<ActionResponse<{
   }
 
   // Check if new installation
-  const statusResponse = await apiFetch<{ is_active: boolean }>('/api/status');
+  const statusResponse = await apiFetch<{ is_active: boolean }>('/api/health');
   if (!statusResponse.ok) {
     throw data(statusResponse.error, {
       status: statusResponse.status,

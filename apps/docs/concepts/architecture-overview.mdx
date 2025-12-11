@@ -34,7 +34,7 @@ The **Studio** is a powerful and collaborative data viewer for your agents.
 
 It's a single page application built in React Router 7 and shipped as an `npm` package. Thanks to this architecture it's trivial to customise any part of the experience simply by providing custom React components in your codebase.
 
-In our [Quickstart](../getting-started/quickstart) example Studio is a simple Vite app run in this way (see `studio/index.tsx`):
+In our [Quickstart](../getting-started/quickstart) example Studio is a simple Vite app run in this way (see `./index.tsx`):
 
 ```ts
 import "./styles.css";
@@ -73,6 +73,8 @@ export default defineConfig({
 ```
 
 Now when you run `npm run dev` in your Studio project, each time `agentview.config.tsx` is changed, it's gonna be synchronised with the Server.
+
+You can also do it manually by running `npx agentview config push` in the Studio project.
 
 ## Your Agent Endpoint
 

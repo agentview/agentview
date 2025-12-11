@@ -45,7 +45,7 @@ The Agent definition above is enough to create a session and add a bunch of item
 import { AgentView } from "agentview";
 
 const av = new AgentView({
-  baseUrl: "http://localhost:3000",
+  apiBaseUrl: "http://localhost:1990",
   apiKey: process.env.AGENTVIEW_API_KEY,
 });
 
@@ -403,7 +403,7 @@ const run = await av.updateRun({
 })
 ```
 
-Similar to sessions, by default unknown keys are allowed. You can change this behaviour by provide schema and settings `allowUnk
+Similar to sessions, by default unknown keys are allowed. You can change this behaviour by provide schema and settings `allowUnknownMetadata`:
 
 ```typescript
 export default defineConfig({

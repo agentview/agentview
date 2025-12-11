@@ -2933,9 +2933,9 @@ app.openapi(configPutRoute, async (c) => {
 
 /* --------- IS ACTIVE --------- */
 
-const statusRoute = createRoute({
+const healthRoute = createRoute({
   method: 'get',
-  path: '/api/status',
+  path: '/api/health',
   responses: {
     200: response_data(z.object({
       status: z.literal("ok"),
@@ -2944,7 +2944,7 @@ const statusRoute = createRoute({
   },
 })
 
-app.openapi(statusRoute, async (c) => {
+app.openapi(healthRoute, async (c) => {
   const hasUsers = await getTotalMemberCount() > 0;
   return c.json({ status: "ok", is_active: hasUsers }, 200);
 })
