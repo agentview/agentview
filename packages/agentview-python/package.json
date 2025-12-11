@@ -1,0 +1,14 @@
+{
+  "name": "agentview-python",
+  "version": "0.0.4-beta.14",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate-models": "tsx scripts/generate_models.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "zod": "^4.1.11"
+  }
+}
