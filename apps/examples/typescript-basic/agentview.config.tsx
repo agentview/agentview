@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { defineConfig } from "agentview";
-import { UserMessage, AssistantMessage, UserMessageInput, BaseItem } from "@agentview/studio/components/session-item";
+import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput } from "@agentview/studio/components/session-item";
+import { Brain } from "lucide-react";
 
 export default defineConfig({
   apiBaseUrl: "http://localhost:1990",
@@ -15,7 +16,7 @@ export default defineConfig({
               role: z.literal("user"),
               content: z.string(),
             }),
-            displayComponent: ({ item }) => <UserMessage value={item} />,
+            displayComponent: ({ item }) => <UserMessage>{item.content}</UserMessage>,
           },
           steps: [
             {
@@ -26,7 +27,14 @@ export default defineConfig({
                   text: z.string(),
                 })),
               }),
-              displayComponent: ({ item }) => <BaseItem title="Thinking" value={item.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
+              displayComponent: ({ item }) => {
+                return (
+                  <ItemCard size="sm" variant="fill">
+                    <ItemCardTitle><Brain /> Thinking</ItemCardTitle>
+                    <ItemCardMarkdown text={item.summary?.map((s: any) => s?.text ?? "").join("\n\n") ?? "Hidden reasoning summary."} />
+                  </ItemCard>
+                );
+              }
             }
           ],
           output: {
@@ -38,7 +46,7 @@ export default defineConfig({
                 text: z.string(),
               })),
             }),
-            displayComponent: ({ item }) => <AssistantMessage value={item[0]?.text} />
+            displayComponent: ({ item }) => <AssistantMessage>{item.content.map((c: any) => c?.text ?? "").join("\n\n")}</AssistantMessage>
           }
         }
       ],

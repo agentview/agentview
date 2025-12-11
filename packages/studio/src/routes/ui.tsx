@@ -1,5 +1,5 @@
 import { type RouteObject } from "react-router";
-import { ItemCard, ItemCardContent, ItemCardTitle, JSONComponent, Markdown } from "../components/session-item";
+import { ItemCard, ItemCardContent, ItemCardTitle, ItemCardJSON, ItemCardMarkdown } from "../components/session-item";
 import { BrainIcon, Wrench } from "lucide-react";
 
 const markdownExample = `
@@ -45,13 +45,13 @@ function Component() {
 
         <ComponentWrapper title="ItemCard / Default + markdown">
           <ItemCard>
-            <Markdown text={markdownExample} />
+            <ItemCardMarkdown text={markdownExample} />
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="ItemCard / Default + markdown + small">
           <ItemCard size="sm">
-            <Markdown text={markdownExample} />
+            <ItemCardMarkdown text={markdownExample} />
           </ItemCard>
         </ComponentWrapper>
 
@@ -61,7 +61,7 @@ function Component() {
 
         <ComponentWrapper title="ItemCard / Outline + markdown"   >
           <ItemCard variant="outline">
-            <Markdown text={markdownExample} />
+            <ItemCardMarkdown text={markdownExample} />
           </ItemCard>
         </ComponentWrapper>
 
@@ -71,7 +71,7 @@ function Component() {
 
         <ComponentWrapper title="ItemCard / Fill + markdown">
           <ItemCard variant="fill">
-            <Markdown text={markdownExample} />
+            <ItemCardMarkdown text={markdownExample} />
           </ItemCard>
         </ComponentWrapper>
 
@@ -92,71 +92,71 @@ function Component() {
         <ComponentWrapper title="With Title + markdown">
           <ItemCard variant="fill">
             <ItemCardTitle><BrainIcon /> Thought for 3 seconds</ItemCardTitle>
-            <Markdown text={miniMarkdownExample} />
+            <ItemCardMarkdown text={miniMarkdownExample} />
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="With Title + small + markdown">
           <ItemCard size="sm">
             <ItemCardTitle><BrainIcon /> Thought for 3 seconds</ItemCardTitle>
-            <Markdown text={miniMarkdownExample} />
+            <ItemCardMarkdown text={miniMarkdownExample} />
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="JSON">
           <ItemCard>
-            <JSONComponent value={jsonExample} />
+            <ItemCardJSON value={jsonExample} />
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="JSON + outline">
           <ItemCard variant="outline">
-            <JSONComponent value={jsonExample} />
+            <ItemCardJSON value={jsonExample} />
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="JSON + fill">
           <ItemCard variant="fill">
-            <JSONComponent value={jsonExample} />
+            <ItemCardJSON value={jsonExample} />
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="JSON + small">
           <ItemCard size="sm">
-            <JSONComponent value={jsonExample} />
+            <ItemCardJSON value={jsonExample} />
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="JSON + small + outline">
           <ItemCard size="sm" variant="outline">
-            <JSONComponent value={jsonExample} />
+            <ItemCardJSON value={jsonExample} />
           </ItemCard>
         </ComponentWrapper>
         
         <ComponentWrapper title="JSON + small + fill">
           <ItemCard size="sm" variant="fill">
-            <JSONComponent value={jsonExample} />
+              <ItemCardJSON value={jsonExample} />
           </ItemCard>
         </ComponentWrapper>
         
         <ComponentWrapper title="JSON + title + small">
           <ItemCard size="sm">
             <ItemCardTitle><Wrench /> Tool call</ItemCardTitle>
-            <JSONComponent value={jsonExample} />
+            <ItemCardJSON value={jsonExample} />
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="JSON + title + small + outline">
           <ItemCard size="sm" variant="outline">
             <ItemCardTitle><Wrench /> Tool call</ItemCardTitle>
-            <JSONComponent value={jsonExample} />
+            <ItemCardJSON value={jsonExample} />
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="JSON + title + fill">
           <ItemCard size="default" variant="fill">
             <ItemCardTitle><Wrench /> Tool call</ItemCardTitle>
-            <JSONComponent value={jsonExample} />
+            <ItemCardJSON value={jsonExample} />
           </ItemCard>
         </ComponentWrapper>
       </div>

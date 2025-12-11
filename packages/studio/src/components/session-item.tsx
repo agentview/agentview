@@ -75,16 +75,13 @@ export function ItemCardTitle({ className, children, ...props }: React.Component
     );
 }
 
-export function ItemCardContent({ className, children, ...props }: React.ComponentProps<"div"> & { children: React.ReactNode | any }) {
-    const context = React.useContext(ItemCardContext);
-    const size = context?.size ?? "default";
-
+export function ItemCardContent({ className, children, ...props }: React.ComponentProps<"div"> & { children: React.ReactNode }) {
     return <div className={cn("", className)} {...props}>
-        {typeof children === "string" ? <Markdown text={children} /> : children}
+        {children}
     </div>
 }
 
-export function Markdown({ text, className, ...props }: { text: string, className?: string } & React.ComponentProps<"div">) {
+export function ItemCardMarkdown({ text, className, ...props }: { text: string, className?: string } & React.ComponentProps<"div">) {
     const context = React.useContext(ItemCardContext);
     const size = context?.size ?? "default";
 
@@ -95,7 +92,7 @@ export function Markdown({ text, className, ...props }: { text: string, classNam
     ></div>
 }
 
-export function JSONComponent({ value, className, ...props }: { value: any, className?: string } & React.ComponentProps<"pre">) {
+export function ItemCardJSON({ value, className, ...props }: { value: any, className?: string } & React.ComponentProps<"pre">) {
     const context = React.useContext(ItemCardContext);
     const variant = context?.variant ?? "default";
     const size = context?.size ?? "default";
@@ -112,56 +109,88 @@ export function JSONComponent({ value, className, ...props }: { value: any, clas
 }
 
 
-export function BaseItem({ variant = "default", value, title }: { variant?: "default" | "outline" | "muted", value: string | any, title?: string }) {
-    const content = typeof value === "string" ?
-        <Markdown text={value} /> :
-        <pre className="text-xs overflow-x-scroll bg-gray-50 p-3 rounded-md">{JSON.stringify(value, null, 2)}</pre>;
+export function ItemCardAutoContent({ children }: { children: React.ReactNode }) {
+    const isText = typeof children === "string";
+    const isPlainObject = typeof children === "object" && children !== null && !Array.isArray(children) && !React.isValidElement(children);
+    const isSthElse = !isText && !isPlainObject;
 
-    return <div className={variant === "outline" ? "border px-3 py-2 rounded-lg bg-white" : ""}>
-        {title && (
-            <div className="text-sm text-black mb-1 font-medium">
-                {title}
-            </div>
-        )}
-
-        {content}
-    </div>
+    return <ItemCardContent>
+        { isPlainObject && <ItemCardJSON value={children} /> }
+        { isText && <ItemCardMarkdown text={children} /> }
+        { isSthElse && children }
+    </ItemCardContent>
 }
 
-export function TestItem({ value, title }: { value: string | any, title?: string }) {
-    const content = typeof value === "string" ?
-        <Markdown text={value} /> :
-        <pre className="text-xs overflow-x-scroll bg-gray-50 p-3 rounded-md">{JSON.stringify(value, null, 2)}</pre>;
-
-    return <div className={"px-3 py-2 rounded-lg bg-gray-50"}>
-        {title && (
-            <div className="text-sm text-black mb-1 font-medium">
-                {title}
-            </div>
-        )}
-
-        <div className="text-sm">
-            {content}
-        </div>
-    </div>
+export function UserMessage({ children, className, size, ...props }: { children: React.ReactNode, className?: string, size?: ItemCardSize } & React.ComponentProps<"div">) {
+    return <ItemCard variant="outline" className={className} size={size} {...props}>
+        <ItemCardAutoContent>{children}</ItemCardAutoContent>
+    </ItemCard>
 }
 
-export function UserMessage({ value }: { value: string }) {
-    return <BaseItem value={value} variant="outline" />
+export function AssistantMessage({ children, className, size, ...props }: { children: React.ReactNode, className?: string, size?: ItemCardSize } & React.ComponentProps<"div">) {
+    return <ItemCard variant="default" className={className} size={size} {...props}>
+        <ItemCardAutoContent>{children}</ItemCardAutoContent>
+    </ItemCard>
 }
 
-export function AssistantMessage({ value }: { value: string }) {
-    return <BaseItem value={value} variant="default" />
+export function StepItem({ children, className, size = "sm", ...props }: { children: React.ReactNode, className?: string, size?: ItemCardSize } & React.ComponentProps<"div">) {
+    return <ItemCard variant="fill" className={className} size={size} {...props}>
+        <ItemCardAutoContent>{children}</ItemCardAutoContent>
+    </ItemCard>
 }
 
-export function StepItem({ value }: SessionItemDisplayComponentProps<any>) {
-    // const title = role ? `${type} · ${role}` : type
-    return <BaseItem value={value} variant="muted" />
-}
 
-export function UserMessageOutline() {
 
-}
+// export function BaseItem({ variant = "default", value, title }: { variant?: "default" | "outline" | "muted", value: string | any, title?: string }) {
+//     const content = typeof value === "string" ?
+//         <Markdown text={value} /> :
+//         <pre className="text-xs overflow-x-scroll bg-gray-50 p-3 rounded-md">{JSON.stringify(value, null, 2)}</pre>;
+
+//     return <div className={variant === "outline" ? "border px-3 py-2 rounded-lg bg-white" : ""}>
+//         {title && (
+//             <div className="text-sm text-black mb-1 font-medium">
+//                 {title}
+//             </div>
+//         )}
+
+//         {content}
+//     </div>
+// }
+
+// export function TestItem({ value, title }: { value: string | any, title?: string }) {
+//     const content = typeof value === "string" ?
+//         <Markdown text={value} /> :
+//         <pre className="text-xs overflow-x-scroll bg-gray-50 p-3 rounded-md">{JSON.stringify(value, null, 2)}</pre>;
+
+//     return <div className={"px-3 py-2 rounded-lg bg-gray-50"}>
+//         {title && (
+//             <div className="text-sm text-black mb-1 font-medium">
+//                 {title}
+//             </div>
+//         )}
+
+//         <div className="text-sm">
+//             {content}
+//         </div>
+//     </div>
+// }
+
+// export function UserMessage({ value }: { value: string }) {
+//     return <BaseItem value={value} variant="outline" />
+// }
+
+// export function AssistantMessage({ value }: { value: string }) {
+//     return <BaseItem value={value} variant="default" />
+// }
+
+// export function StepItem({ value }: SessionItemDisplayComponentProps<any>) {
+//     // const title = role ? `${type} · ${role}` : type
+//     return <BaseItem value={value} variant="muted" />
+// }
+
+// export function UserMessageOutline() {
+
+// }
 
 export function UserMessageInput(props: { isRunning: boolean, onCancel: () => void, onSubmit: (value: string) => void, placeholder?: string }) {
     const [value, setValue] = useState<string>("");

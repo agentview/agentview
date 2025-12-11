@@ -12,7 +12,7 @@ import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitl
 import { AlertCircleIcon, BugIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, ExternalLinkIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageCirclePlusIcon, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, SquareTerminal, TagsIcon, TerminalIcon, ThumbsDown, ThumbsDownIcon, ThumbsUp, ThumbsUpIcon, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
 import { useFetcherSuccess } from "../hooks/useFetcherSuccess";
 import { useSessionContext } from "../lib/SessionContext";
-import type { SessionItemConfig, AgentConfig, ScoreConfig } from "agentview/types";
+import type { SessionItemConfig, AgentConfig, ScoreConfig, SessionItemDisplayComponentProps } from "agentview/types";
 import { AVFormField } from "../components/internal/form";
 import { ItemsWithCommentsLayout } from "../components/internal/ItemsWithCommentsLayout";
 import { CommentsThread } from "../components/internal/comments";
@@ -29,7 +29,7 @@ import { z } from "zod";
 import { Form as HookForm } from "../components/ui/form";
 import { Pill } from "../components/Pill";
 import { useRerender } from "../hooks/useRerender";
-import { AssistantMessage, StepItem, UserMessage } from "../components/session-item";
+import { ItemCard, ItemCardContent, ItemCardTitle, ItemCardJSON, ItemCardMarkdown, UserMessage, AssistantMessage, StepItem } from "../components/session-item";
 import { debugRun } from "../lib/debugRun";
 import { ErrorBoundary } from "../components/internal/ErrorBoundary";
 
@@ -49,6 +49,18 @@ async function loader({ request, params }: LoaderFunctionArgs) {
 function Component() {
     const loaderData = useLoaderData<typeof loader>();
     return <SessionPage key={loaderData.session.id} />
+}
+
+function DefaultInputComponent({ item }: SessionItemDisplayComponentProps) {
+    return <UserMessage>{item}</UserMessage>
+}
+
+function DefaultAssistantComponent({ item }: SessionItemDisplayComponentProps) {
+    return <AssistantMessage>{item}</AssistantMessage>
+}
+
+function DefaultStepComponent({ item }: SessionItemDisplayComponentProps) {
+    return <StepItem>{item}</StepItem>
 }
 
 function SessionPage() {
@@ -271,7 +283,7 @@ function SessionPage() {
                             }
 
                             if (isInputItem) {
-                                const Component = itemConfigMatch?.itemConfig?.displayComponent ?? UserMessage;
+                                const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultInputComponent;
                                 if (!Component) {
                                     return null;
                                 }
@@ -280,11 +292,11 @@ function SessionPage() {
                                 </div>
                             }
                             else if (itemConfigMatch?.type === "output") {
-                                const Component = itemConfigMatch?.itemConfig?.displayComponent ?? AssistantMessage;
+                                const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultAssistantComponent;
                                 content = <Component item={item.content} sessionItem={item} run={run} session={session} />
                             }
                             else {
-                                const Component = itemConfigMatch?.itemConfig?.displayComponent ?? StepItem;
+                                const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultStepComponent;
                                 content = <Component item={item.content} sessionItem={item} run={run} session={session} />
                             }
 
