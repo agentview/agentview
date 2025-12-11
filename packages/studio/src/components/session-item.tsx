@@ -1,3 +1,4 @@
+import React from "react";
 import type { AgentInputComponentProps, FormComponentProps, SessionItemDisplayComponentProps } from "agentview/types";
 import { marked } from "marked";
 import { cn } from "../lib/utils";
@@ -8,59 +9,112 @@ import { z } from "zod";
 import { cva, type VariantProps } from "class-variance-authority";
 
 
-// MessageWrapper (ghost, outline, fill): title, content (children)
-
-const messageWrapperVariants = cva(
+const itemCardVariants = cva(
     "",
     {
-      variants: {
-        variant: {
-          ghost:
-            "",
-          outline:
-            "px-3 py-2 rounded-lg border",
-          fill:
-            "px-3 py-2 rounded-lg bg-gray-50",
-        }
-      },
-      defaultVariants: {
-        variant: "ghost",
-      },
+        variants: {
+            variant: {
+                default:
+                    "",
+                outline:
+                    "px-3 py-2 rounded-lg border",
+                fill:
+                    "px-3 py-2 rounded-lg bg-gray-50",
+            },
+            size: {
+                default: "text-md",
+                sm: "text-sm"
+            },
+        },
+        defaultVariants: {
+            variant: "default",
+            size: "default",
+        },
     }
-  )
+)
+
+type ItemCardVariant = VariantProps<typeof itemCardVariants>["variant"];
+type ItemCardSize = VariantProps<typeof itemCardVariants>["size"];
 
 
-export function MessageWrapper({ 
-    variant = "ghost", 
-    title, 
-    children 
-}: VariantProps<typeof messageWrapperVariants> & { title?: string, children: React.ReactNode }) {
+const ItemCardContext = React.createContext<{ variant: ItemCardVariant, size: ItemCardSize } | undefined>(undefined);
 
-    return <div className={cn(messageWrapperVariants({ variant }))}>
-        {title && (
-            <div className="text-sm text-black mb-1 font-medium">
-                {title}
+export function ItemCard({
+    variant,
+    size,
+    className,
+    children,
+    ...props
+}: VariantProps<typeof itemCardVariants> & React.ComponentProps<"div">) {
+    return (
+        <ItemCardContext.Provider value={{ variant, size }}>
+            <div className={cn(itemCardVariants({ variant, size }), className)} {...props}>
+                {children}
             </div>
-        )}
-        <div>
+        </ItemCardContext.Provider>
+    );
+}
+
+export function ItemCardTitle({ className, children, ...props }: React.ComponentProps<"div">) {
+    const context = React.useContext(ItemCardContext);
+    const size = context?.size ?? "default";
+
+    return (
+        <div
+            className={cn(
+                "text-muted-foreground font-normal flex items-center",
+                size === "sm" ? "gap-1 mb-1" : "gap-1.5 mb-0.5",
+                "[&_svg]:pointer-events-none [&_svg]:shrink-0",
+                size === "sm" ? "[&_svg:not([class*='size-'])]:size-3" : "[&_svg:not([class*='size-'])]:size-4",
+                className
+            )}
+            {...props}
+        >
             {children}
         </div>
+    );
+}
+
+export function ItemCardContent({ className, children, ...props }: React.ComponentProps<"div"> & { children: React.ReactNode | any }) {
+    const context = React.useContext(ItemCardContext);
+    const size = context?.size ?? "default";
+
+    return <div className={cn("", className)} {...props}>
+        {typeof children === "string" ? <Markdown text={children} /> : children}
     </div>
 }
 
+export function Markdown({ text, className, ...props }: { text: string, className?: string } & React.ComponentProps<"div">) {
+    const context = React.useContext(ItemCardContext);
+    const size = context?.size ?? "default";
 
-
-
-export function Markdown({ text, isMuted }: { text: string, isMuted?: boolean }) {
     return <div
-        className={cn("prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-foreground", isMuted && "text-muted-foreground text-sm")}
+        className={cn("prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-foreground", size === "sm" ? "text-sm" : "text-md", className)}
+        {...props}
         dangerouslySetInnerHTML={{ __html: marked.parse(text, { async: false }) }}
     ></div>
 }
 
+export function JSONComponent({ value, className, ...props }: { value: any, className?: string } & React.ComponentProps<"pre">) {
+    const context = React.useContext(ItemCardContext);
+    const variant = context?.variant ?? "default";
+    const size = context?.size ?? "default";
+
+    return <pre className={cn(
+        "overflow-x-scroll bg-gray-50 m-0",
+        variant === "fill" ? "" : "p-3 rounded-md",
+        size === "sm" ? "text-xs" : "text-sm",
+        className)}
+        {...props}
+    >
+        {JSON.stringify(value, null, 2)}
+    </pre>
+}
+
+
 export function BaseItem({ variant = "default", value, title }: { variant?: "default" | "outline" | "muted", value: string | any, title?: string }) {
     const content = typeof value === "string" ?
-        <Markdown text={value} isMuted={variant === "muted"} /> :
+        <Markdown text={value} /> :
         <pre className="text-xs overflow-x-scroll bg-gray-50 p-3 rounded-md">{JSON.stringify(value, null, 2)}</pre>;
 
     return <div className={variant === "outline" ? "border px-3 py-2 rounded-lg bg-white" : ""}>
@@ -76,7 +130,7 @@ export function BaseItem({ variant = "default", value, title }: { variant?: "def
 
 export function TestItem({ value, title }: { value: string | any, title?: string }) {
     const content = typeof value === "string" ?
-        <Markdown text={value} isMuted={true} /> :
+        <Markdown text={value} /> :
         <pre className="text-xs overflow-x-scroll bg-gray-50 p-3 rounded-md">{JSON.stringify(value, null, 2)}</pre>;
 
     return <div className={"px-3 py-2 rounded-lg bg-gray-50"}>

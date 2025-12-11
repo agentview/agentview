@@ -75,9 +75,13 @@ importers:
         specifier: ^4.0.7
         version: 4.0.12(@opentelemetry/api@1.9.0)(@types/debug@4.1.12)(@types/node@20.19.17)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.5)(yaml@2.8.1)
 
-  apps/docs: {}
+  apps/docs:
+    dependencies:
+      '@agentview/studio':
+        specifier: workspace:*
+        version: link:../../packages/studio
 
-  apps/examples/ts2:
+  apps/examples/typescript-basic:
     dependencies:
       '@agentview/studio':
         specifier: workspace:*
@@ -91,9 +95,67 @@ importers:
       agentview:
         specifier: workspace:*
         version: link:../../../packages/agentview
-      concurrently:
-        specifier: ^9.2.1
-        version: 9.2.1
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.6.1
+      hono:
+        specifier: ^4.10.4
+        version: 4.10.4
+      lucide-react:
+        specifier: ^0.548.0
+        version: 0.548.0(react@19.2.0)
+      openai:
+        specifier: ^6.7.0
+        version: 6.7.0(ws@8.18.3)(zod@4.1.12)
+      react:
+        specifier: ^19.1
+        version: 19.2.0
+      react-dom:
+        specifier: ^19.1
+        version: 19.2.0(react@19.2.0)
+      react-hook-form:
+        specifier: ^7.63.0
+        version: 7.63.0(react@19.2.0)
+      zod:
+        specifier: ^4.1.11
+        version: 4.1.12
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: ^4.1.4
+        version: 4.1.13(vite@6.3.6(@types/node@20.19.17)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.5)(yaml@2.8.1))
+      '@types/node':
+        specifier: ^20
+        version: 20.19.17
+      '@types/react':
+        specifier: ^19.1
+        version: 19.1.13
+      '@vitejs/plugin-react':
+        specifier: ^5.1.2
+        version: 5.1.2(vite@6.3.6(@types/node@20.19.17)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.5)(yaml@2.8.1))
+      tailwindcss:
+        specifier: ^4.1.4
+        version: 4.1.13
+      typescript:
+        specifier: ^5.8
+        version: 5.9.2
+      vite:
+        specifier: ^6.3.3
+        version: 6.3.6(@types/node@20.19.17)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.5)(yaml@2.8.1)
+
+  apps/examples/typescript-complex:
+    dependencies:
+      '@agentview/studio':
+        specifier: workspace:*
+        version: link:../../../packages/studio
+      '@hono/node-server':
+        specifier: ^1.19.5
+        version: 1.19.5(hono@4.10.4)
+      '@hookform/resolvers':
+        specifier: ^5.2.2
+        version: 5.2.2(react-hook-form@7.63.0(react@19.2.0))
+      agentview:
+        specifier: workspace:*
+        version: link:../../../packages/agentview
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1

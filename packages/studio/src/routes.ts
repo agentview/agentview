@@ -28,6 +28,7 @@ import { settingsApiKeysRoute } from "./routes/settingsApiKeys";
 import type { AgentViewConfig } from "agentview/types";
 import { sessionItemScoresRoute } from "./routes/sessionItemScores";
 import { settingsPasswordRoute } from "./routes/settingsPassword";
+import { uiRoute } from "./routes/ui";
 
 export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObject[] {
   const defaultRoutes = (customRoutes?.filter(route => route.scope === "default") || []).map(route => route.route);
@@ -156,6 +157,10 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
         {
           path: "signup",
           ...signupRoute
+        },
+        {
+          path: "ui",
+          ...uiRoute
         },
         ...defaultRoutes
       ],
