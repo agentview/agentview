@@ -76,12 +76,12 @@ export function findItemConfigById<RunT extends BaseRunConfig>(runConfig: RunT, 
         return undefined;
     }
 
-    return findItemConfig(runConfig, previousItems, newItem, itemType);
+    return findItemConfig(runConfig, previousItems, newItem, [], itemType);
 }
 
 type SessionItemExtension = { __type: "input" | "output" | "step", content?: any, toolCallContent?: any }
 
-export function findItemConfig<RunT extends BaseRunConfig>(runConfig: RunT, items: any[], newItem: Record<string, any>, itemType?: "input" | "output" | "step"): { itemConfig: RunT["output"], content: any, toolCallContent?: any, type: "input" | "output" | "step" } | undefined {
+export function findItemConfig<RunT extends BaseRunConfig>(runConfig: RunT, itemsBefore: any[], item: Record<string, any>, itemsAfter: any[], itemType?: "input" | "output" | "step"): { itemConfig: RunT["output"], content: any, toolCallContent?: any, type: "input" | "output" | "step" } | undefined {
     type ItemConfigT = RunT["output"] & SessionItemExtension; // output type is the same as step type, we also ignore input type difference for now 
 
     const availableItemConfigs: ItemConfigT[] = [];
@@ -96,14 +96,14 @@ export function findItemConfig<RunT extends BaseRunConfig>(runConfig: RunT, item
         availableItemConfigs.push(...(runConfig.steps?.map((step) => ({ ...step, __type: "step" as const })) ?? []));
     }
 
-    const matches = matchItemConfigs(availableItemConfigs, newItem, items);
+    const matches = matchItemConfigs(availableItemConfigs, itemsBefore, item, itemsAfter);
 
     if (matches.length === 0) {
         return undefined;
     }
     else if (matches.length > 1) {
         console.warn(`More than 1 run was matched for the item content.`);
-        console.warn('Item content', newItem);
+        console.warn('Item content', item);
         console.warn('Matches', matches)
         return undefined;
     }
@@ -129,49 +129,116 @@ function getCallIdKey(inputSchema: z.ZodType): any | undefined {
 }
 
 
-function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension>(itemConfigs: T[], content: Record<string, any>, prevItems: Record<string, any>[]): T[] {
+function matchItemConfigs<T extends BaseSessionItemConfig & SessionItemExtension>(itemConfigs: T[], itemsBefore: any[], item: any, itemsAfter: any[]): T[] {
     const matches: T[] = [];
 
     for (const itemConfig of itemConfigs) {
-        const itemParseResult = itemConfig.schema.safeParse(content);
-        if (itemParseResult.success) {
-            matches.push({ ...itemConfig, content: itemParseResult.data });
+
+        // Non-tool config
+        if (!itemConfig.callResult) {
+            const itemParseResult = itemConfig.schema.safeParse(item);
+            if (itemParseResult.success) {
+                matches.push({ ...itemConfig, content: itemParseResult.data });
+            }
         }
+        // Tool config (call or result)
+        else {
+            const toolCallParseResult = itemConfig.schema.safeParse(item);
+            const toolResultParseResult = itemConfig.callResult.schema.safeParse(item);
 
-        if (itemConfig.callResult) {
-            const toolResultParseResult = itemConfig.callResult.schema.safeParse(content);
+            const toolCallIdKey = getCallIdKey(itemConfig.schema);
+            const toolResultIdKey = getCallIdKey(itemConfig.callResult.schema);
 
-            if (!toolResultParseResult.success) {
-                continue;
-            }
+            // matches tool call config
+            if (toolCallParseResult.success) { 
+                let hasResult = false;
 
-            const callIdKey = getCallIdKey(itemConfig.schema);
-            const resultIdKey = getCallIdKey(itemConfig.callResult.schema);
+                // let's find whether this tool call has a tool result
+                for (let i = 0; i < itemsAfter.length; i++) {
+                    const itemAfter = itemsAfter[i];
+                    const potentialToolResultParseResult = itemConfig.callResult.schema.safeParse(itemAfter);
 
-            if (!callIdKey || !resultIdKey) {
-                console.warn('Both callIdKey and resultIdKey must be defined for result');
-                break;
-            }
-
-            for (let i = prevItems.length - 1; i >= 0; i--) {
-                const prevItem = prevItems[i];
-
-                // if (callResultSchema.safeParse(prevItem).success) { // If we encounter *any* matching result in previous items that already looks like matching response, then we stop looking. 
-                //     break;
-                // }
-
-                const toolCallParseResult = itemConfig.schema.safeParse(prevItem);
-
-                if (toolCallParseResult.success && prevItem[callIdKey] === content[resultIdKey]) { // if both keys are `undefined`, first match.
-                    matches.push({
-                        ...itemConfig.callResult,
-                        content: toolResultParseResult.data,
-                        toolCallContent: prevItem,
-                    } as T);
-                    break;
+                    if (potentialToolResultParseResult.success && item[toolCallIdKey] === itemAfter[toolResultIdKey]) {
+                        hasResult = true;
+                        break;
+                    }
                 }
+
+                matches.push({
+                    itemConfig,
+                    content: toolCallParseResult.data,
+                    tool: {
+                        type: "call",
+                        hasResult 
+                    }
+                } as T)
+            }
+
+            // matches tool result config
+            if (toolResultParseResult.success) {
+                
+                for (let i = itemsBefore.length - 1; i >= 0; i--) {
+                    const prevItem = itemsBefore[i];
+                    const potentialToolCallParseResult = itemConfig.schema.safeParse(prevItem);
+
+                    if (potentialToolCallParseResult.success && prevItem[toolCallIdKey] === item[toolResultIdKey]) {
+                        matches.push({
+                            itemConfig: itemConfig.callResult,
+                            content: toolResultParseResult.data,
+                            tool: {
+                                type: "result",
+                                call: {
+                                    itemConfig,
+                                    content: potentialToolCallParseResult.data,
+                                }
+                            }
+                        } as T);
+
+                        break;
+                    }
+                }
+
             }
         }
+
+        // if (itemParseResult.success) {
+        //     matches.push({ ...itemConfig, content: itemParseResult.data });
+        // }
+
+        // if (itemConfig.callResult) {
+        //     const toolResultParseResult = itemConfig.callResult.schema.safeParse(item);
+
+        //     if (!toolResultParseResult.success) {
+        //         continue;
+        //     }
+
+        //     const callIdKey = getCallIdKey(itemConfig.schema);
+        //     const resultIdKey = getCallIdKey(itemConfig.callResult.schema);
+
+        //     if (!callIdKey || !resultIdKey) {
+        //         console.warn('Both callIdKey and resultIdKey must be defined for result');
+        //         break;
+        //     }
+
+        //     for (let i = itemsBefore.length - 1; i >= 0; i--) {
+        //         const prevItem = itemsBefore[i];
+
+        //         // if (callResultSchema.safeParse(prevItem).success) { // If we encounter *any* matching result in previous items that already looks like matching response, then we stop looking. 
+        //         //     break;
+        //         // }
+
+        //         const toolCallParseResult = itemConfig.schema.safeParse(prevItem);
+
+        //         if (toolCallParseResult.success && prevItem[callIdKey] === item[resultIdKey]) { // if both keys are `undefined`, first match.
+        //             matches.push({
+        //                 ...itemConfig.callResult,
+        //                 content: toolResultParseResult.data,
+        //                 toolCallContent: prevItem,
+        //             } as T);
+        //             break;
+        //         }
+        //     }
+        // }
     }
 
     return matches;
