@@ -73,7 +73,14 @@ export default defineConfig({
 });
 ```
 
-### Tool calls
+#### Matching items
+
+AgentView finds the right `displayComponent` for a session item by matching the provided schemas. **If the item matches more than 1 schema it shows this as an error**.
+
+This implies that your items should be uniquely discriminatable. You should be able to discriminate between them by schemas. It's usually done by `type`, but for AI apps it's a bit more tricky, for example function calls are discriminated by `name`, type for all tools are the same.
+
+
+#### Tool calls
 
 Tool calls come in pairs: call and result. In case of paralell tool calls blocks might not be consecutive. We find the best UX to always show them together:
 - when call is in progress, display the info
@@ -144,12 +151,6 @@ You can disable this behaviour by setting `displaySeparately: true`.
     displaySeparately: true
 },
 ```
-
-### Matching items
-
-AgentView finds the right `displayComponent` for a session item by matching the provided schemas. **If the item matches more than 1 schema it shows this as an error**.
-
-This implies that your items should be uniquely discriminatable. You should be able to discriminate between them by schemas. It's usually done by `type`, but for AI apps it's a bit more tricky, for example function calls are discriminated by `name`, type for all tools are the same.
 
 ## Input Forms - creating test environment
 
