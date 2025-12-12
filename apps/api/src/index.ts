@@ -1780,13 +1780,39 @@ function compareVersions(v1: ParsedVersion, v2: ParsedVersion): number {
 }
 
 
+/**
+ * We process each item one by one. We don't think of consecutive ones in the loop.
+ * 
+ * - !validateSteps -> we allow any item. Only need to check the last one for "output" if "complete" and it works.
+ * - validateSteps=true -> each item must be either STEP or OUTPUT. If last item is OUTPUT, then any next item is ERROR.
+ * 
+ * - new item shows up
+ * - if !validateSteps -> always insert
+ * - if validateSteps -> check if it's step or output. If not, then error.
+ * -    if step -> insert
+ * -    if output -> 
+ * 
+ * 
+ * If validation is on -> if the last item *output* but not *step* -> error.
+ * 
+ * 
+ * if !validateSteps -> anything is allowed. Only if "completed" -> validate last item "as an extra"
+ * if validateSteps -> 
+ * - if "completed" ->  
+ * 
+ * 
+ * INPUT KNOWLEDGE:
+ * - previous run was in_progress
+ * - we don't know whether it had validation or not (we can't make such assumption). If it didn't it might have complete garbage, multiple output items etc.
+ * - we know whether we want validation *NOW*
+ * 
+ */
+
+
 function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[], items: any[], status: 'in_progress' | 'completed' | 'cancelled' | 'failed') {
   const validateSteps = runConfig.validateSteps ?? false;
 
   const parsedItems: any[] = [];
-
-  /** Validate last item **/
-  // let stepItems: any[] = [];
 
   const validateStepItems = (stepItems: any[]) => {
     for (const stepItem of stepItems) {
@@ -1805,20 +1831,32 @@ function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[]
 
   if (status === "completed") { // last item must exist and must be output
     if (items.length === 0) {
-      throw new AgentViewError("Run set as 'completed' must have at least 2 items, input and output.", 422);
-    }
+      if (previousRunItems.length <= 1) {
+        throw new AgentViewError("Run set as 'completed' must have at least 2 items, input and output.", 422);
+      }
 
-    const outputItem = items[items.length - 1];
+      // when completing run without items, we only validate the last item against output schema
+      const lastItemOutputConfig = findItemConfig(runConfig, previousRunItems.slice(0, -1), previousRunItems[previousRunItems.length - 1], "output");
 
-    validateStepItems(items.slice(0, -1));
-
-    const outputItemConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], outputItem, "output");
-    if (!outputItemConfig) {
-      throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
+      if (!lastItemOutputConfig) {
+        throw new AgentViewError("Last item must be an output.", 422, { item: previousRunItems[previousRunItems.length - 1] });
+      }
     }
     else {
-      parsedItems.push(outputItemConfig.content);
+
+      const outputItem = items[items.length - 1];
+
+      validateStepItems(items.slice(0, -1));
+  
+      const outputItemConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], outputItem, "output");
+      if (!outputItemConfig) {
+        throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
+      }
+      else {
+        parsedItems.push(outputItemConfig.content);
+      }
     }
+
   }
   else if (status === "failed" || status === "cancelled") { // last item, if exists, should be either step or output
     if (items.length === 0) {
@@ -1850,21 +1888,7 @@ function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[]
   else if (status === "in_progress") {
     validateStepItems(items);
   }
-
-  /* Validate step items */
-  // for (const stepItem of stepItems) {
-  //   const stepItemConfig = findItemConfig(runConfig, [], stepItem, "step");
-  //   if (stepItemConfig) {
-  //     stepItemsParsed.push(stepItemConfig.content);
-  //   }
-  //   else if (!validateSteps) {
-  //     stepItemsParsed.push(stepItem);
-  //   }
-  //   else {
-  //     throw new AgentViewError("Couldn't find a matching step item.", 422, { item: stepItem });
-  //   }
-  // }
-
+  
   return parsedItems;
 }
 

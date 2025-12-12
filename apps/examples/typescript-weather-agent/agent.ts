@@ -2,11 +2,12 @@ import 'dotenv/config'
 import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
 import { AgentView, AgentViewError } from "agentview";
-import { OpenAI } from 'openai';
 import { cors } from 'hono/cors';
+import { Runner, RunItemStreamEvent } from "@openai/agents"
+import { weatherAgent } from './src/weatherAgent';
+import { streamSSE } from 'hono/streaming'
 
 const app = new Hono();
-const client = new OpenAI()
 
 const av = new AgentView({
   apiBaseUrl: 'http://localhost:1990',
@@ -22,64 +23,71 @@ app.post('/weather-chat', async (c) => {
   const { id, token, input } = await c.req.json();
 
   // Create a new user or authenticate if token exists.
-  const user = token ? 
-    await av.getUser({ token }) : 
+  const user = token ?
+    await av.getUser({ token }) :
     await av.createUser();
 
   // Create new session or fetch existing one and authorize user's access to the session.
   const session = id ?
-    await av.as(user).getSession({ id }) : 
+    await av.as(user).getSession({ id }) :
     await av.as(user).createSession({ agent: "weather-chat" });
 
   // Create a new run
   // 1. session is now locked - no more runs can be started until this one finishes.
   // 2. will error if session version is semver-incompatible.
-  const run = await av.createRun({ 
-    sessionId: session.id, 
-    items: [input], 
+  const run = await av.createRun({
+    sessionId: session.id,
+    items: [input],
     version: "0.0.1"
   });
 
-  let response : Awaited<ReturnType<typeof client.responses.create>>;
+  const runner = new Runner();
+  const response = await runner.run(
+    weatherAgent,
+    [...session.items, input],
+    {
+      stream: true,
+    }
+  );
 
-  try {
-    // Here you write your stateless AI agent logic.
-    response = await client.responses.create({
-      model: "gpt-5-nano",
-      reasoning: {
-        effort: "low",
-        summary: "detailed"
-      },
-      // session.items has all the previous items from the session
-      input: [...session.items, input]
-    });
+  return streamSSE(
+    c,
+    async (stream) => {
+      for await (const event of response) {
+        if (event.type === 'run_item_stream_event') { // new item available
+          const item = event.item.rawItem;
 
-  } catch (error) {
+          // emit item to the client
+          await stream.writeSSE({
+            data: JSON.stringify(item),
+            event: 'item.created',
+          });
 
-    // Mark run as failed and save error message
-    await av.updateRun({
-      id: run.id,
-      status: "failed",
-      failReason: {
-        message: (error as Error).message,
+          // save item to AgentView
+          await av.updateRun({
+            id: run.id,
+            items: [item],
+          });
+        }
       }
-    });
 
-    throw error;
-  }
-
-  // Mark run as completed and save output items
-  await av.updateRun({
-    id: run.id,
-    status: "completed",
-    items: response.output
-  });
-
-  return c.json({
-    id: session.id,
-    output: response.output,
-    token: user.token,
-  })
+      await av.updateRun({ // complete the run
+        id: run.id,
+        status: "completed"
+      });
+    },
+    async (error, stream) => { // send error event on error
+      console.error('error: ', error);
+      await stream.writeSSE({
+        data: JSON.stringify({
+          type: 'error',
+          message: 'Error occured',
+        }),
+        event: 'error',
+      });
+      stream.close();
+    }
+  );
 })
 
 // Errors from AgentView SDK are ready to be returned via HTTP with correct status code and body.

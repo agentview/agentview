@@ -147,7 +147,7 @@ function SessionPage() {
                             if (prevSession.runs.find(run => run.id === event.data.id)) {
                                 return prevSession;
                             }
-                            
+
                             return {
                                 ...prevSession,
                                 runs: [...prevSession.runs, event.data]
@@ -331,7 +331,7 @@ function SessionPage() {
                                         </div>
 
                                         {isLastRunItem && run.status === "failed" && <div className="text-md mt-6 text-red-500">
-                                            <span className="">{run.failReason?.message ?? "Unknown reason"} </span>
+                                            <span className="">{run.failReason?.message ?? "Failed for unknown reason"} </span>
                                             {/* <br /> <a href="#" className="underline flex flex-row items-center gap-1">Debug <ExternalLinkIcon className="size-4" /></a></span> */}
                                         </div>}
 

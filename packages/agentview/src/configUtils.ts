@@ -53,8 +53,6 @@ export function requireRunConfig<T extends BaseAgentConfig>(agentConfig: T, inpu
 // - session (items history) + new item (not yet in session) -> we assume it goes last, all items are previous items
 // - session (items history) + item id -> concrete item, we find it and try to find the config
 
-type SessionItemExtension = { __type: "input" | "output" | "step", content?: any, toolCallContent?: any }
-
 // export function findItemConfigByIndex<RunT extends BaseRunConfig>(runConfig: RunT, items: any[], index: number) : { itemConfig: RunT["output"], content: any, toolCallContent?: any } | undefined {
 //     const item = items[index];
 //     return findItemConfig(runConfig, items, item, item.__type);
@@ -80,6 +78,8 @@ export function findItemConfigById<RunT extends BaseRunConfig>(runConfig: RunT, 
 
     return findItemConfig(runConfig, previousItems, newItem, itemType);
 }
+
+type SessionItemExtension = { __type: "input" | "output" | "step", content?: any, toolCallContent?: any }
 
 export function findItemConfig<RunT extends BaseRunConfig>(runConfig: RunT, items: any[], newItem: Record<string, any>, itemType?: "input" | "output" | "step"): { itemConfig: RunT["output"], content: any, toolCallContent?: any, type: "input" | "output" | "step" } | undefined {
     type ItemConfigT = RunT["output"] & SessionItemExtension; // output type is the same as step type, we also ignore input type difference for now 

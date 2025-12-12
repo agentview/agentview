@@ -18,25 +18,44 @@ export default defineConfig({
             }),
             displayComponent: ({ item }) => <UserMessage>{item.content}</UserMessage>,
           },
-          // steps: [
-          //   {
-          //     schema: z.looseObject({
-          //       type: z.literal("reasoning"),
-          //       summary: z.array(z.object({
-          //         type: z.literal("summary_text"),
-          //         text: z.string(),
-          //       })),
-          //     }),
-          //     displayComponent: ({ item }) => {
-          //       return (
-          //         <ItemCard size="sm" variant="fill">
-          //           <ItemCardTitle><Brain /> Thinking</ItemCardTitle>
-          //           <ItemCardMarkdown text={item.summary?.map((s: any) => s?.text ?? "").join("\n\n") ?? "Hidden reasoning summary."} />
-          //         </ItemCard>
-          //       );
-          //     }
-          //   }
-          // ],
+          steps: [
+            {
+              schema: z.looseObject({
+                type: z.literal("reasoning"),
+                content: z.array(z.object({
+                  type: z.literal("input_text"),
+                  text: z.string(),
+                })),
+              }),
+              displayComponent: ({ item }) => {
+                return (
+                  <ItemCard size="sm" variant="fill">
+                    <ItemCardTitle><Brain /> Thinking</ItemCardTitle>
+                    <ItemCardMarkdown text={item.content?.map((s: any) => s?.text ?? "").join("\n\n") ?? "Hidden reasoning summary."} />
+                  </ItemCard>
+                );
+              }
+            },
+            {
+              schema: z.looseObject({
+                type: z.literal("function_call"),
+                name: z.literal("weather_tool"),
+                callId: z.string().meta({ callId: true }),
+              }),
+              displayComponent: ({ item }) => {
+                return <div>Tool call</div>
+              },
+              callResult: {
+                schema: z.looseObject({
+                  type: z.literal("function_call_result"),
+                  callId: z.string().meta({ callId: true }),
+                }),
+                displayComponent: ({ item }) => {
+                  return <div>Tool call result</div>
+                }
+              }
+            }
+          ],
           output: {
             schema: z.looseObject({
               type: z.literal("message"),
