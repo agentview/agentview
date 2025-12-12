@@ -2,6 +2,7 @@ import { z } from "zod";
 import { defineConfig } from "agentview";
 import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput } from "@agentview/studio/components/session-item";
 import { Brain } from "lucide-react";
+import { WeatherItem } from './src/WeatherItem';
 
 export default defineConfig({
   apiBaseUrl: "http://localhost:1990",
@@ -47,7 +48,8 @@ export default defineConfig({
                   type: z.literal("function_call_result"),
                   callId: z.string().meta({ callId: true }),
                 })
-              }
+              },
+              displayComponent: WeatherItem
             }
           ],
           output: {

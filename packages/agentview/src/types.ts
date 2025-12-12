@@ -47,6 +47,7 @@ export type ScoreConfig<TValue = any> = BaseScoreConfig & {
 
 export type SessionItemDisplayComponentProps<TItemSchema extends z.ZodTypeAny = z.ZodAny> = {
   item: z.infer<TItemSchema>,
+  resultItem?: any, // fixme
   sessionItem: SessionItem;
   run: Run;
   session: Session;

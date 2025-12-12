@@ -315,6 +315,7 @@ function SessionPage() {
                                 if (itemConfigMatch?.tool) {
                                     let callContent: any = undefined;
                                     let resultContent: any = undefined;
+                                    let Component: React.ComponentType<SessionItemDisplayComponentProps>;
 
                                     if (itemConfigMatch?.tool.type === "call") {
                                         if (itemConfigMatch?.tool?.hasResult) {
@@ -322,17 +323,19 @@ function SessionPage() {
                                         }
                                         else {
                                             callContent = itemConfigMatch.content;
+                                            Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultToolComponent;
                                         }
                                     }
                                     else if (itemConfigMatch?.tool.type === "result") {
                                         resultContent = itemConfigMatch.content;
                                         callContent = itemConfigMatch.tool.call.content;
+                                        Component = itemConfigMatch?.tool.call.itemConfig?.displayComponent ?? DefaultToolComponent;
                                     }
                                     else {
                                         throw new Error(`Unreachable`);
                                     }
 
-                                    const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultToolComponent;
+                                    // const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultToolComponent;
                                     content = <Component item={callContent} resultItem={resultContent} sessionItem={item} run={run} session={session} />
                                 }
                                 else {
