@@ -1,5 +1,5 @@
 {
-  "name": "@agentview/demo",
+  "name": "@agentview/examples/typescript-weather-agent",
   "version": "0.0.4-beta.8",
   "type": "module",
   "scripts": {
@@ -7,7 +7,8 @@
     "dev": "vite",
     "start": "vite preview",
     "agent:dev": "tsx watch agent.ts",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "dev-all": "concurrently \"npm run agent:dev\" \"npm run dev\""
   },
   "dependencies": {
     "@agentview/studio": "workspace:*",
@@ -24,6 +25,7 @@
     "zod": "^4.1.11"
   },
   "devDependencies": {
+    "@openai/agents": "^0.3.4",
     "@tailwindcss/vite": "^4.1.4",
     "@types/node": "^20",
     "@types/react": "^19.1",

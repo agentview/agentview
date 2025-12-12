@@ -18,7 +18,7 @@ app.use('*', cors({
   credentials: true,
 }))
 
-app.post('/simple_chat', async (c) => {
+app.post('/weather-chat', async (c) => {
   const { id, token, input } = await c.req.json();
 
   // Create a new user or authenticate if token exists.
@@ -29,7 +29,7 @@ app.post('/simple_chat', async (c) => {
   // Create new session or fetch existing one and authorize user's access to the session.
   const session = id ?
     await av.as(user).getSession({ id }) : 
-    await av.as(user).createSession({ agent: "simple_chat" });
+    await av.as(user).createSession({ agent: "weather-chat" });
 
   // Create a new run
   // 1. session is now locked - no more runs can be started until this one finishes.

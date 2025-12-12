@@ -32,6 +32,7 @@ import { useRerender } from "../hooks/useRerender";
 import { ItemCard, ItemCardContent, ItemCardTitle, ItemCardJSON, ItemCardMarkdown, UserMessage, AssistantMessage, StepItem } from "../components/session-item";
 import { debugRun } from "../lib/debugRun";
 import { ErrorBoundary } from "../components/internal/ErrorBoundary";
+import { toast } from "sonner";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<SessionWithCollaboration>(`/api/sessions/${params.id}`);
@@ -146,7 +147,7 @@ function SessionPage() {
                             if (prevSession.runs.find(run => run.id === event.data.id)) {
                                 return prevSession;
                             }
-
+                            
                             return {
                                 ...prevSession,
                                 runs: [...prevSession.runs, event.data]
@@ -161,7 +162,12 @@ function SessionPage() {
                         else if (event.event === 'run.updated') {
                             return {
                                 ...prevSession,
-                                runs: prevSession.runs.map(run => run.id === event.data.id ? { ...run, ...event.data, items: [...run.sessionItems, ...event.data.items ?? []] } : run)
+                                runs: prevSession.runs.map(run => {
+                                    if (run.id === event.data.id) {
+                                        return { ...run, ...event.data, sessionItems: [...run.sessionItems, ...event.data.sessionItems ?? []] }
+                                    }
+                                    return run;
+                                })
                             }
                         }
                         else {
@@ -313,7 +319,12 @@ function SessionPage() {
 
                                     <div className={`relative`} style={{ marginLeft: `${styles.padding}px`, width: `${styles.textWidth}px` }}>
 
-                                        <div data-item onClick={() => { setselectedItemId(item.id) }}>
+                                        {/* <div data-item onClick={() => { setselectedItemId(item.id) }}>
+                                            <ErrorBoundary>
+                                                {content}
+                                            </ErrorBoundary>
+                                        </div> */}
+                                        <div data-item>
                                             <ErrorBoundary>
                                                 {content}
                                             </ErrorBoundary>
@@ -501,12 +512,23 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
         }
 
         return fetch(url, fetchOptions)
+            .then(async (response) => {
+                if (!response.ok) {
+                    console.error(`The fetch to '${url}' (done via 'submit' function) returned error response (${response.status} ${response.statusText}). Check Network tab in browser for error details.`);
+                    toast.error(`Error: "${response.status} ${response.statusText}". Check console.`);
+                }
+                return response;
+            })
             .catch((error: any) => {
                 if (error?.name === 'AbortError') {
                     console.log('stream aborted');
                     return;
                 }
-                throw error;
+
+                console.error(`The fetch to '${url}' (done via 'submit' function) threw an error. Check Network tab in browser for error details.`);
+                console.error(error);
+                toast.error(`Error: "${error.message}". Check console.`);
+                return;
             })
             .finally(() => {
                 setAbortController(undefined);

@@ -6,10 +6,9 @@ export function CustomPage() {
       <HeaderTitle title={`Custom Page`} />
     </Header>
     <div className="p-6">
-      <div className="pt-10 prose">
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <div className="pt-10">
+        <p>This is a custom page.</p>
       </div>
     </div>
   </div>
 }
-
