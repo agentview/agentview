@@ -64,6 +64,16 @@ function DefaultStepComponent({ item }: SessionItemDisplayComponentProps) {
     return <StepItem>{item}</StepItem>
 }
 
+function DefaultToolComponent({ item, resultItem }: SessionItemDisplayComponentProps) {
+    const result = {
+        call: item,
+        result: resultItem
+    }
+
+    // @ts-ignore
+    return <StepItem>{result}</StepItem>
+}
+
 function SessionPage() {
     const loaderData = useLoaderData<typeof loader>();
     const revalidator = useRevalidator();
@@ -302,8 +312,34 @@ function SessionPage() {
                                 content = <Component item={item.content} sessionItem={item} run={run} session={session} />
                             }
                             else {
-                                const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultStepComponent;
-                                content = <Component item={item.content} sessionItem={item} run={run} session={session} />
+                                if (itemConfigMatch?.tool) {
+                                    let callContent: any = undefined;
+                                    let resultContent: any = undefined;
+
+                                    if (itemConfigMatch?.tool.type === "call") {
+                                        if (itemConfigMatch?.tool?.hasResult) {
+                                            return null;
+                                        }
+                                        else {
+                                            callContent = itemConfigMatch.content;
+                                        }
+                                    }
+                                    else if (itemConfigMatch?.tool.type === "result") {
+                                        resultContent = itemConfigMatch.content;
+                                        callContent = itemConfigMatch.tool.call.content;
+                                    }
+                                    else {
+                                        throw new Error(`Unreachable`);
+                                    }
+
+                                    const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultToolComponent;
+                                    content = <Component item={callContent} resultItem={resultContent} sessionItem={item} run={run} session={session} />
+                                }
+                                else {
+                                    const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultStepComponent;
+                                    content = <Component item={item.content} sessionItem={item} run={run} session={session} />    
+                                }
+
                             }
 
                             return {
@@ -548,7 +584,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
             // must go *after* request above to prevent race
             abortController?.abort();
         }
-        
+
         setAbortController(undefined);
     }
 

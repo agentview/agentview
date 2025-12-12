@@ -42,17 +42,11 @@ export default defineConfig({
                 name: z.literal("weather_tool"),
                 callId: z.string().meta({ callId: true }),
               }),
-              displayComponent: ({ item }) => {
-                return <div>Tool call</div>
-              },
               callResult: {
                 schema: z.looseObject({
                   type: z.literal("function_call_result"),
                   callId: z.string().meta({ callId: true }),
-                }),
-                displayComponent: ({ item }) => {
-                  return <div>Tool call result</div>
-                }
+                })
               }
             }
           ],

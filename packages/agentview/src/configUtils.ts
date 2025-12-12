@@ -138,8 +138,8 @@ function getCallIdKey(inputSchema: z.ZodType): any | undefined {
 }
 
 
-function matchItemConfigs<T extends BaseSessionItemConfig>(itemConfigs: T[], itemsBefore: any[], item: any, itemsAfter: any[]): Omit<ItemMatch<T>, "type">[] {
-    const matches: Omit<ItemMatch<T>, "type">[] = [];
+function matchItemConfigs<T extends BaseSessionItemConfig>(itemConfigs: T[], itemsBefore: any[], item: any, itemsAfter: any[]): Omit<FindItemConfigResult<T>, "type">[] {
+    const matches: Omit<FindItemConfigResult<T>, "type">[] = [];
 
     for (const itemConfig of itemConfigs) {
 
@@ -197,6 +197,7 @@ function matchItemConfigs<T extends BaseSessionItemConfig>(itemConfigs: T[], ite
 
                         if (potentialToolCallParseResult.success && prevItem[toolCallIdKey] === item[toolResultIdKey]) {
                             matches.push({
+                                // @ts-ignore
                                 itemConfig: itemConfig.callResult!,
                                 content: toolResultParseResult.data,
                                 tool: {

@@ -1816,7 +1816,7 @@ function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[]
 
   const validateStepItems = (stepItems: any[]) => {
     for (const stepItem of stepItems) {
-      const stepItemConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], stepItem, "step");
+      const stepItemConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], stepItem, [], "step");
       if (stepItemConfig) {
         parsedItems.push(stepItemConfig.content);
       }
@@ -1836,7 +1836,7 @@ function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[]
       }
 
       // when completing run without items, we only validate the last item against output schema
-      const lastItemOutputConfig = findItemConfig(runConfig, previousRunItems.slice(0, -1), previousRunItems[previousRunItems.length - 1], "output");
+      const lastItemOutputConfig = findItemConfig(runConfig, previousRunItems.slice(0, -1), previousRunItems[previousRunItems.length - 1], [], "output");
 
       if (!lastItemOutputConfig) {
         throw new AgentViewError("Last item must be an output.", 422, { item: previousRunItems[previousRunItems.length - 1] });
@@ -1848,7 +1848,7 @@ function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[]
 
       validateStepItems(items.slice(0, -1));
   
-      const outputItemConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], outputItem, "output");
+      const outputItemConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], outputItem, [], "output");
       if (!outputItemConfig) {
         throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
       }
@@ -1867,8 +1867,8 @@ function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[]
       validateStepItems(items.slice(0, -1));
 
       // last item must be either step or output. We first try to match step, if not successful then output
-      const lastItemStepConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], lastItem, "step");
-      const lastItemOutputConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], lastItem, "output");
+      const lastItemStepConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], lastItem, [], "step");
+      const lastItemOutputConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], lastItem, [], "output");
 
       if (lastItemStepConfig) {
         parsedItems.push(lastItemStepConfig.content);
