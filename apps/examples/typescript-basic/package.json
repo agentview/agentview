@@ -1,6 +1,6 @@
 {
   "name": "@agentview/examples/typescript-basic",
-  "version": "0.0.4-beta.15",
+  "version": "0.0.4-beta.16",
   "type": "module",
   "scripts": {
     "build": "vite build",
