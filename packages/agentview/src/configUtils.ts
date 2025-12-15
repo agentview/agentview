@@ -58,7 +58,6 @@ export function requireRunConfig<T extends BaseAgentConfig>(agentConfig: T, inpu
 //     return findItemConfig(runConfig, items, item, item.__type);
 // }
 
-
 type FindItemConfigResult<T extends BaseSessionItemConfig> = {
     itemConfig: T,
     content: any,

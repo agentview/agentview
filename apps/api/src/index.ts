@@ -32,7 +32,8 @@ import {
   type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, MemberSchema, MemberUpdateSchema, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type User, type Run, type PublicSessionsGetQueryParams, type SessionsGetQueryParams, PublicSessionsGetQueryParamsSchema, SessionsGetQueryParamsSchema,
   EnvSchema
 } from 'agentview/apiTypes'
-import { getConfigRow, BaseConfigSchema, BaseConfigSchemaToZod } from './getConfig'
+import { BaseConfigSchema, BaseConfigSchemaToZod } from 'agentview/configUtils'
+import { getConfigRow } from './getConfig'
 import { type BaseAgentViewConfig, type Metadata, type BaseRunConfig } from 'agentview/configTypes'
 import { users } from './schemas/auth-schema'
 import { getTotalMemberCount } from './members'
