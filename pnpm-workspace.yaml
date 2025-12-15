@@ -4,4 +4,3 @@ packages:
   - "apps/tests"
   - "apps/examples/*"
   - "packages/*"
-  - "vendor/*"

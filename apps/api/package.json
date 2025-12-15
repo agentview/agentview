@@ -3,16 +3,15 @@
   "version": "0.0.4-beta.14",
   "type": "module",
   "scripts": {
-    "dev:http": "tsx watch src/index.ts",
-    "dev:worker": "tsx watch src/worker.ts",
-    "dev": "concurrently \"npm run dev:http\" \"npm run dev:worker\"",
+    "http:dev": "tsx watch src/index.ts",
+    "worker:dev": "tsx watch src/worker.ts",
+    "dev": "concurrently \"npm run http:dev\" \"npm run worker:dev\"",
     "start:http": "tsx src/index.ts",
     "start:worker": "tsx src/worker.ts",
     "kill:http": "bash -c 'kill -9 $(lsof -t -i :${AGENTVIEW_API_PORT}) || true'",
     "build": "tsc --noEmit && tsc",
     "db:clear": "tsx scripts/db-clear.ts",
     "db:test": "tsx scripts/db-test.ts",
-    "docker:build": "tsx scripts/docker-build.ts",
     "test": "vitest"
   },
   "dependencies": {

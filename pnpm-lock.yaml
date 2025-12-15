@@ -57,7 +57,7 @@ importers:
         version: 4.1.11
       zod-from-json-schema:
         specifier: workspace:*
-        version: link:../../vendor/zod-from-json-schema
+        version: link:../../packages/zod-from-json-schema
     devDependencies:
       '@types/node':
         specifier: ^20.11.17
@@ -256,7 +256,7 @@ importers:
         version: 4.1.12
       zod-from-json-schema:
         specifier: workspace:*
-        version: link:../../vendor/zod-from-json-schema
+        version: link:../zod-from-json-schema
     devDependencies:
       '@types/node':
         specifier: ^20
@@ -445,7 +445,7 @@ importers:
         version: 4.1.12
       zod-from-json-schema:
         specifier: workspace:*
-        version: link:../../vendor/zod-from-json-schema
+        version: link:../zod-from-json-schema
     devDependencies:
       '@mdx-js/react':
         specifier: ^3.1.1
@@ -499,7 +499,7 @@ importers:
         specifier: ^4.0.7
         version: 4.0.12(@opentelemetry/api@1.9.0)(@types/debug@4.1.12)(@types/node@20.19.17)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.5)(yaml@2.8.1)
 
-  vendor/zod-from-json-schema:
+  packages/zod-from-json-schema:
     dependencies:
       zod:
         specifier: ^4.0.17

@@ -94,7 +94,7 @@ export function findItemConfigById<RunT extends BaseRunConfig>(runConfig: RunT, 
 }
 
 
-export function findItemConfig<RunT extends BaseRunConfig>(runConfig: RunT, itemsBefore: any[], item: Record<string, any>, itemsAfter: any[], itemType?: "input" | "output" | "step"): ItemMatch<RunT["output"]> | undefined {
+export function findItemConfig<RunT extends BaseRunConfig>(runConfig: RunT, itemsBefore: any[], item: Record<string, any>, itemsAfter: any[], itemType?: "input" | "output" | "step"): FindItemConfigResult<RunT["output"]> | undefined {
     const matches: any[] = [];
 
     if (!itemType || itemType === "input") {

@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "../src/loadEnv";
 import { db } from "../src/db";
 
 console.log("Running 'select 1' test SQL query");

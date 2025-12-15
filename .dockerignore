@@ -1,0 +1,45 @@
+# Node
+**/node_modules
+npm-debug.log
+pnpm-debug.log
+
+# Git
+.git
+.gitignore
+
+# Docker
+**/Dockerfile
+**/.dockerignore
+
+# IDE
+**/.vscode
+**/.idea
+
+# OS
+**/.DS_Store
+**/*.swp
+
+# Test & Coverage
+**/*.test.*
+**/__tests__/**
+**/coverage
+
+# Cache
+**/.tmp
+**/.cache
+
+# Env files
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Drizzle local state
+apps/api/.drizzle
+
+# Exclude non-essential apps/packages from Docker context
+apps/docs
+apps/tests
+apps/examples
+packages/studio
+packages/create-agentview

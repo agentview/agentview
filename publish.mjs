@@ -68,14 +68,7 @@ async function getRootVersion() {
 }
 
 async function setPackagesVersion(version) {
-  for (const rel of ALL_PACKAGES) {
-    const pkgPath = path.join(REPO_ROOT, rel, 'package.json');
-    try {
-      const pkg = await readJSON(pkgPath);
-      pkg.version = version;
-      await writeJSON(pkgPath, pkg);
-    } catch {}
-  }
+  run(`pnpm -r exec -- npm version ${version} --no-git-tag-version`);
 }
 
 function buildPackages() {
@@ -119,23 +112,29 @@ async function publishPackages(version) {
   const version = await getRootVersion();
   await setPackagesVersion(version);
 
-  // Build API docker image
-  process.env.AGENTVIEW_API_IMAGE = `rudzienki/agentview-api:${version}`;
-  run('npm run docker:build', {
-    cwd: path.join(REPO_ROOT, 'apps/api'),
-  });
+  // // Build API docker image
+  // process.env.AGENTVIEW_API_IMAGE = `rudzienki/agentview-api:${version}`;
 
-  // Build packages (should be after AGENTVIEW_API_IMAGE is set, it's used in create-agentview)
-  buildPackages();
+  // run(`docker build -t ${process.env.AGENTVIEW_API_IMAGE} -f apps/api/Dockerfile`);
 
-  // Commit and tag
-  await gitCommitAndTag(version);
+  // // const command = `docker build -t ${process.env.AGENTVIEW_API_IMAGE} -f apps/api/Dockerfile .`;
+  // // run('npm run docker:build', {
+  // //   cwd: path.join(REPO_ROOT, 'apps/api'),
+  // // });
 
-  // Publish npm packages
-  await publishPackages(version);
 
-  // Publish docker image (longest so goes last)
-  run(`docker push ${process.env.AGENTVIEW_API_IMAGE}`);
 
-  console.log(`\nPublished v${version}`);
+  // // Build packages (should be after AGENTVIEW_API_IMAGE is set, it's used in create-agentview)
+  // buildPackages();
+
+  // // Commit and tag
+  // await gitCommitAndTag(version);
+
+  // // Publish npm packages
+  // await publishPackages(version);
+
+  // // Publish docker image (longest so goes last)
+  // run(`docker push ${process.env.AGENTVIEW_API_IMAGE}`);
+
+  // console.log(`\nPublished v${version}`);
 })();

@@ -1,28 +1,37 @@
 # syntax=docker/dockerfile:1
 
-# ---------- Base deps ----------
+# ---------- Base ----------
 FROM node:20-slim AS base
 WORKDIR /app
 
-# Install tini for proper signal handling
-RUN apt-get update && apt-get install -y --no-install-recommends tini && rm -rf /var/lib/apt/lists/*
+# Install tini for proper signal handling and pnpm
+RUN apt-get update && apt-get install -y --no-install-recommends tini \
+    && rm -rf /var/lib/apt/lists/* \
+    && npm install -g pnpm
 
 # ---------- Builder ----------
 FROM base AS build
 
-# Install dependencies separately for better caching
-COPY package.json package-lock.json ./
-RUN npm ci --include=dev
+# Copy workspace config for pnpm
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 
-# Copy sources and build
-COPY tsconfig.json ./
-COPY src ./src
-COPY drizzle.config.ts ./drizzle.config.ts
-COPY scripts ./scripts
-COPY drizzle ./drizzle
+# Copy package.json files for dependency resolution
+COPY apps/api/package.json ./apps/api/
+COPY packages/agentview/package.json ./packages/agentview/
+COPY vendor/zod-from-json-schema/package.json ./vendor/zod-from-json-schema/
 
-# no build for now, we'll just run start-ts
-RUN npm run build
+# Install all deps
+RUN pnpm install --frozen-lockfile
+
+# Copy source files
+COPY apps/api ./apps/api
+COPY packages/agentview ./packages/agentview
+COPY vendor/zod-from-json-schema ./vendor/zod-from-json-schema
+
+# Build workspace packages (in dependency order)
+RUN pnpm --filter zod-from-json-schema build \
+    && pnpm --filter agentview build \
+    && pnpm --filter @agentview/api build
 
 # ---------- Runtime ----------
 FROM base AS runtime
@@ -30,21 +39,25 @@ ENV NODE_ENV=production
 
 WORKDIR /app
 
-# Only production deps
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+# Copy workspace config
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/agentview/package.json ./packages/agentview/
+COPY vendor/zod-from-json-schema/package.json ./vendor/zod-from-json-schema/
 
-# Copy built app
-# COPY --from=build /app/dist ./dist
-COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
-COPY --from=build /app/src ./src
-COPY --from=build /app/drizzle ./drizzle
+# Install production deps only
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy built artifacts from builder
+COPY --from=build /app/apps/api ./apps/api
+COPY --from=build /app/packages/agentview ./packages/agentview
+COPY --from=build /app/vendor/zod-from-json-schema ./vendor/zod-from-json-schema
 
 # Use non-root user
 RUN useradd -m nodeuser && chown -R nodeuser:nodeuser /app
 USER nodeuser
 
-# EXPOSE 80
+WORKDIR /app/apps/api
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
-CMD ["sh", "-c", "npm run start:api"]
+CMD ["pnpm", "run", "start:http"]

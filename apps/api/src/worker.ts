@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import './loadEnv';
+
 import { db } from './db';
 import { runs } from './schemas/schema';
 import { eq, and, lt, isNotNull } from 'drizzle-orm';
