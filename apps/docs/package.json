@@ -1,12 +1,11 @@
 {
     "name": "@agentview/docs",
     "private": true,
-    "version": "0.0.4-beta.14",
+    "version": "0.0.4-beta.15",
     "scripts": {
         "dev": "mint dev --port 1991"
     },
     "dependencies": {
         "@agentview/studio": "workspace:*"
     }
-  }
-  
+}
