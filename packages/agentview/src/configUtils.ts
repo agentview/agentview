@@ -2,7 +2,7 @@ import type { SessionItem } from "./apiTypes.js";
 import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseScoreConfig, Metadata, BaseRunConfig } from "./configTypes.js";
 import { z } from "zod";
 import { AgentViewError } from "./AgentViewError.js";
-import { convertJsonSchemaToZod } from 'zod-from-json-schema';
+import { convertJsonSchemaToZod } from '@agentview/zod-from-json-schema';
 
 
 // Register `callId` meta for zod schemas
