@@ -37,26 +37,22 @@ services:
     restart: unless-stopped
     # command: ["sh", "-c", "npx tsx apps/api/src/test.ts"]
 
-  # worker:
-  #   image: ${AGENTVIEW_API_IMAGE}
-  #   environment:
-  #     DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-db:5432/${POSTGRES_DB}
-  #   depends_on:
-  #     postgres-db:
-  #       condition: service_healthy
-  #   extra_hosts:
-  #     - "host.docker.internal:host-gateway"
+  worker:
+    image: ${AGENTVIEW_API_IMAGE}
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
-  #   restart: unless-stopped
-  #   command: ["sh", "-c", "npm run start:worker"]
-
-  # http-test:
-  #   image: ${AGENTVIEW_API_IMAGE}
-  #   extra_hosts:
-  #     - "host.docker.internal:host-gateway"
-
-  #   restart: unless-stopped
-  #   command: ["sh", "-c", "npx tsx ./src/test.ts"]
+    restart: unless-stopped
+    command: ["sh", "-c", "pnpm run start:worker"]
 
 volumes:
   pgdata:

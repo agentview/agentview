@@ -117,14 +117,6 @@ async function publishPackages(version) {
   process.env.AGENTVIEW_API_IMAGE = `${repository}:${version}`;
   run(`docker build -t ${process.env.AGENTVIEW_API_IMAGE} -t ${repository}:local -f apps/api/Dockerfile .`);
 
-
-  // const command = `docker build -t ${process.env.AGENTVIEW_API_IMAGE} -f apps/api/Dockerfile .`;
-  // run('npm run docker:build', {
-  //   cwd: path.join(REPO_ROOT, 'apps/api'),
-  // });
-
-
-
   // // Build packages (should be after AGENTVIEW_API_IMAGE is set, it's used in create-agentview)
   // buildPackages();
 
