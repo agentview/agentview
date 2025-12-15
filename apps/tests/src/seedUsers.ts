@@ -1,6 +1,6 @@
-import './loadEnv'
+import '@agentview/utils/loadEnv'
 import { authClient, inviteMember } from './authClient'
-import { updateEnvFile } from './updateEnvFile'
+import { updateEnvFile } from '@agentview/utils/updateEnvFile'
 
 async function main() {
   // First sign up - admin user

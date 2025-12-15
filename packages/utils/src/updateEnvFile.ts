@@ -1,7 +1,10 @@
 import { writeFileSync, existsSync, readFileSync } from 'fs';
+import path from "node:path";
+import { getMonorepoRootPath } from "./getMonorepoRootPath";
 
 export function updateEnvFile(key: string, value: string) {
-  const envFilePath = '../../.env';
+  const envFilePath = path.join(getMonorepoRootPath(), ".env");
+  
   let envContents = '';
   if (existsSync(envFilePath)) {
     envContents = readFileSync(envFilePath, 'utf8');

@@ -1,4 +1,4 @@
-import './loadEnv'
+import '@agentview/utils/loadEnv'
 import { describe, test, expect, beforeAll } from 'vitest'
 import { AgentView, PublicAgentView } from 'agentview'
 import type { User, Run, Session } from 'agentview';

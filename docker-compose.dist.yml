@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -17,13 +17,13 @@ services:
       retries: 12
       start_period: 10s
 
-  api:
+  http:
     image: ${AGENTVIEW_API_IMAGE}
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-db:5432/${POSTGRES_DB}
       AGENTVIEW_STUDIO_URL: ${AGENTVIEW_STUDIO_URL}
     ports:
-      - "1990:80"
+      - "${AGENTVIEW_API_PORT}:80"
     depends_on:
       postgres-db:
         condition: service_healthy
@@ -31,22 +31,28 @@ services:
       - "host.docker.internal:host-gateway"
 
     restart: unless-stopped
+    # command: ["sh", "-c", "npx tsx apps/api/src/test.ts"]
 
-  worker:
-    image: ${AGENTVIEW_API_IMAGE}
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-db:5432/${POSTGRES_DB}
-      AGENTVIEW_STUDIO_URL: ${AGENTVIEW_STUDIO_URL}
-    ports:
-      - "1990:80"
-    depends_on:
-      postgres-db:
-        condition: service_healthy
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+  # worker:
+  #   image: ${AGENTVIEW_API_IMAGE}
+  #   environment:
+  #     DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-db:5432/${POSTGRES_DB}
+  #   depends_on:
+  #     postgres-db:
+  #       condition: service_healthy
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
 
-    restart: unless-stopped
-    command: ["sh", "-c", "npm run start:worker"]
+  #   restart: unless-stopped
+  #   command: ["sh", "-c", "npm run start:worker"]
+
+  # http-test:
+  #   image: ${AGENTVIEW_API_IMAGE}
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+
+  #   restart: unless-stopped
+  #   command: ["sh", "-c", "npx tsx ./src/test.ts"]
 
 volumes:
   pgdata:

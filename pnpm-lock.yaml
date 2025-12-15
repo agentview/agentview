@@ -10,6 +10,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@agentview/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       '@hono/node-server':
         specifier: ^1.19.0
         version: 1.19.4(hono@4.9.8)
@@ -208,6 +211,9 @@ importers:
 
   apps/tests:
     dependencies:
+      '@agentview/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       agentview:
         specifier: workspace:*
         version: link:../../packages/agentview
@@ -498,6 +504,22 @@ importers:
       vitest:
         specifier: ^4.0.7
         version: 4.0.12(@opentelemetry/api@1.9.0)(@types/debug@4.1.12)(@types/node@20.19.17)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.5)(yaml@2.8.1)
+
+  packages/utils:
+    dependencies:
+      dotenv:
+        specifier: ^17.1.0
+        version: 17.2.2
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.17
+      tsx:
+        specifier: ^4.20.3
+        version: 4.20.5
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.2
 
   packages/zod-from-json-schema:
     dependencies:

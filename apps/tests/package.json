@@ -9,7 +9,8 @@
         "agentview": "workspace:*",
         "vitest": "^4.0.7",
         "zod": "^4.1.12",
-        "better-auth": "^1.2.12"
+        "better-auth": "^1.2.12",
+        "@agentview/utils": "workspace:*"
     },
     "devDependencies": {
         "dotenv": "^17.1.0",

@@ -1,4 +1,4 @@
-import './loadEnv'
+import '@agentview/utils/loadEnv'
 
 import { serve } from '@hono/node-server'
 import { HTTPException } from 'hono/http-exception'
@@ -47,11 +47,9 @@ import { findItemConfig, findItemConfigById, requireRunConfig } from 'agentview/
 import { equalJSON } from './equalJSON'
 import { AgentViewError } from 'agentview/AgentViewError'
 
-
 console.log("Migrating database...");
 await migrate(db, { migrationsFolder: './drizzle' });
 console.log("✅ Database migrated successfully");
-
 
 export const app = new OpenAPIHono({
   // custom error handler for zod validation errors

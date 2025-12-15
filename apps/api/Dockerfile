@@ -18,7 +18,7 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 # Copy package.json files for dependency resolution
 COPY apps/api/package.json ./apps/api/
 COPY packages/agentview/package.json ./packages/agentview/
-COPY vendor/zod-from-json-schema/package.json ./vendor/zod-from-json-schema/
+COPY packages/zod-from-json-schema/package.json ./packages/zod-from-json-schema/
 
 # Install all deps
 RUN pnpm install --frozen-lockfile
@@ -26,12 +26,10 @@ RUN pnpm install --frozen-lockfile
 # Copy source files
 COPY apps/api ./apps/api
 COPY packages/agentview ./packages/agentview
-COPY vendor/zod-from-json-schema ./vendor/zod-from-json-schema
+COPY packages/zod-from-json-schema ./packages/zod-from-json-schema
 
-# Build workspace packages (in dependency order)
-RUN pnpm --filter zod-from-json-schema build \
-    && pnpm --filter agentview build \
-    && pnpm --filter @agentview/api build
+# Build zod-from-json-schema (the only package that needs to be built)
+RUN pnpm --filter zod-from-json-schema build
 
 # ---------- Runtime ----------
 FROM base AS runtime
@@ -43,7 +41,7 @@ WORKDIR /app
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/agentview/package.json ./packages/agentview/
-COPY vendor/zod-from-json-schema/package.json ./vendor/zod-from-json-schema/
+COPY packages/zod-from-json-schema/package.json ./packages/zod-from-json-schema/
 
 # Install production deps only
 RUN pnpm install --frozen-lockfile --prod
@@ -51,7 +49,7 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy built artifacts from builder
 COPY --from=build /app/apps/api ./apps/api
 COPY --from=build /app/packages/agentview ./packages/agentview
-COPY --from=build /app/vendor/zod-from-json-schema ./vendor/zod-from-json-schema
+COPY --from=build /app/packages/zod-from-json-schema ./packages/zod-from-json-schema
 
 # Use non-root user
 RUN useradd -m nodeuser && chown -R nodeuser:nodeuser /app

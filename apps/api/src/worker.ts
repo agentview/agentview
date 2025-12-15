@@ -1,4 +1,4 @@
-import './loadEnv';
+import '@agentview/utils/loadEnv'
 
 import { db } from './db';
 import { runs } from './schemas/schema';

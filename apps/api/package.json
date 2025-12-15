@@ -30,7 +30,8 @@
     "tsx": "^4.7.1",
     "zod": "^4.1.3",
     "zod-from-json-schema": "workspace:*",
-    "agentview": "workspace:*"
+    "agentview": "workspace:*",
+    "@agentview/utils": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.11.17",
