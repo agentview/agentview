@@ -20,8 +20,12 @@ services:
   http:
     image: ${AGENTVIEW_API_IMAGE}
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-db:5432/${POSTGRES_DB}
       AGENTVIEW_STUDIO_URL: ${AGENTVIEW_STUDIO_URL}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "${AGENTVIEW_API_PORT}:80"
     depends_on:
