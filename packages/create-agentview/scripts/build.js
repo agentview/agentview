@@ -47,8 +47,8 @@ async function buildTemplate() {
   const packageDir = path.resolve(__dirname, '..');
   const repoRoot = path.resolve(packageDir, '..', '..');
 
-  const studioSrc = path.join(repoRoot, 'apps', 'studio-project');
-  const dockerComposeYmlSrc = path.join(repoRoot, 'apps', 'api', 'docker-compose.dist.yml');
+  const exampleSrc = path.join(repoRoot, 'apps', 'examples', 'typescript-basic');
+  const dockerComposeYmlSrc = path.join(repoRoot, 'docker-compose.dist.yml');
   const distDir = path.join(packageDir, 'dist/');
   const templateDir = path.join(packageDir, 'dist/template');
 
@@ -57,10 +57,10 @@ async function buildTemplate() {
   await mkdir(templateDir, { recursive: true });
 
   // copy files
-  await cp(studioSrc, templateDir, {
+  await cp(exampleSrc, templateDir, {
     recursive: true,
     filter: (src) => {
-      const rel = path.relative(studioSrc, src);
+      const rel = path.relative(exampleSrc, src);
       return !isExcluded(rel);
     },
   });
@@ -90,12 +90,13 @@ async function buildTemplate() {
     throw new Error('AGENTVIEW_API_IMAGE is not set');
   }
 
-  const envContent = `VITE_AGENTVIEW_API_BASE_URL=http://localhost:1990
-AGENTVIEW_API_IMAGE=${process.env.AGENTVIEW_API_IMAGE}
+  const envContent = `AGENTVIEW_API_IMAGE=${process.env.AGENTVIEW_API_IMAGE}
 AGENTVIEW_STUDIO_URL=http://localhost:1989
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DB=postgres
+POSTGRES_HOST=postgres-db
+POSTGRES_PORT=5432
 `;
 
   await writeFile(path.join(templateDir, '.env'), envContent, 'utf8');
