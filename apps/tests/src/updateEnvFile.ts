@@ -1,7 +1,7 @@
 import { writeFileSync, existsSync, readFileSync } from 'fs';
 
 export function updateEnvFile(key: string, value: string) {
-  const envFilePath = '.env';
+  const envFilePath = '../../.env';
   let envContents = '';
   if (existsSync(envFilePath)) {
     envContents = readFileSync(envFilePath, 'utf8');
@@ -16,8 +16,13 @@ export function updateEnvFile(key: string, value: string) {
     if (envContents.length > 0 && !envContents.endsWith('\n')) {
       envContents += '\n';
     }
+
+    envContents += `${key}=${value}\n`;
+    writeFileSync(envFilePath, envContents, 'utf8');
+  }
+  else {
+    console.error(`Env file ${envFilePath} does not exist`);
+    process.exit(1);
   }
 
-  envContents += `${key}=${value}\n`;
-  writeFileSync(envFilePath, envContents, 'utf8');
 }

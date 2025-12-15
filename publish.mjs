@@ -114,8 +114,8 @@ async function publishPackages(version) {
 
   // Build API docker image
   process.env.AGENTVIEW_API_IMAGE = `rudzienki/agentview-api:${version}`;
-  run(`docker build -t ${process.env.AGENTVIEW_API_IMAGE} -f apps/api/Dockerfile`);
-  
+  run(`docker build -t ${process.env.AGENTVIEW_API_IMAGE} -f apps/api/Dockerfile .`);
+
 
   // const command = `docker build -t ${process.env.AGENTVIEW_API_IMAGE} -f apps/api/Dockerfile .`;
   // run('npm run docker:build', {

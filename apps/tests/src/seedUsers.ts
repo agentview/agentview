@@ -1,4 +1,4 @@
-import 'dotenv/config'
+import './loadEnv'
 import { authClient, inviteMember } from './authClient'
 import { updateEnvFile } from './updateEnvFile'
 
