@@ -112,15 +112,15 @@ async function publishPackages(version) {
   const version = await getRootVersion();
   await setPackagesVersion(version);
 
-  // // Build API docker image
-  // process.env.AGENTVIEW_API_IMAGE = `rudzienki/agentview-api:${version}`;
+  // Build API docker image
+  process.env.AGENTVIEW_API_IMAGE = `rudzienki/agentview-api:${version}`;
+  run(`docker build -t ${process.env.AGENTVIEW_API_IMAGE} -f apps/api/Dockerfile`);
+  
 
-  // run(`docker build -t ${process.env.AGENTVIEW_API_IMAGE} -f apps/api/Dockerfile`);
-
-  // // const command = `docker build -t ${process.env.AGENTVIEW_API_IMAGE} -f apps/api/Dockerfile .`;
-  // // run('npm run docker:build', {
-  // //   cwd: path.join(REPO_ROOT, 'apps/api'),
-  // // });
+  // const command = `docker build -t ${process.env.AGENTVIEW_API_IMAGE} -f apps/api/Dockerfile .`;
+  // run('npm run docker:build', {
+  //   cwd: path.join(REPO_ROOT, 'apps/api'),
+  // });
 
 
 
