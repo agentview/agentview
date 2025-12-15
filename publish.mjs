@@ -5,19 +5,13 @@ import path from 'node:path';
 
 const REPO_ROOT = process.cwd();
 
-// Packages whose versions should be kept in sync with the root version
-const ALL_PACKAGES = [
-  'apps/api',
-  'apps/docs',
-  'apps/tests',
-  'packages/create-agentview',
-  'packages/agentview',
-];
-
 // Packages to build and publish (npm)
+// Order matters for publishing (dependencies first), but not for building
 const PACKAGES = [
-  'packages/create-agentview',
+  'packages/zod-from-json-schema',
   'packages/agentview',
+  'packages/studio',
+  'packages/create-agentview',
 ];
 
 function run(cmd, opts = {}) {
@@ -88,7 +82,10 @@ async function gitCommitAndTag(version) {
 async function publishPackages(version) {
   const tag = getDistTagFromVersion(version);
   for (const rel of PACKAGES) {
-    run(`npm publish --tag ${tag}`, { cwd: path.join(REPO_ROOT, rel) });
+    // Use pnpm publish to:
+    // 1. Respect publishConfig in package.json
+    // 2. Automatically replace workspace:* dependencies with actual versions
+    run(`pnpm publish --tag ${tag} --no-git-checks`, { cwd: path.join(REPO_ROOT, rel) });
   }
 }
 
@@ -117,17 +114,17 @@ async function publishPackages(version) {
   process.env.AGENTVIEW_API_IMAGE = `${repository}:${version}`;
   run(`docker build -t ${process.env.AGENTVIEW_API_IMAGE} -t ${repository}:local -f apps/api/Dockerfile .`);
 
-  // // Build packages (should be after AGENTVIEW_API_IMAGE is set, it's used in create-agentview)
-  // buildPackages();
+  // Build packages (should be after AGENTVIEW_API_IMAGE is set, it's used in create-agentview)
+  buildPackages();
 
-  // // Commit and tag
-  // await gitCommitAndTag(version);
+  // Commit and tag
+  await gitCommitAndTag(version);
 
-  // // Publish npm packages
-  // await publishPackages(version);
+  // Publish npm packages
+  await publishPackages(version);
 
-  // // Publish docker image (longest so goes last)
-  // run(`docker push ${process.env.AGENTVIEW_API_IMAGE}`);
+  // Publish docker image (longest so goes last)
+  run(`docker push ${process.env.AGENTVIEW_API_IMAGE}`);
 
-  // console.log(`\nPublished v${version}`);
+  console.log(`\nPublished v${version}`);
 })();

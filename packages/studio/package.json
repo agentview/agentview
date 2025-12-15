@@ -6,10 +6,10 @@
     "dist"
   ],
   "scripts": {
-    "build:ts": "tsup",
+    "build:ts": "tsc",
     "build:tailwindcss-typography": "mkdir -p dist/tailwindcss-typography/src && cp -R src/tailwindcss-typography/src/* dist/tailwindcss-typography/src/",
     "build:styles": "cp src/styles.css dist/styles.css",
-    "build": "npm run build:ts && npm run build:tailwindcss-typography && npm run build:styles",
+    "build": "rm -rf dist && npm run build:ts && npm run build:tailwindcss-typography && npm run build:styles",
     "dev": "vite dev"
   },
   "main": "./src/index.ts",
@@ -96,7 +96,6 @@
     "agentview": "workspace:*"
   },
   "devDependencies": {
-    "tsup": "^8.5.1",
     "tsx": "^4.20.3",
     "@mdx-js/react": "^3.1.1",
     "@mdx-js/rollup": "^3.1.1",

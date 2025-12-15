@@ -6,7 +6,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup --clean"
+    "build": "rm -rf dist && tsc"
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -44,7 +44,6 @@
   "devDependencies": {
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
-    "tsup": "^8.5.1",
     "@types/node": "^20",
     "@types/pg": "^8.15.4",
     "@types/react": "^19.1.2",

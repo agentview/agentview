@@ -1,11 +1,11 @@
 {
   "exclude": [
     "dist",
-    "node_modules"
+    "node_modules",
+    "**/*.test.ts"
   ],
   "include": [
-    "src/**/*",
-    "src/bin/**/*"
+    "src/**/*"
   ],
   "compilerOptions": {
     "lib": [
@@ -23,6 +23,9 @@
     "verbatimModuleSyntax": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "strict": true
+    "strict": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
   }
 }
