@@ -1,6 +1,6 @@
 {
   "name": "@agentview/utils",
-  "version": "0.0.4-dev.0",
+  "version": "0.0.4-local.0",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

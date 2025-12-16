@@ -1,6 +1,6 @@
 {
   "name": "agentview",
-  "version": "0.0.4-dev.0",
+  "version": "0.0.4-local.0",
   "type": "module",
   "files": [
     "dist"
