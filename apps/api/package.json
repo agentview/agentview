@@ -38,5 +38,6 @@
     "concurrently": "^9.2.1",
     "typescript": "^5.8.3",
     "vitest": "^4.0.7"
-  }
+  },
+  "license": "AGPL-3.0"
 }
