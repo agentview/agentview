@@ -119,9 +119,7 @@ async function publishPackages(version) {
 
   run(`docker build -t ${versionTag} -t ${localTag} -f apps/api/Dockerfile .`);
 
-  if (preid === "local") {
-    process.env.AGENTVIEW_API_IMAGE = preid === "local" ? localTag : versionTag;
-  }
+  process.env.AGENTVIEW_API_IMAGE = preid === "local" ? localTag : versionTag;
 
   // Build packages (should be after AGENTVIEW_API_IMAGE is set, it's used in create-agentview)
   buildPackages();
