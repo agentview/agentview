@@ -7,8 +7,7 @@
     "dev": "vite",
     "start": "vite preview",
     "agent:dev": "tsx watch agent.ts",
-    "dev-all": "concurrently \"npm run agent:dev\" \"npm run dev\"",
-    "typecheck": "tsc"
+    "all:dev": "concurrently \"npm run agent:dev\" \"npm run dev\""
   },
   "dependencies": {
     "@agentview/studio": "workspace:*",
@@ -29,7 +28,9 @@
     "@types/node": "^20",
     "@types/react": "^19.1",
     "@vitejs/plugin-react": "^5.1.2",
+    "concurrently": "^9.2.1",
     "tailwindcss": "^4.1.4",
+    "tsx": "^4.21.0",
     "typescript": "^5.8",
     "vite": "^6.3.3"
   }
