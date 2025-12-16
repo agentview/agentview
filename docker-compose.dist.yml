@@ -19,7 +19,7 @@ services:
   http:
     image: ${AGENTVIEW_API_IMAGE}
     environment:
-      AGENTVIEW_STUDIO_URL: ${AGENTVIEW_STUDIO_URL:-1989}
+      AGENTVIEW_STUDIO_URL: ${AGENTVIEW_STUDIO_URL:-http://localhost:1989}
       DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin}@postgres-db:5432/${POSTGRES_DB:-agentview}
     ports:
       - "${AGENTVIEW_API_PORT:-1990}:80"
