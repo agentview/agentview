@@ -1,6 +1,6 @@
 {
   "name": "create-agentview",
-  "version": "0.0.4-beta.17",
+  "version": "0.0.4-dev.0",
   "description": "Create a new Agentview app.",
   "type": "module",
   "bin": {
@@ -21,5 +21,5 @@
   "license": "MIT",
   "publishConfig": {
     "access": "public"
-}
+  }
 }
