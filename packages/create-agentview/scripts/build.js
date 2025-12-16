@@ -8,6 +8,7 @@ function isExcluded(relativePath) {
 
   const segs = relativePath.split(path.sep);
   if (segs.includes('node_modules')) return true;
+  if (segs.includes('.env')) return true;
   if (segs.includes('.react-router')) return true;
   if (segs[0] === 'build' || segs.includes('build')) return true;
   if (segs.includes('dist') || segs.includes('coverage')) return true;
@@ -66,7 +67,19 @@ async function buildTemplate() {
   });
 
   // copy docker-compose.dist.yml
-  await cp(dockerComposeYmlSrc, path.join(templateDir, 'docker-compose.yml'));
+  const dockerComposeYmlPath = path.join(templateDir, 'docker-compose.yml');
+  await cp(dockerComposeYmlSrc, dockerComposeYmlPath);
+
+  // replace ${AGENTVIEW_API_IMAGE} with process.env.AGENTVIEW_API_IMAGE
+  if (!process.env.AGENTVIEW_API_IMAGE) {
+    throw new Error('AGENTVIEW_API_IMAGE is not set');
+  }
+  const dockerComposeContent = await readFile(dockerComposeYmlPath, 'utf8');
+  const updatedDockerComposeContent = dockerComposeContent.replace(
+    /\$\{AGENTVIEW_API_IMAGE\}/g,
+    process.env.AGENTVIEW_API_IMAGE
+  );
+  await writeFile(dockerComposeYmlPath, updatedDockerComposeContent, 'utf8');
 
   // get current version
   const repoPkgJsonPath = path.join(repoRoot, 'package.json');
@@ -84,23 +97,6 @@ async function buildTemplate() {
   updatedPkg.version = '0.0.1';
   if (updatedPkg.private) delete updatedPkg.private;
   await writeFile(pkgJsonPath, JSON.stringify(updatedPkg, null, 2) + '\n', 'utf8');
-
-  // build .env
-  if (!process.env.AGENTVIEW_API_IMAGE) {
-    throw new Error('AGENTVIEW_API_IMAGE is not set');
-  }
-
-  const envContent = `AGENTVIEW_API_IMAGE=${process.env.AGENTVIEW_API_IMAGE}
-AGENTVIEW_STUDIO_URL=http://localhost:1989
-AGENTVIEW_API_PORT=1990
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=postgres
-POSTGRES_HOST=postgres-db
-POSTGRES_PORT=5432
-`;
-
-  await writeFile(path.join(templateDir, '.env'), envContent, 'utf8');
 }
 
 (async () => {

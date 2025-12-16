@@ -104,6 +104,9 @@ async function publishPackages(version) {
     process.exit(1);
   }
 
+  console.log("preid", preid);
+  process.exit(1);
+
   // Bump versions
   bumpRootVersion(bumpType, preid);
   const version = await getRootVersion();
