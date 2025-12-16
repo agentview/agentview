@@ -104,9 +104,6 @@ async function publishPackages(version) {
     process.exit(1);
   }
 
-  console.log("preid", preid);
-  process.exit(1);
-
   // Bump versions
   bumpRootVersion(bumpType, preid);
   const version = await getRootVersion();
@@ -118,8 +115,14 @@ async function publishPackages(version) {
 
   // Build API docker image
   const repository = "rudzienki/agentview-api";
-  process.env.AGENTVIEW_API_IMAGE = `${repository}:${version}`;
-  run(`docker build -t ${process.env.AGENTVIEW_API_IMAGE} -t ${repository}:local -f apps/api/Dockerfile .`);
+  const versionTag = `${repository}:${version}`
+  const localTag = `${repository}:local`
+
+  run(`docker build -t ${versionTag} -t ${localTag} -f apps/api/Dockerfile .`);
+
+  if (preid === "local") {
+    process.env.AGENTVIEW_API_IMAGE = preid === "local" ? localTag : versionTag;
+  }
 
   // Build packages (should be after AGENTVIEW_API_IMAGE is set, it's used in create-agentview)
   buildPackages();
@@ -128,7 +131,9 @@ async function publishPackages(version) {
   await publishPackages(version);
 
   // Publish docker image (longest so goes last)
-  run(`docker push ${process.env.AGENTVIEW_API_IMAGE}`);
+  if (preid !== "local") {
+    run(`docker push ${process.env.AGENTVIEW_API_IMAGE}`);
+  }
 
   console.log(`\nPublished v${version}`);
 })();
