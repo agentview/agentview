@@ -85,7 +85,7 @@ async function publishPackages(version) {
     // Use pnpm publish to:
     // 1. Respect publishConfig in package.json
     // 2. Automatically replace workspace:* dependencies with actual versions
-    run(`pnpm publish --tag ${tag} --no-git-checks`, { cwd: path.join(REPO_ROOT, rel) });
+    run(`pnpm publish --tag ${tag}`, { cwd: path.join(REPO_ROOT, rel) });
   }
 }
 
