@@ -1,11 +1,3 @@
-Default License Notice
-
-Unless otherwise noted, all code in this repository is licensed under
-the terms of the MIT License below. Subdirectories that contain their
-own LICENSE file are licensed under the terms of that LICENSE file.
-
----
-
 MIT License
 
 Copyright (c) 2025 Andrzej Dąbrowski
