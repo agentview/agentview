@@ -109,6 +109,10 @@ async function publishPackages(version) {
   const version = await getRootVersion();
   await setPackagesVersion(version);
 
+  // Commit and tag
+  await gitCommitAndTag(version);
+
+
   // Build API docker image
   const repository = "rudzienki/agentview-api";
   process.env.AGENTVIEW_API_IMAGE = `${repository}:${version}`;
@@ -116,9 +120,6 @@ async function publishPackages(version) {
 
   // Build packages (should be after AGENTVIEW_API_IMAGE is set, it's used in create-agentview)
   buildPackages();
-
-  // Commit and tag
-  await gitCommitAndTag(version);
 
   // Publish npm packages
   await publishPackages(version);
