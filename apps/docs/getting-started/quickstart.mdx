@@ -50,11 +50,7 @@ npm install
 npm run dev
 ```
 
-Now go to the `localhost:1989` URL and register as the first admin user.
-
-## Generate API Key
-
-Go to `Settings > API Keys` and grab your personal API key.
+Now go to the `localhost:1989` URL and register as the first admin user. You can also invite other users to the platform.
 
 ## Configure your first agent
 
@@ -62,6 +58,11 @@ At the root of the project there's a `agentview.config.tsx` file. All the config
 Let's take a look at it:
 
 ```typescript
+import { z } from "zod";
+import { defineConfig } from "agentview";
+import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput } from "@agentview/studio/components/session-item";
+import { Brain } from "lucide-react";
+
 export default defineConfig({
   apiBaseUrl: "http://localhost:1990",
   agents: [
@@ -75,22 +76,29 @@ export default defineConfig({
               role: z.literal("user"),
               content: z.string(),
             }),
-            displayComponent: ({ value }) => <UserMessage value={value.content} />,
+            displayComponent: ({ item }) => <UserMessage>{item.content}</UserMessage>,
           },
           steps: [
             {
-              schema: z.object({
+              schema: z.looseObject({
                 type: z.literal("reasoning"),
                 summary: z.array(z.object({
                   type: z.literal("summary_text"),
                   text: z.string(),
                 })),
-              }).loose(),
-              displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
+              }),
+              displayComponent: ({ item }) => {
+                return (
+                  <ItemCard size="sm" variant="fill">
+                    <ItemCardTitle><Brain /> Thinking</ItemCardTitle>
+                    <ItemCardMarkdown text={item.summary?.map((s: any) => s?.text ?? "").join("\n\n") ?? "Hidden reasoning summary."} />
+                  </ItemCard>
+                );
+              }
             }
           ],
           output: {
-            schema: z.object({
+            schema: z.looseObject({
               type: z.literal("message"),
               role: z.literal("assistant"),
               content: z.array(z.object({
@@ -98,7 +106,7 @@ export default defineConfig({
                 text: z.string(),
               })),
             }),
-            displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />
+            displayComponent: ({ item }) => <AssistantMessage>{item.content.map((c: any) => c?.text ?? "").join("\n\n")}</AssistantMessage>
           }
         }
       ],
@@ -107,9 +115,9 @@ export default defineConfig({
         onCancel={cancel}
         isRunning={isRunning}
       />
-    },
-    // other agents...
+    }
   ]
+});
 ```
 
 In this file we defined an agent called `simple_chat` with a single run type:
@@ -128,17 +136,24 @@ Each item comes with a schema defined with Zod, used for validation and data int
 
 When you build an AI agent you have to create a HTTP endpoint that takes user message and generates AI responses. We call this endpoint "Agent Endpoint".
 
-With AgentView you can write your Agent Endpoint in any language or framework you want.
+With AgentView you can write your Agent Endpoint in any language or framework you want. The example Agent Endpoint is in `agent.ts` file. It's a simple Hono HTTP server computing AI responses using OpenAI Responses API.
 
-The example Agent Endpoint is in `agent.ts` file. Let's run it:
+### Set up environment variables
+
+Before you start, you need to set up environment variables. Create a `.env` file in the root of the project and add the following variables:
+
+1. `OPENAI_API_KEY` - your OpenAI API key
+2. `AGENTVIEW_API_KEY` - go to Studio, `Settings > API Keys` and grab your personal API key.
+
+### Run the Agent Endpoint
+
+Let's run it:
 
 ```bash
 npx tsx watch agent.ts
 ```
 
-Your Agent Endpoint server should be running at `localhost:3000`.
-
-It's a simple Hono HTTP server exposing a single stateful AI endpoint `POST /simple_chat` and using OpenAPI Responses API to generate AI responses. Let's take a quick look:
+Your Agent Endpoint server should be running at `localhost:3000`. Let's take a quick look at the `agent.ts` file:
 
 ```typescript
 import 'dotenv/config'
@@ -294,7 +309,7 @@ You can already comment on the output, mention other team members, like/dislike 
 
 Let's get back to `agentview.config.tsx` and highlight `displayComponent` and `inputComponent` for our `simple_chat` agent:
 
-```typescript highlight={14,25,37,41-45}
+```typescript highlight={14,25-31,44,48-52}
 export default defineConfig({
   apiBaseUrl: "http://localhost:1990",
   agents: [
@@ -306,24 +321,31 @@ export default defineConfig({
             schema: z.object({
               type: z.literal("message"),
               role: z.literal("user"),
-              content: z.string(),
+            content: z.string(),
             }),
-            displayComponent: ({ value }) => <UserMessage value={value.content} />,
+            displayComponent: ({ item }) => <UserMessage>{item.content}</UserMessage>,
           },
           steps: [
             {
-              schema: z.object({
+              schema: z.looseObject({
                 type: z.literal("reasoning"),
                 summary: z.array(z.object({
                   type: z.literal("summary_text"),
                   text: z.string(),
                 })),
-              }).loose(),
-              displayComponent: ({ value }) => <BaseItem title="Thinking" value={value.summary[0]?.text ?? "Hidden reasoning summary."} variant="muted" />,
+              }),
+              displayComponent: ({ item }) => {
+                return (
+                  <ItemCard size="sm" variant="fill">
+                    <ItemCardTitle><Brain /> Thinking</ItemCardTitle>
+                    <ItemCardMarkdown text={item.summary?.map((s: any) => s?.text ?? "").join("\n\n") ?? "Hidden reasoning summary."} />
+                  </ItemCard>
+                );
+              }
             }
           ],
           output: {
-            schema: z.object({
+            schema: z.looseObject({
               type: z.literal("message"),
               role: z.literal("assistant"),
               content: z.array(z.object({
@@ -331,7 +353,7 @@ export default defineConfig({
                 text: z.string(),
               })),
             }),
-            displayComponent: ({ value }) => <AssistantMessage value={value.content[0]?.text} />
+            displayComponent: ({ item }) => <AssistantMessage>{item.content.map((c: any) => c?.text ?? "").join("\n\n")}</AssistantMessage>
           }
         }
       ],
@@ -340,8 +362,9 @@ export default defineConfig({
         onCancel={cancel}
         isRunning={isRunning}
       />
-    },
+    }
   ]
+});
 ```
 
 `displayComponent` is a React component responsible for rendering session item. You can play around with it to see how it works. If you set it to `null`, the item will not be hidden. If you remove `displayComponent` completely, you'll see the JSON data.

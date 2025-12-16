@@ -427,8 +427,31 @@ export default defineConfig({
 
 ### Long running jobs
 
-The run will automatically be set as failed after 1 minute of inactivity. If your agent is long running you can send heartbeat to tell AgentView Server that the run is still processing:
+By default, the run will automatically be set as failed after 60 seconds of inactivity. Each time you call `av.updateRun`, the timer is reset.
+
+You can reset timer manually by calling `av.keepAliveRun`:
 
 ```ts
-await av.ping({ runId: "RUN_ID" })
+await av.keepAliveRun({ id: "run_id" })
+```
+
+You can also change default timeout by setting `idleTimeout` in the agent config:
+
+```typescript
+export default defineConfig({
+  // ...
+  agents: [
+    {
+      name: "my_agent",
+      runs: [
+        {
+          input: { /* ... */ },
+          output: { /* ... */ },
+
+          idleTimeout: 120, // 2 minutes
+        }
+      ]
+    }
+  ]
+});
 ```
