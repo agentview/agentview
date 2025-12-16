@@ -53,5 +53,8 @@
         "validation",
         "typescript",
         "schema"
-    ]
+    ],
+    "publishConfig": {
+        "access": "public"
+    }
 }
