@@ -1,7 +1,7 @@
 {
     "name": "@agentview/docs",
     "private": true,
-    "version": "0.0.4-local.2",
+    "version": "0.1.0",
     "scripts": {
         "dev": "mint dev --port 1991"
     },
