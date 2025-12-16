@@ -112,7 +112,6 @@ async function publishPackages(version) {
   // Commit and tag
   await gitCommitAndTag(version);
 
-
   // Build API docker image
   const repository = "rudzienki/agentview-api";
   const versionTag = `${repository}:${version}`

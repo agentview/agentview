@@ -37,6 +37,15 @@ export class AgentView {
   constructor(options: AgentViewOptions) {
     this.apiBaseUrl = options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
     this.apiKey = options.apiKey
+
+    if (!this.apiBaseUrl) {
+      throw new Error("AgentView: Missing 'apiBaseUrl'.")
+    }
+
+    if (!this.apiKey) {
+      throw new Error("AgentView: Missing 'apiKey'.")
+    }
+
     this.userToken = options.userToken
     this.env = options.env ?? "playground";
   }
