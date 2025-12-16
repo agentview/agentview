@@ -1,6 +1,6 @@
 {
   "name": "@agentview/examples/typescript-weather-agent",
-  "version": "0.0.4-local.1",
+  "version": "0.0.4-local.2",
   "type": "module",
   "scripts": {
     "build": "vite build",
