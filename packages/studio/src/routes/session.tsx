@@ -678,11 +678,11 @@ function MessageFooter(props: MessageFooterProps) {
                         />
                     ))}
 
-                    { isOutput && <Button variant="ghost" size="sm" asChild>
+                    {/* { isOutput && <Button variant="ghost" size="sm" asChild>
                         <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: item.id })}`}>
                             <MessageCirclePlus />Comment
                         </Link>
-                    </Button> }
+                    </Button> } */}
 
                     { remainingScores.length > 0 && <ScoreDialog
                         session={session}
