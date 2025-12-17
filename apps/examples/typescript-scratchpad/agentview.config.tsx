@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { defineConfig } from "agentview";
-import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput } from "@agentview/studio/components/session-item";
 import { Brain } from "lucide-react";
+
+import { defineConfig } from "agentview";
+import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput, select, multiSelect, like } from "@agentview/studio";
 import { WeatherItem } from './src/WeatherItem';
-import { like, select, multiSelect } from "@agentview/studio";
 
 
 export default defineConfig({

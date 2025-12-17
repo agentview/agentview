@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineConfig } from "agentview";
-import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput } from "@agentview/studio/components/session-item";
+import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput, select, multiSelect, Colors } from "@agentview/studio";
 import { Brain } from "lucide-react";
 import { WeatherItem } from './src/WeatherItem';
 
@@ -61,7 +61,48 @@ export default defineConfig({
                 text: z.string(),
               })),
             }),
-            displayComponent: ({ item }) => <AssistantMessage>{item.content.map((c: any) => c?.text ?? "").join("\n\n")}</AssistantMessage>
+            displayComponent: ({ item }) => <AssistantMessage>{item.content.map((c: any) => c?.text ?? "").join("\n\n")}</AssistantMessage>,
+            scores: [
+              select({
+                name: "forecast_accuracy",
+                title: "Forecast Accuracy",
+                options: [{
+                  value: "accurate",
+                  label: "Accurate",
+                  color: Colors.green
+                }, {
+                  value: "inaccurate",
+                  label: "Inaccurate",
+                  color: Colors.yellow
+                }, {
+                  value: "partially_accurate",
+                  label: "Partially Accurate",
+                  color: Colors.red
+                }]
+              }),
+              multiSelect({
+                name: "style",
+                title: "Style",
+                options: [
+                  {
+                    value: "too-long",
+                    label: "Too long"
+                  },
+                  {
+                    value: "too-brief",
+                    label: "Too brief"
+                  },
+                  {
+                    value: "confusing",
+                    label: "Confusing"
+                  },
+                  {
+                    value: "overly-technical",
+                    label: "Overly technical"
+                  }
+                ]
+              })
+            ]
           }
         }
       ],

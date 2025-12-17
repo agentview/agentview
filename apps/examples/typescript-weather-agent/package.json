@@ -8,7 +8,7 @@
     "start": "vite preview",
     "agent:dev": "tsx watch agent.ts",
     "typecheck": "tsc",
-    "dev-all": "concurrently \"npm run agent:dev\" \"npm run dev\""
+    "all:dev": "concurrently \"npm run agent:dev\" \"npm run dev\""
   },
   "dependencies": {
     "@agentview/studio": "workspace:*",

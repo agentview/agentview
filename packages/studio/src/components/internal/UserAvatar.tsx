@@ -1,5 +1,5 @@
 import { cn } from "../../lib/utils";
-import { Colors, type Color } from "agentview/colors";
+import { Colors, type Color } from "../../colors";
 
 const sizeMap = {
     sm: {

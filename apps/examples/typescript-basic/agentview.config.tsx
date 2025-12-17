@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineConfig } from "agentview";
-import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput } from "@agentview/studio/components/session-item";
+import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput } from "@agentview/studio";
 import { Brain } from "lucide-react";
 
 export default defineConfig({

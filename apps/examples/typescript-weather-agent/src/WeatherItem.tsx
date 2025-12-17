@@ -1,4 +1,4 @@
-import { ItemCard, ItemCardMarkdown, ItemCardTitle } from "@agentview/studio/components/session-item";
+import { ItemCard, ItemCardMarkdown, ItemCardTitle } from "@agentview/studio";
 import type { SessionItemDisplayComponentProps } from "agentview";
 import { Wrench } from "lucide-react";
 
