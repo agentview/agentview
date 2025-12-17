@@ -84,14 +84,15 @@ function SelectScrollDownButton({
     )
 }
 
-export function PillSelect<T extends string | number | boolean>(props: ControlComponentProps<T> & { options: Option<T>[], placeholder?: string }) {
-    const { value, onChange, options, placeholder = "Empty" } = props;
+export function PillSelect<T extends string | number | boolean>(props: ControlComponentProps<T> & { options: Option<T>[], placeholder?: string, className?: string }) {
+    const { value, onChange, options, placeholder = "Empty", className } = props;
     const selectedOption = options.find(opt => opt.value === value);
+    const [open, setOpen] = React.useState(false);
 
     const stringValue = (value === null || value === undefined) ? "" : optionValueToString(value);
 
     return (
-        <Select value={stringValue} onValueChange={(newValue) => {
+        <Select open={open} onOpenChange={setOpen} value={stringValue} onValueChange={(newValue) => {
             if (newValue === "") {
                 onChange(null);
             }
@@ -100,7 +101,7 @@ export function PillSelect<T extends string | number | boolean>(props: ControlCo
             }
         }}>
             <SelectPrimitive.Trigger asChild>
-                <Button variant="ghost" size="sm" className="justify-start px-1.5">
+                <Button variant="ghost" size="sm" className={cn("justify-start px-1.5", open && "bg-accent", className)}>
                     {selectedOption ? (
                         <Pill color={selectedOption.color}>
                             {selectedOption.icon}

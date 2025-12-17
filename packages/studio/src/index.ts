@@ -1,3 +1,3 @@
 export { renderStudio } from "./renderStudio";
 
-export { like, select } from "./scores";
+export { like, select, multiSelect } from "./scores";

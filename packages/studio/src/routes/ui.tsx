@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { type RouteObject } from "react-router";
 import { ItemCard, ItemCardContent, ItemCardTitle, ItemCardJSON, ItemCardMarkdown } from "../components/session-item";
-import { BrainIcon, Wrench } from "lucide-react";
+import { BrainIcon, Wrench, CircleIcon, SquareIcon, TriangleIcon, HexagonIcon, StarIcon } from "lucide-react";
+import { PillSelect } from "../components/PillSelect";
+import { PillMultiSelect } from "../components/PillMultiSelect";
 
 const markdownExample = `
 ### This is a subtitle
@@ -29,7 +32,18 @@ const jsonExample = {
   }
 };
 
+const shapeOptions = [
+  { value: "circle", label: "Circle", color: "#fecaca", icon: <CircleIcon className="size-4" /> },
+  { value: "square", label: "Square", color: "#bbf7d0", icon: <SquareIcon className="size-4" /> },
+  { value: "triangle", label: "Triangle", color: "#bfdbfe", icon: <TriangleIcon className="size-4" /> },
+  { value: "hexagon", label: "Hexagon", color: "#fef08a", icon: <HexagonIcon className="size-4" /> },
+  { value: "star", label: "Star", color: "#e9d5ff", icon: <StarIcon className="size-4" /> },
+];
+
 function Component() {
+  const [selectValue, setSelectValue] = useState<string | null>("circle");
+  const [multiSelectValue, setMultiSelectValue] = useState<string[]>(["circle", "star"]);
+
   return (
     <div className="container mx-auto mt-16 p-4">
 
@@ -158,6 +172,28 @@ function Component() {
             <ItemCardTitle><Wrench /> Tool call</ItemCardTitle>
             <ItemCardJSON value={jsonExample} />
           </ItemCard>
+        </ComponentWrapper>
+
+        <h2 className="text-lg font-medium mb-6">Pill Selects</h2>
+
+        <ComponentWrapper title="PillSelect">
+          <PillSelect
+            value={selectValue}
+            onChange={setSelectValue}
+            options={shapeOptions}
+            placeholder="Select a shape..."
+            className="w-full"
+          />
+        </ComponentWrapper>
+
+        <ComponentWrapper title="PillMultiSelect">
+          <PillMultiSelect
+            value={multiSelectValue}
+            onChange={setMultiSelectValue}
+            options={shapeOptions}
+            placeholder="Select shapes..."
+            className="w-full"
+          />
         </ComponentWrapper>
       </div>
     </div>

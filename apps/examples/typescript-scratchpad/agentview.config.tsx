@@ -3,7 +3,7 @@ import { defineConfig } from "agentview";
 import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput } from "@agentview/studio/components/session-item";
 import { Brain } from "lucide-react";
 import { WeatherItem } from './src/WeatherItem';
-import { like, select } from "@agentview/studio";
+import { like, select, multiSelect } from "@agentview/studio";
 
 
 export default defineConfig({
@@ -68,6 +68,11 @@ export default defineConfig({
               select({
                 name: "test",
                 title: "Test",
+                options: ["one", "two", "three", "four", "five"]
+              }),
+              multiSelect({
+                name: "test2",
+                title: "Test 2",
                 options: ["one", "two", "three", "four", "five"]
               })
             ]

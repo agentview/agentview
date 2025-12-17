@@ -5,6 +5,8 @@ import { ThumbsDown, ThumbsUp } from "lucide-react";
 import type { ScoreConfig } from "agentview/types";
 import type { Option } from "./components/Option";
 import { PillSelect } from "./components/PillSelect";
+import { PillMultiSelect } from "./components/PillMultiSelect";
+import { OptionsDisplay } from "./components/OptionDisplay";
 
 // Like
 export type LikeScoreProps = {
@@ -48,5 +50,25 @@ export function select(args: SelectScoreProps): ScoreConfig {
         title: title ?? name,
         inputComponent: (props) => <PillSelect {...props} options={selectOptions} />,
         displayComponent: (props) => <OptionDisplay {...props} options={selectOptions} />,
+    }
+}
+
+// Multi-Select
+export type MultiSelectScoreProps = {
+    name: string,
+    title?: string;
+    options: Array<Option<string> | string>;
+}
+
+export function multiSelect(args: MultiSelectScoreProps): ScoreConfig {
+    const { name, title, options } = args;
+    const multiSelectOptions = options.map((option) => typeof option === "string" ? { value: option } : option);
+
+    return {
+        name,
+        schema: z.array(z.string()),
+        title: title ?? name,
+        inputComponent: (props) => <PillMultiSelect {...props} options={multiSelectOptions} />,
+        displayComponent: (props) => <OptionsDisplay {...props} options={multiSelectOptions} />,
     }
 }
