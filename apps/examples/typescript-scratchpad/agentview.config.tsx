@@ -65,11 +65,11 @@ export default defineConfig({
             }),
             displayComponent: ({ item }) => <AssistantMessage>{item.content.map((c: any) => c?.text ?? "").join("\n\n")}</AssistantMessage>,
             scores: [
-              // select({
-              //   name: "test",
-              //   title: "Test",
-              //   options: ["one", "two", "three", "four", "five"]
-              // })
+              select({
+                name: "test",
+                title: "Test",
+                options: ["one", "two", "three", "four", "five"]
+              })
             ]
           }
         }
