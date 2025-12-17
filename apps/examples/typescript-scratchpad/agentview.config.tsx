@@ -1,22 +1,9 @@
 import { z } from "zod";
 import { defineConfig } from "agentview";
 import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput } from "@agentview/studio/components/session-item";
-import { Book, Brain, ExternalLink, Link, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Brain } from "lucide-react";
 import { WeatherItem } from './src/WeatherItem';
-
-import { PillSelect } from "@agentview/studio/components/PillSelect";
-import { ToggleGroupControl } from "@agentview/studio/components/ToggleGroup";
-import { OptionDisplay } from "@agentview/studio/components/OptionDisplay";
-import { Colors } from "agentview/colors";
-
-const likeOptions = [{ value: true, icon: <ThumbsUp />, label: "Like" }, { value: false, icon: <ThumbsDown />, label: "Don't Like" }]
-const selectOptions = [
-  { value: "one", label: "Five", icon: <ThumbsDown />, color: Colors.red },
-  { value: "two", label: "Two", icon: <Book />, color: Colors.blue },
-  { value: "three", label: "Four", icon: <ThumbsUp />, color: Colors.green },
-  { value: "four", label: "One", icon: <Link />, color: Colors.purple },
-  { value: "five", label: "Three", icon: <ExternalLink />, color: Colors.yellow },
-]
+import { like, select } from "@agentview/studio";
 
 
 export default defineConfig({
@@ -78,21 +65,11 @@ export default defineConfig({
             }),
             displayComponent: ({ item }) => <AssistantMessage>{item.content.map((c: any) => c?.text ?? "").join("\n\n")}</AssistantMessage>,
             scores: [
-              {
-                name: "like",
-                title: "Like / Dislike",
-                schema: z.boolean(),
-                inputComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />,
-                displayComponent: (props) => <OptionDisplay {...props} options={likeOptions} />,
-                actionBarComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />
-              },
-              {
-                name: "test",
-                title: "Test",
-                schema: z.string(),
-                inputComponent: (props) => <PillSelect {...props} options={selectOptions} />,
-                displayComponent: (props) => <OptionDisplay {...props} options={selectOptions} />,
-              }
+              // select({
+              //   name: "test",
+              //   title: "Test",
+              //   options: ["one", "two", "three", "four", "five"]
+              // })
             ]
           }
         }

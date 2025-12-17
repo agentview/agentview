@@ -33,6 +33,7 @@ import { ItemCard, ItemCardContent, ItemCardTitle, ItemCardJSON, ItemCardMarkdow
 import { debugRun } from "../lib/debugRun";
 import { ErrorBoundary } from "../components/internal/ErrorBoundary";
 import { toast } from "sonner";
+import { like } from "../scores";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<SessionWithCollaboration>(`/api/sessions/${params.id}`);
@@ -652,9 +653,15 @@ function MessageFooter(props: MessageFooterProps) {
     const actionBarScores = allScoreConfigs.filter(scoreConfig => scoreConfig.actionBarComponent);
     const remainingScores = allScoreConfigs.filter(scoreConfig => !scoreConfig.actionBarComponent);
 
+    // const hasLike = isOutput ? (itemConfig?.like ?? true) : (itemConfig?.like ?? false);
+    // if (hasLike) {
+    //     actionBarScores.unshift(like());
+    // }
+
     if (actionBarScores.length === 0 && remainingScores.length === 0 && !isSmallSize && !isLastRunItem) {
         return null;
     }
+
 
     return <div className="mt-3 mb-8">
         {isLastRunItem && run.status === "failed" && <div className="text-md mt-6 mb-3 text-red-500">

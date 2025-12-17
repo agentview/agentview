@@ -84,12 +84,6 @@ function SelectScrollDownButton({
     )
 }
 
-export type PillSelectOption<T extends string | number | boolean> = {
-    value: T;
-    icon?: React.ReactNode;
-    label?: string;
-}
-
 export function PillSelect<T extends string | number | boolean>(props: ControlComponentProps<T> & { options: Option<T>[], placeholder?: string }) {
     const { value, onChange, options, placeholder = "Empty" } = props;
     const selectedOption = options.find(opt => opt.value === value);
@@ -127,7 +121,7 @@ export function PillSelect<T extends string | number | boolean>(props: ControlCo
                     >
                         <Pill color={option.color}>
                             {option.icon}
-                            <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+                            <SelectPrimitive.ItemText>{option.label ?? option.value}</SelectPrimitive.ItemText>
                         </Pill>
                     </SelectPrimitive.Item>
                 ))}

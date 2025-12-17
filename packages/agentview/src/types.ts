@@ -55,7 +55,8 @@ export type SessionItemDisplayComponentProps<TItemSchema extends z.ZodTypeAny = 
 
 export type SessionItemConfig = BaseSessionItemConfig<ScoreConfig> & {
   displayComponent?: React.ComponentType<SessionItemDisplayComponentProps> | null;
-  callResult?: SessionItemConfig;
+  disableLike?: boolean;
+  // callResult?: SessionItemConfig;
 };
 
 export type RunConfig = BaseRunConfig<SessionItemConfig, SessionItemConfig> & {
@@ -84,7 +85,7 @@ export type AgentConfig = BaseAgentConfig<RunConfig> & {
   displayProperties?: DisplayProperty<{ session: Session }>[];
   newSessionComponent?: NewSessionComponent;
   inputComponent?: AgentInputComponent;
-  run?: RunConfig;
+  // run?: RunConfig;
 }
 
 export type AgentViewConfig = BaseAgentViewConfig<AgentConfig> & {
