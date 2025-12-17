@@ -17,7 +17,8 @@ export function PillMultiSelect<T extends string | number | boolean>(props: Cont
 
     const handleRemove = (e: React.MouseEvent, valueToRemove: T) => {
         e.stopPropagation();
-        onChange(selectedValues.filter(v => v !== valueToRemove));
+        const newValues = selectedValues.filter(v => v !== valueToRemove);
+        onChange(newValues.length > 0 ? newValues : null);
     };
 
     const handleAdd = (valueToAdd: T) => {
