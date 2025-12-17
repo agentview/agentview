@@ -652,11 +652,11 @@ function MessageFooter(props: MessageFooterProps) {
     const actionBarScores = allScoreConfigs.filter(scoreConfig => scoreConfig.actionBarComponent);
     const remainingScores = allScoreConfigs.filter(scoreConfig => !scoreConfig.actionBarComponent);
 
-    if (actionBarScores.length === 0 && remainingScores.length === 0 && !isSelected && !isLastRunItem) {
+    if (actionBarScores.length === 0 && remainingScores.length === 0 && !isSmallSize && !isLastRunItem) {
         return null;
     }
 
-    return <div className="mt-3 mb-8 ">
+    return <div className="mt-3 mb-8">
         {isLastRunItem && run.status === "failed" && <div className="text-md mt-6 mb-3 text-red-500">
             <span className="">{run.failReason?.message ?? "Failed for unknown reason"} </span>
         </div>}
@@ -692,7 +692,7 @@ function MessageFooter(props: MessageFooterProps) {
                         scoreConfigs={remainingScores}
                     /> }
 
-                    { run.status !== "in_progress" && <Button variant="ghost" size="sm" asChild>
+                    { run.status !== "in_progress" && isLastRunItem && <Button variant="ghost" size="sm" asChild>
                         <Link to={`/sessions/${session.handle}/runs/${run.id}?${toQueryParams(listParams)}`}><InfoIcon className="size-4" />Run</Link>
                     </Button> }
 

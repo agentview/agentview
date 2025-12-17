@@ -115,7 +115,7 @@ function Component() {
 
                 </PropertyList>
 
-                <div className="mt-8 border p-4 rounded-lg flex flex-row gap-4 items-center">
+                {/* <div className="mt-8 border p-4 rounded-lg flex flex-row gap-4 items-center">
 
                     <div>
                         <div className="text-sm font-medium">Debug in console</div>
@@ -125,7 +125,7 @@ function Component() {
                     </div>
                     <Button variant="default" onClick={() => { debugRun(run); }}>Print to console</Button>
 
-                </div>
+                </div> */}
 
                 {/* <div className="mt-8 flex flex-col gap-2 items-start">  
                 <Button variant="outline" onClick={() => {
@@ -146,9 +146,9 @@ function Component() {
                 </div> */}
 
             </DialogBody>
-            {/* <DialogFooter>
+            <DialogFooter>
                 <Button variant="default" onClick={close}>Close</Button>
-            </DialogFooter> */}
+            </DialogFooter>
 
         </DialogContent>
     </Dialog>
