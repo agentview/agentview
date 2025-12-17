@@ -23,7 +23,7 @@ First and most important customisation is providing a custom view for session it
   - highlight `displayComponent` lines (and entire components that are values of `displayComponent` property)
 </prompt> */ }
 
-```tsx highlight={19,30-36,49}
+```tsx highlight={19,30-37,49}
 import { z } from "zod";
 import { defineConfig } from "agentview";
 import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput } from "@agentview/studio/components/session-item";
@@ -111,12 +111,13 @@ You can define tools via `callResult` property (read more here: [items validatio
 export default defineConfig({
   agents: [
     {
-      name: "my_agent",
+      name: "weather-chat",
       runs: [
         {
-          input: /* ... */,
-          output: /* ... */,
+          input: { /* ... */ },
+          output: { /* ... */ },
           steps: [
+            // ...
             {
               schema: z.looseObject({
                 type: z.literal("function_call"),
@@ -131,7 +132,6 @@ export default defineConfig({
               },
               displayComponent: ({ item, resultItem }) => { /* ... */ }
             }
-            // ...
           ]
         }
       ]
@@ -154,36 +154,32 @@ AgentView allows the members of your organisation to play around with your agent
   - highlight `inputComponent` line (and entire component that is its value)
 </prompt> */ }
 
-```tsx highlight={26-32}
+```tsx highlight={24-28}
 export default defineConfig({
-  // ...
+  apiBaseUrl: "http://localhost:1990",
   agents: [
     {
-      name: "my_agent",
+      name: "simple_chat",
       runs: [
         {
           input: {
-            schema: {
-              type: "message",
-              role: "user",
+            schema: z.object({
+              type: z.literal("message"),
+              role: z.literal("user"),
               content: z.string(),
-            },
-            displayComponent: ({ item }) => <UserMessage>{ item.content }</UserMessage>
+            }),
+            displayComponent: ({ item }) => <UserMessage>{item.content}</UserMessage>,
           },
+          steps: [
+            // ...
+          ],
           output: {
-            schema: {
-              type: "message",
-              role: "assistant",
-              content: z.string(),
-            },                            
-            displayComponent: ({ item }) => <AssistantMessage>{ item.content }</AssistantMessage>
+            // ...
           }
         }
       ],
       inputComponent: ({ submit, cancel, isRunning }) => <UserMessageInput
-        onSubmit={(value) => {
-          submit("http://localhost:3000/simple_chat", { input: { type: "message", role: "user", content: value } })
-        }} 
+        onSubmit={(val) => submit("http://localhost:3000/simple_chat", { input: { content: val, type: "message", role: "user" } })}
         onCancel={cancel}
         isRunning={isRunning}
       />
