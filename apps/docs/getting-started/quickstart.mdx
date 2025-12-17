@@ -57,6 +57,10 @@ Now go to the `localhost:1989` URL and register as the first admin user. You can
 At the root of the project there's a `agentview.config.tsx` file. All the configuration of AgentView is done via this file. It's used both by Studio and AgentView Server (Studio detects config file changes and synchronizes it with the Server).
 Let's take a look at it:
 
+{ /* <prompt>
+  copy apps/examples/typescript-basic/agentview.config.tsx file into following snippet
+</prompt> */ }
+
 ```typescript
 import { z } from "zod";
 import { defineConfig } from "agentview";
@@ -155,6 +159,10 @@ npx tsx watch agent.ts
 
 Your Agent Endpoint server should be running at `localhost:3000`. Let's take a quick look at the `agent.ts` file:
 
+{ /* <prompt>
+  copy apps/examples/typescript-basic/agent.ts file into following snippet
+</prompt> */ }
+
 ```typescript
 import 'dotenv/config'
 import { Hono } from 'hono'
@@ -167,7 +175,7 @@ const app = new Hono();
 const client = new OpenAI()
 
 const av = new AgentView({
-  apiUrl: 'http://localhost:1990',
+  apiBaseUrl: 'http://localhost:1990',
   apiKey: process.env.AGENTVIEW_API_KEY!
 })
 
@@ -308,6 +316,12 @@ You can already comment on the output, mention other team members, like/dislike 
 ## Custom components
 
 Let's get back to `agentview.config.tsx` and highlight `displayComponent` and `inputComponent` for our `simple_chat` agent:
+
+{ /* <prompt>
+  - copy apps/examples/typescript-basic/agentview.config.tsx file into following snippet
+  - leave only `export default defineConfig({...})` block
+  - highlight `displayComponent` and `inputComponent` lines
+</prompt> */ }
 
 ```typescript highlight={14,25-31,44,48-52}
 export default defineConfig({

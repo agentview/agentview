@@ -18,6 +18,11 @@ Let's dig into how to customize how your sessions look in the Studio.
 
 First and most important customisation is providing a custom view for session items. You can do this by providing a custom component to `displayComponent` property of the session item:
 
+{ /* <prompt>
+  - copy apps/examples/typescript-basic/agentview.config.tsx file into following snippet
+  - highlight `displayComponent` lines (and entire components that are values of `displayComponent` property)
+</prompt> */ }
+
 ```tsx highlight={19,30-36,49}
 import { z } from "zod";
 import { defineConfig } from "agentview";
@@ -96,7 +101,11 @@ Tool calls come in pairs: call and result. Also, if you use paralell tool calls,
 
 You can define tools via `callResult` property (read more here: [items validation](/concepts/items-validation#tool-calls)).
 
-
+{ /* <prompt>
+  - copy apps/examples/typescript-weather-agent/agentview.config.tsx file into following snippet
+  - remove imports, leave only `export default defineConfig({...})` block
+  - leave the step with function call intact, but comment out (with "// ..." or alike) input, output, other steps, etc... make it short and focused on the function call.
+</prompt> */ }
 
 ```tsx
 export default defineConfig({
@@ -137,6 +146,13 @@ When the tool call is done, both `item` and `resultItem` are set. When call is i
 ### Input
 
 AgentView allows the members of your organisation to play around with your agent. All you need to do is provide an `inputComponent` and make it submit a request to your chat endpoint.
+
+{ /* <prompt>
+  - copy apps/examples/typescript-basic/agentview.config.tsx file into following snippet
+  - remove imports, leave only `export default defineConfig({...})` block
+  - leave `input`, `output`, and `inputComponent`, collapse the rest (with "// ..." or alike)
+  - highlight `inputComponent` line (and entire component that is its value)
+</prompt> */ }
 
 ```tsx highlight={26-32}
 export default defineConfig({
