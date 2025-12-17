@@ -775,6 +775,12 @@ function ScoreDialog({ session, item, open, onOpenChange, scoreConfigs }: { sess
         onOpenChange(false);
     });
 
+    useEffect(() => {
+        if (!open) {
+            form.reset();
+        }
+    }, [open])
+
     return (
         <Popover open={open} onOpenChange={onOpenChange}>
             <PopoverTrigger asChild>
