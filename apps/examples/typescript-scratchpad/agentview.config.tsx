@@ -18,7 +18,7 @@ const selectOptions = [
   { value: "five", label: "Three", icon: <ExternalLink />, color: Colors.yellow },
 ]
 
-  
+
 export default defineConfig({
   apiBaseUrl: "http://localhost:1990",
   agents: [
@@ -86,15 +86,13 @@ export default defineConfig({
                 displayComponent: (props) => <OptionDisplay {...props} options={likeOptions} />,
                 actionBarComponent: (props) => <ToggleGroupControl {...props} options={likeOptions} hideOptionsOnSelect showLabels="on-select" />
               },
-
-                {
-                  name: "test",
-                  title: "Test",
-                  schema: z.string(),
-                  inputComponent: (props) => <PillSelect {...props} options={selectOptions} />,
-                  displayComponent: (props) => <OptionDisplay {...props} options={selectOptions} />,
-                }
-              
+              {
+                name: "test",
+                title: "Test",
+                schema: z.string(),
+                inputComponent: (props) => <PillSelect {...props} options={selectOptions} />,
+                displayComponent: (props) => <OptionDisplay {...props} options={selectOptions} />,
+              }
             ]
           }
         }
