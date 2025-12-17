@@ -59,8 +59,9 @@ export function PillMultiSelect<T extends string | number | boolean>(props: Cont
 
             <Popover.Portal>
                 <Popover.Content
-                    className="bg-popover text-popover-foreground z-50 min-w-[8rem] overflow-hidden rounded-md border shadow-md p-1"
+                    className="bg-popover text-popover-foreground z-50 min-w-[8rem] w-[var(--radix-popover-trigger-width)] overflow-hidden rounded-md border shadow-md p-1"
                     sideOffset={4}
+                    align="start"
                 >
                     {options.map((option) => {
                         const isSelected = selectedValues.includes(option.value);
