@@ -358,28 +358,13 @@ function SessionPage() {
 
                                     <div className={`relative`} style={{ marginLeft: `${styles.padding}px`, width: `${styles.textWidth}px` }}>
 
-                                        {/* <div data-item onClick={() => { setselectedItemId(item.id) }}>
-                                            <ErrorBoundary>
-                                                {content}
-                                            </ErrorBoundary>
-                                        </div> */}
-                                        <div data-item>
+                                        <div data-item /*onClick={() => { setselectedItemId(item.id) }}*/ >
                                             <ErrorBoundary>
                                                 {content}
                                             </ErrorBoundary>
                                         </div>
 
-                                        {isLastRunItem && run.status === "failed" && <div className="text-md mt-6 text-red-500">
-                                            <span className="">{run.failReason?.message ?? "Failed for unknown reason"} </span>
-                                            {/* <br /> <a href="#" className="underline flex flex-row items-center gap-1">Debug <ExternalLinkIcon className="size-4" /></a></span> */}
-                                        </div>}
-
-                                        {isLastRunItem && run.status === "cancelled" && <div className="text-md mt-6 text-red-500">
-                                            <span>Cancelled by user</span>
-                                            {/* <br /> <a href="#" className="underline flex flex-row items-center gap-1">Debug <ExternalLinkIcon className="size-4" /></a></span> */}
-                                        </div>}
-
-                                        {isLastRunItem && run.status !== "in_progress" && <MessageFooter
+                                        <MessageFooter
                                             session={session}
                                             run={run}
                                             listParams={listParams}
@@ -388,9 +373,9 @@ function SessionPage() {
                                             onSelect={() => { setselectedItemId(item.id) }}
                                             isSelected={isSelected}
                                             isSmallSize={styles.isSmallSize}
-                                            hasErrors={run.status === "failed"}
-                                        />}
-
+                                            isLastRunItem={isLastRunItem}
+                                            isOutput={itemConfigMatch?.type === "output"}
+                                        />
 
                                         {isLastRunItem && run.status === "in_progress" && <div className="text-muted-foreground mt-5">
                                             <Loader />
@@ -640,73 +625,92 @@ type MessageFooterProps = {
     onSelect: () => void,
     isSelected: boolean,
     isSmallSize: boolean,
-    hasErrors?: boolean
+    isLastRunItem: boolean,
+    isOutput: boolean,
 }
 
 
+/**
+ * ACTION BAR DESIGN GUIDELINES:
+ * - we must start with the "Pill", that must be quite minimalistic, otherwise everything is too heavy.
+ * - the pill with "md" size looks good, it's almost like in Notion, just 2px higher and this allows font 14px to be set (the same as in the button)
+ * - this in turn makes it look good with buttons from shadcn. Ghost, sm.
+ * - clickable height 32px
+ * - outline buttons should be avoided, but if you want to use them, use outline xs. Look fine.
+ * 
+ * Problem?
+ * - pills in comments must be "xs", otherwise are too large. It'd be good to have 1 type of pill. But either we keep it Notion-like *or* look good with off-the-shelf shadcn.
+ */
+
+
 function MessageFooter(props: MessageFooterProps) {
-    const { session, run, listParams, item, itemConfig, onSelect, isSelected, isSmallSize, hasErrors = false } = props;
+    const { session, run, listParams, item, itemConfig, onSelect, isSelected, isSmallSize, isLastRunItem, isOutput } = props;
     const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
 
     const allScoreConfigs = itemConfig?.scores ?? [];
-    const actionBarScores = allScoreConfigs.filter(scoreConfig => scoreConfig.actionBarComponent);
 
-    /**
-     * ACTION BAR DESIGN GUIDELINES:
-     * - we must start with the "Pill", that must be quite minimalistic, otherwise everything is too heavy.
-     * - the pill with "md" size looks good, it's almost like in Notion, just 2px higher and this allows font 14px to be set (the same as in the button)
-     * - this in turn makes it look good with buttons from shadcn. Ghost, sm.
-     * - clickable height 32px
-     * - outline buttons should be avoided, but if you want to use them, use outline xs. Look fine.
-     * 
-     * Problem?
-     * - pills in comments must be "xs", otherwise are too large. It'd be good to have 1 type of pill. But either we keep it Notion-like *or* look good with off-the-shelf shadcn.
-     */
+    const actionBarScores = allScoreConfigs.filter(scoreConfig => scoreConfig.actionBarComponent);
+    const remainingScores = allScoreConfigs.filter(scoreConfig => !scoreConfig.actionBarComponent);
+
+    if (actionBarScores.length === 0 && remainingScores.length === 0 && !isSelected && !isLastRunItem) {
+        return null;
+    }
 
     return <div className="mt-3 mb-8 ">
+        {isLastRunItem && run.status === "failed" && <div className="text-md mt-6 mb-3 text-red-500">
+            <span className="">{run.failReason?.message ?? "Failed for unknown reason"} </span>
+        </div>}
+
+        {isLastRunItem && run.status === "cancelled" && <div className="text-md mt-6 mb-3 text-red-500">
+            <span>Cancelled by user</span>
+        </div>}
+
         <div>
             <div className="text-xs flex justify-between gap-2 items-start">
                 <div className="flex flex-row flex-wrap gap-1 items-center -ml-2">
 
-                    {!hasErrors && <>
-                        {actionBarScores.map((scoreConfig) => (
-                            <ActionBarScoreForm
-                                key={scoreConfig.name}
-                                session={session}
-                                item={item}
-                                scoreConfig={scoreConfig}
-                            />
-                        ))}
-
-                        <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: item.id })}`}>
-                                <MessageCirclePlus />Comment
-                            </Link>
-                        </Button>
-
-                        <ScoreDialog
+                    {actionBarScores.map((scoreConfig) => (
+                        <ActionBarScoreForm
+                            key={scoreConfig.name}
                             session={session}
                             item={item}
-                            itemConfig={itemConfig}
-                            open={scoreDialogOpen}
-                            onOpenChange={setScoreDialogOpen}
+                            scoreConfig={scoreConfig}
                         />
-                    </>}
+                    ))}
 
-                    {hasErrors && <Button variant="ghost" size="sm" onClick={() => { debugRun(run) }}>
+                    { isOutput && <Button variant="ghost" size="sm" asChild>
+                        <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: item.id })}`}>
+                            <MessageCirclePlus />Comment
+                        </Link>
+                    </Button> }
+
+                    { remainingScores.length > 0 && <ScoreDialog
+                        session={session}
+                        item={item}
+                        open={scoreDialogOpen}
+                        onOpenChange={setScoreDialogOpen}
+                        scoreConfigs={remainingScores}
+                    /> }
+
+                    { run.status !== "in_progress" && <Button variant="ghost" size="sm" asChild>
+                        <Link to={`/sessions/${session.handle}/runs/${run.id}?${toQueryParams(listParams)}`}><InfoIcon className="size-4" />Run</Link>
+                    </Button> }
+
+
+                    {/* {hasErrors && <Button variant="ghost" size="sm" onClick={() => { debugRun(run) }}>
                         <SquareTerminal />Debug
-                    </Button>}
+                    </Button>} */}
                 </div>
 
-                <div className="flex flex-row  items-center text-sm -mr-2">
+                {/* { isLastRunItem && <div className="flex flex-row  items-center text-sm -mr-2">
                     <Button variant="ghost" size="sm" className="text-muted-foreground" asChild>
                         <Link to={`/sessions/${session.handle}/runs/${run.id}?${toQueryParams(listParams)}`}><WrenchIcon className="size-4" />Run</Link>
                     </Button>
-                </div>
+                </div> } */}
             </div>
         </div>
 
-        {isSmallSize && !hasErrors && <div className={`relative mt-4 mb-2`}>
+        {isSmallSize && <div className={`relative mt-4 mb-2`}>
             <CommentsThread
                 item={item}
                 session={session}
@@ -721,15 +725,15 @@ function MessageFooter(props: MessageFooterProps) {
 }
 
 
-function ScoreDialog({ session, item, itemConfig, open, onOpenChange }: { session: SessionWithCollaboration, item: SessionItemWithCollaboration, itemConfig?: SessionItemConfig, open: boolean, onOpenChange: (open: boolean) => void }) {
+function ScoreDialog({ session, item, open, onOpenChange, scoreConfigs }: { session: SessionWithCollaboration, item: SessionItemWithCollaboration, open: boolean, onOpenChange: (open: boolean) => void, scoreConfigs: ScoreConfig[] }) {
     const { me } = useSessionContext();
     const fetcher = useFetcher();
 
-    const allScoreConfigs = itemConfig?.scores ?? [];
+    // const allScoreConfigs = itemConfig?.scores ?? [];
 
     const schema = z.object(
         Object.fromEntries(
-            allScoreConfigs.map((scoreConfig) => [
+            scoreConfigs.map((scoreConfig) => [
                 scoreConfig.name,
                 scoreConfig.schema.optional().nullable()
             ])
@@ -768,7 +772,7 @@ function ScoreDialog({ session, item, itemConfig, open, onOpenChange }: { sessio
         <Popover open={open} onOpenChange={onOpenChange}>
             <PopoverTrigger asChild>
                 <Button variant="ghost" size="sm">
-                    <CircleGauge />Score <ChevronDown />
+                    <CircleGauge />Scores <ChevronDown />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[450px] p-3">
@@ -785,7 +789,7 @@ function ScoreDialog({ session, item, itemConfig, open, onOpenChange }: { sessio
                     <HookForm {...form}>
                         <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
                             <div className="space-y-2">
-                                {allScoreConfigs.map((scoreConfig) => (
+                                {scoreConfigs.map((scoreConfig) => (
                                     <AVFormField
                                         variant="row"
                                         key={scoreConfig.name}

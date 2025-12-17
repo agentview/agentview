@@ -1,4 +1,4 @@
-import "../src/loadEnv";
+import "@agentview/utils/loadEnv";
 import { db } from "../src/db";
 import { sql } from "drizzle-orm";
 

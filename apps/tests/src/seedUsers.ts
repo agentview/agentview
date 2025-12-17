@@ -1,6 +1,6 @@
 import '@agentview/utils/loadEnv'
 import { authClient, inviteMember } from './authClient'
-import { updateEnvFile } from '@agentview/utils/updateEnvFile'
+import { updateApiKeyEnv } from '@agentview/utils/updateApiKeyEnv'
 
 async function main() {
   // First sign up - admin user
@@ -17,7 +17,7 @@ async function main() {
 
   // Let's write the API key to the .env file
   console.log('API Key: ' + key)
-  updateEnvFile("AGENTVIEW_API_KEY", key);
+  updateApiKeyEnv(key);
 
   // Invite Bob and Alice
   const bobInvitation = await inviteMember("bob@acme.com", "user");

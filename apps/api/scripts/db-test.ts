@@ -1,4 +1,4 @@
-import "../src/loadEnv";
+import "@agentview/utils/loadEnv";
 import { db } from "../src/db";
 
 console.log("Running 'select 1' test SQL query");
