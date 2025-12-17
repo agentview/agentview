@@ -1,13 +1,15 @@
+import type { Env } from "agentview/apiTypes";
 import { apiFetch } from "../lib/apiFetch";
 import type { ActionFunctionArgs, RouteObject } from "react-router";
 
 async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const isShared = formData.get("isShared") === "true" ;
+
+  const env = formData.get("env") as Env;
   
   const response = await apiFetch(`/api/users/${params.userId}`, {
     method: "PATCH",
-    body: { isShared },
+    body: { env },
   });
 
   if (!response.ok) {
@@ -26,7 +28,7 @@ async function action({ request, params }: ActionFunctionArgs) {
 //   );
 // }
 
-export const userShareRoute: RouteObject = {
+export const userUpdateRoute: RouteObject = {
   // Component,
   action,
 }

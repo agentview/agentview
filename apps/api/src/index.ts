@@ -2499,51 +2499,51 @@ app.openapi(commentsPUTRoute, async (c) => {
 
 
 // Scores GET (get all scores for an item)
-const scoresGETRoute = createRoute({
-  method: 'get',
-  path: '/api/sessions/{sessionId}/items/{itemId}/scores',
-  request: {
-    params: z.object({
-      sessionId: z.string(),
-      itemId: z.string(),
-    }),
-  },
-  responses: {
-    200: response_data(z.array(z.object({
-      name: z.string(),
-      value: z.any()
-    }))),
-    401: response_error(),
-    404: response_error(),
-  },
-})
+// const scoresGETRoute = createRoute({
+//   method: 'get',
+//   path: '/api/sessions/{sessionId}/items/{itemId}/scores',
+//   request: {
+//     params: z.object({
+//       sessionId: z.string(),
+//       itemId: z.string(),
+//     }),
+//   },
+//   responses: {
+//     200: response_data(z.array(z.object({
+//       name: z.string(),
+//       value: z.any()
+//     }))),
+//     401: response_error(),
+//     404: response_error(),
+//   },
+// })
 
-app.openapi(scoresGETRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  const userPrincipal = requireMemberPrincipal(principal);
+// app.openapi(scoresGETRoute, async (c) => {
+//   const principal = await authn(c.req.raw.headers)
+//   const userPrincipal = requireMemberPrincipal(principal);
 
-  const { sessionId, itemId } = c.req.param()
+//   const { sessionId, itemId } = c.req.param()
 
-  const session = await requireSession(sessionId)
-  const item = await requireSessionItem(session, itemId);
+//   const session = await requireSession(sessionId)
+//   const item = await requireSessionItem(session, itemId);
 
-  // Get all scores for this item created by the current user
-  const itemScores = await db.query.scores.findMany({
-    where: and(
-      eq(scores.sessionItemId, itemId),
-      eq(scores.createdBy, userPrincipal.session.user.id),
-      isNull(scores.deletedAt)
-    )
-  });
+//   // Get all scores for this item created by the current user
+//   const itemScores = await db.query.scores.findMany({
+//     where: and(
+//       eq(scores.sessionItemId, itemId),
+//       eq(scores.createdBy, userPrincipal.session.user.id),
+//       isNull(scores.deletedAt)
+//     )
+//   });
 
-  // Convert to array format
-  const scoresArray = itemScores.map(score => ({
-    name: score.name,
-    value: score.value
-  }));
+//   // Convert to array format
+//   const scoresArray = itemScores.map(score => ({
+//     name: score.name,
+//     value: score.value
+//   }));
 
-  return c.json(scoresArray, 200);
-})
+//   return c.json(scoresArray, 200);
+// })
 
 
 // Scores PATCH (create or update scores for an item)

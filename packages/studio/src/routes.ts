@@ -8,7 +8,7 @@ import { membersEditRoute } from "./routes/membersEdit";
 import { membersDeleteRoute } from "./routes/membersDelete";
 import { emailsRoute } from "./routes/emails";
 import { emailDetailRoute } from "./routes/emailDetail";
-import { userShareRoute } from "./routes/userShare";
+import { userUpdateRoute } from "./routes/userUpdate";
 import { sessionsRoute } from "./routes/sessions";
 import { sessionsIndexRoute } from "./routes/sessionsIndex";
 import { sessionNewRoute } from "./routes/sessionNew";
@@ -100,8 +100,8 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
               ]
             },
             {
-              path: "users/:userId/share",
-              ...userShareRoute,
+              path: "users/:userId/update",
+              ...userUpdateRoute,
             },
             {
               path: "sessions",

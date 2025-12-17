@@ -469,14 +469,13 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
 }
 
 function ShareForm({ session }: { session: Session }) {
-    return <div>FIX ME 14</div>
-    // const fetcher = useFetcher();
-    // return <fetcher.Form method="put" action={`/users/${session.user.id}/share`}>
-    //     <input type="hidden" name="isShared" value={session.user.isShared ? "false" : "true"} />
-    //     <Button variant={"outline"} size="sm" type="submit">
-    //         <UsersIcon fill={session.user.isShared ? "black" : "none"} stroke={session.user.isShared ? "none" : "black"} /> {session.user.isShared ? "Shared" : "Share"}
-    //     </Button>
-    // </fetcher.Form>
+    const fetcher = useFetcher();
+    return <fetcher.Form method="put" action={`/users/${session.user.id}/update`}>
+        <input type="hidden" name="env" value={session.user.env === "shared-playground" ? "playground" : "shared-playground"} />
+        <Button variant={"outline"} size="sm" type="submit">
+            <UsersIcon fill={session.user.env === "shared-playground" ? "black" : "none"} stroke={session.user.env === "shared-playground" ? "none" : "black"} /> {session.user.env === "shared-playground" ? "Shared" : "Share"}
+        </Button>
+    </fetcher.Form>
 }
 
 // const inputComponent = ({ session, userToken }) => {
