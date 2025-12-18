@@ -205,7 +205,7 @@ export default defineConfig({
 })
 ```
 
-The job of `inputComponent` is to submit a request to trigger a new run by making a request to your custom Agent Endpoint. Please keep in mind that *Studio doesn't listen to the response from your Agent*, as it might be a custom format. It displays live changes based on the data you sent to AgentView via `av.createRun` or `av.updateRun` calls.
+The job of `inputComponent` is to submit a request to your Agent Endpoint, which should trigger a new run. Please keep in mind that *Studio doesn't listen to the response from your Agent* (it might be your custom format). It only displays live changes based on the data you sent to AgentView via `av.createRun` or `av.updateRun` calls. For example, if your Agent Endpoint is streaming each token, but it only calls `av.updateRun` at the end of the stream, then AgentView will see update only at the end of the stream.
 
 `<UserMessageInput />` is simple component from AgentView Design System that displays a text input, send and cancel buttons. You can provide your custom one whenever you need to.
 
@@ -215,22 +215,20 @@ Here are `inputComponent` properties:
 |------|-------------|------|
 | `session` | Current session object | `Session` |
 | `token` | A user token | `string` |
-| `submit` | A thin wrapper on top of native browser `fetch`, that manages state and simplifies code. | `(url: string, fetchOptions?: RequestInit & { input?: any }) => Promise` |
+| `submit` | A thin wrapper on top of native browser `fetch`, that manages state and simplifies code. | `(url: string, body: Record<string, any>, init?: RequestInit) => Promise<Response>` |
 | `cancel` | If you use `submit`, it cancels the request properly | `() => void` |
 | `isRunning` | If you use `submit`, it properly handles information whether the component should be disabled | `boolean` |
 
 
 #### `submit` function
 
-In your component you can make a call to your Agent Endpoint just by using standard browser `fetch` function. However it requires a bit of annoying boilerplate code to take into account cancellation, loading state etc.
+`submit` is a thin wrapper on top of native browser `fetch` function that reduces a lot of boilerplate code:
+- sets `POST` method and `Content-Type: application/json` header
+- accepts `body` second parameter as a JSON
+- if you call `cancel` it properly handles cancellation
+- properly computes `isRunning` based on session and request state
 
-`submit` is a very thin wrapper on top of `fetch` that handles those things:
-- it sends request as `POST` and sets `Content-Type: application/json` header
-- injects `token` and `id` into the body. The body is `{ id, token, input: your_input }`
-- connects `AbortController` to properly cancel the connections and update the app state. Makes `cancel` function easily available.
-- computes `isRunning` based on session and request state
-
-Essentially, the second parameter of `submit` function is the same as you would pass to `fetch` function with extra `input` property. If you set `input`, the body will be `{ id, token, input: your_input }`.
+`submit` returns a `Response` object like fetch, and its 3rd parameter `init?` is the same as you would pass to `fetch` function (second param).
 
 ## Session Header
 

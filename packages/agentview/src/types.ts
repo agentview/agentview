@@ -69,7 +69,7 @@ export type AgentInputComponentProps<TSchema extends z.ZodTypeAny = z.ZodAny> = 
   token: string,
   isRunning: boolean,
   cancel: () => void,
-  submit: (url: string, options: RequestInit & { input?: z.infer<TSchema> }) => Promise<void | Response> // no idea why this type is correct
+  submit: (url: string, body: Record<string, any>, init?: RequestInit) => Promise<Response> // no idea why this type is correct
 }
 
 export type AgentInputComponent<TSchema extends z.ZodTypeAny = z.ZodAny> = React.ComponentType<AgentInputComponentProps<TSchema>>

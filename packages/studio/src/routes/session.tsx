@@ -97,7 +97,7 @@ function SessionPage() {
     //         return run;
     //     })
     // } as SessionWithCollaboration
-    console.log('session: ', session);
+    // console.log('session: ', session);
 
     const listParams = loaderData.listParams;
     const activeItems = getAllSessionItems(session, { activeOnly: true })
@@ -511,58 +511,55 @@ function ShareForm({ session }: { session: Session }) {
 // }
 
 function InputForm({ session, agentConfig, styles }: { session: Session, agentConfig: AgentConfig, styles: Record<string, number> }) {
-    const [error, setError] = useState<BaseError | undefined>(undefined)
-
     const lastRun = getLastRun(session)
 
     const [abortController, setAbortController] = useState<AbortController | undefined>(undefined)
 
-    const submit = async (url: string, options: RequestInit & { input?: any }) => {
+    const submit = async (url: string, body: Record<string, any>, init?: RequestInit) => {
         const abortController = new AbortController();
         setAbortController(abortController);
-        setError(undefined);
 
         const fetchOptions: RequestInit = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                input: options.input,
-                id: session.id,
-                token: session.user.token
-            }),
-            signal: abortController.signal,
-            ...(options ?? {}),
+            body: JSON.stringify(body),
+            ...(init ?? {}),
+            signal: abortController.signal, // you can't override the signal if you're using `submit`
         }
 
-        return fetch(url, fetchOptions)
-            .then(async (response) => {
-                if (!response.ok) {
-                    console.error(`The fetch to '${url}' (done via 'submit' function) returned error response (${response.status} ${response.statusText}). Check Network tab in browser for error details.`);
-                    toast.error(`Error: "${response.status} ${response.statusText}". Check console.`);
-                }
-                return response;
-            })
-            .catch((error: any) => {
-                if (error?.name === 'AbortError') {
-                    console.log('stream aborted');
-                    return;
-                }
+        try {
+            const response = await fetch(url, fetchOptions);
 
-                console.error(`The fetch to '${url}' (done via 'submit' function) threw an error. Check Network tab in browser for error details.`);
-                console.error(error);
-                toast.error(`Error: "${error.message}". Check console.`);
-                return;
-            })
-            .finally(() => {
-                setAbortController(undefined);
-            })
+            if (!response.ok) {
+                console.error(`The fetch to '${url}' (done via 'submit' function) returned error response (${response.status} ${response.statusText}). Check Network tab in browser for error details.`);
+                toast.error(`Error: "${response.status} ${response.statusText}". Check console.`);
+            }
+
+            await response.text(); // this is important. It waits until the full stream finished. Only after that we can call "finally" and reset abort controller.
+            
+            return response;
+
+        } catch (error: any) {
+            console.log('catch: ', error?.name);
+            if (error?.name === 'AbortError') {
+                console.log('stream aborted');
+                throw error;
+            }
+
+            console.error(`The fetch to '${url}' (done via 'submit' function) threw an error. Check Network tab in browser for error details.`);
+            console.error(error);
+            toast.error(`Error: "${error.message}". Check console.`);
+            throw error;
+
+        } finally {
+            setAbortController(undefined);
+        }
     }
 
     const cancel = async () => {
         if (lastRun?.status === 'in_progress') {
-            console.log('all good, cancelling');
             await apiFetch(`/api/runs/${lastRun.id}`, {
                 method: 'PATCH',
                 body: {
@@ -585,12 +582,6 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
     if (InputComponent === null) {
         return null;
     }
-
-    useEffect(() => {
-        if (error) {
-            alert(JSON.stringify(error, null, 2));
-        }
-    }, [error]);
 
     return <div className="border-t">
         <div className={`p-6 pr-0`} style={{ maxWidth: `${styles.textWidth + styles.padding}px` }}>

@@ -121,21 +121,21 @@ export default defineConfig({
                 title: "Forecast Accuracy",
                 options: [
                   {
-                  value: "accurate",
-                  label: "Accurate",
-                  color: Colors.green
-                }, 
-                {
-                  value: "partially_accurate",
-                  label: "Partially Accurate",
-                  color: Colors.yellow
-                },
-                {
-                  value: "inaccurate",
-                  label: "Inaccurate",
-                  color: Colors.red
-                }, 
-              ]
+                    value: "accurate",
+                    label: "Accurate",
+                    color: Colors.green
+                  },
+                  {
+                    value: "partially_accurate",
+                    label: "Partially Accurate",
+                    color: Colors.yellow
+                  },
+                  {
+                    value: "inaccurate",
+                    label: "Inaccurate",
+                    color: Colors.red
+                  },
+                ]
               }),
               multiSelect({
                 name: "style",
@@ -164,17 +164,27 @@ export default defineConfig({
           displayProperties: [
             {
               title: "Input tokens",
-              value: ({ run }) => <div className="flex items-center gap-0.5">{ run?.metadata?.usage?.inputTokens }</div>
+              value: ({ run }) => <div className="flex items-center gap-0.5">{run?.metadata?.usage?.inputTokens}</div>
             },
             {
               title: "Output tokens",
-              value: ({ run }) => <div className="flex items-center gap-0.5">{ run?.metadata?.usage?.outputTokens }</div>
+              value: ({ run }) => <div className="flex items-center gap-0.5">{run?.metadata?.usage?.outputTokens}</div>
             }
           ]
         }
       ],
-      inputComponent: ({ submit, cancel, isRunning }) => <UserMessageInput
-        onSubmit={(val) => submit("http://localhost:3000/weather-chat", { input: { content: val, type: "message", role: "user" } })}
+      inputComponent: ({ submit, cancel, isRunning, session, token }) => <UserMessageInput
+        onSubmit={(val) => {
+          submit("http://localhost:3000/weather-chat", {
+            id: session.id,
+            token,
+            input: {
+              type: "message",
+              role: "user",
+              content: val,
+            }
+          })
+        }}
         onCancel={cancel}
         isRunning={isRunning}
       />
