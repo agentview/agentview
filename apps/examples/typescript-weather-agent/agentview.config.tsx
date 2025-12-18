@@ -17,7 +17,7 @@ export default defineConfig({
       },
       newSessionComponent: ({ submit, isRunning }) => {
         const [selectedCity, setSelectedCity] = React.useState<string>("");
-        
+
         const handleSubmit = (e: React.FormEvent) => {
           e.preventDefault();
           if (selectedCity) {
@@ -47,8 +47,8 @@ export default defineConfig({
                 ))}
               </SelectContent>
             </Select>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={!selectedCity || isRunning}
             >
               {isRunning ? "Creating session..." : "Create Session"}
@@ -119,19 +119,23 @@ export default defineConfig({
               select({
                 name: "forecast_accuracy",
                 title: "Forecast Accuracy",
-                options: [{
+                options: [
+                  {
                   value: "accurate",
                   label: "Accurate",
                   color: Colors.green
-                }, {
-                  value: "inaccurate",
-                  label: "Inaccurate",
-                  color: Colors.yellow
-                }, {
+                }, 
+                {
                   value: "partially_accurate",
                   label: "Partially Accurate",
+                  color: Colors.yellow
+                },
+                {
+                  value: "inaccurate",
+                  label: "Inaccurate",
                   color: Colors.red
-                }]
+                }, 
+              ]
               }),
               multiSelect({
                 name: "style",

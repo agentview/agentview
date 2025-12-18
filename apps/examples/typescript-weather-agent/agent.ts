@@ -43,7 +43,7 @@ app.post('/weather-chat', async (c) => {
 
   const runner = new Runner();
   const response = await runner.run(
-    weatherAgent,
+    weatherAgent({ userLocation: session.metadata?.userLocation }),
     [...session.items, input],
     {
       stream: true,

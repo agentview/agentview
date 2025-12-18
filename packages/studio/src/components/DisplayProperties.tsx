@@ -18,5 +18,9 @@ export function DisplayProperties<T>(props: { displayProperties: DisplayProperty
 
 
 function DisplayPropertyRenderer<T>({ value, inputArgs }: { value: (inputArgs: T) => React.ReactNode, inputArgs: T }) {
-    return <div>{value(inputArgs)}</div>
+    const val = value(inputArgs);
+    if (val === undefined || val === null) {
+        return <div className="text-muted-foreground">Empty</div>
+    }
+    return <div>{val}</div>
 }
