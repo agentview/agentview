@@ -3,6 +3,8 @@ title: "Studio"
 description: "\"Look at your data\" in a beautiful way."
 ---
 
+## Overview
+
 AgentView comes with a Studio, a powerful and collaborative data viewer for your agents. It's designed with following principles in mind:
 - **focus on non-technical users** - we want studio to provide Notion-like simplicity to encourage business stakeholders and subject-matter experts to look at the data and leave feedback.
 - **collaboration** - we want studio to be a collaborative environment, where all the users can see the data and leave feedback.
@@ -10,13 +12,9 @@ AgentView comes with a Studio, a powerful and collaborative data viewer for your
 
 AgentView Studio is designed to be extremely customisable. You can provide custom components to any part of the experience. It's shipped as a React package so that it's possible.
 
-## Customizing Session View 
+## Session Items
 
-Let's dig into how to customize how your sessions look in the Studio.
-
-### Items
-
-First and most important customisation is providing a custom view for session items. You can do this by providing a custom component to `displayComponent` property of the session item:
+The most common customisation is providing a custom view for session items. You can set it via `displayComponent` property of the session item. It's just a React component:
 
 { /* <prompt>
   - copy apps/examples/typescript-basic/agentview.config.tsx file into following snippet
@@ -86,7 +84,21 @@ export default defineConfig({
 });
 ```
 
-The `item` property is the content of the session item.
+{ /* <prompt>
+  - look up the properties type of `displayComponent` property
+  - create a table "Prop" | "Description" | "Type"
+  - descriptions shoudl be very short in this case. Item "content of your session item", session: current session object, etc.
+</prompt> */ }
+
+Here are `displayComponent` properties:
+
+| Prop | Description | Type |
+|------|-------------|------|
+| `item` | Content of the session item | `any` |
+| `session` | Current session object | `Session` |
+| `run` | Current run object | `Run` |
+| `resultItem` | Only for tool calls, content of the tool call result | `any` |
+
 
 #### Matching items
 
@@ -94,6 +106,9 @@ AgentView finds the right `displayComponent` for a session item by matching the 
 
 This implies that your items should be uniquely discriminatable. You should be able to discriminate between them by schemas. It's usually done by `type`, but for AI apps it's a bit more tricky, for example function calls are discriminated by `name`, type for all tools are the same.
 
+#### Hiding items
+
+You can hide items by setting `displayComponent` to `null`.
 
 #### Tool calls
 
@@ -143,9 +158,11 @@ export default defineConfig({
 When the tool call is done, both `item` and `resultItem` are set. When call is in progress, `resultItem` is `undefined`.
 
 
-### Input
+## Session Input
 
-AgentView allows the members of your organisation to play around with your agent. All you need to do is provide an `inputComponent` and make it submit a request to your chat endpoint.
+AgentView allows the members of your organisation to play around with your agent. In order to make it possible, your users must have a component via which they can provide input to your agent and start a new run.
+
+You can set it via `inputComponent` property of the agent:
 
 { /* <prompt>
   - copy apps/examples/typescript-basic/agentview.config.tsx file into following snippet
@@ -188,23 +205,34 @@ export default defineConfig({
 })
 ```
 
-`inputComponent` is a React Component with following props:
-- `session: Session` - current session object
-- `token: string` - a user token
-- `submit(url: string, fetchOptions?: RequestInit & { input?: any }) => Promise` - a thin wrapper on top of native browser `fetch`, that manages state and simplifies code.
-- `cancel()` - if you use `submit`, it cancels the request properly
-- `isRunning: bool` - if you use `submit`, it properly handles information whether the component should be disabled 
+The job of `inputComponent` is to submit a request to trigger a new run by making a request to your custom Agent Endpoint. Please keep in mind that *Studio doesn't listen to the response from your Agent*, as it might be a custom format. It displays live changes based on the data you sent to AgentView via `av.createRun` or `av.updateRun` calls.
 
-#### `submit`
+`<UserMessageInput />` is simple component from AgentView Design System that displays a text input, send and cancel buttons. You can provide your custom one whenever you need to.
 
-You can use `fetch`, however `submit` handles quite a lot of things:
-- it sends request to `POST`
-- sets a header `Content-Type: application/json`
+Here are `inputComponent` properties: 
+
+| Prop | Description | Type |
+|------|-------------|------|
+| `session` | Current session object | `Session` |
+| `token` | A user token | `string` |
+| `submit` | A thin wrapper on top of native browser `fetch`, that manages state and simplifies code. | `(url: string, fetchOptions?: RequestInit & { input?: any }) => Promise` |
+| `cancel` | If you use `submit`, it cancels the request properly | `() => void` |
+| `isRunning` | If you use `submit`, it properly handles information whether the component should be disabled | `boolean` |
+
+
+#### `submit` function
+
+In your component you can make a call to your Agent Endpoint just by using standard browser `fetch` function. However it requires a bit of annoying boilerplate code to take into account cancellation, loading state etc.
+
+`submit` is a very thin wrapper on top of `fetch` that handles those things:
+- it sends request as `POST` and sets `Content-Type: application/json` header
 - injects `token` and `id` into the body. The body is `{ id, token, input: your_input }`
 - connects `AbortController` to properly cancel the connections and update the app state. Makes `cancel` function easily available.
 - computes `isRunning` based on session and request state
 
-### Header properties
+Essentially, the second parameter of `submit` function is the same as you would pass to `fetch` function with extra `input` property. If you set `input`, the body will be `{ id, token, input: your_input }`.
+
+## Session Header
 
 Each session comes with a header that displays session properties. You can easily set your own by providing `displayProperties` property:
 
@@ -212,24 +240,19 @@ Each session comes with a header that displays session properties. You can easil
 export default defineConfig({
   agents: [
     {
-      name: "my_agent",
-      runs: [
-        {
-          // ...
-        }
-      ],
       displayProperties: [
         {
-          title: "Product",
-          value: ({ session }) => <strong>{ session.metadata.product_id}</strong>
+          title: "User Location",
+          value: ({ session }) => <strong>{ session.metadata?.userLocation }</strong>
         }
-      ]
+      ],
+      // ...
     }
   ]
 })
 ```
 
-### Run properties
+## Run View
 
 Below each run there's a footer with "Run" button. It displays run properties. You can customize it by providing `displayProperties` property:
 
@@ -240,13 +263,13 @@ export default defineConfig({
       name: "my_agent",
       runs: [
           {
-            // ...
             displayProperties: [
               {
                 title: "Trace ID",
-                value: ({ run }) => <strong>{ run.metadata?.traceId}</strong>
+                value: ({ run }) => <strong>{ run.metadata?.traceId }</strong>
               }
-            ]
+            ],
+            // ...
           }
         }
       ]

@@ -381,7 +381,10 @@ async function requireRun(runId: string) {
   const run = await db.query.runs.findFirst({
     where: eq(runs.id, runId),
     with: {
-      sessionItems: true,
+      sessionItems: {
+        orderBy: (sessionItem, { asc }) => [asc(sessionItem.sortOrder)],
+        where: (sessionItem, { eq }) => eq(sessionItem.isState, false),
+      },
     },
   });
   if (!run) {
@@ -2059,11 +2062,16 @@ app.openapi(runPATCHRoute, async (c) => {
 
   authorize(principal, { action: "end-user:update", user: session.user });
 
+  console.log('run patch')
+
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
 
   /** Find matching run **/
   const inputItem = run.sessionItems[0].content;
+
+  console.log('inputItem: ', inputItem);
+
   const runConfig = requireRunConfig(agentConfig, inputItem);
 
   /** Validate items */

@@ -42,7 +42,7 @@ app.post('/weather-chat', async (c) => {
   });
 
   const runner = new Runner();
-  const response = await runner.run(
+  const result = await runner.run(
     weatherAgent({ userLocation: session.metadata?.userLocation }),
     [...session.items, input],
     {
@@ -53,7 +53,7 @@ app.post('/weather-chat', async (c) => {
   return streamSSE(
     c,
     async (stream) => {
-      for await (const event of response) {
+      for await (const event of result) {
         if (event.type === 'run_item_stream_event') { // new item available
           const item = event.item.rawItem;
 
@@ -70,9 +70,18 @@ app.post('/weather-chat', async (c) => {
           });
         }
       }
+      
+      const inputTokens = result.rawResponses.reduce((acc, rawResponse) => acc + rawResponse.usage?.inputTokens, 0);
+      const outputTokens = result.rawResponses.reduce((acc, rawResponse) => acc + rawResponse.usage?.outputTokens, 0);
 
       await av.updateRun({ // complete the run
         id: run.id,
+        metadata: {
+          usage: {
+            inputTokens,
+            outputTokens
+          }
+        },
         status: "completed"
       });
     },

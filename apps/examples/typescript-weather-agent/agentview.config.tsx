@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { defineConfig } from "agentview";
 import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput, select, multiSelect, Colors } from "@agentview/studio";
-import { Brain } from "lucide-react";
+import { Brain, CircleDollarSign, DollarSign } from "lucide-react";
 import { WeatherItem } from './src/WeatherItem';
 import * as React from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@agentview/studio/components/ui/select";
@@ -160,7 +160,17 @@ export default defineConfig({
                 ]
               })
             ]
-          }
+          },
+          displayProperties: [
+            {
+              title: "Input tokens",
+              value: ({ run }) => <div className="flex items-center gap-0.5">{ run?.metadata?.usage?.inputTokens }</div>
+            },
+            {
+              title: "Output tokens",
+              value: ({ run }) => <div className="flex items-center gap-0.5">{ run?.metadata?.usage?.outputTokens }</div>
+            }
+          ]
         }
       ],
       inputComponent: ({ submit, cancel, isRunning }) => <UserMessageInput

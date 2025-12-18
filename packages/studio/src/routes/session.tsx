@@ -97,6 +97,7 @@ function SessionPage() {
     //         return run;
     //     })
     // } as SessionWithCollaboration
+    console.log('session: ', session);
 
     const listParams = loaderData.listParams;
     const activeItems = getAllSessionItems(session, { activeOnly: true })
