@@ -43,8 +43,8 @@ export async function apiFetch<T = any>(endpoint: string, options: APIOptions = 
             ...response,
             ok: false,
             error: {
+                ...body,
                 message: body?.message || "Unknown error",
-                data: body?.data || null,
             }
         }
     }

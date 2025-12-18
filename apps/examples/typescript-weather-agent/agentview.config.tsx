@@ -3,12 +3,65 @@ import { defineConfig } from "agentview";
 import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput, select, multiSelect, Colors } from "@agentview/studio";
 import { Brain } from "lucide-react";
 import { WeatherItem } from './src/WeatherItem';
+import * as React from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@agentview/studio/components/ui/select";
+import { Button } from "@agentview/studio/components/ui/button";
 
 export default defineConfig({
   apiBaseUrl: "http://localhost:1990",
   agents: [
     {
       name: "weather-chat",
+      metadata: {
+        userLocation: z.string()
+      },
+      newSessionComponent: ({ submit, isRunning }) => {
+        const [selectedCity, setSelectedCity] = React.useState<string>("");
+        
+        const handleSubmit = (e: React.FormEvent) => {
+          e.preventDefault();
+          if (selectedCity) {
+            submit({ metadata: { userLocation: selectedCity } });
+          }
+        };
+
+        const cities = [
+          "New York",
+          "London",
+          "Tokyo",
+          "Paris",
+          "Warsaw"
+        ];
+
+        return (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Select value={selectedCity} onValueChange={setSelectedCity}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a city" />
+              </SelectTrigger>
+              <SelectContent>
+                {cities.map((city) => (
+                  <SelectItem key={city} value={city}>
+                    {city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button 
+              type="submit" 
+              disabled={!selectedCity || isRunning}
+            >
+              {isRunning ? "Creating session..." : "Create Session"}
+            </Button>
+          </form>
+        );
+      },
+      displayProperties: [
+        {
+          title: "User Location",
+          value: ({ session }) => session?.metadata?.userLocation
+        }
+      ],
       runs: [
         {
           input: {

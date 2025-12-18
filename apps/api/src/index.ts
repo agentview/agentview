@@ -428,12 +428,12 @@ function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: b
     schema = schema.strict();
   }
 
-  const emptyNullMetadata = Object.fromEntries(
-    Object.keys(metadataConfig ?? {}).map((key) => [key, null])
-  );
+  // const emptyNullMetadata = Object.fromEntries(
+  //   Object.keys(metadataConfig ?? {}).map((key) => [key, null])
+  // );
 
   const metadata = {
-    ...emptyNullMetadata, // default nulls
+    // ...emptyNullMetadata, // default nulls
     ...(existingMetadata ?? {}), // existing metadata overrides nulls
     ...(inputMetadata ?? {}), // input overrides existing metadata
   }
@@ -444,8 +444,6 @@ function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: b
   //      metadata[key] = null;
   //   }
   // }
-
-  // console.log('metadata', metadata);
 
   const result = schema.safeParse(metadata);
   if (!result.success) {
