@@ -50,8 +50,15 @@ export default defineConfig({
           }
         }
       ],
-      inputComponent: ({ submit, cancel, isRunning }) => <UserMessageInput
-        onSubmit={(val) => submit("http://localhost:3000/simple_chat", { input: { content: val, type: "message", role: "user" } })}
+      inputComponent: ({ session, token, submit, cancel, isRunning }) => <UserMessageInput
+        onSubmit={(val) => {
+          submit("http://localhost:3000/simple_chat", 
+            { 
+              input: { content: val, type: "message", role: "user" },
+              id: session.id,
+              token,
+            })
+        }}
         onCancel={cancel}
         isRunning={isRunning}
       />
