@@ -423,7 +423,7 @@ async function requireCommentMessageFromUser(item: SessionItemWithCollaboration,
   return comment
 }
 
-function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: boolean = true, inputMetadata: Record<string, any>, existingMetadata: Record<string, any> | undefined | null): Record<string, any> {
+function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: boolean = true, inputMetadata: Record<string, any> | undefined | null, existingMetadata: Record<string, any> | undefined | null): Record<string, any> {
   const metafields = metadataConfig ?? {};
 
   for (const [key, value] of Object.entries(metafields)) {
@@ -445,8 +445,6 @@ function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: b
   }
 
   const result = schema.safeParse(metadata);
-
-  console.log('error', result.error);
   if (!result.success) {
     throw new AgentViewError("Error parsing the metadata.", 422, { code: 'parse.schema', issues: result.error.issues });
   }
@@ -915,6 +913,35 @@ function normalizeNumberParam(value: number | string | undefined, defaultValue: 
   return Math.max(numValue, 1);
 }
 
+function buildPaginationMetadata(totalCount: number, page: number, limit: number, offset: number) {
+  const totalPages = Math.ceil(totalCount / limit);
+  return {
+    totalCount,
+    totalPages,
+    page,
+    limit,
+    hasNextPage: page < totalPages,
+    hasPreviousPage: page > 1,
+    currentPageStart: offset + 1,
+    currentPageEnd: Math.min(offset + limit, totalCount),
+  };
+}
+
+function mapSessionRow(row: { sessions: typeof sessions.$inferSelect; end_users: typeof endUsers.$inferSelect | null }) {
+  return {
+    id: row.sessions.id,
+    handle: row.sessions.handleNumber.toString() + (row.sessions.handleSuffix ?? ""),
+    createdAt: row.sessions.createdAt,
+    updatedAt: row.sessions.updatedAt,
+    metadata: row.sessions.metadata as Record<string, any>,
+    summary: row.sessions.summary,
+    agent: row.sessions.agent,
+    user: row.end_users!,
+    env: row.end_users!.env,
+    userId: row.end_users!.id,
+  };
+}
+
 async function getSessions(params: SessionsGetQueryParams, principal: Principal) {
   const limit = normalizeNumberParam(params.limit, DEFAULT_LIMIT);
   const page = normalizeNumberParam(params.page, DEFAULT_PAGE);
@@ -925,133 +952,58 @@ async function getSessions(params: SessionsGetQueryParams, principal: Principal)
   }
 
   const offset = (page - 1) * limit;
-
-  // Build base filter
   const baseFilter = getSessionListFilter(params, principal);
 
   // Handle starred filter - requires joining with starredSessions table
   const isStarred = params.starred === true || params.starred === 'true';
-  if (isStarred) {
+  const starredJoin = (() => {
+    if (!isStarred) return null;
     if (principal.type === 'user') {
       throw new HTTPException(422, { message: "starred filter is only available for staff users" });
     }
     const memberId = requireMemberId(principal);
+    return and(
+      eq(starredSessions.sessionId, sessions.id),
+      eq(starredSessions.userId, memberId)
+    );
+  })();
 
-    // Get total count for pagination metadata
-    const totalCountResult = await db
-      .select({ count: sql<number>`cast(count(*) as integer)` })
-      .from(sessions)
-      .innerJoin(starredSessions, and(
-        eq(starredSessions.sessionId, sessions.id),
-        eq(starredSessions.userId, memberId)
-      ))
-      .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
-      .where(baseFilter);
-
-    const totalCount = totalCountResult[0]?.count ?? 0;
-
-    // Get sessions with pagination
-    const result = await db
-      .select({
-        sessions: sessions,
-        end_users: endUsers,
-      })
-      .from(sessions)
-      .innerJoin(starredSessions, and(
-        eq(starredSessions.sessionId, sessions.id),
-        eq(starredSessions.userId, memberId)
-      ))
-      .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
-      .where(baseFilter)
-      .orderBy(desc(sessions.updatedAt))
-      .limit(limit)
-      .offset(offset);
-
-    const sessionsResult = result.map((row) => ({
-      id: row.sessions.id,
-      handle: row.sessions.handleNumber.toString() + (row.sessions.handleSuffix ?? ""),
-      createdAt: row.sessions.createdAt,
-      updatedAt: row.sessions.updatedAt,
-      metadata: row.sessions.metadata as Record<string, any>,
-      agent: row.sessions.agent,
-      user: row.end_users!,
-      env: row.end_users!.env,
-      userId: row.end_users!.id,
-    }));
-
-    // Calculate pagination metadata
-    const totalPages = Math.ceil(totalCount / limit);
-    const hasNextPage = page < totalPages;
-    const hasPreviousPage = page > 1;
-    const currentPageStart = offset + 1;
-    const currentPageEnd = Math.min(offset + limit, totalCount);
-
-    return {
-      sessions: sessionsResult,
-      pagination: {
-        totalCount,
-        totalPages,
-        page,
-        limit,
-        hasNextPage,
-        hasPreviousPage,
-        currentPageStart,
-        currentPageEnd,
-      }
-    };
-  }
-
-  // Regular (non-starred) query
-  // Get total count for pagination metadata
-  const totalCountResult = await db
+  // Build count query
+  const countQuery = db
     .select({ count: sql<number>`cast(count(*) as integer)` })
     .from(sessions)
+    .$dynamic();
+
+  if (starredJoin) {
+    countQuery.innerJoin(starredSessions, starredJoin);
+  }
+
+  const totalCountResult = await countQuery
     .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
     .where(baseFilter);
 
   const totalCount = totalCountResult[0]?.count ?? 0;
 
-  // Get sessions with pagination
-  const result = await db
-    .select()
+  // Build sessions query
+  const sessionsQuery = db
+    .select({ sessions, end_users: endUsers })
     .from(sessions)
+    .$dynamic();
+
+  if (starredJoin) {
+    sessionsQuery.innerJoin(starredSessions, starredJoin);
+  }
+
+  const result = await sessionsQuery
     .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
     .where(baseFilter)
     .orderBy(desc(sessions.updatedAt))
     .limit(limit)
     .offset(offset);
 
-  const sessionsResult = result.map((row) => ({
-    id: row.sessions.id,
-    handle: row.sessions.handleNumber.toString() + (row.sessions.handleSuffix ?? ""),
-    createdAt: row.sessions.createdAt,
-    updatedAt: row.sessions.updatedAt,
-    metadata: row.sessions.metadata as Record<string, any>,
-    agent: row.sessions.agent,
-    user: row.end_users!,
-    env: row.end_users!.env,
-    userId: row.end_users!.id,
-  }));
-
-  // Calculate pagination metadata
-  const totalPages = Math.ceil(totalCount / limit);
-  const hasNextPage = page < totalPages;
-  const hasPreviousPage = page > 1;
-  const currentPageStart = offset + 1;
-  const currentPageEnd = Math.min(offset + limit, totalCount);
-
   return {
-    sessions: sessionsResult,
-    pagination: {
-      totalCount,
-      totalPages,
-      page,
-      limit,
-      hasNextPage,
-      hasPreviousPage,
-      currentPageStart,
-      currentPageEnd,
-    }
+    sessions: result.map(mapSessionRow),
+    pagination: buildPaginationMetadata(totalCount, page, limit, offset),
   };
 }
 
@@ -1250,6 +1202,7 @@ app.openapi(sessionPATCHRoute, async (c) => {
 
   await db.update(sessions).set({
     metadata,
+    summary: body.summary,
     updatedAt: new Date().toISOString(),
   }).where(eq(sessions.id, session_id));
 
@@ -1463,7 +1416,8 @@ app.openapi(sessionsPOSTRoute, async (c) => {
       handleSuffix: handleSuffix,
       metadata: metadata,
       agent: body.agent,
-      userId: user.id
+      userId: user.id,
+      summary: body.summary
     }).returning();
 
     // add event (only for users, not endUsers)

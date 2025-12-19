@@ -5,6 +5,7 @@
   "scripts": {
     "publish": "node ./publish.mjs",
     "db:clear": "pnpm --filter ./apps/api db:clear",
+    "db:generate": "pnpm --filter ./apps/api drizzle-kit generate",
     "api:dev": "pnpm --filter ./apps/api dev",
     "seed-users": "pnpm --filter ./apps/tests seed-users"
   }

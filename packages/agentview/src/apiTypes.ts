@@ -163,6 +163,7 @@ export const SessionBaseSchema = z.object({
   userId: z.string(), // potential bloat
   env: EnvSchema, // this is actually user.env, but allows to "think user-less"
   state: z.any().nullable().optional(),
+  summary: z.string().nullable(),
 })
 
 export type SessionBase = z.infer<typeof SessionBaseSchema>
@@ -184,12 +185,14 @@ export const SessionCreateSchema = z.object({
   metadata: z.record(z.string(), z.any()).optional(),
   userId: z.string().optional(),
   env: EnvSchema.optional(), // necessary if userId is not provided
+  summary: z.string().nullish(),
 })
 
 export type SessionCreate = z.infer<typeof SessionCreateSchema>
 
 export const SessionUpdateSchema = z.object({
-  metadata: SessionCreateSchema.shape.metadata.unwrap(),
+  metadata: SessionCreateSchema.shape.metadata,
+  summary: SessionCreateSchema.shape.summary,
 })
 
 export type SessionUpdate = z.infer<typeof SessionUpdateSchema>

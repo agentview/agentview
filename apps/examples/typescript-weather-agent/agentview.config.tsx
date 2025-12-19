@@ -167,6 +167,7 @@ export default defineConfig({
       />
     }
   ],
+  webhookUrl: "http://localhost:3000/webhook",
   customRoutes: [
     {
       type: "agent",

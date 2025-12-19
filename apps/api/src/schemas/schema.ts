@@ -63,6 +63,7 @@ export const sessions = pgTable("sessions", {
   metadata: jsonb("metadata"),
   userId: uuid("end_user_id").notNull().references(() => endUsers.id, { onDelete: 'cascade' }),
   agent: varchar("agent", { length: 255 }).notNull(),
+  summary: text("summary"),
 }, (table) => [uniqueIndex('sessions_handle_unique').on(table.handleNumber, table.handleSuffix)]);
 
 

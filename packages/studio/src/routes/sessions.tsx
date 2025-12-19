@@ -150,7 +150,7 @@ export function SessionCard({ session, listParams, sessionStats }: { session: Se
               </div>
 
             </div>
-            <div className="text-sm truncate  text-gray-600">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</div>
+            { session.summary && <div className="text-sm truncate  text-gray-600">{session.summary}</div> }
             {/* <div className="text-xs text-gray-500 mt-1">0.0.1-dev</div> */}
           </div>
         </div>

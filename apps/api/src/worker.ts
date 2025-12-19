@@ -66,7 +66,7 @@ async function processWebhookJobs() {
       .from(webhookJobs)
       .where(
         and(
-          or(eq(webhookJobs.status, 'pending'), eq(webhookJobs.status, 'processing')),
+          eq(webhookJobs.status, 'pending'),
           or(isNull(webhookJobs.nextAttemptAt), lt(webhookJobs.nextAttemptAt, now))
         )
       )
