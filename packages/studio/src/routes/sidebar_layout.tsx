@@ -44,6 +44,7 @@ import { Button } from "../components/ui/button";
 import { getCurrentAgent } from "../lib/currentAgent";
 import { matchPath } from "react-router";
 import { UserAvatar } from "../components/internal/UserAvatar";
+import type { AgentCustomRoute } from "agentview/types";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await authClient.getSession()
@@ -147,9 +148,12 @@ function Component() {
   const playgroundUnseenCount = getUnseenCount(agent, "playground")
   const sharedPlaygroundUnseenCount = getUnseenCount(agent, "shared-playground")
   
-  console.log('agent', agent);
-  
-  const agentCustomRoutes = config.customRoutes?.filter(route => route.type === "agent" && route.agent === agent) ?? [];
+  const agentCustomRoutes : AgentCustomRoute[] = [];
+  for (const route of config.customRoutes ?? []) {
+    if (route.type === "agent" && route.agent === agent) {
+      agentCustomRoutes.push(route);
+    }
+  }
 
   return (<SessionContext.Provider value={{ me, members, locale }}>
 

@@ -8,25 +8,30 @@ To learn about project read docs. You can find them in `apps/docs`. `apps/docs/d
 
 ## Backend
 
-AgentView has a backend API server. It's in `apps/api`. Everything related to backend server is in this package (http server code, `docker-compose.yml`, workers, etc).
+AgentView has a backend API server. You can find the code in `apps/api`. Infra for local development is defined in `docker-compose.yml` in a root directory.
 
-To run infra, run `docker compose up` in the `apps/api` (just postgres)
-Then you can run http server with `npm run dev:http`, workers with `npm run dev:workers` or just `npm run dev` to run both (both must be running).
-
+To run infra, just run `docker compose up`.
+To run API server just run `pnpm run api:dev` (under the hood it run both http server and workers).
 Server will be running on port defined by env: `AGENTVIEW_API_PORT`.
-Postgres URL and credentials also depend on envs, the exact env names can be found here: `apps/api/.env` (remember that if environment have those envs defined, then it will override values from `.env`).
+
+All the environment variables are defined in root `.env`, packages and apps use this file (with exception for `apps/examples/*`).
 
 The API exposed by backend is called AgentView API.
 
 ### Clearing db
 
-You can clear entire system state with `npm run db:clear` in `apps/api`. If you need to do it -> no worries, just do it.
+You can clear entire system state with `pnpm run db:clear`. If you need to do it -> no worries, just do it.
 
 ### Seeding users after clearing db, setting up API Key
 
-You can run `npm run seed-users` in `apps/tests` to generate example users (it's done directly via AgentView API). You can also build your own script or add users however you want.
+You can run `pnpm run seed-users` to generate example users (it's done directly via AgentView API). This script creates 3 users:
+- admin@acme.com (admin)
+- bob@acme.com (user)
+- alice@acme.com (user)
 
-The seed scripts generates API Key for the admin user. This is important because most operations require API Key, so save it. We use consistent environment variables naming across the projects, so you can simply save it to `AGENTVIEW_API_KEY` env and all code in `apps/tests` and example projects should run correctly.
+It also generates api key for admin@acme.com user. The script saves api key to `.env` file. Later the tests in `api/tests` run using this API Key.
+
+If you need different setup of users, you can look at `seed-users` script, build your own and run it.
 
 Seeding is *not* indempotent! Always clear db before running it.
 
@@ -38,8 +43,8 @@ Important: migrations are applied automatically when you run HTTP server, so in 
 ### Interacting with API
 
 You can use API directly, but it's much easier to use SDKs. API has 2 parts:
-- built by us: the SDK for our endpoints is in `packages/agentview`. It's heavily used in `apps/tests`, but also in example projects (see below).
-- authentication from "better-auth" library. In this case you can use "better-auth" SDK. It's used in `apps/tests` in `seed-users` script.
+- built by us: the SDK for our endpoints is in `packages/agentview`. It's heavily used in `apps/tests` and in example projects.
+- authentication from "better-auth" library. In this case you can use "better-auth" SDK. For example it's used in `apps/tests` in `seed-users` script.
 
 When you build new backend features try to write tests in `apps/tests` that have nice scenarios and run them to confirm whether everything works. Use SDK if possible (we want to prioritize dogfooding our own SDK).
 
@@ -49,21 +54,12 @@ It works during development out-of-the-box. You don't have to build anything, `p
 
 ## Example projects
 
-Example projects are in `apps/examples/{project}`.
+Example AgentView projects are in `apps/examples/{project}`. Each project has 3 parts:
+- configuration file (`agentview.config.tsx`)
+- Studio (run `npm run dev` in an example project)
+- Agent Endpoint (run `npm run agent:dev` in an example project)
 
-Each project using AgentView comes with its own custom configuration done in code. The configuration file is called `agentview.config.tsx`. This file controls both configuration of UI Studio AND backend for the project. Therefore, it must be sent to the backend before playing with example project.
-
-The configuration file for each project is in `apps/examples/{project}/studio/agentview.config.tsx`.
-
-In order to send this file to the backend, you can simply run `npx agentview config push` from the `studio` directory. It will automatically upload configuration to the backend.
-
-### Studio
-
-In order to open UI Studio go to `apps/examples/{project}/studio` and run `npm run dev` to open UI Studio. *Do not do it* unless I explicitly say to do it.
-
-### Agent Endpoint
-
-Each example project has agent subproject: `apps/examples/{project}/agent`. Agent is a tiny http server with Agent Endpoint (described in docs).
+In most cases you won't need to run example projects. Just build features and test them via tests in `api/tests` project.
 
 ## UI Studio: `packages/studio`
 
@@ -77,5 +73,5 @@ Do not play with UI unless I explicitly say to do so.
 
 - be concise
 - if something is unclear ask clarifying question
-- do not touch UI Studio unless explicitly said to do it.
+- do not touch UI Studio or run example projects unless explicitly said to do it.
 - when you build backend features, please test features "end-to-end", which means directly on the API. The best way to do it is to add tests in `apps/tests`. Try to use our SDK if possible, we want to be dogfooding our SDK. You can extend it if you need. For operations related to authentication also use API directly, the easiest way to do it is via better-auth client SDK (check out `seed-users` script in `apps/tests`).
