@@ -437,7 +437,31 @@ export default defineConfig({
 
 ## Custom Pages
 
-TODO:
-- describe "scopes" (loggedOut, agent, )
+You can easily extend Studio with custom pages. You can do it by providing `customRoutes` property:
+
+{ /***
+ * <prompt>
+  - copy apps/examples/typescript-weather-agent/agentview.config.tsx file into following snippet
+  - remove imports, leave only `export default defineConfig({...})` block
+  - remove almost everything, leave only `customRoutes` property so that user understands what's going on.
+</prompt> */ }
+
+```tsx
+export default defineConfig({
+  customRoutes: [
+    {
+      type: "root",
+      route: {
+        path: "/lorem-ipsum",
+        Component: CustomPage
+      }
+    }
+  ]
+})
+```
+
+There are 2 types of custom routes:
+- `root` - these routes are available even if user is not logged in
+- `agent` - these routes are available only if user is logged in and is on the agent page
 
 
