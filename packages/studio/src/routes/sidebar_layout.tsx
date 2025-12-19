@@ -147,7 +147,9 @@ function Component() {
   const playgroundUnseenCount = getUnseenCount(agent, "playground")
   const sharedPlaygroundUnseenCount = getUnseenCount(agent, "shared-playground")
   
-  const customRoutes = config.customRoutes?.filter(route => route.scope === "loggedIn");
+  console.log('agent', agent);
+  
+  const agentCustomRoutes = config.customRoutes?.filter(route => route.type === "agent" && route.agent === agent) ?? [];
 
   return (<SessionContext.Provider value={{ me, members, locale }}>
 
@@ -239,11 +241,11 @@ function Component() {
                 </SidebarGroupContent>
               </SidebarGroup>
 
-              { customRoutes && <SidebarGroup>
+              { agentCustomRoutes.length > 0 && <SidebarGroup>
                 <SidebarGroupLabel>Pages</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {customRoutes.map((route) => {
+                    {agentCustomRoutes.map((route) => {
                       if (!route.route.path) {
                         throw new Error("Custom route path is required")
                       }

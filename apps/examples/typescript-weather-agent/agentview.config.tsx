@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { defineConfig } from "agentview";
 import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput, select, multiSelect, Colors } from "@agentview/studio";
-import { Brain, CircleDollarSign, DollarSign } from "lucide-react";
+import { Book, Brain, CircleDollarSign, DollarSign } from "lucide-react";
 import { WeatherItem } from './src/WeatherItem';
 import * as React from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@agentview/studio/components/ui/select";
 import { Button } from "@agentview/studio/components/ui/button";
+import { CustomPage } from "./src/CustomPage";
 
 export default defineConfig({
   apiBaseUrl: "http://localhost:1990",
@@ -120,43 +121,19 @@ export default defineConfig({
                 name: "forecast_accuracy",
                 title: "Forecast Accuracy",
                 options: [
-                  {
-                    value: "accurate",
-                    label: "Accurate",
-                    color: Colors.green
-                  },
-                  {
-                    value: "partially_accurate",
-                    label: "Partially Accurate",
-                    color: Colors.yellow
-                  },
-                  {
-                    value: "inaccurate",
-                    label: "Inaccurate",
-                    color: Colors.red
-                  },
+                  { value: "accurate", label: "Accurate", color: Colors.green },
+                  { value: "partially_accurate", label: "Partially Accurate", color: Colors.yellow },
+                  { value: "inaccurate", label: "Inaccurate", color: Colors.red },
                 ]
               }),
               multiSelect({
                 name: "style",
                 title: "Style",
                 options: [
-                  {
-                    value: "too-long",
-                    label: "Too long"
-                  },
-                  {
-                    value: "too-brief",
-                    label: "Too brief"
-                  },
-                  {
-                    value: "confusing",
-                    label: "Confusing"
-                  },
-                  {
-                    value: "overly-technical",
-                    label: "Overly technical"
-                  }
+                  { value: "too-long", label: "Too long" },    
+                  { value: "too-brief", label: "Too brief" },
+                  { value: "confusing", label: "Confusing" },
+                  { value: "overly-technical", label: "Overly technical" },
                 ]
               })
             ]
@@ -164,11 +141,11 @@ export default defineConfig({
           displayProperties: [
             {
               title: "Input tokens",
-              value: ({ run }) => <div className="flex items-center gap-0.5">{run?.metadata?.usage?.inputTokens}</div>
+              value: ({ run }) => run?.metadata?.usage?.inputTokens
             },
             {
               title: "Output tokens",
-              value: ({ run }) => <div className="flex items-center gap-0.5">{run?.metadata?.usage?.outputTokens}</div>
+              value: ({ run }) => run?.metadata?.usage?.outputTokens
             }
           ]
         }
@@ -188,6 +165,24 @@ export default defineConfig({
         onCancel={cancel}
         isRunning={isRunning}
       />
+    }
+  ],
+  customRoutes: [
+    {
+      type: "agent",
+      agent: "weather-chat",
+      title: <><Book className="size-4" /> <span>Custom Page</span></>,
+      route: {
+        path: "/custom-page",
+        Component: CustomPage
+      }
+    },
+    {
+      type: "root",
+      route: {
+        path: "/lorem-ipsum",
+        Component: CustomPage
+      }
     }
   ]
 });

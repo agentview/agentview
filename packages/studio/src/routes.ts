@@ -31,8 +31,8 @@ import { settingsPasswordRoute } from "./routes/settingsPassword";
 import { uiRoute } from "./routes/ui";
 
 export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObject[] {
-  const defaultRoutes = (customRoutes?.filter(route => route.scope === "default") || []).map(route => route.route);
-  const loggedInRoutes = (customRoutes?.filter(route => route.scope === "loggedIn") || []).map(route => route.route);
+  const rootCustomRoutes = (customRoutes?.filter(route => route.type === "root") || []).map(route => route.route);
+  const agentCustomRoutes = (customRoutes?.filter(route => route.type === "agent") || []).map(route => route.route);
 
   return [
     {
@@ -143,7 +143,7 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
                 },
               ],
             },
-            ...loggedInRoutes
+            ...agentCustomRoutes
           ],
         },
         {
@@ -162,7 +162,7 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
           path: "ui",
           ...uiRoute
         },
-        ...defaultRoutes
+        ...rootCustomRoutes
       ],
     } as NonIndexRouteObject
   ]

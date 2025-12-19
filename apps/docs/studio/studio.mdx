@@ -263,10 +263,14 @@ export default defineConfig({
           {
             displayProperties: [
               {
-                title: "Trace ID",
-                value: ({ run }) => <strong>{ run.metadata?.traceId }</strong>
+                title: "Input tokens",
+                value: ({ run }) => run?.metadata?.usage?.inputTokens
+              },
+              {
+                title: "Output tokens",
+                value: ({ run }) => run?.metadata?.usage?.outputTokens
               }
-            ],
+            ]
             // ...
           }
         }
@@ -276,19 +280,160 @@ export default defineConfig({
 })
 ```
 
-## Scores 
-
-TODO:
-- how to add scores and custom views
-
-## Comments
-
-TODO:
-- enable / disabled comments
-
 ## New Session Form
 
-TODO
+Members of your organisation can create new playground sessions by clicking on "Create Session" button. However, your session might require some metadata to be properly created.
+
+You can provide a custom form by setting `newSessionComponent` property:
+
+{ /* <prompt>
+  - copy apps/examples/typescript-weather-agent/agentview.config.tsx file into following snippet
+  - remove imports, leave only `export default defineConfig({...})` block
+  - remove almost everything, leave only `name`, `metadata` and `newSessionComponent` properties so that user understands what's going on.
+</prompt> */ }
+
+```tsx
+export default defineConfig({
+  agents: [
+    {
+      name: "weather-chat",
+      metadata: {
+        userLocation: z.string()
+      },
+      newSessionComponent: ({ submit, isRunning }) => {
+        return <div>
+          <Input type="text" placeholder="Enter your location" />
+          <Button type="submit" disabled={isRunning}>Create Session</Button>
+        </div>
+      }
+    }
+  ]
+})
+```
+
+`submit` function takes 2 properties:
+
+| Prop | Description | Type |
+|------|-------------|------|
+| `submit` | A function creates new session with proper metadata | `(values: { metadata?: Record<string, any> }) => void` |
+| `isRunning` | `true` if session is being created | `boolean` |
+
+When you call it and session is created successfully it will redirect user to the session page.
+
+
+## Scores 
+
+Each Session Item can have custom scores. Each score is just a name, schema and custom components for input and display.
+
+{ /* <prompt>
+  - copy apps/examples/typescript-weather-agent/agentview.config.tsx file into following snippet
+  - remove imports, leave only `export default defineConfig({...})` block
+  - add only the import of score types (multiSelect, select)
+  - leave only the output section with scores definitions.
+  - highlight `scores`
+</prompt> */ }
+
+```tsx
+import { select, multiSelect } from "@agentview/studio";
+
+export default defineConfig({
+  agents: [
+    {
+      name: "weather-chat",
+      runs: [
+        {
+          output: {
+            schema: ...,
+            scores: [
+              select({
+                name: "forecast_accuracy",
+                title: "Forecast Accuracy",
+                options: [
+                  { value: "accurate", label: "Accurate", color: Colors.green },
+                  { value: "partially_accurate", label: "Partially Accurate", color: Colors.yellow },
+                  { value: "inaccurate", label: "Inaccurate", color: Colors.red },
+                ]
+              }),
+              multiSelect({
+                name: "style",
+                title: "Style",
+                options: [
+                  { value: "too-long", label: "Too long", color: Colors.red },    
+                  { value: "too-brief", label: "Too brief", color: Colors.yellow },
+                  { value: "confusing", label: "Confusing", color: Colors.red },
+                  { value: "overly-technical", label: "Overly technical", color: Colors.red },
+                ]
+              })
+            ]
+          }
+        }
+      ]
+    }
+  ]
+})
+```
+
+`select` and `multiSelect` are handy helpers to build basic scores faster.
+
+You can build your own scores with custom schemas and custom components. Each score is actually just an object with following properties:
+
+| Prop | Description | Type |
+|------|-------------|------|
+| `name` | The name of the score | `string` |
+| `schema` | The schema of the score | `z.ZodSchema` |
+| `inputComponent` | The component to render the input in Scores dialog | `ControlComponent` |
+| `displayComponent` | The component to render the display in Comments section | `React.Component<{ value: any }>` |
+| `actionBarComponent` | The component to render the action bar below the item display component | `ControlComponent` |
+
+### Like Component
+
+Each `output` component by default gets a "Like" score. It's a simple boolean score that is displayed in the action bar below the item display component.
+
+You can disable it by setting `disableLike` property to `true`:
+
+```tsx
+export default defineConfig({
+  agents: [
+    {
+      name: "weather-chat",
+      runs: [
+        {
+          output: {
+            schema: ...,
+            disableLike: true
+          }
+        }
+      ]
+    }
+  ]
+})
+```
+
+If you want to add like to other components than output, you can use `like()` helper:
+
+```tsx
+import { like } from "@agentview/studio";
+
+export default defineConfig({
+  agents: [
+    {
+      name: "weather-chat",
+      runs: [
+        {
+          steps: [
+            {
+              schema: ...,
+              scores: [
+                like()
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+})
+```
 
 ## Custom Pages
 

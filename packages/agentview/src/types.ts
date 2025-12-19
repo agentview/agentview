@@ -5,11 +5,20 @@ import { enhanceSession } from "./sessionUtils.js";
 import { z } from "zod";
 
 
-export type CustomRoute = {
+
+export type RootCustomRoute = {
+  type: "root",
   route: RouteObject;
-  scope: "default" | "loggedIn",
-  title: React.ReactNode,
 }
+
+export type AgentCustomRoute = {
+  type: "agent",
+  agent: string,
+  title: React.ReactNode,
+  route: RouteObject;
+}
+
+export type CustomRoute = RootCustomRoute | AgentCustomRoute;
 
 
 export type DisplayProperty<TInputArgs = any> = {
