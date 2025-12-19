@@ -21,10 +21,10 @@ The most common customisation is providing a custom view for session items. You 
   - highlight `displayComponent` lines (and entire components that are values of `displayComponent` property)
 </prompt> */ }
 
-```tsx highlight={19,30-37,49}
+```tsx highlight={19,30-36,49}
 import { z } from "zod";
 import { defineConfig } from "agentview";
-import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput } from "@agentview/studio/components/session-item";
+import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput } from "@agentview/studio";
 import { Brain } from "lucide-react";
 
 export default defineConfig({
@@ -358,10 +358,10 @@ export default defineConfig({
                 name: "style",
                 title: "Style",
                 options: [
-                  { value: "too-long", label: "Too long", color: Colors.red },    
-                  { value: "too-brief", label: "Too brief", color: Colors.yellow },
-                  { value: "confusing", label: "Confusing", color: Colors.red },
-                  { value: "overly-technical", label: "Overly technical", color: Colors.red },
+                  { value: "too-long", label: "Too long" },
+                  { value: "too-brief", label: "Too brief" },
+                  { value: "confusing", label: "Confusing" },
+                  { value: "overly-technical", label: "Overly technical" },
                 ]
               })
             ]
@@ -449,6 +449,15 @@ You can easily extend Studio with custom pages. You can do it by providing `cust
 ```tsx
 export default defineConfig({
   customRoutes: [
+    {
+      type: "agent",
+      agent: "weather-chat",
+      title: <><Book className="size-4" /> <span>Custom Page</span></>,
+      route: {
+        path: "/custom-page",
+        Component: CustomPage
+      }
+    },
     {
       type: "root",
       route: {
