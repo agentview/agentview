@@ -368,6 +368,7 @@ function baseConfigSchema<T extends z.ZodType>(jsonSchemaSchema: T) {
                 idleTimeout: z.number().optional(),
             })).optional(),
         })).optional(),
+        webhookUrl: z.string().optional(),
     })
 }
 

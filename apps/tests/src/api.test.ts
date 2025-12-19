@@ -1,5 +1,5 @@
 import '@agentview/utils/loadEnv'
-import { describe, test, expect, beforeAll } from 'vitest'
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { AgentView, PublicAgentView } from 'agentview'
 import type { User, Run, Session } from 'agentview';
 import { z } from 'zod';
@@ -1537,6 +1537,222 @@ describe('API', () => {
       expect(stillAliveRun!.status).toBe("in_progress")
     }, 15000) // 15s timeout for this test
   })
+
+  /**
+   * Webhook job tests - session.on_first_run_created
+   *
+   * These tests use a mock HTTP server to receive and verify webhook calls.
+   * The webhookUrl is configured via the config (not env var).
+   */
+  describe("webhook jobs - session.on_first_run_created", () => {
+    const WEBHOOK_PORT = 3456;
+    const WEBHOOK_URL = `http://localhost:${WEBHOOK_PORT}/webhook`;
+
+    // Shared mock server state
+    let mockServer: {
+      server: import('http').Server;
+      requests: Array<{ body: any; timestamp: number }>;
+      close: () => Promise<void>;
+      setResponseHandler: (handler: (callIndex: number) => { status: number; body: any }) => void;
+      resetCallIndex: () => void;
+    } | null = null;
+
+    // Create mock server with configurable response behavior
+    async function createMockWebhookServer(port: number) {
+      const http = await import('http');
+      const requests: Array<{ body: any; timestamp: number }> = [];
+      let callIndex = 0;
+      let responseHandler: (callIndex: number) => { status: number; body: any } = () => ({ status: 200, body: { ok: true } });
+
+      const server = await new Promise<import('http').Server>((resolve) => {
+        const srv = http.createServer((req, res) => {
+          let body = '';
+          req.on('data', (chunk: Buffer) => body += chunk.toString());
+          req.on('end', () => {
+            const currentCall = callIndex++;
+            try {
+              requests.push({ body: JSON.parse(body), timestamp: Date.now() });
+            } catch {
+              requests.push({ body, timestamp: Date.now() });
+            }
+
+            const response = responseHandler(currentCall);
+            res.writeHead(response.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(response.body));
+          });
+        });
+        srv.listen(port, () => resolve(srv));
+      });
+
+      return {
+        server,
+        requests,
+        close: () => new Promise<void>(r => server.close(r as () => void)),
+        setResponseHandler: (handler: (callIndex: number) => { status: number; body: any }) => {
+          responseHandler = handler;
+        },
+        resetCallIndex: () => { callIndex = 0; },
+      };
+    }
+
+    // Helper to wait for webhook call with timeout
+    async function waitForWebhook(
+      predicate: (req: { body: any }) => boolean,
+      timeoutMs: number = 10000
+    ): Promise<{ body: any } | null> {
+      if (!mockServer) throw new Error('Mock server not initialized');
+      const startTime = Date.now();
+      while (Date.now() - startTime < timeoutMs) {
+        const match = mockServer.requests.find(predicate);
+        if (match) return match;
+        await new Promise(r => setTimeout(r, 500));
+      }
+      return null;
+    }
+
+    // Helper to update config with webhookUrl
+    const updateConfigWithWebhook = async () => {
+      const inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() });
+      const outputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("assistant"), content: z.string() });
+      const stepSchema = z.looseObject({ type: z.literal("reasoning"), content: z.string() });
+      const functionCallSchema = z.looseObject({ type: z.literal("function_call"), name: z.string(), callId: z.string().meta({ callId: true }) });
+      const functionResultSchema = z.looseObject({ type: z.literal("function_call_result"), callId: z.string().meta({ callId: true }) });
+
+      await av.__updateConfig({
+        config: {
+          webhookUrl: WEBHOOK_URL,
+          agents: [{
+            name: "test",
+            runs: [{
+              input: { schema: inputSchema },
+              steps: [{ schema: stepSchema }, { schema: functionCallSchema, callResult: { schema: functionResultSchema } }],
+              output: { schema: outputSchema },
+            }]
+          }]
+        }
+      });
+    };
+
+    // Start mock server before all webhook tests
+    beforeAll(async () => {
+      mockServer = await createMockWebhookServer(WEBHOOK_PORT);
+    });
+
+    // Close mock server after all webhook tests
+    afterAll(async () => {
+      if (mockServer) {
+        await mockServer.close();
+        mockServer = null;
+      }
+    });
+
+    // Reset server state before each test
+    beforeEach(() => {
+      if (mockServer) {
+        mockServer.requests.length = 0;
+        mockServer.resetCallIndex();
+        mockServer.setResponseHandler(() => ({ status: 200, body: { ok: true } }));
+      }
+    });
+
+    test("first run triggers webhook with session_id", async () => {
+      await updateConfigWithWebhook();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [baseInput],
+        version: "1.0.0"
+      });
+      expect(run).toBeDefined();
+
+      const webhookCall = await waitForWebhook(
+        (req) => req.body?.event === 'session.on_first_run_created' && req.body?.payload?.session_id === session.id,
+        15000
+      );
+
+      expect(webhookCall).not.toBeNull();
+      expect(webhookCall!.body.event).toBe('session.on_first_run_created');
+      expect(webhookCall!.body.payload.session_id).toBe(session.id);
+      expect(webhookCall!.body.job_id).toBeDefined();
+    }, 20000);
+
+    test("second run does NOT trigger webhook", async () => {
+      await updateConfigWithWebhook();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      // Create first run
+      const run1 = await av.createRun({
+        sessionId: session.id,
+        items: [baseInput, baseOutput],
+        version: "1.0.0",
+        status: "completed"
+      });
+      expect(run1).toBeDefined();
+
+      // Wait for first webhook
+      const firstWebhook = await waitForWebhook(
+        (req) => req.body?.event === 'session.on_first_run_created' && req.body?.payload?.session_id === session.id,
+        15000
+      );
+      expect(firstWebhook).not.toBeNull();
+
+      const countAfterFirstRun = mockServer!.requests.length;
+
+      // Create second run
+      const run2 = await av.createRun({
+        sessionId: session.id,
+        items: [baseInput, baseOutput],
+        version: "1.0.0",
+        status: "completed"
+      });
+      expect(run2).toBeDefined();
+
+      // Wait to ensure no new webhook is triggered
+      await new Promise(r => setTimeout(r, 7000));
+
+      const newWebhooks = mockServer!.requests.filter(
+        (req, idx) => idx >= countAfterFirstRun && req.body?.payload?.session_id === session.id
+      );
+      expect(newWebhooks.length).toBe(0);
+    }, 30000);
+
+    test("webhook is retried on error response (at-least-once delivery)", async () => {
+      // Configure server to fail first 2 calls, succeed on 3rd
+      mockServer!.setResponseHandler((callIndex) => {
+        if (callIndex < 2) {
+          return { status: 500, body: { error: 'Simulated failure' } };
+        }
+        return { status: 200, body: { ok: true } };
+      });
+
+      await updateConfigWithWebhook();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [baseInput],
+        version: "1.0.0"
+      });
+      expect(run).toBeDefined();
+
+      // Wait for retries (retry delays: 5s, 30s, 2min)
+      await new Promise(r => setTimeout(r, 15000));
+
+      const sessionWebhooks = mockServer!.requests.filter(
+        req => req.body?.payload?.session_id === session.id
+      );
+
+      // Expect at least 2 calls (initial + retry)
+      expect(sessionWebhooks.length).toBeGreaterThanOrEqual(2);
+
+      // All calls should have same event type and session_id
+      for (const webhook of sessionWebhooks) {
+        expect(webhook.body.event).toBe('session.on_first_run_created');
+        expect(webhook.body.payload.session_id).toBe(session.id);
+      }
+    }, 30000);
+  });
 });
 
 

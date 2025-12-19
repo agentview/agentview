@@ -11,7 +11,7 @@ import type { User as BetterAuthUser, ZodError } from "better-auth";
 import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi'
 import { swaggerUI } from '@hono/swagger-ui'
 import { db } from './db'
-import { endUsers, sessions, sessionItems, runs, emails, commentMessages, commentMessageEdits, commentMentions, versions, scores, configs, events, inboxItems, starredSessions } from './schemas/schema'
+import { endUsers, sessions, sessionItems, runs, emails, commentMessages, commentMessageEdits, commentMentions, versions, scores, configs, events, inboxItems, starredSessions, webhookJobs } from './schemas/schema'
 import { eq, desc, and, inArray, ne, gt, isNull, isNotNull, or, gte, sql, countDistinct, DrizzleQueryError, type InferSelectModel } from 'drizzle-orm'
 import { response_data, response_error, body } from './hono_utils'
 import { isUUID } from './isUUID'
@@ -424,31 +424,29 @@ async function requireCommentMessageFromUser(item: SessionItemWithCollaboration,
 }
 
 function parseMetadata(metadataConfig: Metadata | undefined, allowUnknownKeys: boolean = true, inputMetadata: Record<string, any>, existingMetadata: Record<string, any> | undefined | null): Record<string, any> {
-  let schema = z.object(metadataConfig ?? {});
+  const metafields = metadataConfig ?? {};
+
+  for (const [key, value] of Object.entries(metafields)) {
+    if (value.safeParse(null).success && !(value instanceof z.ZodDefault)) {
+      metafields[key] = value.default(null); // nullable fields without default should default to null
+    }
+  }
+
+  let schema = z.object(metafields);
   if (allowUnknownKeys) {
     schema = schema.loose();
   } else {
     schema = schema.strict();
   }
 
-  // const emptyNullMetadata = Object.fromEntries(
-  //   Object.keys(metadataConfig ?? {}).map((key) => [key, null])
-  // );
-
   const metadata = {
-    // ...emptyNullMetadata, // default nulls
     ...(existingMetadata ?? {}), // existing metadata overrides nulls
     ...(inputMetadata ?? {}), // input overrides existing metadata
   }
 
-  // // undefined values 
-  // for (const [key, value] of Object.entries(metadata)) {
-  //   if (value === undefined) {
-  //      metadata[key] = null;
-  //   }
-  // }
-
   const result = schema.safeParse(metadata);
+
+  console.log('error', result.error);
   if (!result.success) {
     throw new AgentViewError("Error parsing the metadata.", 422, { code: 'parse.schema', issues: result.error.issues });
   }
@@ -1250,7 +1248,6 @@ app.openapi(sessionPATCHRoute, async (c) => {
 
   const metadata = parseMetadata(agentConfig.metadata, agentConfig.allowUnknownMetadata ?? true, body.metadata, session.metadata);
 
-
   await db.update(sessions).set({
     metadata,
     updatedAt: new Date().toISOString(),
@@ -2021,6 +2018,18 @@ app.openapi(runsPOSTRoute, async (c) => {
         runId: newRun.id,
         isState: true,
       })
+    }
+
+    // Queue webhook job on first run (if webhookUrl is configured)
+    const isFirstRun = lastRun === undefined;
+    if (isFirstRun && config.webhookUrl) {
+      await tx.insert(webhookJobs).values({
+        eventType: 'session.on_first_run_created',
+        payload: { session_id: body.sessionId },
+        sessionId: body.sessionId,
+        status: 'pending',
+        nextAttemptAt: new Date().toISOString(),
+      });
     }
   });
 

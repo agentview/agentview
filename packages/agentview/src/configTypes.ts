@@ -32,4 +32,5 @@ export interface BaseAgentConfig<TRunConfig extends BaseRunConfig = BaseRunConfi
 
 export type BaseAgentViewConfig<TAgentConfig extends BaseAgentConfig = BaseAgentConfig> = {
     agents?: TAgentConfig[],
+    webhookUrl?: string,
 }

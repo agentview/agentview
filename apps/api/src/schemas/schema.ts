@@ -206,6 +206,26 @@ export const starredSessions = pgTable('starred_sessions', {
   unique().on(table.userId, table.sessionId)
 ]);
 
+export const webhookJobs = pgTable('webhook_jobs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+
+  eventType: varchar('event_type', { length: 255 }).notNull(),
+  payload: jsonb('payload').notNull(),
+
+  // Denormalized for efficient querying (nullable for non-session events in future)
+  sessionId: uuid('session_id').references(() => sessions.id, { onDelete: 'cascade' }),
+
+  status: varchar('status', { length: 64 }).notNull().$type<'pending' | 'processing' | 'completed' | 'failed'>(),
+  attempts: smallint('attempts').notNull().default(0),
+  maxAttempts: smallint('max_attempts').notNull().default(3),
+  nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: "string" }),
+  lastError: text('last_error'),
+}, (table) => [
+  index('webhook_jobs_status_next_attempt_idx').on(table.status, table.nextAttemptAt),
+  index('webhook_jobs_session_id_idx').on(table.sessionId),
+]);
 
 export const sessionRelations = relations(sessions, ({ many, one }) => ({
   sessionItems: many(sessionItems),
@@ -406,6 +426,7 @@ export const schema = {
   inboxItems,
   configs,
   starredSessions,
+  webhookJobs,
 
   // endUserAuthSessionsRelations,
   sessionRelations,
