@@ -11,6 +11,7 @@ import { timeAgoShort } from "../lib/timeAgo";
 import { useSessionContext } from "../lib/SessionContext";
 import { NotificationBadge, NotificationDot } from "../components/internal/NotificationBadge";
 import { UserAvatar } from "../components/internal/UserAvatar";
+import { Pill } from "../components/Pill";
 
 async function loader({ request }: LoaderFunctionArgs) {
   const { listParams, needsRedirect } = getListParamsAndCheckForRedirect(request);
@@ -51,7 +52,7 @@ function Component() {
 
   return <div className="flex flex-row items-stretch h-full">
 
-    <div className="basis-[300px] flex-shrink-0 flex-grow-0 border-r flex flex-col ">
+    <div className="basis-[300px] flex-shrink-0 flex-grow-0 min-w-0 border-r flex flex-col ">
 
       <Header className="px-3">
         <HeaderTitle title={`${listParams.env === "production" ? "Sessions" : listParams.env === "playground" ? "Private Playground" : "Shared Playground"}`} />
@@ -149,6 +150,8 @@ export function SessionCard({ session, listParams, sessionStats }: { session: Se
               </div>
 
             </div>
+            <div className="text-sm truncate  text-gray-600">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</div>
+            {/* <div className="text-xs text-gray-500 mt-1">0.0.1-dev</div> */}
           </div>
         </div>
       )}
