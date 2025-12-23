@@ -51,6 +51,7 @@ function Component() {
   // const { users, invitations } = useLoaderData<typeof loader>();
   const fetcher = useFetcher();
 
+
   return <div>
 
     <Header>
@@ -82,7 +83,7 @@ function Component() {
           </TableHeader>
           <TableBody>
 
-          {organization.invitations.map((invitation) => (
+          {organization.invitations.filter((invitation) => invitation.status === 'pending').map((invitation) => (
               <TableRow key={invitation.id}>
                 <TableCell >
                   

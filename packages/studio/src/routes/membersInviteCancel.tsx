@@ -1,22 +1,18 @@
-import { apiFetch } from "../lib/apiFetch";
+import { authClient } from "../lib/auth-client";
+import { betterAuthErrorToBaseError } from "../lib/errors";
 import type { ActionFunctionArgs, RouteObject } from "react-router";
 
 async function action({ params }: ActionFunctionArgs) {
-  const response = await apiFetch(`/api/invitations/${params.invitationId}`, {
-    method: "DELETE",
+  
+  const result = await authClient.organization.cancelInvitation({
+    invitationId: params.invitationId!,
   });
 
-  if (!response.ok) {
-    return {
-      ok: false,
-      error: response.error,
-    }
+  if (result.error) {
+    return { ok: false, error: betterAuthErrorToBaseError(result.error) };
   }
 
-  return {
-    ok: true,
-    data: null
-  }
+  return { ok: true, data: null };
 }
 
 export const membersInviteCancelRoute: RouteObject = {

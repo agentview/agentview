@@ -6,41 +6,40 @@ import { AlertCircleIcon } from "lucide-react";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Button } from "../components/ui/button";
-import { apiFetch } from "../lib/apiFetch";
-import type { ActionResponse } from "../lib/errors";
+import { authClient } from "../lib/auth-client";
+import { betterAuthErrorToBaseError, type ActionResponse } from "../lib/errors";
 
 
 async function loader({ params }: LoaderFunctionArgs) {
-  const response = await apiFetch(`/api/members`);
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch members');
+  const orgListResponse = await authClient.organization.list();
+  if (orgListResponse.error || orgListResponse.data.length === 0) {
+    throw new Error("Organization not found");
   }
 
-  const member = response.data.find((member: any) => member.id === params.memberId);
+  const org = await authClient.organization.getFullOrganization({
+    query: { organizationSlug: orgListResponse.data[0].slug }
+  });
 
-  if (!member) {
-    throw new Error("Member not found");
-  }
+  if (org.error) throw new Error(org.error.message);
 
-  return { member }
+  const member = org.data.members.find(m => m.id === params.memberId);
+  if (!member) throw new Error("Member not found");
+
+  return { member };
 }
 
 async function action({ request }: ActionFunctionArgs): Promise<ActionResponse | Response> {
   const formData = await request.formData();
   const memberId = formData.get("memberId") as string;
-  const role = formData.get("role") as "admin" | "user";
+  const role = formData.get("role") as string;
 
-  const response = await apiFetch(`/api/members/${memberId}`, {
-    method: 'POST',
-    body: { role },
+  const result = await authClient.organization.updateMemberRole({
+    memberId,
+    role,
   });
 
-  if (!response.ok) {
-    return {
-      ok: false,
-      error: response.error,
-    }
+  if (result.error) {
+    return { ok: false, error: betterAuthErrorToBaseError(result.error) };
   }
 
   return redirect("/settings/members");
@@ -50,7 +49,7 @@ function Component() {
   const fetcher = useFetcher<ActionResponse>();
   const navigate = useNavigate();
   const { member } = useLoaderData<typeof loader>();
-  
+
   return <div className="bg-red-500">
     <Dialog open={true} onOpenChange={() => { navigate(-1) }}>
     <DialogContent>
@@ -60,12 +59,12 @@ function Component() {
         <DialogHeader>
           <DialogTitle>Edit Member</DialogTitle>
         </DialogHeader>
-        
+
         <DialogBody className="space-y-5">
 
             <input type="hidden" name="_action" value="updateRole" />
             <input type="hidden" name="memberId" value={member.id} />
-            
+
             {/* General error alert */}
             {fetcher.data?.ok === false && fetcher.data.error && fetcher.state === 'idle' && (
               <Alert variant="destructive">
@@ -74,11 +73,10 @@ function Component() {
                 <AlertDescription>{fetcher.data.error.message}</AlertDescription>
               </Alert>
             )}
-            
+
             <div className="space-y-2">
               <Label>Email</Label>
-              <div className="text-sm text-muted-foreground">{member.email}</div>
-              <input type="hidden" name="email" value={member.email} />
+              <div className="text-sm text-muted-foreground">{member.user.email}</div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
@@ -87,8 +85,10 @@ function Component() {
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={"member"}>Member</SelectItem>
                   <SelectItem value={"admin"}>Admin</SelectItem>
-                  <SelectItem value={"user"}>User</SelectItem>
+                  <SelectItem value={"owner"}>Owner</SelectItem>
+
                 </SelectContent>
               </Select>
             </div>

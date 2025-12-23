@@ -7,24 +7,21 @@ import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Button } from "../components/ui/button";
-import { apiFetch } from "../lib/apiFetch";
-import type { ActionResponse } from "../lib/errors";
+import { authClient } from "../lib/auth-client";
+import { betterAuthErrorToBaseError, type ActionResponse } from "../lib/errors";
 
 async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const email = formData.get("email") as string;
   const role = formData.get("role") as string;
 
-  const response = await apiFetch(`/api/invitations`, {
-    method: "POST",
-    body: { email, role },
+  const result = await authClient.organization.inviteMember({
+    email,
+    role,
   });
 
-  if (!response.ok) {
-    return {
-      ok: false,
-      error: response.error,
-    }
+  if (result.error) {
+    return { ok: false, error: betterAuthErrorToBaseError(result.error) };
   }
 
   return redirect('/settings/members');
@@ -46,7 +43,7 @@ function Component() {
 
         <DialogBody className="space-y-4">
           <input type="hidden" name="_action" value="inviteMember" />
-          
+
           {/* General error alert */}
           {fetcher.data?.ok === false && (
             <Alert variant="destructive">
@@ -55,7 +52,7 @@ function Component() {
               <AlertDescription>{fetcher.data.error.message}</AlertDescription>
             </Alert>
           )}
-          
+
           <div className="space-y-2">
             <Label htmlFor="inviteMemberEmail">Email</Label>
             <Input
@@ -69,12 +66,12 @@ function Component() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="inviteMemberRole">Role</Label>
-            <Select defaultValue={"user"} name="role">
+            <Select defaultValue={"member"} name="role">
               <SelectTrigger>
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={"user"}>User</SelectItem>
+                <SelectItem value={"member"}>Member</SelectItem>
                 <SelectItem value={"admin"}>Admin</SelectItem>
               </SelectContent>
             </Select>
