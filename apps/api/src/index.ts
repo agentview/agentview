@@ -2025,15 +2025,11 @@ app.openapi(runPATCHRoute, async (c) => {
 
   authorize(principal, { action: "end-user:update", user: session.user });
 
-  console.log('run patch')
-
   const config = await requireConfig()
   const agentConfig = requireAgentConfig(config, session.agent)
 
   /** Find matching run **/
   const inputItem = run.sessionItems[0].content;
-
-  console.log('inputItem: ', inputItem);
 
   const runConfig = requireRunConfig(agentConfig, inputItem);
 
