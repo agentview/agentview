@@ -2946,6 +2946,33 @@ app.openapi(healthRoute, async (c) => {
   return c.json({ status: "ok", is_active: hasUsers }, 200);
 })
 
+/* --------- USER EXISTS --------- */
+
+const userExistsRoute = createRoute({
+  method: 'get',
+  path: '/api/user-exists',
+  request: {
+    query: z.object({
+      email: z.string().email(),
+    }),
+  },
+  responses: {
+    200: response_data(z.object({
+      exists: z.boolean(),
+    })),
+  },
+})
+
+app.openapi(userExistsRoute, async (c) => {
+  const { email } = c.req.valid('query');
+
+  const user = await db.query.users.findFirst({
+    where: (u, { eq }) => eq(u.email, email),
+  });
+
+  return c.json({ exists: !!user }, 200);
+})
+
 /* --------- EMAILS --------- */
 
 // The OpenAPI documentation will be available at /doc

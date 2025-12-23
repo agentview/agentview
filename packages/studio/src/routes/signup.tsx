@@ -1,6 +1,6 @@
 import { redirect, Form, useActionData, useLoaderData, data, type LoaderFunctionArgs, type ActionFunctionArgs, type RouteObject } from "react-router";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -9,9 +9,16 @@ import { betterAuthErrorToBaseError, type ActionResponse } from "../lib/errors";
 import { authClient } from "../lib/auth-client";
 import { apiFetch } from "../lib/apiFetch";
 
-async function loader({ request }: LoaderFunctionArgs): Promise<ActionResponse<{ invitation: any }> | Response> {
+type LoaderData = {
+  invitationId: string | null;
+  invitationEmail: string | null;
+  organizationName: string | null;
+  role: string | null;
+};
+
+async function loader({ request }: LoaderFunctionArgs): Promise<ActionResponse<LoaderData> | Response> {
   const session = await authClient.getSession();
-  
+
   if (session.data) {
     return redirect('/');
   }
@@ -24,58 +31,61 @@ async function loader({ request }: LoaderFunctionArgs): Promise<ActionResponse<{
     });
   }
 
+  const url = new URL(request.url);
+  const invitationId = url.searchParams.get('invitationId');
+
+  // If invitationId provided, fetch invitation details
+  if (invitationId) {
+    const invitationResponse = await authClient.organization.getInvitation({
+      query: { id: invitationId }
+    });
+
+    if (!invitationResponse.data) {
+      return {
+        ok: false,
+        error: { message: "Invitation not found or has expired." }
+      };
+    }
+
+    if (invitationResponse.data.status !== 'pending') {
+      return {
+        ok: false,
+        error: { message: "This invitation has already been used." }
+      };
+    }
+
+    // Check if invitation has expired
+    if (invitationResponse.data.expiresAt && new Date(invitationResponse.data.expiresAt) < new Date()) {
+      return {
+        ok: false,
+        error: { message: "This invitation has expired." }
+      };
+    }
+
+    return {
+      ok: true,
+      data: {
+        invitationId,
+        invitationEmail: invitationResponse.data.email,
+        organizationName: invitationResponse.data.organization?.name ?? null,
+        role: invitationResponse.data.role ?? null,
+      },
+    };
+  }
+
   return {
     ok: true,
     data: {
-      invitation: null,
+      invitationId: null,
+      invitationEmail: null,
+      organizationName: null,
+      role: null,
     },
-  }
-
-  // if (!statusResponse.data.is_active) {
-  //   return {
-  //     ok: true,
-  //     data: {
-  //       invitation: null,
-  //       isNewInstallation: true,
-  //     }
-  //   }
-  // }
-
-  // const url = new URL(request.url);
-  // const invitationId = url.searchParams.get('invitationId');
-
-  // if (!invitationId) {
-  //   return {
-  //     ok: false,
-  //     error: {
-  //       message: "You must have an invitation to sign up."
-  //     }
-  //   }
-  // }
-
-  // const response = await apiFetch(`/api/invitations/${invitationId}`);
-
-  // if (!response.ok) {
-  //   return {
-  //     ok: false,
-  //     error: response.error,
-  //   }
-  // }
-
-  // return {
-  //   ok: true,
-  //   data: {
-  //     invitation: response.data,
-  //     isNewInstallation: false,
-  //   },
-  // }
+  };
 }
 
 
-export async function action({
-  request,
-  params
-}: ActionFunctionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
   const url = new URL(request.url);
   const invitationId = url.searchParams.get('invitationId');
   const formData = await request.formData();
@@ -89,9 +99,9 @@ export async function action({
   }
 
   if (password !== confirmPassword) {
-    return { 
-      ok: false, 
-      error: { message: "Validation error", fieldErrors: { confirmPassword: "Passwords do not match." } } 
+    return {
+      ok: false,
+      error: { message: "Validation error", fieldErrors: { confirmPassword: "Passwords do not match." } }
     };
   }
 
@@ -99,12 +109,22 @@ export async function action({
     email,
     password,
     name: name.trim(),
-      // @ts-ignore
-    // invitationId
   })
 
   if (signupResponse.error) {
     return { ok: false, error: betterAuthErrorToBaseError(signupResponse.error) };
+  }
+
+  // Auto-accept invitation after signup
+  if (invitationId) {
+    const acceptResult = await authClient.organization.acceptInvitation({
+      invitationId,
+    });
+
+    if (acceptResult.error) {
+      // Log but don't block - user is already signed up
+      console.error('Failed to accept invitation:', acceptResult.error);
+    }
   }
 
   return redirect('/');
@@ -114,21 +134,38 @@ function Component() {
   const actionData = useActionData<typeof action>();
   const loaderData = useLoaderData<typeof loader>();
 
+  if (!loaderData.ok) {
+    return (
+      <div className="container mx-auto p-4 max-w-md mt-16">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-center">Sign up</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert variant="destructive">
+              <AlertCircleIcon />
+              <AlertDescription>{loaderData.error.message}</AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const { invitationEmail, organizationName, role } = loaderData.data;
+
   return (
     <div className="container mx-auto p-4 max-w-md mt-16">
       <Card>
         <CardHeader>
           <CardTitle className="text-center">Sign up</CardTitle>
+          {organizationName && (
+            <CardDescription className="text-center">
+              Join <strong>{organizationName}</strong> as <strong>{role}</strong>
+            </CardDescription>
+          )}
         </CardHeader>
-
-        { !loaderData.ok && <CardContent>
-          <Alert variant="destructive">
-            <AlertCircleIcon />
-            <AlertDescription>{ loaderData.error.message }</AlertDescription>
-          </Alert>
-        </CardContent> }
-        
-        { loaderData.ok && <CardContent>
+        <CardContent>
           <Form className="flex flex-col gap-4" method="post">
 
             {actionData?.ok === false && (
@@ -139,34 +176,36 @@ function Component() {
               </Alert>
             )}
 
-            { loaderData.data.invitation && (
-              <>
-                <input type="hidden" name="email" value={loaderData.data.invitation.email} />
-              </>
-            )}
-
-
-              { !loaderData.data.invitation && (
-                <div className={`flex flex-col gap-1`}>
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </Label>
-              <Input
-                id="email"
-                type="email"
-                name="email"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="your_email@acme.com"
-                required
-              />
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email
+              </Label>
+              {invitationEmail ? (
+                <>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={invitationEmail}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <input type="hidden" name="email" value={invitationEmail} />
+                </>
+              ) : (
+                <Input
+                  id="email"
+                  type="email"
+                  name="email"
+                  placeholder="your_email@acme.com"
+                  required
+                />
+              )}
               {actionData?.ok === false && actionData?.error?.fieldErrors?.email && (
                 <p id="email-error" className="text-sm text-destructive">
                   {actionData.error.fieldErrors.email}
                 </p>
               )}
-                
-              </div>
-              )}            
+            </div>
 
             <div className="flex flex-col gap-1">
               <Label htmlFor="name" className="text-sm font-medium">
@@ -176,7 +215,6 @@ function Component() {
                 id="name"
                 type="text"
                 name="name"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder="Jon Doe"
                 required
               />
@@ -186,25 +224,6 @@ function Component() {
                 </p>
               )}
             </div>
-{/* 
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                name="email"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Enter your email"
-                required
-              />
-              {actionData?.status === "error" && actionData?.fieldErrors?.email && (
-                <p id="email-error" className="text-sm text-destructive">
-                  {actionData.fieldErrors.email}
-                </p>
-              )}
-            </div> */}
 
             <div className="flex flex-col gap-1">
               <Label htmlFor="password" className="text-sm font-medium">
@@ -214,7 +233,6 @@ function Component() {
                 id="password"
                 type="password"
                 name="password"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder="Enter your password"
                 required
               />
@@ -233,7 +251,6 @@ function Component() {
                 id="confirmPassword"
                 type="password"
                 name="confirmPassword"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder="Confirm your password"
                 required
               />
@@ -248,13 +265,13 @@ function Component() {
               Sign Up
             </Button>
           </Form>
-        </CardContent> }
+        </CardContent>
       </Card>
     </div>
   );
 }
 
-export const signupRoute : RouteObject = {
+export const signupRoute: RouteObject = {
   Component,
   loader,
   action,

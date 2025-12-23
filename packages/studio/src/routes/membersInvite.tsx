@@ -13,7 +13,7 @@ import { betterAuthErrorToBaseError, type ActionResponse } from "../lib/errors";
 async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const email = formData.get("email") as string;
-  const role = formData.get("role") as string;
+  const role = formData.get("role") as "admin" | "member" | "owner";
 
   const result = await authClient.organization.inviteMember({
     email,
@@ -26,7 +26,6 @@ async function action({ request }: ActionFunctionArgs) {
 
   return redirect('/settings/members');
 }
-
 
 function Component() {
   const fetcher = useFetcher<ActionResponse>();

@@ -6,12 +6,12 @@ import { admin, apiKey, organization } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
 import { users } from "./schemas/auth-schema";
-// import { getValidInvitation, acceptInvitation, getInvitation } from "./invitations";
 import { eq } from "drizzle-orm";
 import { areThereRemainingAdmins } from "./areThereRemainingAdmins";
 import { getTotalMemberCount } from "./members";
 import { getStudioURL } from "./getStudioURL";
 import { colorValues } from "agentview/colors";
+import { addEmail } from "./email";
 
 export const auth = betterAuth({
     trustedOrigins: [getStudioURL()],
@@ -35,7 +35,33 @@ export const auth = betterAuth({
                 enabled: false // for now
             }
         }),
-        organization()
+        organization({
+            async afterCreateInvitation({ invitation, inviter, organization }) {
+                const studioUrl = getStudioURL();
+
+                await addEmail({
+                    to: invitation.email,
+                    subject: `You're invited to join ${organization.name}`,
+                    text: `Hello,
+
+You've been invited to join ${organization.name} as a ${invitation.role}.
+
+To accept your invitation and create your account, please visit:
+${studioUrl}/signup?invitationId=${invitation.id}
+
+If you did not expect this invitation, you can safely ignore this email.
+
+Best regards,
+The AgentView Team`,
+                    html: `<p>Hello,</p>
+<p>You've been invited to join <strong>${organization.name}</strong> as a <strong>${invitation.role}</strong>.</p>
+<p>To accept your invitation and create your account, please click the link below:</p>
+<p><a href="${studioUrl}/signup?invitationId=${invitation.id}">Accept Invitation</a></p>
+<p>If you did not expect this invitation, you can safely ignore this email.</p>
+<p>Best regards,<br/>The AgentView Team</p>`
+                }, inviter.id);
+            }
+        })
     ],
     hooks: {
         // before: createAuthMiddleware(async (ctx) => {
