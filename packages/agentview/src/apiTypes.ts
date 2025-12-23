@@ -234,23 +234,27 @@ export const ConfigCreateSchema = ConfigSchema.pick({
 
 export type ConfigCreate = z.infer<typeof ConfigCreateSchema>
 
-// member - user of organization, works in agentview panel, not end user
-export const MemberSchema = z.object({
-  id: z.string(),
-  email: z.string(),
-  name: z.string(),
-  role: z.string(),
-  image: z.string().nullable(),
-  createdAt: z.iso.date(),
-})
+// // member - user of organization, works in agentview panel, not end user
+// export const MemberSchema = z.object({
+//   id: z.string(),
+//   email: z.string(),
+//   name: z.string(),
+//   role: z.string(),
+//   image: z.string().nullable(),
+//   createdAt: z.iso.date(),
+// })
 
-export const MemberUpdateSchema = z.object({
-  role: z.enum(['admin', 'user']),
-})
+// export const MemberUpdateSchema = z.object({
+//   role: z.enum(['admin', 'user']),
+// })
 
-export type Member = z.infer<typeof MemberSchema>
+// export type Member = z.infer<typeof MemberSchema>
 
-export type MemberUpdate = z.infer<typeof MemberUpdateSchema>
+// export type MemberUpdate = z.infer<typeof MemberUpdateSchema>
+
+
+
+
 
 export const PaginationSchema = z.object({
   page: z.number(),

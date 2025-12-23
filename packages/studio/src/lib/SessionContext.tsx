@@ -1,9 +1,10 @@
 import React from "react";
-import type { Member } from "agentview/apiTypes";
+// import type { Member } from "agentview/apiTypes";
+import { authClient, type Member, type Organization } from "./auth-client";
 
 export type SessionContextValue = {
   me: Member;
-  members: Member[];
+  organization: Organization;
   locale: string;
 };
 

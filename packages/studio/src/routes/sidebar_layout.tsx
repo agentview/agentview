@@ -34,12 +34,12 @@ import { NotificationBadge } from "../components/internal/NotificationBadge";
 
 // Removed Framework Mode type import
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
-import { authClient } from "../lib/auth-client";
+import { authClient, getActiveMember, getActiveOrganization, type Organization } from "../lib/auth-client";
 import { SessionContext } from "../lib/SessionContext";
 import { apiFetch } from "../lib/apiFetch";
 import { updateRemoteConfig } from "../lib/remoteConfig";
 import { config } from "../config";
-import { type Env, type Member, envAllowedValues } from "agentview/apiTypes";
+import { type Env, envAllowedValues } from "agentview/apiTypes";
 import { Button } from "../components/ui/button";
 import { getCurrentAgent } from "../lib/currentAgent";
 import { matchPath } from "react-router";
@@ -52,6 +52,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const url = new URL(request.url);
   const relativeUrl = url.pathname + url.search + url.hash;
+
 
   if (!session.data) {
     if (relativeUrl !== '/') {
@@ -78,20 +79,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const orgs = orgListResponse.data;
 
   if (orgs.length === 0) {
-    throw new Error("No organisations found");
+    return redirect('/create-organization');
+  }
+  if (orgs.length > 1) {
+    throw new Error('Multiple organizations not supported yet');
   }
 
+  const organization = await getActiveOrganization(orgs[0].slug);
 
+  // const organization : Organization = orgs[0];
 
+  // const membersResponse = await apiFetch<Member[]>('/api/members');
 
-
-
-
-  const membersResponse = await apiFetch<Member[]>('/api/members');
-
-  if (!membersResponse.ok) {
-    throw data(membersResponse.error, { status: membersResponse.status });
-  }
+  // if (!membersResponse.ok) {
+  //   throw data(membersResponse.error, { status: membersResponse.status });
+  // }
 
   const locale = request.headers.get('accept-language')?.split(',')[0] || 'en-US';
 
@@ -115,30 +117,38 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
   }
 
-  if (!session.data.user.role) {
-    throw data("User not found", { status: 404 });
-  }
+  const member = await getActiveMember(organization, session.data.user.id);
 
-  const member: Member = {
-    id: session.data.user.id,
-    email: session.data.user.email,
-    name: session.data.user.name,
-    role: session.data.user.role,
-    image: session.data.user.image ?? null,
-    createdAt: session.data.user.createdAt.toISOString(),
-  }
+
+
+  // console.log('activeMember', activeMember);
+
+
+  // if (!session.data.user.role) {
+  //   throw data({ message: "User not found" }, { status: 404 });
+  // }
+
+  // const member: Member = {
+  //   id: session.data.user.id,
+  //   email: session.data.user.email,
+  //   name: session.data.user.name,
+  //   role: session.data.user.role,
+  //   image: session.data.user.image ?? null,
+  //   createdAt: session.data.user.createdAt.toISOString(),
+  // }
 
   return {
     me: member,
-    members: membersResponse.data,
     locale,
     listStats,
-    agent
+    agent,
+    organization
   };
 }
 
 function Component() {
-  const { me, members, locale, listStats, agent } = useLoaderData<typeof loader>()
+  const { me, organization, locale, listStats, agent } = useLoaderData<typeof loader>()
+
   const location = useLocation();
 
   // Helper function to get unseen count for a specific session type and list name
@@ -177,7 +187,7 @@ function Component() {
     }
   }
 
-  return (<SessionContext.Provider value={{ me, members, locale }}>
+  return (<SessionContext.Provider value={{ me, organization, locale }}>
 
     <SidebarProvider>
       <div className="flex h-screen bg-background w-full">
@@ -400,11 +410,11 @@ function Component() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton>
-                      <UserAvatar image={me.image} />
+                      <UserAvatar image={me.user.image} />
                       {/* <UserIcon /> */}
                       <div className="flex flex-col items-start text-left">
-                        <span className="text-sm font-medium truncate">{me.name}</span>
-                        <span className="text-xs text-muted-foreground truncate">{me.email}</span>
+                        <span className="text-sm font-medium truncate">{me.user.name}</span>
+                        <span className="text-xs text-muted-foreground truncate">{me.user.email}</span>
                       </div>
                       <ChevronUp className="ml-auto" />
                     </SidebarMenuButton>
@@ -437,8 +447,6 @@ function Component() {
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarFooter>
-
-
 
         </Sidebar>
 

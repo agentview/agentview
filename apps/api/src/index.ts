@@ -30,7 +30,7 @@ import {
   SessionCreateSchema,
   SessionUpdateSchema,
   RunSchema,
-  type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, MemberSchema, MemberUpdateSchema, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type User, type Run, type PublicSessionsGetQueryParams, type SessionsGetQueryParams, PublicSessionsGetQueryParamsSchema, SessionsGetQueryParamsSchema,
+  type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type User, type Run, type PublicSessionsGetQueryParams, type SessionsGetQueryParams, PublicSessionsGetQueryParamsSchema, SessionsGetQueryParamsSchema,
   EnvSchema
 } from 'agentview/apiTypes'
 import { BaseConfigSchema, BaseConfigSchemaToZod } from 'agentview/configUtils'
@@ -2621,201 +2621,201 @@ app.openapi(scoresPATCHRoute, async (c) => {
 /* --------- USERS --------- */
 
 
-// Members GET (list all users)
-const membersGETRoute = createRoute({
-  method: 'get',
-  path: '/api/members',
-  responses: {
-    200: response_data(z.array(MemberSchema)),
-    401: response_error(),
-  },
-})
+// // Members GET (list all users)
+// const membersGETRoute = createRoute({
+//   method: 'get',
+//   path: '/api/members',
+//   responses: {
+//     200: response_data(z.array(MemberSchema)),
+//     401: response_error(),
+//   },
+// })
 
-app.openapi(membersGETRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  const userPrincipal = requireMemberPrincipal(principal);
+// app.openapi(membersGETRoute, async (c) => {
+//   const principal = await authn(c.req.raw.headers)
+//   const userPrincipal = requireMemberPrincipal(principal);
 
-  const members = await db.select().from(users);
+//   const members = await db.select().from(users);
 
-  return c.json(members.map((member) => ({
-    id: member.id,
-    email: member.email,
-    name: member.name,
-    role: member.role ?? "user",
-    image: member.image ?? null,
-    createdAt: member.createdAt,
-  })), 200);
-})
+//   return c.json(members.map((member) => ({
+//     id: member.id,
+//     email: member.email,
+//     name: member.name,
+//     role: member.role ?? "user",
+//     image: member.image ?? null,
+//     createdAt: member.createdAt,
+//   })), 200);
+// })
 
-// Member POST (update role)
-const memberPOSTRoute = createRoute({
-  method: 'post',
-  path: '/api/members/{memberId}',
-  request: {
-    params: z.object({
-      memberId: z.string(),
-    }),
-    body: body(MemberUpdateSchema)
-  },
-  responses: {
-    200: response_data(z.object({})),
-    400: response_error(),
-    401: response_error(),
-    404: response_error(),
-  },
-})
+// // Member POST (update role)
+// const memberPOSTRoute = createRoute({
+//   method: 'post',
+//   path: '/api/members/{memberId}',
+//   request: {
+//     params: z.object({
+//       memberId: z.string(),
+//     }),
+//     body: body(MemberUpdateSchema)
+//   },
+//   responses: {
+//     200: response_data(z.object({})),
+//     400: response_error(),
+//     401: response_error(),
+//     404: response_error(),
+//   },
+// })
 
-app.openapi(memberPOSTRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  authorize(principal, { action: "admin" });
+// app.openapi(memberPOSTRoute, async (c) => {
+//   const principal = await authn(c.req.raw.headers)
+//   authorize(principal, { action: "admin" });
 
-  const { memberId } = c.req.param()
-  const body = await c.req.valid('json')
+//   const { memberId } = c.req.param()
+//   const body = await c.req.valid('json')
 
-  await auth.api.setRole({
-    headers: c.req.raw.headers,
-    body: { userId: memberId, role: body.role },
-  });
+//   await auth.api.setRole({
+//     headers: c.req.raw.headers,
+//     body: { userId: memberId, role: body.role },
+//   });
 
-  return c.json({}, 200);
-})
+//   return c.json({}, 200);
+// })
 
-// User DELETE (delete user)
-const memberDELETERoute = createRoute({
-  method: 'delete',
-  path: '/api/members/{memberId}',
-  request: {
-    params: z.object({
-      memberId: z.string(),
-    }),
-  },
-  responses: {
-    200: response_data(z.object({})),
-    400: response_error(),
-    401: response_error(),
-    404: response_error(),
-  },
-})
+// // User DELETE (delete user)
+// const memberDELETERoute = createRoute({
+//   method: 'delete',
+//   path: '/api/members/{memberId}',
+//   request: {
+//     params: z.object({
+//       memberId: z.string(),
+//     }),
+//   },
+//   responses: {
+//     200: response_data(z.object({})),
+//     400: response_error(),
+//     401: response_error(),
+//     404: response_error(),
+//   },
+// })
 
-app.openapi(memberDELETERoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  authorize(principal, { action: "admin" });
+// app.openapi(memberDELETERoute, async (c) => {
+//   const principal = await authn(c.req.raw.headers)
+//   authorize(principal, { action: "admin" });
 
-  const { memberId } = c.req.param()
+//   const { memberId } = c.req.param()
 
-  await auth.api.removeUser({
-    headers: c.req.raw.headers,
-    body: { userId: memberId },
-  });
+//   await auth.api.removeUser({
+//     headers: c.req.raw.headers,
+//     body: { userId: memberId },
+//   });
 
-  return c.json({}, 200);
-})
-
-
+//   return c.json({}, 200);
+// })
 
 
-/* --------- INVITATIONS --------- */
-
-// Invitations POST (create invitation)
-const invitationsPOSTRoute = createRoute({
-  method: 'post',
-  path: '/api/invitations',
-  request: {
-    body: body(InvitationCreateSchema)
-  },
-  responses: {
-    201: response_data(InvitationSchema),
-    400: response_error(),
-  },
-})
 
 
-app.openapi(invitationsPOSTRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  authorize(principal, { action: "admin" });
+// /* --------- INVITATIONS --------- */
 
-  const inviterId = requireMemberId(principal);
+// // Invitations POST (create invitation)
+// const invitationsPOSTRoute = createRoute({
+//   method: 'post',
+//   path: '/api/invitations',
+//   request: {
+//     body: body(InvitationCreateSchema)
+//   },
+//   responses: {
+//     201: response_data(InvitationSchema),
+//     400: response_error(),
+//   },
+// })
 
-  const body = await c.req.valid('json')
 
-  await createInvitation(body.email, body.role, inviterId);
+// app.openapi(invitationsPOSTRoute, async (c) => {
+//   const principal = await authn(c.req.raw.headers)
+//   authorize(principal, { action: "admin" });
 
-  // Get the created invitation to return it
-  const pendingInvitations = await getPendingInvitations();
-  const createdInvitation = pendingInvitations.find(inv => inv.email === body.email);
+//   const inviterId = requireMemberId(principal);
 
-  if (!createdInvitation) {
-    return c.json({ message: "Failed to create invitation" }, 400);
-  }
+//   const body = await c.req.valid('json')
 
-  return c.json(createdInvitation, 201);
-})
+//   await createInvitation(body.email, body.role, inviterId);
 
-// Invitations GET (get pending invitations)
-const invitationsGETRoute = createRoute({
-  method: 'get',
-  path: '/api/invitations',
-  responses: {
-    200: response_data(z.array(InvitationSchema)),
-    400: response_error(),
-  },
-})
+//   // Get the created invitation to return it
+//   const pendingInvitations = await getPendingInvitations();
+//   const createdInvitation = pendingInvitations.find(inv => inv.email === body.email);
 
-app.openapi(invitationsGETRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  authorize(principal, { action: "admin" });
+//   if (!createdInvitation) {
+//     return c.json({ message: "Failed to create invitation" }, 400);
+//   }
 
-  const pendingInvitations = await getPendingInvitations();
-  return c.json(pendingInvitations, 200);
-})
+//   return c.json(createdInvitation, 201);
+// })
 
-// Invitation DELETE (cancel invitation)
-const invitationDELETERoute = createRoute({
-  method: 'delete',
-  path: '/api/invitations/{id}',
-  request: {
-    params: z.object({
-      id: z.string(),
-    }),
-  },
-  responses: {
-    200: response_data(z.object({})),
-    400: response_error(),
-    404: response_error(),
-  },
-})
+// // Invitations GET (get pending invitations)
+// const invitationsGETRoute = createRoute({
+//   method: 'get',
+//   path: '/api/invitations',
+//   responses: {
+//     200: response_data(z.array(InvitationSchema)),
+//     400: response_error(),
+//   },
+// })
 
-app.openapi(invitationDELETERoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  authorize(principal, { action: "admin" });
+// app.openapi(invitationsGETRoute, async (c) => {
+//   const principal = await authn(c.req.raw.headers)
+//   authorize(principal, { action: "admin" });
 
-  const { id } = c.req.param()
+//   const pendingInvitations = await getPendingInvitations();
+//   return c.json(pendingInvitations, 200);
+// })
 
-  await cancelInvitation(id);
-  return c.json({}, 200);
-})
+// // Invitation DELETE (cancel invitation)
+// const invitationDELETERoute = createRoute({
+//   method: 'delete',
+//   path: '/api/invitations/{id}',
+//   request: {
+//     params: z.object({
+//       id: z.string(),
+//     }),
+//   },
+//   responses: {
+//     200: response_data(z.object({})),
+//     400: response_error(),
+//     404: response_error(),
+//   },
+// })
 
-// Invitation validation
-const invitationValidateRoute = createRoute({
-  method: 'get',
-  path: '/api/invitations/{invitationId}',
-  request: {
-    params: z.object({
-      invitationId: z.string(),
-    }),
-  },
-  responses: {
-    200: response_data(InvitationSchema),
-    400: response_error(),
-  },
-})
+// app.openapi(invitationDELETERoute, async (c) => {
+//   const principal = await authn(c.req.raw.headers)
+//   authorize(principal, { action: "admin" });
 
-app.openapi(invitationValidateRoute, async (c) => {
-  const { invitationId } = c.req.param()
+//   const { id } = c.req.param()
 
-  const invitation = await getValidInvitation(invitationId);
-  return c.json(invitation, 200);
-})
+//   await cancelInvitation(id);
+//   return c.json({}, 200);
+// })
+
+// // Invitation validation
+// const invitationValidateRoute = createRoute({
+//   method: 'get',
+//   path: '/api/invitations/{invitationId}',
+//   request: {
+//     params: z.object({
+//       invitationId: z.string(),
+//     }),
+//   },
+//   responses: {
+//     200: response_data(InvitationSchema),
+//     400: response_error(),
+//   },
+// })
+
+// app.openapi(invitationValidateRoute, async (c) => {
+//   const { invitationId } = c.req.param()
+
+//   const invitation = await getValidInvitation(invitationId);
+//   return c.json(invitation, 200);
+// })
 
 
 /* --------- EMAILS --------- */

@@ -74,7 +74,7 @@ function Component() {
             id="edit-email"
             type="email"
             name="email"
-            defaultValue={me.email}
+            defaultValue={me.user.email}
             disabled={true}
             readOnly
           />
@@ -85,7 +85,7 @@ function Component() {
           <Input
             id="edit-name"
             name="name"
-            defaultValue={me.name}
+            defaultValue={me.user.name}
             required
           />
           {editFetcher.state === 'idle' && actionData?.ok === false && actionData?.error.fieldErrors?.name && (
