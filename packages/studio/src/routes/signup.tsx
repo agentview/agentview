@@ -95,16 +95,16 @@ export async function action({
     };
   }
 
-  const { data, error } = await authClient.signUp.email({
+  const signupResponse = await authClient.signUp.email({
     email,
     password,
     name: name.trim(),
       // @ts-ignore
-    invitationId
+    // invitationId
   })
 
-  if (error) {
-    return { ok: false, error: betterAuthErrorToBaseError(error) };
+  if (signupResponse.error) {
+    return { ok: false, error: betterAuthErrorToBaseError(signupResponse.error) };
   }
 
   return redirect('/');

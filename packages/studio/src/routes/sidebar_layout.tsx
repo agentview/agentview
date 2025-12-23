@@ -45,6 +45,7 @@ import { getCurrentAgent } from "../lib/currentAgent";
 import { matchPath } from "react-router";
 import { UserAvatar } from "../components/internal/UserAvatar";
 import type { AgentCustomRoute } from "agentview/types";
+import { betterAuthErrorToBaseError } from "../lib/errors";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await authClient.getSession()
@@ -64,6 +65,27 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const agent = getCurrentAgent(request);
 
   await updateRemoteConfig(config); // update schema on every page load
+
+
+  // Organisation
+
+  const orgListResponse = await authClient.organization.list();
+
+  if (orgListResponse.error) {
+    throw new Error(orgListResponse.error.message);
+  }
+
+  const orgs = orgListResponse.data;
+
+  if (orgs.length === 0) {
+    throw new Error("No organisations found");
+  }
+
+
+
+
+
+
 
   const membersResponse = await apiFetch<Member[]>('/api/members');
 
