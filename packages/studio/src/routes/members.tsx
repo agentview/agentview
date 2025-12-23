@@ -14,37 +14,41 @@ import { Badge } from "../components/ui/badge";
 import { Header, HeaderTitle } from "../components/header";
 import { authClient } from "../lib/auth-client";
 import { apiFetch } from "../lib/apiFetch";
+import { useSessionContext } from "../lib/SessionContext";
 
 
 async function loader() {
-  const usersResponse = await authClient.admin.listUsers({
-    query: {
-      limit: 100,
-    },
-  });
+  // const usersResponse = await authClient.admin.listUsers({
+  //   query: {
+  //     limit: 100,
+  //   },
+  // });
 
-  if (usersResponse.error) {
-    throw data(usersResponse.error.message, {
-      status: 400,
-    });
-  }
+  // if (usersResponse.error) {
+  //   throw data(usersResponse.error.message, {
+  //     status: 400,
+  //   });
+  // }
   
-  const invitationsResponse = await apiFetch(`/api/invitations`);
+  // const invitationsResponse = await apiFetch(`/api/invitations`);
 
-  if (!invitationsResponse.ok) {
-    throw data({
-      message: 'Failed to fetch invitations',
-    }, {
-      status: invitationsResponse.status,
-    });
-  }
+  // if (!invitationsResponse.ok) {
+  //   throw data({
+  //     message: 'Failed to fetch invitations',
+  //   }, {
+  //     status: invitationsResponse.status,
+  //   });
+  // }
 
-  return { users: usersResponse.data.users, invitations: invitationsResponse.data as any[] };
+  // return { users: usersResponse.data.users, invitations: invitationsResponse.data as any[] };
+
+  return {}
 }
 
 
 function Component() {
-  const { users, invitations } = useLoaderData<typeof loader>();
+  const { organization } = useSessionContext();
+  // const { users, invitations } = useLoaderData<typeof loader>();
   const fetcher = useFetcher();
 
   return <div>
@@ -78,7 +82,7 @@ function Component() {
           </TableHeader>
           <TableBody>
 
-          {invitations.map((invitation) => (
+          {organization.invitations.map((invitation) => (
               <TableRow key={invitation.id}>
                 <TableCell >
                   
@@ -116,24 +120,24 @@ function Component() {
               </TableRow>
             ))}
 
-            {users.map((row) => (
-              <TableRow key={row.id}>
+            {organization.members.map((member) => (
+              <TableRow key={member.id}>
                 <TableCell><div className="flex flex-col justify-center min-h-[50px] ">
-                  <div className="font-medium">{row.name}</div>
-                  <div className="text-sm text-muted-foreground">{row.email}</div>
+                  <div className="font-medium">{member.user.name}</div>
+                  <div className="text-sm text-muted-foreground">{member.user.email}</div>
                   </div></TableCell>
-                <TableCell>{row.role}</TableCell>
+                <TableCell>{member.role}</TableCell>
                 <TableCell><Badge>Active</Badge></TableCell>
                 <TableCell>
                   <div className="flex gap-2">
 
                   <Button asChild variant="outline" size="xs">
-                      <Link to={`/settings/members/${row.id}/delete`}>
+                      <Link to={`/settings/members/${member.id}/delete`}>
                         Remove
                       </Link>
                     </Button>
                     <Button asChild variant="outline" size="xs">
-                      <Link to={`/settings/members/${row.id}/edit`}>
+                      <Link to={`/settings/members/${member.id}/edit`}>
                         Edit
                       </Link>
                     </Button>

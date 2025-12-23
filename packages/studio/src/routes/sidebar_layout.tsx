@@ -346,7 +346,7 @@ function Component() {
                 </SidebarMenu>
               </SidebarGroup>
 
-              { me.role === "admin" && <SidebarGroup>
+              { (me.role === "admin" || me.role === "owner") && <SidebarGroup>
                 <SidebarGroupLabel>Organisation</SidebarGroupLabel>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -366,7 +366,7 @@ function Component() {
                 </SidebarMenu>
               </SidebarGroup>}
 
-              { me.role === "admin" && <SidebarGroup>
+              { (me.role === "admin" || me.role === "owner") && <SidebarGroup>
                 <SidebarGroupLabel>Dev</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
