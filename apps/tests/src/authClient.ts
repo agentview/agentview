@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import { createAuthClient } from "better-auth/client"
-import { adminClient, apiKeyClient } from "better-auth/client/plugins"
+import { adminClient, apiKeyClient, organizationClient } from "better-auth/client/plugins"
 import type { Invitation } from "agentview"
 
 if (!process.env.AGENTVIEW_API_BASE_URL) {
@@ -12,8 +12,9 @@ export const authHeaders = new Headers();
 export const authClient = createAuthClient({
   baseURL: process.env.AGENTVIEW_API_BASE_URL,
   plugins: [
-    adminClient(),
-    apiKeyClient()
+      // adminClient(),
+      apiKeyClient(),
+      organizationClient()
   ],
   fetchOptions: {
     onSuccess({ response }) {

@@ -1,3 +1,4 @@
+import "@agentview/utils/loadEnv"
 import { defineConfig } from 'drizzle-kit';
 import { getDatabaseURL } from './src/getDatabaseURL';
 

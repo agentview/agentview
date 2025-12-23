@@ -1,16 +1,16 @@
 import { pgTable, text, timestamp, uuid, varchar, jsonb, boolean, uniqueIndex, integer, bigserial, bigint, serial, unique, smallint, index } from "drizzle-orm/pg-core";
-import { users, accounts, verifications, authSessions, apikeys } from "./auth-schema";
+import { users, accounts, verifications, authSessions, apikeys, organizations, members, invitations, invitationsRelations, organizationsRelations, membersRelations } from "./auth-schema";
 import { relations, sql } from "drizzle-orm";
 
-export const invitations = pgTable("invitations", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  email: varchar("email", { length: 255 }).notNull(),
-  role: varchar("role", { length: 255 }).notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-  status: varchar({ length: 255 }).notNull(),
-  invitedBy: text('invited_by').references(() => users.id, { onDelete: 'cascade' })
-});
+// export const invitations = pgTable("invitations", {
+//   id: uuid("id").primaryKey().defaultRandom(),
+//   email: varchar("email", { length: 255 }).notNull(),
+//   role: varchar("role", { length: 255 }).notNull(),
+//   expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
+//   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+//   status: varchar({ length: 255 }).notNull(),
+//   invitedBy: text('invited_by').references(() => users.id, { onDelete: 'cascade' })
+// });
 
 export const emails = pgTable("emails", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -407,7 +407,10 @@ export const schema = {
   authSessions,
   accounts,
   verifications,
-  invitations,
+  organizations, members, invitations, invitationsRelations, organizationsRelations, membersRelations,
+
+  
+  // invitations,
   apikeys,
 
   emails,

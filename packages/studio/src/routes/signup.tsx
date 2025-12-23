@@ -9,7 +9,7 @@ import { betterAuthErrorToBaseError, type ActionResponse } from "../lib/errors";
 import { authClient } from "../lib/auth-client";
 import { apiFetch } from "../lib/apiFetch";
 
-async function loader({ request }: LoaderFunctionArgs): Promise<ActionResponse<{ invitation: any, isNewInstallation: boolean }> | Response> {
+async function loader({ request }: LoaderFunctionArgs): Promise<ActionResponse<{ invitation: any }> | Response> {
   const session = await authClient.getSession();
   
   if (session.data) {
@@ -24,44 +24,51 @@ async function loader({ request }: LoaderFunctionArgs): Promise<ActionResponse<{
     });
   }
 
-  if (!statusResponse.data.is_active) {
-    return {
-      ok: true,
-      data: {
-        invitation: null,
-        isNewInstallation: true,
-      }
-    }
-  }
-
-  const url = new URL(request.url);
-  const invitationId = url.searchParams.get('invitationId');
-
-  if (!invitationId) {
-    return {
-      ok: false,
-      error: {
-        message: "You must have an invitation to sign up."
-      }
-    }
-  }
-
-  const response = await apiFetch(`/api/invitations/${invitationId}`);
-
-  if (!response.ok) {
-    return {
-      ok: false,
-      error: response.error,
-    }
-  }
-
   return {
     ok: true,
     data: {
-      invitation: response.data,
-      isNewInstallation: false,
+      invitation: null,
     },
   }
+
+  // if (!statusResponse.data.is_active) {
+  //   return {
+  //     ok: true,
+  //     data: {
+  //       invitation: null,
+  //       isNewInstallation: true,
+  //     }
+  //   }
+  // }
+
+  // const url = new URL(request.url);
+  // const invitationId = url.searchParams.get('invitationId');
+
+  // if (!invitationId) {
+  //   return {
+  //     ok: false,
+  //     error: {
+  //       message: "You must have an invitation to sign up."
+  //     }
+  //   }
+  // }
+
+  // const response = await apiFetch(`/api/invitations/${invitationId}`);
+
+  // if (!response.ok) {
+  //   return {
+  //     ok: false,
+  //     error: response.error,
+  //   }
+  // }
+
+  // return {
+  //   ok: true,
+  //   data: {
+  //     invitation: response.data,
+  //     isNewInstallation: false,
+  //   },
+  // }
 }
 
 
@@ -111,7 +118,7 @@ function Component() {
     <div className="container mx-auto p-4 max-w-md mt-16">
       <Card>
         <CardHeader>
-          <CardTitle className="text-center">{ loaderData.ok && loaderData.data.isNewInstallation ? 'Sign up as admin' : 'Sign Up' }</CardTitle>
+          <CardTitle className="text-center">Sign up</CardTitle>
         </CardHeader>
 
         { !loaderData.ok && <CardContent>
@@ -132,14 +139,14 @@ function Component() {
               </Alert>
             )}
 
-            { !loaderData.data.isNewInstallation && (
+            { loaderData.data.invitation && (
               <>
                 <input type="hidden" name="email" value={loaderData.data.invitation.email} />
               </>
             )}
 
 
-              { loaderData.data.isNewInstallation && (
+              { !loaderData.data.invitation && (
                 <div className={`flex flex-col gap-1`}>
                 <Label htmlFor="email" className="text-sm font-medium">
                   Email

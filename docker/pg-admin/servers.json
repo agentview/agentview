@@ -5,8 +5,8 @@
       "Group": "Servers",
       "Host": "postgres-db",
       "Port": 5432,
-      "MaintenanceDB": "postgres",
-      "Username": "postgres",
+      "MaintenanceDB": "agentview",
+      "Username": "admin",
       "SSLMode": "prefer"
     }
   }
