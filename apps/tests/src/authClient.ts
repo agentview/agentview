@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import { createAuthClient } from "better-auth/client"
-import { adminClient, apiKeyClient, organizationClient } from "better-auth/client/plugins"
-import type { Invitation } from "agentview"
+import { apiKeyClient, organizationClient } from "better-auth/client/plugins"
+// import type { Invitation } from "agentview"
 
 if (!process.env.AGENTVIEW_API_BASE_URL) {
   throw new Error('AGENTVIEW_API_BASE_URL is not set')
@@ -36,19 +36,19 @@ export const authClient = createAuthClient({
   },
 })
 
-export async function inviteMember(email: string, role: "admin" | "user") {
-  const response = await fetch(`${process.env.AGENTVIEW_API_BASE_URL}/api/invitations`, {
-    method: "POST",
-    body: JSON.stringify({ email, role }),
-    headers: {
-      "Content-Type": "application/json",
-      "Cookie": authHeaders.get("Cookie") || "",
-    },
-  });
+// export async function inviteMember(email: string, role: "admin" | "user") {
+//   const response = await fetch(`${process.env.AGENTVIEW_API_BASE_URL}/api/invitations`, {
+//     method: "POST",
+//     body: JSON.stringify({ email, role }),
+//     headers: {
+//       "Content-Type": "application/json",
+//       "Cookie": authHeaders.get("Cookie") || "",
+//     },
+//   });
 
-  if (!response.ok) { 
-    throw new Error(`Failed to invite member: ${email}`);
-  }
+//   if (!response.ok) { 
+//     throw new Error(`Failed to invite member: ${email}`);
+//   }
 
-  return await response.json() as Invitation
-}
+//   return await response.json() as Invitation
+// }

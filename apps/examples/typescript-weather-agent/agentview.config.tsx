@@ -10,6 +10,7 @@ import { CustomPage } from "./src/CustomPage";
 
 export default defineConfig({
   apiBaseUrl: "http://localhost:1990",
+  organizationId: import.meta.env.VITE_AGENTVIEW_ORGANIZATION_ID,
   agents: [
     {
       name: "weather-chat",

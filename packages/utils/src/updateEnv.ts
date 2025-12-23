@@ -2,15 +2,15 @@ import { writeFileSync, existsSync, readFileSync, readdirSync, statSync } from '
 import path from "node:path";
 import { getMonorepoRootPath } from "./getMonorepoRootPath";
 
-const API_KEY_ENV_VAR = "AGENTVIEW_API_KEY";
+// const API_KEY_ENV_VAR = "AGENTVIEW_API_KEY";
 
-function updateEnvFile(envFilePath: string, value: string, requireExists: boolean = false) {
+function updateEnvFile(envFilePath: string, key: string, value: string, requireExists: boolean = false) {
   let envContents = '';
   if (existsSync(envFilePath)) {
     envContents = readFileSync(envFilePath, 'utf8');
     // Remove existing key line if present
     // Escape special regex characters in the key
-    const escapedKey = API_KEY_ENV_VAR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const keyPattern = new RegExp(`^${escapedKey}\\s*=`);
     envContents = envContents
       .split('\n')
@@ -24,16 +24,16 @@ function updateEnvFile(envFilePath: string, value: string, requireExists: boolea
     process.exit(1);
   }
 
-  envContents += `${API_KEY_ENV_VAR}=${value}\n`;
+  envContents += `${key}=${value}\n`;
   writeFileSync(envFilePath, envContents, 'utf8');
 }
 
-export function updateApiKeyEnv(value: string) {
+export function updateEnv(key: string, value: string) {
   const monorepoRoot = getMonorepoRootPath();
   
   // Update root .env (required - exit if doesn't exist)
   const rootEnvFilePath = path.join(monorepoRoot, ".env");
-  updateEnvFile(rootEnvFilePath, value, true);
+  updateEnvFile(rootEnvFilePath, key, value, true);
   
   // Update .env files in all example projects
   const examplesDir = path.join(monorepoRoot, "apps", "examples");
@@ -44,7 +44,7 @@ export function updateApiKeyEnv(value: string) {
       const stats = statSync(entryPath);
       if (stats.isDirectory()) {
         const exampleEnvPath = path.join(entryPath, ".env");
-        updateEnvFile(exampleEnvPath, value, false);
+        updateEnvFile(exampleEnvPath, key, value, false);
       }
     }
   }

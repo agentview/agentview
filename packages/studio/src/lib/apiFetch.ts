@@ -26,6 +26,7 @@ export async function apiFetch<T = any>(endpoint: string, options: APIOptions = 
         credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
+            'X-Organization-Id': config.organizationId,
         },
         body: options.body ? JSON.stringify(options.body) : undefined,
     });

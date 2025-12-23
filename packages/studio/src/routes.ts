@@ -20,7 +20,6 @@ import { configsRoute } from "./routes/configs";
 import { logoutRoute } from "./routes/logout";
 import { loginRoute } from "./routes/login";
 import { signupRoute } from "./routes/signup";
-import { createOrganizationRoute } from "./routes/createOrganization";
 import { rootRoute } from "./root";
 import { sessionRunRoute } from "./routes/sessionRun";
 import { settingsRoute } from "./routes/settings";
@@ -158,10 +157,6 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
         {
           path: "signup",
           ...signupRoute
-        },
-        {
-          path: "create-organization",
-          ...createOrganizationRoute
         },
         {
           path: "ui",

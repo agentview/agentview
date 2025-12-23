@@ -34,7 +34,7 @@ import { NotificationBadge } from "../components/internal/NotificationBadge";
 
 // Removed Framework Mode type import
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
-import { authClient, getActiveMember, getActiveOrganization, type Organization } from "../lib/auth-client";
+import { authClient, getOrganization, getMember, type Organization } from "../lib/auth-client";
 import { SessionContext } from "../lib/SessionContext";
 import { apiFetch } from "../lib/apiFetch";
 import { updateRemoteConfig } from "../lib/remoteConfig";
@@ -69,23 +69,27 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 
   // Organisation
+  const organization = await getOrganization(config.organizationId);
+  await authClient.organization.setActive({ organizationId: config.organizationId });
+  
+  // const organization = await authClient.organization.getFullOrganization();
 
-  const orgListResponse = await authClient.organization.list();
+  // const orgListResponse = await authClient.organization.list();
 
-  if (orgListResponse.error) {
-    throw new Error(orgListResponse.error.message);
-  }
+  // if (orgListResponse.error) {
+  //   throw new Error(orgListResponse.error.message);
+  // }
 
-  const orgs = orgListResponse.data;
+  // const orgs = orgListResponse.data;
 
-  if (orgs.length === 0) {
-    return redirect('/create-organization');
-  }
-  if (orgs.length > 1) {
-    throw new Error('Multiple organizations not supported yet');
-  }
+  // if (orgs.length === 0) {
+  //   return redirect('/create-organization');
+  // }
+  // if (orgs.length > 1) {
+  //   throw new Error('Multiple organizations not supported yet');
+  // }
 
-  const organization = await getActiveOrganization(orgs[0].slug);
+  // const organization = await getActiveOrganization(orgs[0].slug);
 
   // const organization : Organization = orgs[0];
 
@@ -117,7 +121,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
   }
 
-  const member = await getActiveMember(organization, session.data.user.id);
+  const member = await getMember(organization, session.data.user.id);
 
 
 

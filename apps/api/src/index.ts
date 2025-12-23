@@ -36,7 +36,7 @@ import {
 import { BaseConfigSchema, BaseConfigSchemaToZod } from 'agentview/configUtils'
 import { getConfigRow } from './getConfig'
 import { type BaseAgentViewConfig, type Metadata, type BaseRunConfig } from 'agentview/configTypes'
-import { users } from './schemas/auth-schema'
+import { members, users, organizations } from './schemas/auth-schema'
 import { getTotalMemberCount } from './members'
 import { updateInboxes } from './updateInboxes'
 import { isInboxItemUnread } from './inboxItems'
@@ -141,15 +141,31 @@ async function verifyAndGetKey(bearer: string) { // this function exists just fo
   return maybeApiKey?.key;
 }
 
+// async function getBetterAuthOrganization(headers: Headers) {
+//   const organization = await auth.api.getFullOrganization({ query: { organizationId: orgId }, headers })
+//   if (organization) {
+//     return organization
+//   }
+//   return null
+// }
+
 type MemberPrincipal = {
   type: 'member',
   session: NonNullable<Awaited<ReturnType<(typeof getBetterAuthSession)>>>,
+
+  role: string,
+  organizationId: any,
+
   user?: User // narrowing down scope
 }
 
 type ApiKeyPrincipal = {
   type: 'apiKey',
   apiKey: NonNullable<Awaited<ReturnType<typeof verifyAndGetKey>>>,
+
+  role: string,
+  organizationId: any,
+
   user?: User // narrowing down scope
 }
 
@@ -180,7 +196,31 @@ function extractUserToken(headers: Headers) {
   return xUserToken.trim()
 }
 
+
+async function getRole(userId: string, organizationId: string) {
+  const member = await db.query.members.findFirst({ where: and(eq(members.userId, userId), eq(members.organizationId, organizationId)) })
+  if (!member) {
+    throw new HTTPException(401, { message: "Unauthorized" });
+  }
+  return member.role
+}
+
+async function requireOrganization(headers: Headers) {
+  const organizationId = headers.get('x-organization-id')
+  if (!organizationId) {
+    throw new HTTPException(404, { message: "X-Organization-Id header is required" });
+  }
+  
+  const organization = await db.query.organizations.findFirst({ where: eq(organizations.id, organizationId) })
+  if (!organization) {
+    throw new HTTPException(404, { message: "Organization not found" });
+  }
+  return organization
+}
+
 async function authn(headers: Headers): Promise<PrivatePrincipal> {
+  const organization = await requireOrganization(headers)
+
   // See whether user header exists
   let user: User | undefined;
 
@@ -195,7 +235,8 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
   // members
   const memberSession = await auth.api.getSession({ headers })
   if (memberSession) {
-    return { type: 'member', session: memberSession, user }
+    const role = await getRole(memberSession.user.id, organization.id)
+    return { type: 'member', session: memberSession, user, role, organizationId: organization.id }
   }
 
   // API Keys
@@ -209,7 +250,8 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
     })
 
     if (valid === true && !error && key) {
-      return { type: 'apiKey', apiKey: key, user }
+      const role = await getRole(key.userId, organization.id)
+      return { type: 'apiKey', apiKey: key, user, role, organizationId: organization.id }
     }
   }
 
@@ -228,8 +270,6 @@ async function authnUser(headers: Headers): Promise<UserPrincipal> {
 
   throw new HTTPException(401, { message: "Unauthorized" });
 }
-
-
 
 function requireMemberPrincipal(principal: Principal) {
   if (principal.type === 'member') {
@@ -293,7 +333,7 @@ function authorize(principal: Principal, action: Action) {
 
   }
   else if (action.action === "admin") {
-    if (principal.type === 'member' && principal.session.user.role === "admin") {
+    if (principal.type === 'member' && (principal.role === "admin" || principal.role === "owner")) {
       return true;
     }
   }

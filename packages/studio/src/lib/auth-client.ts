@@ -16,8 +16,8 @@ export function createBetterAuthClient({ baseURL }: { baseURL: string }) {
 export const authClient = createBetterAuthClient({ baseURL: new URL('/api/auth', config.apiBaseUrl).toString() })
 
 
-export async function getActiveOrganization(slug: string) {
-    const response = await authClient.organization.getFullOrganization({ query: { organizationSlug: slug } })
+export async function getOrganization(slug: string) {
+    const response = await authClient.organization.getFullOrganization({ query: { organizationId: config.organizationId } })
 
     if (response.error) {
         throw new Error(response.error.message);
@@ -26,7 +26,7 @@ export async function getActiveOrganization(slug: string) {
     return response.data;
 }
 
-export async function getActiveMember(organization: Organization, userId: string) {
+export async function getMember(organization: Organization, userId: string) {
     const member = organization.members.find((member) => member.userId === userId);
 
     if (!member) {
@@ -37,6 +37,6 @@ export async function getActiveMember(organization: Organization, userId: string
 }
 
 
-export type Member = Awaited<ReturnType<typeof getActiveMember>>;
+export type Member = Awaited<ReturnType<typeof getMember>>;
 export type User = Member["user"];
-export type Organization = Awaited<ReturnType<typeof getActiveOrganization>>;
+export type Organization = Awaited<ReturnType<typeof getOrganization>>;
