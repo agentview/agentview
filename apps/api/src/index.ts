@@ -244,25 +244,13 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
   const bearer = extractBearerToken(headers)
 
   if (bearer) {
-    console.log("Bearer 111!!!!!!", bearer);
-
     const { valid, error, key } = await auth.api.verifyApiKey({
       body: {
         key: bearer,
       },
     })
-
-    console.log("Bearer 222!!!!!!");
-
-    console.log('valid', valid)
-    console.log('error', error);
-    console.log('key', key)
-
     if (valid === true && !error && key) {
       const organization = await requireOrganization(key.metadata?.organizationId ?? "");
-
-      console.log('org', organization);
-
       const role = await getRole(key.userId, organization.id)
       return { type: 'apiKey', apiKey: key, user, role, organizationId: organization.id }
     }

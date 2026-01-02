@@ -147,6 +147,9 @@ function SessionPage() {
                 const response = await fetch(url, {
                     credentials: 'include', // ensure cookies are sent
                     signal: abortController.signal,
+                    headers: {
+                        "X-Organization-Id": config.organizationId
+                    }
                 });
 
                 for await (const event of parseSSE(response)) {
