@@ -3,7 +3,7 @@
     "type": "module",
     "scripts": {
         "test": "vitest",
-        "seed-users": "tsx src/seedUsers.ts"
+        "seed-users": "tsx src/seedUsersCli.ts"
     },
     "dependencies": {
         "agentview": "workspace:*",

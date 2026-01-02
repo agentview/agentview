@@ -1,46 +1,39 @@
 import '@agentview/utils/loadEnv'
-import { authClient } from './authClient'
-import { updateEnv } from '@agentview/utils/updateEnv'
+import { createTestAuthClient } from './authClient'
 
-async function main() {
+export async function seedUsers(slug: string) {
+  const authClient = createTestAuthClient();
+  
   // First sign up - admin user
   await authClient.signUp.email({
-    email: "admin@acme.com",
+    email: `admin@${slug}.com`,
     password: "blablabla",
     name: "Admin"
   });
 
   // Create organization (for now this way)
   const organization = await authClient.organization.create({
-    name: "Acme",
-    slug: "acme"
+    name: slug,
+    slug
   })
   
-  console.log('Organization id: ' + organization.id)
-  updateEnv("AGENTVIEW_ORGANIZATION_ID", organization.id);
-  updateEnv("VITE_AGENTVIEW_ORGANIZATION_ID", organization.id);
-
   // Create API key for admin user
-  const { key } = await authClient.apiKey.create({
+  const apiKey = await authClient.apiKey.create({
     name: "main",
     metadata: {
       organizationId: organization.id
     }
   })
 
-  // Let's write the API key to the .env file
-  console.log('API Key: ' + key)
-  updateEnv("AGENTVIEW_API_KEY", key);
-
   // Invite Bob and Alice
   const bobInvitation = await authClient.organization.inviteMember({
-    email: "bob@acme.com",
+    email: `bob@${slug}.com`,
     role: "member",
     organizationId: organization.id
   })
 
   const aliceInvitation = await authClient.organization.inviteMember({
-    email: "alice@acme.com",
+    email: `alice@${slug}.com`,
     role: "member",
     organizationId: organization.id
   })
@@ -49,7 +42,7 @@ async function main() {
 
   // Register Bob
   await authClient.signUp.email({
-    email: "bob@acme.com",
+    email: `bob@${slug}.com`,
     password: "blablabla",
     name: "Bob"
   });
@@ -62,7 +55,7 @@ async function main() {
 
   // Register Alice
   await authClient.signUp.email({
-    email: "alice@acme.com",
+    email: `alice@${slug}.com`,
     password: "blablabla",
     name: "Alice"
   });
@@ -73,31 +66,8 @@ async function main() {
 
   await authClient.signOut();
 
-
-  // const bobInvitation = await inviteMember("bob@acme.com", "user");
-  // const aliceInvitation = await inviteMember("alice@acme.com", "user");
-
-  // await authClient.signOut();
-
-  // // Register Bob
-  // await authClient.signUp.email({
-  //   email: "bob@acme.com",
-  //   password: "blablabla",
-  //   name: "Bob",
-  //     // @ts-ignore
-  //   invitationId: bobInvitation.id
-  // });
-
-  // await authClient.signOut();
-
-  // // Register Alice
-  // await authClient.signUp.email({
-  //   email: "alice@acme.com",
-  //   password: "blablabla",
-  //   name: "Alice",
-  //     // @ts-ignore
-  //   invitationId: aliceInvitation.id
-  // });
+  return {
+    organization,
+    apiKey
+  }
 }
-
-main().catch(console.error);

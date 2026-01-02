@@ -3,6 +3,7 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { AgentView, PublicAgentView } from 'agentview'
 import type { User, Run, Session } from 'agentview';
 import { z } from 'zod';
+import { seedUsers } from './seedUsers';
 
 if (!process.env.AGENTVIEW_API_BASE_URL) {
   throw new Error('AGENTVIEW_API_BASE_URL is not set')
@@ -13,10 +14,10 @@ if (!process.env.AGENTVIEW_API_KEY) {
 
 const apiBaseUrl = process.env.AGENTVIEW_API_BASE_URL
 
-const av = new AgentView({
-  apiBaseUrl,
-  apiKey: process.env.AGENTVIEW_API_KEY,
-})
+// const av = new AgentView({
+//   apiBaseUrl,
+//   apiKey: process.env.AGENTVIEW_API_KEY,
+// })
 
 describe('API', () => {
   let initUser1: User
@@ -24,10 +25,22 @@ describe('API', () => {
 
   let initProdUser: User
 
-  const EXTERNAL_ID_1 = Math.random().toString(36).slice(2)
-  const EXTERNAL_ID_2 = Math.random().toString(36).slice(2)
+  const EXTERNAL_ID_1 = 'external-id-1'
+  const EXTERNAL_ID_2 = 'external-id-2'
+
+  let av: AgentView;
 
   beforeAll(async () => {
+    const orgSlug = "test-" + Math.random().toString(36).slice(2);
+    console.log("Seeding users for org: ", orgSlug);
+
+    const { organization, apiKey } = await seedUsers(orgSlug);
+
+    av = new AgentView({
+      apiBaseUrl,
+      apiKey: apiKey.key,
+    })
+
     initUser1 = await av.createUser({ externalId: EXTERNAL_ID_1 })
     initUser2 = await av.createUser({ externalId: EXTERNAL_ID_2 })
     initProdUser = await av.createUser({ externalId: EXTERNAL_ID_1, env: "production" })
@@ -575,7 +588,7 @@ describe('API', () => {
       }))
     })
 
-    describe("get session list", () => {
+    describe.only("get session list", () => {
       const USER_1_SESSIONS_COUNT = 20
       const USER_2_SESSIONS_COUNT = 7
       const PROD_USER_SESSIONS_COUNT = 20
@@ -585,7 +598,7 @@ describe('API', () => {
       let user2Sessions: Session[] = []
       let prodUserSessions: Session[] = []
 
-      let agentName = 'agent_' + Math.random().toString(36).slice(2)
+      let agentName = 'agent-for-testing-lists'
 
       beforeAll(async () => {
         await av.__updateConfig({ config: { agents: [{ name: agentName }] } })
@@ -747,7 +760,7 @@ describe('API', () => {
     describe("starred sessions", () => {
       let testSession1: Session
       let testSession2: Session
-      const starredAgentName = 'starred_agent_' + Math.random().toString(36).slice(2)
+      const starredAgentName = 'agent-for-testing-stars';
 
       beforeAll(async () => {
         await av.__updateConfig({ config: { agents: [{ name: starredAgentName }] } })
