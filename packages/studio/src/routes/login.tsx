@@ -9,8 +9,16 @@ import { betterAuthErrorToBaseError, type ActionResponse } from "../lib/errors";
 import { authClient } from "../lib/auth-client";
 import { apiFetch } from "../lib/apiFetch";
 
-function redirectUrl(request: Request) {
+function getRedirectUrl(request: Request) {
   const url = new URL(request.url);
+
+  // If invitationId is present, redirect to accept-invitation after login
+  const invitationId = url.searchParams.get('invitationId');
+  if (invitationId) {
+    return '/accept-invitation?invitationId=' + encodeURIComponent(invitationId);
+  }
+
+  // Otherwise use the redirect param or default to /
   const redirectTo = url.searchParams.get('redirect');
   if (redirectTo && redirectTo.startsWith('/')) {
     return redirectTo;
@@ -22,7 +30,7 @@ async function loader({ request }: LoaderFunctionArgs) {
   const sessionResponse = await authClient.getSession()
 
   if (sessionResponse.data) {
-    return redirect(redirectUrl(request));
+    return redirect(getRedirectUrl(request));
   }
 
   // If it's a new installation redirect to signup
@@ -35,7 +43,8 @@ async function loader({ request }: LoaderFunctionArgs) {
   }
 
   if (!statusResponse.data.is_active) {
-    return redirect("/signup");
+    throw data("No users.")
+    // return redirect("/signup");
   }
 }
 
@@ -55,7 +64,7 @@ async function action({
     return { ok: false, error: betterAuthErrorToBaseError(error) };
   }
 
-  return { ok: true, data: redirect(redirectUrl(request)) };
+  return { ok: true, data: redirect(getRedirectUrl(request)) };
 }
 
 function Component() {

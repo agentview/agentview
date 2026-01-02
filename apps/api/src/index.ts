@@ -2766,8 +2766,37 @@ app.openapi(invitationDetailGETRoute, async (c) => {
 
   const invitation = await requireValidInvitation(invitation_id, organization.id);
 
-  return c.json(invitation, 200)
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, invitation.email)
+  })
+
+  return c.json({...invitation, userExists: !!user }, 200)
 })
+
+// // Check if a user exists for an invitation's email
+// const invitationUserExistsGETRoute = createRoute({
+//   method: 'get',
+//   path: '/api/invitations/{invitation_id}/user-exists',
+//   responses: {
+//     200: response_data(z.object({
+//       userExists: z.boolean(),
+//       email: z.string()
+//     })),
+//   },
+// })
+
+// app.openapi(invitationUserExistsGETRoute, async (c) => {
+//   const organization = await requireOrganization(c.req.raw.headers)
+//   const { invitation_id } = c.req.param()
+
+//   const invitation = await requireValidInvitation(invitation_id, organization.id);
+
+//   const user = await db.query.users.findFirst({
+//     where: eq(users.email, invitation.email)
+//   })
+
+//   return c.json({ userExists: !!user, email: invitation.email }, 200)
+// })
 
 
 // /* --------- INVITATIONS --------- */

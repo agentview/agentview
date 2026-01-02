@@ -61,51 +61,14 @@ The AgentView Team`,
 <p>If you did not expect this invitation, you can safely ignore this email.</p>
 <p>Best regards,<br/>The AgentView Team</p>`
                 }, invitation.inviter.user.id);
-
-                // sendOrganizationInvitation({
-                //   email: data.email,
-                //   invitedByUsername: data.inviter.user.name,
-                //   invitedByEmail: data.inviter.user.email,
-                //   teamName: data.organization.name,
-                //   inviteLink,
-                // });
               },
-
-    //         organizationHooks: {
-    //             async afterCreateInvitation({ invitation, inviter, organization }) {
-    //                 const studioUrl = getStudioURL();
-    //                 const signupUrl = `${studioUrl}/signup?invitationId=${encodeURIComponent(invitation.id)}`;
-
-    //                 await addEmail({
-    //                     to: invitation.email,
-    //                     subject: `You're invited to join ${organization.name}`,
-    //                     text: `Hello,
-    
-    // You've been invited to join ${organization.name} as a ${invitation.role}.
-    
-    // To accept your invitation and create your account, please visit:
-    // ${signupUrl}
-    
-    // If you did not expect this invitation, you can safely ignore this email.
-    
-    // Best regards,
-    // The AgentView Team`,
-    //                     html: `<p>Hello,</p>
-    // <p>You've been invited to join <strong>${organization.name}</strong> as a <strong>${invitation.role}</strong>.</p>
-    // <p>To accept your invitation and create your account, please click the link below:</p>
-    // <p><a href="${signupUrl}">Accept Invitation</a></p>
-    // <p>If you did not expect this invitation, you can safely ignore this email.</p>
-    // <p>Best regards,<br/>The AgentView Team</p>`
-    //                 }, inviter.id);
-    //             }
-    //         }
         })
     ],
     hooks: {
         before: createAuthMiddleware(async (ctx) => {
             const organizationId = ctx.headers?.get("X-Organization-Id");
 
-            // When X-Organization-Id is provided, then sign-up is allowed only with the invitation (no custom sign-ups via Studio)
+            // When X-Organization-Id is provided, then sign-up is allowed only with the valid invitation (no custom sign-ups via Studio)
             if (organizationId && ctx.path === "/sign-up/email") {
                 if (!ctx.body.invitationId) {
                     throw new APIError("BAD_REQUEST", {
@@ -131,15 +94,18 @@ The AgentView Team`,
                     image: image
                 }).where(eq(users.email, ctx.body.email))
 
-                // If sign-up was done via invitation to org, auto-accept it.
-                if (ctx.body.invitationId) {
-                    await auth.api.acceptInvitation({
-                        body: {
-                            invitationId: ctx.body.invitationId
-                        },
-                        headers
-                    })
-                }
+                /**
+                 * This is commented for now. We rely on manual accept in UI or auto-accept on the front-end side.
+                 */
+                // // If sign-up was done via invitation to org, auto-accept it.
+                // if (ctx.body.invitationId) {
+                //     await auth.api.acceptInvitation({
+                //         body: {
+                //             invitationId: ctx.body.invitationId
+                //         },
+                //         headers
+                //     })
+                // }
             }
         })
     },

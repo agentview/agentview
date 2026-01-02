@@ -131,17 +131,10 @@ export async function action({ request }: ActionFunctionArgs) {
     return { ok: false, error: betterAuthErrorToBaseError(signupResponse.error) };
   }
 
-  // // Auto-accept invitation after signup
-  // if (invitationId) {
-  //   const acceptResult = await authClient.organization.acceptInvitation({
-  //     invitationId,
-  //   });
-
-  //   if (acceptResult.error) {
-  //     // Log but don't block - user is already signed up
-  //     console.error('Failed to accept invitation:', acceptResult.error);
-  //   }
-  // }
+  // After signup, redirect to accept-invitation to complete the flow
+  if (invitationId) {
+    return redirect('/accept-invitation?invitationId=' + encodeURIComponent(invitationId));
+  }
 
   return redirect('/');
 }

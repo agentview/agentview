@@ -1,7 +1,7 @@
 import { createAuthClient } from "better-auth/react"
 import { adminClient, apiKeyClient, organizationClient } from "better-auth/client/plugins"
 import { config } from "../config"
-import { redirect } from "react-router"
+import { data, redirect } from "react-router"
 
 export function createBetterAuthClient({ baseURL }: { baseURL: string }) {
     return createAuthClient({
@@ -26,7 +26,10 @@ export async function getOrganization() {
     const response = await authClient.organization.getFullOrganization({ query: { organizationId: config.organizationId } })
 
     if (response.error) {
-        throw response.error;
+        if (response.error.code === "USER_IS_NOT_A_MEMBER_OF_THE_ORGANIZATION") {
+            throw data({ message: "You don't have access to this organization." });
+        }
+        throw data(response.error, 400);
     }
 
     return response.data;
