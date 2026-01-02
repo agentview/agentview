@@ -67,28 +67,30 @@ export const auth = betterAuth({
     ],
     hooks: {
         before: createAuthMiddleware(async (ctx) => {
-            console.log(ctx.path);
+            const organizationId = ctx.headers?.get("X-Organization-Id");
 
-            
-            // In Studio we only allow to sign up users with correct invitation 
-            if (ctx.path === "/sign-up/email") {
+            // When X-Organization-Id is provided, then sign-up is allowed only with the invitation (no custom sign-ups via Studio)
+            if (ctx.path === "/sign-up/email" && organizationId) {
+
                 if (!ctx.body.invitationId) {
                     throw new APIError("BAD_REQUEST", {
-                        message: "Invitation id not provided.",
+                        message: "Invitation ID must be provided.",
                     });
                 }
 
-                const orgId = ctx.headers?.get("X-Organization-Id");
-                if (!orgId) {
-                    throw new APIError("BAD_REQUEST", {
-                        message: "Organization id must be provided."
-                    })
-                }
-    
-                await requireValidInvitation(ctx.body.invitationId, orgId, ctx.body.email)
+                await requireValidInvitation(ctx.body.invitationId, organizationId, ctx.body.email)
+            }
+
+            if (ctx.path === "/sign-in/email" && organizationId) {
+
             }
         }),
         after: createAuthMiddleware(async (ctx) => {
+            // extract headers
+            const headers = new Headers();
+            const setCookie = ctx.context.responseHeaders?.get("set-cookie");
+            headers.set("cookie", setCookie?.split(";")[0] || ""); // Extract just the cookie value
+
             if (ctx.path === "/sign-up/email") {
                 // Generate image property: ${color}:${firstLetterFromName}
                 const randomColor = colorValues[Math.floor(Math.random() * colorValues.length)];
@@ -99,17 +101,15 @@ export const auth = betterAuth({
                     image: image
                 }).where(eq(users.email, ctx.body.email))
 
-                // Extract header with Cookie
-                const headers = new Headers();
-                const setCookie = ctx.context.responseHeaders?.get("set-cookie");
-                headers.set("cookie", setCookie?.split(";")[0] || ""); // Extract just the cookie value
-            
-                await auth.api.acceptInvitation({
-                    body: {
-                        invitationId: ctx.body.invitationId
-                    },
-                    headers
-                })
+                // If sign-up was done via invitation to org, auto-accept it.
+                if (ctx.body.invitationId) {
+                    await auth.api.acceptInvitation({
+                        body: {
+                            invitationId: ctx.body.invitationId
+                        },
+                        headers
+                    })
+                }
             }
         })
     },

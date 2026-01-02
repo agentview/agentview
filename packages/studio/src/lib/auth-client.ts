@@ -1,6 +1,7 @@
 import { createAuthClient } from "better-auth/react"
 import { adminClient, apiKeyClient, organizationClient } from "better-auth/client/plugins"
 import { config } from "../config"
+import { redirect } from "react-router"
 
 export function createBetterAuthClient({ baseURL }: { baseURL: string }) {
     return createAuthClient({
@@ -25,7 +26,7 @@ export async function getOrganization() {
     const response = await authClient.organization.getFullOrganization({ query: { organizationId: config.organizationId } })
 
     if (response.error) {
-        throw new Error(response.error.message);
+        throw response.error;
     }
 
     return response.data;

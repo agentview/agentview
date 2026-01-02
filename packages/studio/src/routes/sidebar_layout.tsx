@@ -72,7 +72,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   // Organisation
-  const organization = await getOrganization();
+  let organization: Organization;
+  try {
+    organization = await getOrganization();
+  } catch(error) {
+    if ((error as any).code === "USER_IS_NOT_A_MEMBER_OF_THE_ORGANIZATION") {
+      return redirect("/logout");
+    }
+    throw error;
+  }
+  // const organization = await getOrganization();
   await authClient.organization.setActive({ organizationId: config.organizationId });
   
   // const organization = await authClient.organization.getFullOrganization();
