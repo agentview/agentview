@@ -140,7 +140,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   // console.log('activeMember', activeMember);
 
 
-  // if (!session.data.user.role) {
+  // if (!session.data.me.role) {
   //   throw data({ message: "User not found" }, { status: 404 });
   // }
 
@@ -148,13 +148,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
   //   id: session.data.user.id,
   //   email: session.data.user.email,
   //   name: session.data.user.name,
-  //   role: session.data.user.role,
+  //   role: session.data.me.role,
   //   image: session.data.user.image ?? null,
   //   createdAt: session.data.user.createdAt.toISOString(),
   // }
 
   return {
-    me: member,
+    me: {
+      ...session.data.user,
+      role: member.role
+    },
     locale,
     listStats,
     agent,
@@ -426,11 +429,11 @@ function Component() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton>
-                      <UserAvatar image={me.user.image} />
+                      <UserAvatar image={me.image} />
                       {/* <UserIcon /> */}
                       <div className="flex flex-col items-start text-left">
-                        <span className="text-sm font-medium truncate">{me.user.name}</span>
-                        <span className="text-xs text-muted-foreground truncate">{me.user.email}</span>
+                        <span className="text-sm font-medium truncate">{me.name}</span>
+                        <span className="text-xs text-muted-foreground truncate">{me.email}</span>
                       </div>
                       <ChevronUp className="ml-auto" />
                     </SidebarMenuButton>

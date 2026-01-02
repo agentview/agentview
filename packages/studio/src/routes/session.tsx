@@ -413,7 +413,7 @@ function SessionPage() {
             </div>
 
 
-            {session.user.createdBy === me.userId && <InputForm session={session} agentConfig={agentConfig} styles={styles} />}
+            {session.user.createdBy === me.id && <InputForm session={session} agentConfig={agentConfig} styles={styles} />}
 
         </div>
 

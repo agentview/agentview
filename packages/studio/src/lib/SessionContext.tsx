@@ -1,9 +1,9 @@
 import React from "react";
 // import type { Member } from "agentview/apiTypes";
-import { authClient, type Member, type Organization } from "./auth-client";
+import { authClient, type Member, type User, type Organization } from "./auth-client";
 
 export type SessionContextValue = {
-  me: Member;
+  me: User & { role: Member["role"] } // we append role to User. It's good, it doesn't introduce confusion of having member.id and user.id across the system.
   organization: Organization;
   locale: string;
 };

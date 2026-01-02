@@ -7,7 +7,6 @@ export function createBetterAuthClient({ baseURL }: { baseURL: string }) {
     return createAuthClient({
         baseURL,
         plugins: [
-            adminClient(),
             apiKeyClient(),
             organizationClient()
         ],
@@ -45,7 +44,16 @@ export async function getMember(organization: Organization, userId: string) {
     return member;
 }
 
+export async function getSession() {
+    const response = await authClient.getSession()
+    if (response.error) {
+        throw data(response.error, 400);
+    }
+
+    return response.data;
+}
+
 
 export type Member = Awaited<ReturnType<typeof getMember>>;
-export type User = Member["user"];
+export type User = NonNullable<Awaited<ReturnType<typeof getSession>>>["user"]
 export type Organization = Awaited<ReturnType<typeof getOrganization>>;

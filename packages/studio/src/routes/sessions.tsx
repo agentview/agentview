@@ -11,7 +11,6 @@ import { timeAgoShort } from "../lib/timeAgo";
 import { useSessionContext } from "../lib/SessionContext";
 import { NotificationBadge, NotificationDot } from "../components/internal/NotificationBadge";
 import { UserAvatar } from "../components/internal/UserAvatar";
-import { Pill } from "../components/Pill";
 
 async function loader({ request }: LoaderFunctionArgs) {
   const { listParams, needsRedirect } = getListParamsAndCheckForRedirect(request);

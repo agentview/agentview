@@ -172,7 +172,7 @@ export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ sess
 
             <div className="flex flex-row gap-2">
 
-                <UserAvatar image={me.user.image} className="flex-shrink-0 mt-[6px]"/>
+                <UserAvatar image={me.image} className="flex-shrink-0 mt-[6px]"/>
 
                 <div className="flex-1">
                     {fetcher.state === 'idle' && fetcher.data?.ok === false && (
@@ -185,8 +185,8 @@ export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ sess
                     <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="space-y-2">
                         <div>
                             <TextEditor
-                                mentionItems={members.filter((member) => member.id !== me.id).map(member => ({
-                                    id: member.id,
+                                mentionItems={members.filter((member) => member.userId !== me.id).map(member => ({
+                                    id: member.userId,
                                     label: member.user.name ?? "Unknown"
                                 }))}
                                 placeholder={(hasZeroVisisbleComments ? "Comment" : "Reply") + " or tag other, using @"}
@@ -363,7 +363,7 @@ export function CommentMessageItem({ message, item, itemConfig, session, compres
     }
 
     const fetcher = useFetcher();
-    const isOwn = author.id === me.id;
+    // const isOwn = author.id === me.id;
 
     const createdAt = timeAgoShort(message.createdAt);
     const subtitle = createdAt + (message.updatedAt && message.updatedAt !== message.createdAt ? " · edited" : "")
@@ -416,8 +416,8 @@ export function CommentMessageItem({ message, item, itemConfig, session, compres
                                 label={"Comment"}
                                 name={"comment"}
                                 control={(props) => <TextEditor
-                                    mentionItems={members.filter((member) => member.id !== me.id).map(member => ({
-                                        id: member.id,
+                                    mentionItems={members.filter((member) => member.userId !== me.id).map(member => ({
+                                        id: member.userId,
                                         label: member.user.name ?? "Unknown"
                                     }))}
                                     placeholder={"Edit or tag others, using @"}
@@ -463,7 +463,7 @@ export function CommentMessageItem({ message, item, itemConfig, session, compres
 
                     {message.content && <div className={`${compressionLevel === "high" ? "line-clamp-6" : compressionLevel === "medium" ? "line-clamp-3" : ""}`}>
                         {textToElements(message.content, members.map((member) => ({
-                            id: member.id,
+                            id: member.userId,
                             label: member.user.name ?? "Unknown"
                         })))}
                     </div>}
