@@ -30,13 +30,13 @@ import {
   SessionCreateSchema,
   SessionUpdateSchema,
   RunSchema,
-  type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, InvitationSchema, InvitationCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type User, type Run, type PublicSessionsGetQueryParams, type SessionsGetQueryParams, PublicSessionsGetQueryParamsSchema, SessionsGetQueryParamsSchema,
+  type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type User, type Run, type PublicSessionsGetQueryParams, type SessionsGetQueryParams, PublicSessionsGetQueryParamsSchema, SessionsGetQueryParamsSchema,
   EnvSchema
 } from 'agentview/apiTypes'
 import { BaseConfigSchema, BaseConfigSchemaToZod } from 'agentview/configUtils'
 import { getConfigRow } from './getConfig'
 import { type BaseAgentViewConfig, type Metadata, type BaseRunConfig } from 'agentview/configTypes'
-import { members, users, organizations } from './schemas/auth-schema'
+import { members, users, organizations, invitations } from './schemas/auth-schema'
 import { getTotalMemberCount } from './members'
 import { updateInboxes } from './updateInboxes'
 import { isInboxItemUnread } from './inboxItems'
@@ -46,6 +46,7 @@ import type { Transaction } from './types'
 import { findItemConfig, findItemConfigById, requireRunConfig } from 'agentview/configUtils'
 import { equalJSON } from './equalJSON'
 import { AgentViewError } from 'agentview/AgentViewError'
+import { requireValidInvitation } from './invitations'
 
 console.log("Migrating database...");
 await migrate(db, { migrationsFolder: './drizzle' });
@@ -210,7 +211,7 @@ async function requireOrganization(headers: Headers) {
   if (!organizationId) {
     throw new HTTPException(404, { message: "X-Organization-Id header is required" });
   }
-  
+
   const organization = await db.query.organizations.findFirst({ where: eq(organizations.id, organizationId) })
   if (!organization) {
     throw new HTTPException(404, { message: "Organization not found" });
@@ -1839,7 +1840,7 @@ function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[]
       const outputItem = items[items.length - 1];
 
       validateStepItems(items.slice(0, -1));
-  
+
       const outputItemConfig = findItemConfig(runConfig, [...previousRunItems, ...parsedItems], outputItem, [], "output");
       if (!outputItemConfig) {
         throw new AgentViewError("Couldn't find a matching output item.", 422, { item: outputItem });
@@ -1880,7 +1881,7 @@ function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[]
   else if (status === "in_progress") {
     validateStepItems(items);
   }
-  
+
   return parsedItems;
 }
 
@@ -2751,7 +2752,22 @@ app.openapi(scoresPATCHRoute, async (c) => {
 //   return c.json({}, 200);
 // })
 
+const invitationDetailGETRoute = createRoute({
+  method: 'get',
+  path: '/api/invitations/{invitation_id}',
+  responses: {
+    200: response_data(z.any()),
+  },
+})
 
+app.openapi(invitationDetailGETRoute, async (c) => {
+  const organization = await requireOrganization(c.req.raw.headers)
+  const { invitation_id } = c.req.param()
+
+  const invitation = await requireValidInvitation(invitation_id, organization.id);
+
+  return c.json(invitation, 200)
+})
 
 
 // /* --------- INVITATIONS --------- */

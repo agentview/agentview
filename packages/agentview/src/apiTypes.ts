@@ -25,22 +25,22 @@ export const UserCreateSchema = UserSchema.pick({
 
 export type UserCreate = z.infer<typeof UserCreateSchema>
 
-export const InvitationSchema = z.object({
-  id: z.string(),
-  email: z.string(),
-  role: z.string(),
-  expiresAt: z.iso.date(),
-  createdAt: z.iso.date(),
-  status: z.string(),
-  invitedBy: z.string().nullable(),
-})
+// export const InvitationSchema = z.object({
+//   id: z.string(),
+//   email: z.string(),
+//   role: z.string(),
+//   expiresAt: z.iso.date(),
+//   createdAt: z.iso.date(),
+//   status: z.string(),
+//   invitedBy: z.string().nullable(),
+// })
 
-export type Invitation = z.infer<typeof InvitationSchema>
+// export type Invitation = z.infer<typeof InvitationSchema>
 
-export const InvitationCreateSchema = z.object({
-  email: z.email(),
-  role: z.enum(['admin', 'user']),
-})
+// export const InvitationCreateSchema = z.object({
+//   email: z.email(),
+//   role: z.enum(['admin', 'user']),
+// })
 
 export const VersionSchema = z.object({
   id: z.string(),

@@ -9,14 +9,19 @@ export function createBetterAuthClient({ baseURL }: { baseURL: string }) {
             adminClient(),
             apiKeyClient(),
             organizationClient()
-        ]
+        ],
+        fetchOptions: {
+            headers: {
+                "X-Organization-Id": config.organizationId
+            }
+        }
     })
 }
 
 export const authClient = createBetterAuthClient({ baseURL: new URL('/api/auth', config.apiBaseUrl).toString() })
 
 
-export async function getOrganization(slug: string) {
+export async function getOrganization() {
     const response = await authClient.organization.getFullOrganization({ query: { organizationId: config.organizationId } })
 
     if (response.error) {

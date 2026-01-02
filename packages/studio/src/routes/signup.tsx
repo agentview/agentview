@@ -10,10 +10,7 @@ import { authClient } from "../lib/auth-client";
 import { apiFetch } from "../lib/apiFetch";
 
 type LoaderData = {
-  invitationId: string | null;
-  invitationEmail: string | null;
-  organizationName: string | null;
-  role: string | null;
+  invitation: any
 };
 
 async function loader({ request }: LoaderFunctionArgs): Promise<ActionResponse<LoaderData> | Response> {
@@ -34,54 +31,71 @@ async function loader({ request }: LoaderFunctionArgs): Promise<ActionResponse<L
   const url = new URL(request.url);
   const invitationId = url.searchParams.get('invitationId');
 
-  // If invitationId provided, fetch invitation details
-  if (invitationId) {
-    const invitationResponse = await authClient.organization.getInvitation({
-      query: { id: invitationId }
-    });
-
-    if (!invitationResponse.data) {
-      return {
-        ok: false,
-        error: { message: "Invitation not found or has expired." }
-      };
-    }
-
-    if (invitationResponse.data.status !== 'pending') {
-      return {
-        ok: false,
-        error: { message: "This invitation has already been used." }
-      };
-    }
-
-    // Check if invitation has expired
-    if (invitationResponse.data.expiresAt && new Date(invitationResponse.data.expiresAt) < new Date()) {
-      return {
-        ok: false,
-        error: { message: "This invitation has expired." }
-      };
-    }
-
+  const invitationResponse = await apiFetch<any>('/api/invitations/' + invitationId);
+  if (!invitationResponse.ok) {
     return {
-      ok: true,
-      data: {
-        invitationId,
-        invitationEmail: invitationResponse.data.email,
-        organizationName: invitationResponse.data.organization?.name ?? null,
-        role: invitationResponse.data.role ?? null,
-      },
-    };
+      ok: false,
+      error: invitationResponse.error
+    }
   }
 
   return {
     ok: true,
     data: {
-      invitationId: null,
-      invitationEmail: null,
-      organizationName: null,
-      role: null,
-    },
-  };
+      invitation: invitationResponse.data
+    }
+  }
+
+  // // If invitationId provided, fetch invitation details
+  // if (invitationId) {
+  //   const invitationResponse = await authClient.organization.getInvitation({
+  //     query: { id: invitationId }
+  //   });
+
+  //   if (!invitationResponse.data) {
+  //     return {
+  //       ok: false,
+  //       error: { message: "Invitation not found or has expired." }
+  //     };
+  //   }
+
+  //   if (invitationResponse.data.status !== 'pending') {
+  //     return {
+  //       ok: false,
+  //       error: { message: "This invitation has already been used." }
+  //     };
+  //   }
+
+  //   // Check if invitation has expired
+  //   if (invitationResponse.data.expiresAt && new Date(invitationResponse.data.expiresAt) < new Date()) {
+  //     return {
+  //       ok: false,
+  //       error: { message: "This invitation has expired." }
+  //     };
+  //   }
+
+  //   return {
+  //     ok: true,
+  //     data: {
+  //       invitationId,
+  //       invitationEmail: invitationResponse.data.email,
+  //       organizationName: invitationResponse.data.organization?.name ?? null,
+  //       role: invitationResponse.data.role ?? null,
+  //     },
+  //   };
+  // }
+
+  // return {
+  //   ok: true,
+  //   data: {
+  //     invitationId,
+  //     email,
+  //     role,
+  //     org,
+  //     // organizationName: null,
+  //     // role: null,
+  //   },
+  // };
 }
 
 
@@ -109,23 +123,25 @@ export async function action({ request }: ActionFunctionArgs) {
     email,
     password,
     name: name.trim(),
+    // @ts-ignore
+    invitationId
   })
 
   if (signupResponse.error) {
     return { ok: false, error: betterAuthErrorToBaseError(signupResponse.error) };
   }
 
-  // Auto-accept invitation after signup
-  if (invitationId) {
-    const acceptResult = await authClient.organization.acceptInvitation({
-      invitationId,
-    });
+  // // Auto-accept invitation after signup
+  // if (invitationId) {
+  //   const acceptResult = await authClient.organization.acceptInvitation({
+  //     invitationId,
+  //   });
 
-    if (acceptResult.error) {
-      // Log but don't block - user is already signed up
-      console.error('Failed to accept invitation:', acceptResult.error);
-    }
-  }
+  //   if (acceptResult.error) {
+  //     // Log but don't block - user is already signed up
+  //     console.error('Failed to accept invitation:', acceptResult.error);
+  //   }
+  // }
 
   return redirect('/');
 }
@@ -152,18 +168,18 @@ function Component() {
     );
   }
 
-  const { invitationEmail, organizationName, role } = loaderData.data;
+  const { invitation } = loaderData.data;
 
   return (
     <div className="container mx-auto p-4 max-w-md mt-16">
       <Card>
         <CardHeader>
           <CardTitle className="text-center">Sign up</CardTitle>
-          {organizationName && (
+          {/* {invitationId && (
             <CardDescription className="text-center">
-              Join <strong>{organizationName}</strong> as <strong>{role}</strong>
+              Join <strong>{org}</strong> as <strong>{role}</strong>
             </CardDescription>
-          )}
+          )} */}
         </CardHeader>
         <CardContent>
           <Form className="flex flex-col gap-4" method="post">
@@ -180,26 +196,15 @@ function Component() {
               <Label htmlFor="email" className="text-sm font-medium">
                 Email
               </Label>
-              {invitationEmail ? (
-                <>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={invitationEmail}
-                    disabled
-                    className="bg-muted"
-                  />
-                  <input type="hidden" name="email" value={invitationEmail} />
-                </>
-              ) : (
                 <Input
                   id="email"
                   type="email"
-                  name="email"
-                  placeholder="your_email@acme.com"
-                  required
+                  value={invitation.email}
+                  disabled
+                  className="bg-muted"
                 />
-              )}
+                <input type="hidden" name="email" value={invitation.email} />
+                
               {actionData?.ok === false && actionData?.error?.fieldErrors?.email && (
                 <p id="email-error" className="text-sm text-destructive">
                   {actionData.error.fieldErrors.email}

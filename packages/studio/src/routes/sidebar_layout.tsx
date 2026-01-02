@@ -65,11 +65,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const agent = getCurrentAgent(request);
 
-  await updateRemoteConfig(config); // update schema on every page load
-
+  try {
+    await updateRemoteConfig(config); // update schema on every page load
+  } catch(error) {
+    console.warn("Error while updating remote config", error);
+  }
 
   // Organisation
-  const organization = await getOrganization(config.organizationId);
+  const organization = await getOrganization();
   await authClient.organization.setActive({ organizationId: config.organizationId });
   
   // const organization = await authClient.organization.getFullOrganization();

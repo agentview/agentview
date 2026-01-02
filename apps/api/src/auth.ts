@@ -2,16 +2,15 @@ import "@agentview/utils/loadEnv"
 
 import { betterAuth } from "better-auth";
 import { createAuthMiddleware, APIError } from "better-auth/api";
-import { admin, apiKey, organization } from "better-auth/plugins"
+import { apiKey, organization } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
 import { users } from "./schemas/auth-schema";
 import { eq } from "drizzle-orm";
-import { areThereRemainingAdmins } from "./areThereRemainingAdmins";
-import { getTotalMemberCount } from "./members";
 import { getStudioURL } from "./getStudioURL";
 import { colorValues } from "agentview/colors";
 import { addEmail } from "./email";
+import { requireValidInvitation } from "./invitations";
 
 export const auth = betterAuth({
     trustedOrigins: [getStudioURL()],
@@ -36,119 +35,81 @@ export const auth = betterAuth({
             }
         }),
         organization({
-            async afterCreateInvitation({ invitation, inviter, organization }) {
-                const studioUrl = getStudioURL();
+            organizationHooks: {
+                async afterCreateInvitation({ invitation, inviter, organization }) {
+                    const studioUrl = getStudioURL();
+                    const signupUrl = `${studioUrl}/signup?invitationId=${encodeURIComponent(invitation.id)}`;
 
-                await addEmail({
-                    to: invitation.email,
-                    subject: `You're invited to join ${organization.name}`,
-                    text: `Hello,
-
-You've been invited to join ${organization.name} as a ${invitation.role}.
-
-To accept your invitation and create your account, please visit:
-${studioUrl}/signup?invitationId=${invitation.id}
-
-If you did not expect this invitation, you can safely ignore this email.
-
-Best regards,
-The AgentView Team`,
-                    html: `<p>Hello,</p>
-<p>You've been invited to join <strong>${organization.name}</strong> as a <strong>${invitation.role}</strong>.</p>
-<p>To accept your invitation and create your account, please click the link below:</p>
-<p><a href="${studioUrl}/signup?invitationId=${invitation.id}">Accept Invitation</a></p>
-<p>If you did not expect this invitation, you can safely ignore this email.</p>
-<p>Best regards,<br/>The AgentView Team</p>`
-                }, inviter.id);
+                    await addEmail({
+                        to: invitation.email,
+                        subject: `You're invited to join ${organization.name}`,
+                        text: `Hello,
+    
+    You've been invited to join ${organization.name} as a ${invitation.role}.
+    
+    To accept your invitation and create your account, please visit:
+    ${signupUrl}
+    
+    If you did not expect this invitation, you can safely ignore this email.
+    
+    Best regards,
+    The AgentView Team`,
+                        html: `<p>Hello,</p>
+    <p>You've been invited to join <strong>${organization.name}</strong> as a <strong>${invitation.role}</strong>.</p>
+    <p>To accept your invitation and create your account, please click the link below:</p>
+    <p><a href="${signupUrl}">Accept Invitation</a></p>
+    <p>If you did not expect this invitation, you can safely ignore this email.</p>
+    <p>Best regards,<br/>The AgentView Team</p>`
+                    }, inviter.id);
+                }
             }
         })
     ],
     hooks: {
-        // before: createAuthMiddleware(async (ctx) => {
+        before: createAuthMiddleware(async (ctx) => {
+            console.log(ctx.path);
 
-        //     if (ctx.path === "/admin/set-role") {
-        //         if (ctx.body?.role !== "admin") {
-        //             if (!await areThereRemainingAdmins(ctx.body?.userId)) {
-        //                 throw new APIError("BAD_REQUEST", {
-        //                     message: "Cannot downgrade the last admin user.",
-        //                 });
-        //             }
-        //         }
-        //         return;
-        //     }
-        //     else if (ctx.path === "/admin/remove-user") {
-        //         if (!await areThereRemainingAdmins(ctx.body?.userId)) {
-        //             throw new APIError("BAD_REQUEST", {
-        //                 message: "Cannot remove the last admin user.",
-        //             });
-        //         }
-        //     }
-        //     else if (ctx.path === "/sign-up/email") {
+            
+            // In Studio we only allow to sign up users with correct invitation 
+            if (ctx.path === "/sign-up/email") {
+                if (!ctx.body.invitationId) {
+                    throw new APIError("BAD_REQUEST", {
+                        message: "Invitation id not provided.",
+                    });
+                }
 
-        //         // first admin
-        //         if (await getTotalMemberCount() === 0) {
-        //             return;
-        //         }
-
-        //         try {
-        //             const invitation = await getValidInvitation(ctx.body?.invitationId)
-
-        //             // if user doesn't have valid invitation, then do not allow to sign up
-        //             if (invitation.email !== ctx.body?.email) {
-        //                 throw new APIError("BAD_REQUEST", {
-        //                     message: "Invalid invitation.",
-        //                 });
-        //             }
-
-        //         } catch (error) {
-        //             if (error instanceof Error) {
-        //                 throw new APIError("BAD_REQUEST", {
-        //                     message: error.message,
-        //                 });
-        //             }
-        //             throw new APIError("BAD_REQUEST", {
-        //                 message: "Invalid invitation.",
-        //             });
-        //         }
-        //     }
-        // }),
+                const orgId = ctx.headers?.get("X-Organization-Id");
+                if (!orgId) {
+                    throw new APIError("BAD_REQUEST", {
+                        message: "Organization id must be provided."
+                    })
+                }
+    
+                await requireValidInvitation(ctx.body.invitationId, orgId, ctx.body.email)
+            }
+        }),
         after: createAuthMiddleware(async (ctx) => {
             if (ctx.path === "/sign-up/email") {
-                // const totalMembersCount = await getTotalMemberCount()
-
                 // Generate image property: ${color}:${firstLetterFromName}
                 const randomColor = colorValues[Math.floor(Math.random() * colorValues.length)];
                 const firstLetter = ctx.body.name ? ctx.body.name.charAt(0).toUpperCase() : "A";
                 const image = `color:${randomColor}:${firstLetter}`;
 
                 await db.update(users).set({
-                    // role: "admin",
                     image: image
                 }).where(eq(users.email, ctx.body.email))
 
-                // if (totalMembersCount === 0) {
-                //     throw new APIError("BAD_REQUEST", {
-                //         message: "Unreachable.",
-                //     });
-                // }
-                // else if (totalMembersCount === 1) {
-                //     await db.update(users).set({
-                //         role: "admin",
-                //         image: image
-                //     }).where(eq(users.email, ctx.body.email))
-                // }
-                // else {
-                //     // I have no idea how to use better-auth "internals" to update this role, api.admin.setRole seems to be available only when I'm logged as admin user, but here it's basically "system"
-
-                //     // accept invitation and update user role to the role from invitation
-                //     await acceptInvitation(ctx.body?.invitationId)
-                //     const invitation = await getInvitation(ctx.body?.invitationId)
-
-                //     await db.update(users).set({
-                //         role: invitation.role,
-                //         image: image
-                //     }).where(eq(users.email, ctx.body.email))
-                // }
+                // Extract header with Cookie
+                const headers = new Headers();
+                const setCookie = ctx.context.responseHeaders?.get("set-cookie");
+                headers.set("cookie", setCookie?.split(";")[0] || ""); // Extract just the cookie value
+            
+                await auth.api.acceptInvitation({
+                    body: {
+                        invitationId: ctx.body.invitationId
+                    },
+                    headers
+                })
             }
         })
     },
