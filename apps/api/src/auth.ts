@@ -32,7 +32,8 @@ export const auth = betterAuth({
             },
             rateLimit: {
                 enabled: false // for now
-            }
+            },
+            enableMetadata: true
         }),
         organization({
             async sendInvitationEmail(invitation) {

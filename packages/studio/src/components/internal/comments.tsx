@@ -1,7 +1,7 @@
 import { AlertCircleIcon } from "lucide-react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useFetcher, useRevalidator } from "react-router";
-import type { SessionItem, CommentMessage, Session, Member, Score, SessionWithCollaboration, SessionItemWithCollaboration } from "agentview/apiTypes";
+import type { SessionItem, CommentMessage, Session, Score, SessionWithCollaboration, SessionItemWithCollaboration } from "agentview/apiTypes";
 import { Button } from "../ui/button";
 import { useFetcherSuccess } from "../../hooks/useFetcherSuccess";
 import { timeAgoShort } from "../../lib/timeAgo";
@@ -17,6 +17,7 @@ import { Form } from "../ui/form";
 import React from "react";
 import { type AgentViewConfig, type SessionItemConfig } from "agentview/types";
 import { UserAvatar } from "./UserAvatar";
+import { type Member } from "../../lib/auth-client";
 
 export type CommentsThreadRawProps = {
     session: SessionWithCollaboration,
@@ -90,7 +91,7 @@ function getStackedCommentMessages(messages: CommentMessage[]): StackedCommentMe
 }
 
 export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ session, item, itemConfig, collapsed = false, singleLineMessageHeader = false, small = false }, ref) => {
-    const { members, me } = useSessionContext();
+    const { organization: { members }, me } = useSessionContext();
     const fetcher = useFetcher();
 
     const visibleMessages = item.commentMessages.filter((m: any) => !m.deletedAt) ?? []
@@ -171,7 +172,7 @@ export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ sess
 
             <div className="flex flex-row gap-2">
 
-                <UserAvatar image={me.image} className="flex-shrink-0 mt-[6px]"/>
+                <UserAvatar image={me.user.image} className="flex-shrink-0 mt-[6px]"/>
 
                 <div className="flex-1">
                     {fetcher.state === 'idle' && fetcher.data?.ok === false && (
@@ -186,7 +187,7 @@ export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ sess
                             <TextEditor
                                 mentionItems={members.filter((member) => member.id !== me.id).map(member => ({
                                     id: member.id,
-                                    label: member.name ?? "Unknown"
+                                    label: member.user.name ?? "Unknown"
                                 }))}
                                 placeholder={(hasZeroVisisbleComments ? "Comment" : "Reply") + " or tag other, using @"}
                                 className="min-h-[10px] resize-none mb-0"
@@ -313,7 +314,7 @@ export function CommentMessageHeader({ title, subtitle, actions, singleLineMessa
         return <div className="flex flex-row justify-between mb-1">
 
             <div className="flex flex-row items-center gap-2">
-                <UserAvatar image={member.image} className="flex-shrink-0"/>
+                <UserAvatar image={member.user.image} className="flex-shrink-0"/>
                 <div className="text-sm font-medium">
                     {title}
                 </div>
@@ -355,8 +356,8 @@ export function CommentMessageItem({ message, item, itemConfig, session, compres
         throw new Error("Deleted messages don't have rendering code.")
     }
 
-    const { me, members } = useSessionContext();
-    const author = members.find((m) => m.id === message.userId);
+    const { me, organization: { members } } = useSessionContext();
+    const author = members.find((m) => m.userId === message.userId);
     if (!author) {
         throw new Error("Author not found");
     }
@@ -396,7 +397,7 @@ export function CommentMessageItem({ message, item, itemConfig, session, compres
 
     return (
         <div>
-            <CommentMessageHeader title={author.name ?? author.email} subtitle={subtitle} singleLineMessageHeader={singleLineMessageHeader} member={author} />
+            <CommentMessageHeader title={author.user.name ?? author.user.email} subtitle={subtitle} singleLineMessageHeader={singleLineMessageHeader} member={author} />
 
             <div className="text-sm ml-8">
                 {isEditing ? (<div>
@@ -417,7 +418,7 @@ export function CommentMessageItem({ message, item, itemConfig, session, compres
                                 control={(props) => <TextEditor
                                     mentionItems={members.filter((member) => member.id !== me.id).map(member => ({
                                         id: member.id,
-                                        label: member.name ?? "Unknown"
+                                        label: member.user.name ?? "Unknown"
                                     }))}
                                     placeholder={"Edit or tag others, using @"}
                                     className="min-h-[10px] resize-none mb-0"
@@ -463,7 +464,7 @@ export function CommentMessageItem({ message, item, itemConfig, session, compres
                     {message.content && <div className={`${compressionLevel === "high" ? "line-clamp-6" : compressionLevel === "medium" ? "line-clamp-3" : ""}`}>
                         {textToElements(message.content, members.map((member) => ({
                             id: member.id,
-                            label: member.name ?? "Unknown"
+                            label: member.user.name ?? "Unknown"
                         })))}
                     </div>}
                 </div>}

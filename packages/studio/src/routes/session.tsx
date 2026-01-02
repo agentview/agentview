@@ -410,7 +410,7 @@ function SessionPage() {
             </div>
 
 
-            {session.user.createdBy === me.id && <InputForm session={session} agentConfig={agentConfig} styles={styles} />}
+            {session.user.createdBy === me.userId && <InputForm session={session} agentConfig={agentConfig} styles={styles} />}
 
         </div>
 
@@ -421,9 +421,9 @@ function SessionPage() {
 
 function SessionDetails({ session, agentConfig }: { session: Session, agentConfig: AgentConfig }) {
     const versions = getVersions(session);
-    const { members } = useSessionContext();
+    const { organization: { members } } = useSessionContext();
 
-    const simulatedBy = members.find((member) => member.id === session.user.createdBy);
+    const simulatedBy = members.find((member) => member.userId === session.user.createdBy);
 
     return (
         <div className="w-full">
@@ -447,7 +447,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
                 <PropertyListItem>
                     <PropertyListTitle>Source</PropertyListTitle>
                     <PropertyListTextValue>
-                        {simulatedBy ? <>Simulated by <span className="text-cyan-700">{simulatedBy.name}</span></> : "Production"}
+                        {simulatedBy ? <>Simulated by <span className="text-cyan-700">{simulatedBy.user.name}</span></> : "Production"}
                     </PropertyListTextValue>
                 </PropertyListItem>
                 <PropertyListItem>

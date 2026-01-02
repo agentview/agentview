@@ -105,7 +105,7 @@ function PaginationControls({ pagination, listParams }: { pagination: Pagination
 
 
 export function SessionCard({ session, listParams, sessionStats }: { session: SessionBase, listParams: ReturnType<typeof getListParams>, sessionStats: any }) {
-  const { members, me } = useSessionContext();
+  const { organization: { members }, me } = useSessionContext();
   const date = session.createdAt;
 
   const unseenEvents = sessionStats.unseenEvents;
@@ -123,7 +123,7 @@ export function SessionCard({ session, listParams, sessionStats }: { session: Se
   const itemsMentionsCount = allItemEvents.filter((event: any) => Array.isArray(event?.payload?.user_mentions) && (event.payload.user_mentions as any[]).includes(me.id)).length;
   const hasUnreads = hasSessionUnreads || hasUnreadItems;
 
-  const author = members.find((member) => member.id === session.user.createdBy);
+  const author = members.find((member) => member.userId === session.user.createdBy);
 
   return <div key={session.id}>
     <NavLink to={`/sessions/${session.handle}?${toQueryParams(listParams)}`}>
@@ -135,7 +135,7 @@ export function SessionCard({ session, listParams, sessionStats }: { session: Se
 
               <div className="flex flex-row gap-2 items-center">
                 { !author && <MessageCircle className="size-4 text-gray-500" />}
-                { author && <UserAvatar image={author?.image} className="flex-shrink-0" size="sm" />}
+                { author && <UserAvatar image={author?.user.image} className="flex-shrink-0" size="sm" />}
 
                 <div className={`text-sm ${hasUnreads ? 'font-semibold' : 'font-normal'}`}>
                   Session {session.handle}

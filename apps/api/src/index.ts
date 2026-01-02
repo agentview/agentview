@@ -206,10 +206,11 @@ async function getRole(userId: string, organizationId: string) {
   return member.role
 }
 
-async function requireOrganization(headers: Headers) {
-  const organizationId = headers.get('x-organization-id')
+async function requireOrganization(input: Headers | string) {
+  const organizationId = typeof input === "string" ? input : input.get('x-organization-id')
+
   if (!organizationId) {
-    throw new HTTPException(404, { message: "X-Organization-Id header is required" });
+    throw new HTTPException(404, { message: "Organization ID is not provided." });
   }
 
   const organization = await db.query.organizations.findFirst({ where: eq(organizations.id, organizationId) })
@@ -220,8 +221,6 @@ async function requireOrganization(headers: Headers) {
 }
 
 async function authn(headers: Headers): Promise<PrivatePrincipal> {
-  const organization = await requireOrganization(headers)
-
   // See whether user header exists
   let user: User | undefined;
 
@@ -236,6 +235,7 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
   // members
   const memberSession = await auth.api.getSession({ headers })
   if (memberSession) {
+    const organization = await requireOrganization(headers)
     const role = await getRole(memberSession.user.id, organization.id)
     return { type: 'member', session: memberSession, user, role, organizationId: organization.id }
   }
@@ -244,13 +244,25 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
   const bearer = extractBearerToken(headers)
 
   if (bearer) {
+    console.log("Bearer 111!!!!!!", bearer);
+
     const { valid, error, key } = await auth.api.verifyApiKey({
       body: {
         key: bearer,
       },
     })
 
+    console.log("Bearer 222!!!!!!");
+
+    console.log('valid', valid)
+    console.log('error', error);
+    console.log('key', key)
+
     if (valid === true && !error && key) {
+      const organization = await requireOrganization(key.metadata?.organizationId ?? "");
+
+      console.log('org', organization);
+
       const role = await getRole(key.userId, organization.id)
       return { type: 'apiKey', apiKey: key, user, role, organizationId: organization.id }
     }

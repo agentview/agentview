@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import { useFetcherSuccess } from "../hooks/useFetcherSuccess";
+import { config } from "../config"
 
 async function action({
   request,
@@ -31,7 +32,10 @@ async function action({
   if (actionType === "generate") {
     // Create new API key
     const response = await authClient.apiKey.create({
-      name: "main"
+      name: "main",
+      metadata: {
+        organizationId: config.organizationId
+      }
     });
 
     if (response.error) {
@@ -39,6 +43,7 @@ async function action({
     }
 
     return { ok: true, data: { apiKey: response.data } };
+
   } else if (actionType === "regenerate") {
     // List existing keys to find the main one
     const listResponse = await authClient.apiKey.list();
@@ -47,12 +52,12 @@ async function action({
       return { ok: false, error: betterAuthErrorToBaseError(listResponse.error) };
     }
 
-    const mainApiKey = listResponse.data.find((key) => key.name === "main");
+    // Clean old "main" keys
+    const oldApiKeys = listResponse.data.filter((key) => key.name === "main" && key.metadata?.organizationId === config.organizationId);
 
-    // Delete old key if it exists
-    if (mainApiKey) {
+    for (const oldApiKey of oldApiKeys) {
       const deleteResponse = await authClient.apiKey.delete({
-        keyId: mainApiKey.id,
+        keyId: oldApiKey.id,
       });
 
       if (deleteResponse.error) {
@@ -60,9 +65,29 @@ async function action({
       }
     }
 
+    // oldApiKeys.forEach(async oldApiKey => {
+    //   await authClient.apiKey.delete({
+    //     keyId: oldApiKey.id,
+    //   });
+    // })
+
+    // // // Delete old key if it exists
+    // // if (mainApiKey) {
+    // //   const deleteResponse = await authClient.apiKey.delete({
+    // //     keyId: mainApiKey.id,
+    // //   });
+
+    // //   if (deleteResponse.error) {
+    // //     return { ok: false, error: betterAuthErrorToBaseError(deleteResponse.error) };
+    // //   }
+    // // }
+
     // Create new API key
     const createResponse = await authClient.apiKey.create({
-      name: "main"
+      name: "main",
+      metadata: {
+        organizationId: config.organizationId
+      }
     });
 
     if (createResponse.error) {
@@ -85,7 +110,7 @@ async function loader({
   }
 
   const apiKeys = response.data;
-  const mainApiKey = apiKeys.find((apiKey) => apiKey.name === "main");
+  const mainApiKey = apiKeys.find((apiKey) => apiKey.name === "main" && apiKey.metadata?.organizationId === config.organizationId);
 
   return {
     mainApiKey: mainApiKey || null,

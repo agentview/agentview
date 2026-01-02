@@ -4,7 +4,7 @@ import { getMonorepoRootPath } from "./getMonorepoRootPath";
 
 // const API_KEY_ENV_VAR = "AGENTVIEW_API_KEY";
 
-function updateEnvFile(envFilePath: string, key: string, value: string, requireExists: boolean = false) {
+function updateEnvFile(envFilePath: string, key: string, value: string) {
   let envContents = '';
   if (existsSync(envFilePath)) {
     envContents = readFileSync(envFilePath, 'utf8');
@@ -19,7 +19,7 @@ function updateEnvFile(envFilePath: string, key: string, value: string, requireE
     if (envContents.length > 0 && !envContents.endsWith('\n')) {
       envContents += '\n';
     }
-  } else if (requireExists) {
+  } else {
     console.error(`Env file ${envFilePath} does not exist`);
     process.exit(1);
   }
@@ -33,7 +33,7 @@ export function updateEnv(key: string, value: string) {
   
   // Update root .env (required - exit if doesn't exist)
   const rootEnvFilePath = path.join(monorepoRoot, ".env");
-  updateEnvFile(rootEnvFilePath, key, value, true);
+  updateEnvFile(rootEnvFilePath, key, value);
   
   // Update .env files in all example projects
   const examplesDir = path.join(monorepoRoot, "apps", "examples");
@@ -44,7 +44,7 @@ export function updateEnv(key: string, value: string) {
       const stats = statSync(entryPath);
       if (stats.isDirectory()) {
         const exampleEnvPath = path.join(entryPath, ".env");
-        updateEnvFile(exampleEnvPath, key, value, false);
+        updateEnvFile(exampleEnvPath, key, value);
       }
     }
   }

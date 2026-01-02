@@ -43,7 +43,7 @@ async function loader({ request }: LoaderFunctionArgs) {
   }
 
   if (!statusResponse.data.is_active) {
-    throw data("No users.")
+    throw data({ message: "Empty instance."})
     // return redirect("/signup");
   }
 }

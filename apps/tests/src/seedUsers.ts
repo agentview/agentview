@@ -10,23 +10,27 @@ async function main() {
     name: "Admin"
   });
 
-  // Create API key for admin user
-  const { key } = await authClient.apiKey.create({
-    name: "main"
-  })
-
-  // Let's write the API key to the .env file
-  console.log('API Key: ' + key)
-  updateEnv("AGENTVIEW_API_KEY", key);
-
   // Create organization (for now this way)
   const organization = await authClient.organization.create({
     name: "Acme",
     slug: "acme"
   })
+  
   console.log('Organization id: ' + organization.id)
   updateEnv("AGENTVIEW_ORGANIZATION_ID", organization.id);
-  
+  updateEnv("VITE_AGENTVIEW_ORGANIZATION_ID", organization.id);
+
+  // Create API key for admin user
+  const { key } = await authClient.apiKey.create({
+    name: "main",
+    metadata: {
+      organizationId: organization.id
+    }
+  })
+
+  // Let's write the API key to the .env file
+  console.log('API Key: ' + key)
+  updateEnv("AGENTVIEW_API_KEY", key);
 
   // Invite Bob and Alice
   const bobInvitation = await authClient.organization.inviteMember({
