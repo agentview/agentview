@@ -1,15 +1,15 @@
 import "@agentview/utils/loadEnv";
-import { db } from "../src/db";
+import { db__dangerous } from "../src/db";
 
 console.log("Running 'select 1' test SQL query");
 
 try {
-    const result = await db.execute('select 1');
+    const result = await db__dangerous.execute('select 1');
     console.log("✅ Success!");
     
     console.log("Closing database connection...");
     
-    await db.$client.end();
+    await db__dangerous.$client.end();
     
     console.log("Database connection closed");
     

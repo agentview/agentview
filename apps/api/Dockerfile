@@ -62,4 +62,4 @@ USER nodeuser
 WORKDIR /app/apps/api
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
-CMD ["pnpm", "run", "start:http"]
+CMD ["pnpm", "run", "http:start"]

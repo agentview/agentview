@@ -5,6 +5,9 @@ import { withOrg } from './withOrg';
 import { runs, webhookJobs, configs } from './schemas/schema';
 import { eq, and, lt, or, isNull, desc } from 'drizzle-orm';
 import { getConfigRow } from './getConfig';
+import { initDb } from './initDb';
+
+await initDb();
 
 /**
  * Worker processes run without user context and need to access data across all organizations.

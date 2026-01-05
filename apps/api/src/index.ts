@@ -47,21 +47,10 @@ import { findItemConfig, findItemConfigById, requireRunConfig } from 'agentview/
 import { equalJSON } from './equalJSON'
 import { AgentViewError } from 'agentview/AgentViewError'
 import { requireValidInvitation } from './invitations'
+import { initDb } from './initDb'
 
 
-console.log("Migrating database...");
-await migrate(db__dangerous, { migrationsFolder: './drizzle' });
-console.log("✅ Database migrated successfully");
-
-// Grant privileges to app_user for RLS enforcement
-// Schema usage is needed because db:clear recreates the public schema
-await db__dangerous.execute(sql`GRANT USAGE ON SCHEMA public TO app_user`);
-await db__dangerous.execute(sql`GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user`);
-await db__dangerous.execute(sql`GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_user`);
-console.log("✅ Granted privileges to app_user");
-
-
-
+await initDb();
 
 export const app = new OpenAPIHono({
   // custom error handler for zod validation errors

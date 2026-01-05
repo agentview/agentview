@@ -1,1 +1,0 @@
-ALTER TABLE "session_items" ADD COLUMN "sort_order" serial NOT NULL;

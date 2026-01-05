@@ -30,7 +30,7 @@ services:
       - "host.docker.internal:host-gateway"
 
     restart: unless-stopped
-    command: ["sh", "-c", "pnpm run start:http"]
+    command: ["sh", "-c", "pnpm run http:start"]
 
   worker:
     image: ${AGENTVIEW_API_IMAGE}
@@ -43,7 +43,7 @@ services:
       - "host.docker.internal:host-gateway"
 
     restart: unless-stopped
-    command: ["sh", "-c", "pnpm run start:worker"]
+    command: ["sh", "-c", "pnpm run worker:start"]
 
 volumes:
   pgdata:
