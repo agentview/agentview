@@ -216,6 +216,8 @@ async function requireOrganization(input: Headers | string) {
   }
 
   // Auth tables don't have RLS - safe to query directly
+  console.log('org id', organizationId);
+  
   const organization = await db__dangerous.query.organizations.findFirst({ where: eq(organizations.id, organizationId) })
   if (!organization) {
     throw new HTTPException(404, { message: "Organization not found" });

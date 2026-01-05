@@ -3,7 +3,8 @@ import { db__dangerous } from './db';
 import { sql } from 'drizzle-orm';
 
 export async function initDb() {
-    console.log("Migrating database...");
+    console.log("Initializing db...");
+
     await migrate(db__dangerous, { migrationsFolder: './drizzle' });
     console.log("✅ Database migrated successfully");
 
