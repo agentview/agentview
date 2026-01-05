@@ -1810,7 +1810,7 @@ describe('Multi-Tenancy isolation', () => {
     await av_b.__updateConfig({ config });
   });
 
-  test.only('org_a cannot see org_b users', async () => {
+  test('org_a cannot see org_b users', async () => {
     // Create a user in org2
     const user_a = await av_a.createUser({ env: 'playground' });
     expect(user_a).toBeDefined();
@@ -1820,53 +1820,53 @@ describe('Multi-Tenancy isolation', () => {
     await expect(av_b.getUser({ id: user_a.id })).rejects.toThrow();
   });
 
-  // test('org1 cannot see org2 sessions', async () => {
-  //   // Create a user and session in org2
-  //   const user2 = await av2.createUser({ env: 'playground' });
-  //   const session2 = await av2.createSession({ userId: user2.id, agent: 'test-agent' });
-  //   expect(session2).toBeDefined();
+  test('org_a cannot see org_a sessions', async () => {
+    // Create a user and session in org2
+    const user_b = await av_b.createUser({ env: 'playground' });
+    const session_b = await av_b.createSession({ userId: user_b.id, agent: 'test-agent' });
+    expect(session_b).toBeDefined();
 
-  //   // Try to get that session from org1 - should fail with 404
-  //   await expect(av1.getSession({ id: session2.id })).rejects.toThrow();
-  // });
+    // Try to get that session from org1 - should fail with 404
+    // await expect(av_a.getSession({ id: session_b.id })).rejects.toThrow();
+  });
 
-  // test('listing sessions only returns own org data', async () => {
-  //   // Create users and sessions in both orgs
-  //   const user1 = await av1.createUser({ env: 'playground' });
-  //   const user2 = await av2.createUser({ env: 'playground' });
+  test('listing sessions only returns own org data', async () => {
+    // Create users and sessions in both orgs
+    const user_a = await av_a.createUser({ env: 'playground' });
+    const user_b = await av_b.createUser({ env: 'playground' });
 
-  //   const session1 = await av1.createSession({ userId: user1.id, agent: 'test-agent' });
-  //   const session2 = await av2.createSession({ userId: user2.id, agent: 'test-agent' });
+    const session_a = await av_a.createSession({ userId: user_a.id, agent: 'test-agent' });
+    const session_b = await av_b.createSession({ userId: user_b.id, agent: 'test-agent' });
 
-  //   // List sessions from org1
-  //   const sessions1 = await av1.getSessions();
+    // List sessions from org1
+    const sessions_a = await av_a.getSessions();
 
-  //   // Should contain org1's session
-  //   expect(sessions1.sessions.some(s => s.id === session1.id)).toBe(true);
+    // Should contain org1's session
+    expect(sessions_a.sessions.some(s => s.id === session_a.id)).toBe(true);
 
-  //   // Should NOT contain org2's session
-  //   expect(sessions1.sessions.some(s => s.id === session2.id)).toBe(false);
-  // });
+    // Should NOT contain org2's session
+    expect(sessions_a.sessions.some(s => s.id === session_b.id)).toBe(false);
+  });
 
-  // test('org1 cannot modify org2 resources', async () => {
-  //   // Create a session in org2 with a run
-  //   const user2 = await av2.createUser({ env: 'playground' });
-  //   const session2 = await av2.createSession({ userId: user2.id, agent: 'test-agent' });
+  test('org1 cannot modify org2 resources', async () => {
+    // Create a session in org2 with a run
+    const user_b = await av_b.createUser({ env: 'playground' });
+    const session_b = await av_b.createSession({ userId: user_b.id, agent: 'test-agent' });
 
-  //   const run2 = await av2.createRun({
-  //     sessionId: session2.id,
-  //     version: '1.0.0',
-  //     items: [{ type: 'message', content: 'hello' }],
-  //     status: 'in_progress'
-  //   });
+    const run_b = await av_b.createRun({
+      sessionId: session_b.id,
+      version: '1.0.0',
+      items: [{ type: 'message', content: 'hello' }],
+      status: 'in_progress'
+    });
 
-  //   // Try to update the run from org1 - should fail
-  //   await expect(av1.updateRun({
-  //     id: run2.id,
-  //     status: 'completed',
-  //     items: [{ type: 'output', content: 'response' }]
-  //   })).rejects.toThrow();
-  // });
+    // Try to update the run from org1 - should fail
+    await expect(av_a.updateRun({
+      id: run_b.id,
+      status: 'completed',
+      items: [{ type: 'output', content: 'response' }]
+    })).rejects.toThrow();
+  });
 });
 
 

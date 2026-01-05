@@ -24,8 +24,10 @@ export async function withOrg<T>(
   fn: (tx: Transaction) => Promise<T>
 ): Promise<T> {
   return db__dangerous.transaction(async (tx) => {
-    // Set the organization context for this transaction
-    // set_config with 'true' means it's local to the transaction
+    // Switch to app_user role to enforce RLS (admin is superuser, bypasses RLS)
+    await tx.execute(sql`SET LOCAL ROLE app_user`);
+    
+    // Set the organization context for RLS policies
     await tx.execute(
       sql`SELECT set_config('app.organization_id', ${organizationId}, true)`
     );
