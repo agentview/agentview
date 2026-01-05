@@ -1,15 +1,18 @@
 import '@agentview/utils/loadEnv'
 
 import { db__dangerous } from './db';
+import { withOrg } from './withOrg';
 import { runs, webhookJobs, configs } from './schemas/schema';
 import { eq, and, lt, or, isNull, desc } from 'drizzle-orm';
+import { getConfigRow } from './getConfig';
 
 /**
  * Worker processes run without user context and need to access data across all organizations.
- * They use db__dangerous directly because:
- * 1. They're trusted internal processes
- * 2. They need cross-org access for system operations
- * 3. RLS doesn't apply to background workers
+ *
+ * Pattern:
+ * - Initial queries to find work (expired runs, pending jobs) use db__dangerous for cross-org scans
+ * - Once a specific record is found, use withOrg(record.organizationId) for all subsequent operations
+ *   to enforce RLS as defense-in-depth
  */
 
 async function processExpiredRuns() {
@@ -31,17 +34,19 @@ async function processExpiredRuns() {
       return;
     }
 
-    // Update each expired run
+    // Update each expired run (using withOrg for RLS enforcement)
     for (const run of expiredRuns) {
-      await db__dangerous
-        .update(runs)
-        .set({
-          expiresAt: null,
-          finishedAt: now,
-          status: 'failed',
-          failReason: { message: 'Timeout' }
-        })
-        .where(eq(runs.id, run.id));
+      await withOrg(run.organizationId, async (tx) => {
+        await tx
+          .update(runs)
+          .set({
+            expiresAt: null,
+            finishedAt: now,
+            status: 'failed',
+            failReason: { message: 'Timeout' }
+          })
+          .where(eq(runs.id, run.id));
+      });
     }
 
     if (expiredRuns.length > 0) {
@@ -56,27 +61,11 @@ async function processExpiredRuns() {
 // Webhook job retry delays: 5s, 30s, 2min
 const RETRY_DELAYS = [5_000, 30_000, 120_000];
 
-// Helper to get config - worker bypasses RLS
-async function getWorkerConfigRow() {
-  const configRows = await db__dangerous.select().from(configs).orderBy(desc(configs.createdAt)).limit(1)
-  if (configRows.length === 0) {
-    return undefined;
-  }
-  return configRows[0]
-}
-
 async function processWebhookJobs() {
   try {
-    const configRow = await getWorkerConfigRow();
-    const webhookUrl = (configRow?.config as any)?.webhookUrl;
-
-    if (!webhookUrl) {
-      return; // No webhook URL configured, skip processing
-    }
-
     const now = new Date().toISOString();
 
-    // Find jobs ready to be processed
+    // Find jobs ready to be processed (cross-org scan needs db__dangerous)
     const jobs = await db__dangerous
       .select()
       .from(webhookJobs)
@@ -89,7 +78,17 @@ async function processWebhookJobs() {
       .limit(10);
 
     for (const job of jobs) {
-      await processWebhookJob(job, webhookUrl);
+      // Get org-specific config using withOrg (each org has its own webhook URL)
+      const webhookUrl = await withOrg(job.organizationId, async (tx) => {
+        const configRow = await getConfigRow(tx);
+        return (configRow?.config as any).webhookUrl;
+        // const configRows = await tx.select().from(configs).orderBy(desc(configs.createdAt)).limit(1);
+        // return (configRows[0]?.config as any)?.webhookUrl;
+      });
+
+      if (webhookUrl) {
+        await processWebhookJob(job, webhookUrl);
+      }
     }
   } catch (error) {
     console.error('Error in webhook job processor:', error);
@@ -99,10 +98,12 @@ async function processWebhookJobs() {
 async function processWebhookJob(job: typeof webhookJobs.$inferSelect, webhookUrl: string) {
   const now = new Date();
 
-  // Mark as processing
-  await db__dangerous.update(webhookJobs)
-    .set({ status: 'processing', updatedAt: now.toISOString() })
-    .where(eq(webhookJobs.id, job.id));
+  // Mark as processing (using withOrg for RLS enforcement)
+  await withOrg(job.organizationId, async (tx) => {
+    await tx.update(webhookJobs)
+      .set({ status: 'processing', updatedAt: now.toISOString() })
+      .where(eq(webhookJobs.id, job.id));
+  });
 
   try {
     const response = await fetch(webhookUrl, {
@@ -120,9 +121,11 @@ async function processWebhookJob(job: typeof webhookJobs.$inferSelect, webhookUr
     }
 
     // Success - mark as completed
-    await db__dangerous.update(webhookJobs)
-      .set({ status: 'completed', updatedAt: new Date().toISOString() })
-      .where(eq(webhookJobs.id, job.id));
+    await withOrg(job.organizationId, async (tx) => {
+      await tx.update(webhookJobs)
+        .set({ status: 'completed', updatedAt: new Date().toISOString() })
+        .where(eq(webhookJobs.id, job.id));
+    });
 
     console.log(`Webhook job ${job.id} completed successfully`);
 
@@ -132,14 +135,16 @@ async function processWebhookJob(job: typeof webhookJobs.$inferSelect, webhookUr
 
     if (newAttempts >= job.maxAttempts) {
       // Failed permanently
-      await db__dangerous.update(webhookJobs)
-        .set({
-          status: 'failed',
-          attempts: newAttempts,
-          lastError: errorMessage,
-          updatedAt: new Date().toISOString()
-        })
-        .where(eq(webhookJobs.id, job.id));
+      await withOrg(job.organizationId, async (tx) => {
+        await tx.update(webhookJobs)
+          .set({
+            status: 'failed',
+            attempts: newAttempts,
+            lastError: errorMessage,
+            updatedAt: new Date().toISOString()
+          })
+          .where(eq(webhookJobs.id, job.id));
+      });
 
       console.error(`Webhook job ${job.id} failed permanently after ${newAttempts} attempts: ${errorMessage}`);
     } else {
@@ -147,15 +152,17 @@ async function processWebhookJob(job: typeof webhookJobs.$inferSelect, webhookUr
       const delay = RETRY_DELAYS[Math.min(newAttempts - 1, RETRY_DELAYS.length - 1)];
       const nextAttemptAt = new Date(now.getTime() + delay).toISOString();
 
-      await db__dangerous.update(webhookJobs)
-        .set({
-          status: 'pending',
-          attempts: newAttempts,
-          nextAttemptAt,
-          lastError: errorMessage,
-          updatedAt: now.toISOString()
-        })
-        .where(eq(webhookJobs.id, job.id));
+      await withOrg(job.organizationId, async (tx) => {
+        await tx.update(webhookJobs)
+          .set({
+            status: 'pending',
+            attempts: newAttempts,
+            nextAttemptAt,
+            lastError: errorMessage,
+            updatedAt: now.toISOString()
+          })
+          .where(eq(webhookJobs.id, job.id));
+      });
 
       console.log(`Webhook job ${job.id} failed, scheduling retry ${newAttempts}/${job.maxAttempts} at ${nextAttemptAt}`);
     }
