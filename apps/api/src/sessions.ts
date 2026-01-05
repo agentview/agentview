@@ -1,12 +1,11 @@
-import { and, eq, not } from "drizzle-orm";
-import { db } from "./db"
+import { and, eq } from "drizzle-orm";
 import { sessionItems, sessions } from "./schemas/schema"
 import type { Transaction } from "./types";
 import { isUUID } from "./isUUID";
 import type { SessionWithCollaboration } from "agentview/apiTypes";
 
 
-export async function fetchSession(session_id: string, tx?: Transaction): Promise<SessionWithCollaboration | undefined> {
+export async function fetchSession(tx: Transaction, session_id: string): Promise<SessionWithCollaboration | undefined> {
   let where : ReturnType<typeof eq> | undefined;
 
   if (isUUID(session_id)) { // id
@@ -25,7 +24,7 @@ export async function fetchSession(session_id: string, tx?: Transaction): Promis
     }
   }
 
-  const row = await (tx || db).query.sessions.findFirst({
+  const row = await tx.query.sessions.findFirst({
     where,
     with: {
       user: true,
@@ -65,7 +64,7 @@ export async function fetchSession(session_id: string, tx?: Transaction): Promis
     return undefined;
   }
 
-  const state = await fetchSessionState(row.id, tx);
+  const state = await fetchSessionState(tx, row.id);
 
   return {
     id: row.id,
@@ -83,9 +82,9 @@ export async function fetchSession(session_id: string, tx?: Transaction): Promis
   } as SessionWithCollaboration;
 }
 
-async function fetchSessionState(session_id: string, tx?: Transaction) {
+async function fetchSessionState(tx: Transaction, session_id: string) {
   // Fetch the latest __state__ session item by createdAt descending
-  const stateItem = await (tx || db).query.sessionItems.findFirst({
+  const stateItem = await tx.query.sessionItems.findFirst({
     where: and(eq(sessionItems.sessionId, session_id), eq(sessionItems.isState, true)),
     orderBy: (sessionItem, { desc }) => [desc(sessionItem.createdAt)],
   });

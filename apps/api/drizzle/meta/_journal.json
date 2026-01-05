@@ -99,6 +99,13 @@
       "when": 1766482553484,
       "tag": "0013_handy_wither",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1767605180960,
+      "tag": "0014_friendly_mister_fear",
+      "breakpoints": true
     }
   ]
 }

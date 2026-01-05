@@ -588,7 +588,7 @@ describe('API', () => {
       }))
     })
 
-    describe.only("get session list", () => {
+    describe("get session list", () => {
       const USER_1_SESSIONS_COUNT = 20
       const USER_2_SESSIONS_COUNT = 7
       const PROD_USER_SESSIONS_COUNT = 20
@@ -1766,6 +1766,107 @@ describe('API', () => {
       }
     }, 30000);
   });
+});
+
+
+describe('Multi-Tenancy isolation', () => {
+  let orgAApiKey: string;
+  let orgBApiKey: string;
+  let av_a: AgentView;
+  let av_b: AgentView;
+
+  const apiBaseUrl = process.env.AGENTVIEW_API_BASE_URL!;
+
+  beforeAll(async () => {
+    // Create two separate organizations
+    const orgASlug = "orga-" + Math.random().toString(36).slice(2);
+    const orgBSlug = "orgb-" + Math.random().toString(36).slice(2);
+
+    console.log("Creating orgA:", orgASlug);
+    console.log("Creating orgB:", orgBSlug);
+
+    const { apiKey: apiKey1 } = await seedUsers(orgASlug);
+    const { apiKey: apiKey2 } = await seedUsers(orgBSlug);
+
+    orgAApiKey = apiKey1.key;
+    orgBApiKey = apiKey2.key;
+
+    av_a = new AgentView({ apiBaseUrl, apiKey: orgAApiKey });
+    av_b = new AgentView({ apiBaseUrl, apiKey: orgBApiKey });
+
+    const config = {
+      agents: [{
+        name: 'test-agent',
+        runs: [{
+          input: { schema: z.looseObject({ type: z.literal("message"), content: z.string() }) },
+          steps: [],
+          output: { schema: z.looseObject({ type: z.literal("output"), content: z.string() }) },
+        }]
+      }]
+    };
+
+    // Set up config for both orgs
+    await av_a.__updateConfig({ config });
+    await av_b.__updateConfig({ config });
+  });
+
+  test.only('org_a cannot see org_b users', async () => {
+    // Create a user in org2
+    const user_a = await av_a.createUser({ env: 'playground' });
+    expect(user_a).toBeDefined();
+    expect(user_a.id).toBeDefined();
+
+    // Try to get that user from org1 - should fail with 404
+    await expect(av_b.getUser({ id: user_a.id })).rejects.toThrow();
+  });
+
+  // test('org1 cannot see org2 sessions', async () => {
+  //   // Create a user and session in org2
+  //   const user2 = await av2.createUser({ env: 'playground' });
+  //   const session2 = await av2.createSession({ userId: user2.id, agent: 'test-agent' });
+  //   expect(session2).toBeDefined();
+
+  //   // Try to get that session from org1 - should fail with 404
+  //   await expect(av1.getSession({ id: session2.id })).rejects.toThrow();
+  // });
+
+  // test('listing sessions only returns own org data', async () => {
+  //   // Create users and sessions in both orgs
+  //   const user1 = await av1.createUser({ env: 'playground' });
+  //   const user2 = await av2.createUser({ env: 'playground' });
+
+  //   const session1 = await av1.createSession({ userId: user1.id, agent: 'test-agent' });
+  //   const session2 = await av2.createSession({ userId: user2.id, agent: 'test-agent' });
+
+  //   // List sessions from org1
+  //   const sessions1 = await av1.getSessions();
+
+  //   // Should contain org1's session
+  //   expect(sessions1.sessions.some(s => s.id === session1.id)).toBe(true);
+
+  //   // Should NOT contain org2's session
+  //   expect(sessions1.sessions.some(s => s.id === session2.id)).toBe(false);
+  // });
+
+  // test('org1 cannot modify org2 resources', async () => {
+  //   // Create a session in org2 with a run
+  //   const user2 = await av2.createUser({ env: 'playground' });
+  //   const session2 = await av2.createSession({ userId: user2.id, agent: 'test-agent' });
+
+  //   const run2 = await av2.createRun({
+  //     sessionId: session2.id,
+  //     version: '1.0.0',
+  //     items: [{ type: 'message', content: 'hello' }],
+  //     status: 'in_progress'
+  //   });
+
+  //   // Try to update the run from org1 - should fail
+  //   await expect(av1.updateRun({
+  //     id: run2.id,
+  //     status: 'completed',
+  //     items: [{ type: 'output', content: 'response' }]
+  //   })).rejects.toThrow();
+  // });
 });
 
 

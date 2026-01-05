@@ -1,16 +1,23 @@
 import '@agentview/utils/loadEnv'
 
-import { db } from './db';
-import { runs, webhookJobs } from './schemas/schema';
-import { eq, and, lt, isNotNull, or, isNull } from 'drizzle-orm';
-import { getConfigRow } from './getConfig';
+import { db__dangerous } from './db';
+import { runs, webhookJobs, configs } from './schemas/schema';
+import { eq, and, lt, or, isNull, desc } from 'drizzle-orm';
+
+/**
+ * Worker processes run without user context and need to access data across all organizations.
+ * They use db__dangerous directly because:
+ * 1. They're trusted internal processes
+ * 2. They need cross-org access for system operations
+ * 3. RLS doesn't apply to background workers
+ */
 
 async function processExpiredRuns() {
   try {
     const now = new Date().toISOString();
-    
+
     // Find all runs that are in_progress and have expired
-    const expiredRuns = await db
+    const expiredRuns = await db__dangerous
       .select()
       .from(runs)
       .where(
@@ -26,7 +33,7 @@ async function processExpiredRuns() {
 
     // Update each expired run
     for (const run of expiredRuns) {
-      await db
+      await db__dangerous
         .update(runs)
         .set({
           expiresAt: null,
@@ -49,9 +56,18 @@ async function processExpiredRuns() {
 // Webhook job retry delays: 5s, 30s, 2min
 const RETRY_DELAYS = [5_000, 30_000, 120_000];
 
+// Helper to get config - worker bypasses RLS
+async function getWorkerConfigRow() {
+  const configRows = await db__dangerous.select().from(configs).orderBy(desc(configs.createdAt)).limit(1)
+  if (configRows.length === 0) {
+    return undefined;
+  }
+  return configRows[0]
+}
+
 async function processWebhookJobs() {
   try {
-    const configRow = await getConfigRow();
+    const configRow = await getWorkerConfigRow();
     const webhookUrl = (configRow?.config as any)?.webhookUrl;
 
     if (!webhookUrl) {
@@ -61,7 +77,7 @@ async function processWebhookJobs() {
     const now = new Date().toISOString();
 
     // Find jobs ready to be processed
-    const jobs = await db
+    const jobs = await db__dangerous
       .select()
       .from(webhookJobs)
       .where(
@@ -84,7 +100,7 @@ async function processWebhookJob(job: typeof webhookJobs.$inferSelect, webhookUr
   const now = new Date();
 
   // Mark as processing
-  await db.update(webhookJobs)
+  await db__dangerous.update(webhookJobs)
     .set({ status: 'processing', updatedAt: now.toISOString() })
     .where(eq(webhookJobs.id, job.id));
 
@@ -104,7 +120,7 @@ async function processWebhookJob(job: typeof webhookJobs.$inferSelect, webhookUr
     }
 
     // Success - mark as completed
-    await db.update(webhookJobs)
+    await db__dangerous.update(webhookJobs)
       .set({ status: 'completed', updatedAt: new Date().toISOString() })
       .where(eq(webhookJobs.id, job.id));
 
@@ -116,7 +132,7 @@ async function processWebhookJob(job: typeof webhookJobs.$inferSelect, webhookUr
 
     if (newAttempts >= job.maxAttempts) {
       // Failed permanently
-      await db.update(webhookJobs)
+      await db__dangerous.update(webhookJobs)
         .set({
           status: 'failed',
           attempts: newAttempts,
@@ -131,7 +147,7 @@ async function processWebhookJob(job: typeof webhookJobs.$inferSelect, webhookUr
       const delay = RETRY_DELAYS[Math.min(newAttempts - 1, RETRY_DELAYS.length - 1)];
       const nextAttemptAt = new Date(now.getTime() + delay).toISOString();
 
-      await db.update(webhookJobs)
+      await db__dangerous.update(webhookJobs)
         .set({
           status: 'pending',
           attempts: newAttempts,

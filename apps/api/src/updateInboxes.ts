@@ -31,6 +31,7 @@ export async function updateInboxes(
     session: Session,
     item: SessionItem | null,
 ) {
+    // Get organizationId from event if not provided
     if (!['comment_created', 'comment_edited', 'comment_deleted', 'session_created'].includes(newEvent.type)) {
         throw new Error(`Incorrect event type: "${newEvent.type}"`);
     }
@@ -62,6 +63,7 @@ export async function updateInboxes(
             }
 
             newInboxItemValues.push({
+                organizationId: newEvent.organizationId,
                 userId: user.id,
                 sessionId: newEvent.payload.session_id,
                 lastNotifiableEventId: newEvent.id,
@@ -77,6 +79,7 @@ export async function updateInboxes(
 
             if (!inboxItem) {
                 newInboxItemValues.push({
+                    organizationId: newEvent.organizationId,
                     userId: user.id,
                     sessionItemId: item.id,
                     sessionId: item.sessionId,

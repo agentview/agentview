@@ -4,7 +4,7 @@ import { betterAuth } from "better-auth";
 import { createAuthMiddleware, APIError } from "better-auth/api";
 import { apiKey, organization } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "./db";
+import { db__dangerous } from "./db";
 import { users } from "./schemas/auth-schema";
 import { eq } from "drizzle-orm";
 import { getStudioURL } from "./getStudioURL";
@@ -14,7 +14,7 @@ import { requireValidInvitation } from "./invitations";
 
 export const auth = betterAuth({
     trustedOrigins: [getStudioURL()],
-    database: drizzleAdapter(db, {
+    database: drizzleAdapter(db__dangerous, {
         provider: "pg",
         usePlural: true
     }),
@@ -61,7 +61,7 @@ The AgentView Team`,
 <p><a href="${signupUrl}">Accept Invitation</a></p>
 <p>If you did not expect this invitation, you can safely ignore this email.</p>
 <p>Best regards,<br/>The AgentView Team</p>`
-                }, invitation.inviter.user.id);
+                }, invitation.inviter.user.id, organization.id);
               },
         })
     ],
@@ -91,7 +91,16 @@ The AgentView Team`,
                 const firstLetter = ctx.body.name ? ctx.body.name.charAt(0).toUpperCase() : "A";
                 const image = `color:${randomColor}:${firstLetter}`;
 
-                await db.update(users).set({
+                // TODO: does it work?
+                
+                // await auth.api.updateUser({
+                //     body: {
+                //         image
+                //     },
+                //     headers
+                // })
+
+                await db__dangerous.update(users).set({
                     image: image
                 }).where(eq(users.email, ctx.body.email))
 

@@ -1,4 +1,4 @@
-import type { db } from "./db";
+import type { db__dangerous } from "./db";
 
 export interface EmailPayload {
   to: string | string[];
@@ -23,4 +23,4 @@ export interface VersionManifest {
   metadata?: any;
 }
 
-export type Transaction = Parameters<Parameters<typeof db["transaction"]>[0]>[0]
+export type Transaction = Parameters<Parameters<typeof db__dangerous["transaction"]>[0]>[0]

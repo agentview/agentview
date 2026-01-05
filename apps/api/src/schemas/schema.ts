@@ -1,6 +1,16 @@
-import { pgTable, text, timestamp, uuid, varchar, jsonb, boolean, uniqueIndex, integer, bigserial, bigint, serial, unique, smallint, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, varchar, jsonb, boolean, uniqueIndex, integer, bigserial, bigint, serial, unique, smallint, index, pgPolicy } from "drizzle-orm/pg-core";
 import { users, accounts, verifications, authSessions, apikeys, organizations, members, invitations, invitationsRelations, organizationsRelations, membersRelations } from "./auth-schema";
 import { relations, sql } from "drizzle-orm";
+
+// RLS policy for multi-tenancy - applied to all tenant-scoped tables
+// Note: Each table needs its own policy with a unique name
+function createTenantPolicy(tableName: string) {
+  return pgPolicy(`${tableName}_tenant_isolation`, {
+    for: 'all',
+    using: sql`organization_id = current_setting('app.organization_id', true)`,
+    withCheck: sql`organization_id = current_setting('app.organization_id', true)`,
+  });
+}
 
 // export const invitations = pgTable("invitations", {
 //   id: uuid("id").primaryKey().defaultRandom(),
@@ -14,6 +24,7 @@ import { relations, sql } from "drizzle-orm";
 
 export const emails = pgTable("emails", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   userId: text("user_id").references(() => users.id),
   to: varchar("to", { length: 255 }).notNull(),
   subject: varchar("subject", { length: 255 }),
@@ -25,21 +36,25 @@ export const emails = pgTable("emails", {
   replyTo: varchar("reply_to", { length: 255 }),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-});
+}, () => [createTenantPolicy('emails')]);
 
 export const endUsers = pgTable("end_users", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   externalId: varchar("external_id", { length: 255 }),
 
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-  
+
   createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
   env: varchar("env", { length: 24 }).notNull().$type<'production' | 'playground' | 'shared-playground'>(), // production, playground, shared-playground
 
   token: text("token").notNull().unique(),
-  
-}, (table) => [uniqueIndex('end_user_external_id_env_unique').on(table.externalId, table.env)]);
+
+}, (table) => [
+  uniqueIndex('end_user_external_id_env_org_unique').on(table.externalId, table.env, table.organizationId),
+  createTenantPolicy('end_users'),
+]);
 
 // export const endUserAuthSessions = pgTable("end_user_auth_sessions", {
 //   id: uuid("id").primaryKey().defaultRandom(),
@@ -56,6 +71,7 @@ export const endUsers = pgTable("end_users", {
 
 export const sessions = pgTable("sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   handleNumber: integer("handle_number").notNull(),
   handleSuffix: varchar("handle_suffix", { length: 255 }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
@@ -64,11 +80,15 @@ export const sessions = pgTable("sessions", {
   userId: uuid("end_user_id").notNull().references(() => endUsers.id, { onDelete: 'cascade' }),
   agent: varchar("agent", { length: 255 }).notNull(),
   summary: text("summary"),
-}, (table) => [uniqueIndex('sessions_handle_unique').on(table.handleNumber, table.handleSuffix)]);
+}, (table) => [
+  uniqueIndex('sessions_handle_org_unique').on(table.handleNumber, table.handleSuffix, table.organizationId),
+  createTenantPolicy('sessions'),
+]);
 
 
 export const runs = pgTable("runs", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
   finishedAt: timestamp("finished_at", { withTimezone: true, mode: "string" }),
@@ -79,11 +99,13 @@ export const runs = pgTable("runs", {
   responseData: jsonb("response_data"),
   metadata: jsonb("metadata")
 }, (table) => [
-  index('runs_expires_at_status_idx').on(table.expiresAt, table.status)
+  index('runs_expires_at_status_idx').on(table.expiresAt, table.status),
+  createTenantPolicy('runs'),
 ]);
 
 export const sessionItems = pgTable("session_items", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   sortOrder: serial("sort_order").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
@@ -94,7 +116,7 @@ export const sessionItems = pgTable("session_items", {
   // type: varchar("type", { length: 255 }).notNull(),
   // role: varchar("role", { length: 255 }),
   metadata: jsonb("metadata")
-})
+}, () => [createTenantPolicy('session_items')]);
 
 //   channel_id: uuid("channel_id").references(() => channels.id, { onDelete: 'set null' }),
 //   channel_session_item_id: varchar({ length: 255 }),
@@ -102,13 +124,18 @@ export const sessionItems = pgTable("session_items", {
 
 export const versions = pgTable("versions", {
   id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   version: varchar("version", { length: 255 }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-}, (table) => [uniqueIndex('version_unique').on(table.version)]);
+}, (table) => [
+  uniqueIndex('version_org_unique').on(table.version, table.organizationId),
+  createTenantPolicy('versions'),
+]);
 
 // Comment messages within sessions
 export const commentMessages = pgTable('comment_messages', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   sessionItemId: uuid('session_item_id').notNull().references(() => sessionItems.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   content: text('content'),
@@ -121,26 +148,29 @@ export const commentMessages = pgTable('comment_messages', {
 
   // scoreId: uuid('score_id').notNull().references(() => scores.id, { onDelete: 'cascade' }),
   // scoreId: uuid('score_id').references(() => scores.id, { onDelete: 'set null' }),
-});
+}, () => [createTenantPolicy('comment_messages')]);
 
 // User mentions within comment messages
 export const commentMentions = pgTable('comment_mentions', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   commentMessageId: uuid('comment_message_id').notNull().references(() => commentMessages.id, { onDelete: 'cascade' }),
   mentionedUserId: text('mentioned_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: "string" }).notNull().defaultNow()
-});
+}, () => [createTenantPolicy('comment_mentions')]);
 
 // Edit history for comment messages
 export const commentMessageEdits = pgTable('comment_message_edits', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   commentMessageId: uuid('comment_message_id').notNull().references(() => commentMessages.id, { onDelete: 'cascade' }),
   previousContent: text('previous_content'),
   editedAt: timestamp('edited_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-});
+}, () => [createTenantPolicy('comment_message_edits')]);
 
 export const scores = pgTable('scores', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   sessionItemId: uuid('session_item_id').notNull().references(() => sessionItems.id, { onDelete: 'cascade' }),
 
   name: varchar('name', { length: 255 }).notNull(),
@@ -150,18 +180,20 @@ export const scores = pgTable('scores', {
   createdAt: timestamp('created_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   createdBy: text('created_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  
+
   // Soft delete fields
   deletedAt: timestamp('deleted_at', { withTimezone: true, mode: "string" }),
   deletedBy: text('deleted_by').references(() => users.id, { onDelete: 'set null' }),
 }, (table) => [
-  unique().on(table.sessionItemId, table.name, table.createdBy)
+  unique().on(table.sessionItemId, table.name, table.createdBy),
+  createTenantPolicy('scores'),
 ]);
 
 
 
 export const events = pgTable('events', {
   id: bigserial({ mode: 'number' }).primaryKey(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   createdAt: timestamp('created_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   authorId: text('author_id').references(() => users.id),
   type: varchar('type', { length: 256 }).notNull(),  // "comment_created", "comment_edited", "comment_deleted", etc...
@@ -170,45 +202,51 @@ export const events = pgTable('events', {
   // sessionItemId: uuid('session_item_id').references(() => sessionItems.id), // this is derived and temporary!!! Allows us easily to fetch inbox_items with events.
   // commentId: uuid('comment_id').references(() => commentMessages.id),
   // sessionId: uuid('session_id').references(() => sessions.id),
-});
+}, () => [createTenantPolicy('events')]);
 
 export const inboxItems = pgTable('inbox_items', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   createdAt: timestamp('created_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 
   userId: text('user_id').notNull().references(() => users.id),
   sessionItemId: uuid('session_item_id').references(() => sessionItems.id),
   sessionId: uuid('session_id').notNull().references(() => sessions.id),
-  
+
   lastReadEventId: bigint('last_read_event_id', { mode: 'number' }).references(() => events.id),
   lastNotifiableEventId: bigint('last_notifiable_event_id', { mode: 'number' }).references(() => events.id),
 
   render: jsonb('render').notNull(),
-  
+
 }, (table) => [
-  unique().on(table.userId, table.sessionItemId, table.sessionId).nullsNotDistinct()
+  unique().on(table.userId, table.sessionItemId, table.sessionId).nullsNotDistinct(),
+  createTenantPolicy('inbox_items'),
 ]);
 
 
 export const configs = pgTable('configs', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   config: jsonb('value').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   createdBy: text('created_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
-});
+}, () => [createTenantPolicy('configs')]);
 
 export const starredSessions = pgTable('starred_sessions', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   sessionId: uuid('session_id').notNull().references(() => sessions.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 }, (table) => [
-  unique().on(table.userId, table.sessionId)
+  unique().on(table.userId, table.sessionId),
+  createTenantPolicy('starred_sessions'),
 ]);
 
 export const webhookJobs = pgTable('webhook_jobs', {
   id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
   createdAt: timestamp('created_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 
@@ -226,6 +264,7 @@ export const webhookJobs = pgTable('webhook_jobs', {
 }, (table) => [
   index('webhook_jobs_status_next_attempt_idx').on(table.status, table.nextAttemptAt),
   index('webhook_jobs_session_id_idx').on(table.sessionId),
+  createTenantPolicy('webhook_jobs'),
 ]);
 
 export const sessionRelations = relations(sessions, ({ many, one }) => ({

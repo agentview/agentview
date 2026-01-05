@@ -10,7 +10,8 @@ import type { User as BetterAuthUser, ZodError } from "better-auth";
 
 import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi'
 import { swaggerUI } from '@hono/swagger-ui'
-import { db } from './db'
+import { db__dangerous } from './db'
+import { withOrg } from './withOrg'
 import { endUsers, sessions, sessionItems, runs, emails, commentMessages, commentMessageEdits, commentMentions, versions, scores, configs, events, inboxItems, starredSessions, webhookJobs } from './schemas/schema'
 import { eq, desc, and, inArray, ne, gt, isNull, isNotNull, or, gte, sql, countDistinct, DrizzleQueryError, type InferSelectModel } from 'drizzle-orm'
 import { response_data, response_error, body } from './hono_utils'
@@ -37,7 +38,6 @@ import { BaseConfigSchema, BaseConfigSchemaToZod } from 'agentview/configUtils'
 import { getConfigRow } from './getConfig'
 import { type BaseAgentViewConfig, type Metadata, type BaseRunConfig } from 'agentview/configTypes'
 import { members, users, organizations, invitations } from './schemas/auth-schema'
-import { getTotalMemberCount } from './members'
 import { updateInboxes } from './updateInboxes'
 import { isInboxItemUnread } from './inboxItems'
 import { findUser, createUser } from './users'
@@ -49,7 +49,7 @@ import { AgentViewError } from 'agentview/AgentViewError'
 import { requireValidInvitation } from './invitations'
 
 console.log("Migrating database...");
-await migrate(db, { migrationsFolder: './drizzle' });
+await migrate(db__dangerous, { migrationsFolder: './drizzle' });
 console.log("✅ Database migrated successfully");
 
 export const app = new OpenAPIHono({
@@ -172,7 +172,8 @@ type ApiKeyPrincipal = {
 
 type UserPrincipal = {
   type: 'user',
-  user: User
+  user: User,
+  organizationId: string
 }
 
 type PrivatePrincipal = MemberPrincipal | ApiKeyPrincipal;
@@ -199,7 +200,8 @@ function extractUserToken(headers: Headers) {
 
 
 async function getRole(userId: string, organizationId: string) {
-  const member = await db.query.members.findFirst({ where: and(eq(members.userId, userId), eq(members.organizationId, organizationId)) })
+  // Auth tables don't have RLS - safe to query directly
+  const member = await db__dangerous.query.members.findFirst({ where: and(eq(members.userId, userId), eq(members.organizationId, organizationId)) })
   if (!member) {
     throw new HTTPException(401, { message: "Unauthorized" });
   }
@@ -213,30 +215,32 @@ async function requireOrganization(input: Headers | string) {
     throw new HTTPException(404, { message: "Organization ID is not provided." });
   }
 
-  const organization = await db.query.organizations.findFirst({ where: eq(organizations.id, organizationId) })
+  // Auth tables don't have RLS - safe to query directly
+  const organization = await db__dangerous.query.organizations.findFirst({ where: eq(organizations.id, organizationId) })
   if (!organization) {
     throw new HTTPException(404, { message: "Organization not found" });
   }
   return organization
 }
 
-async function authn(headers: Headers): Promise<PrivatePrincipal> {
-  // See whether user header exists
-  let user: User | undefined;
-
-  const token = extractUserToken(headers)
-  if (token) {
-    user = await findUser({ token });
-    if (!user) {
-      throw new HTTPException(404, { message: "User not found." });
-    }
+async function requireUserByToken(organizationId: string, userToken: string) {
+  const user = await withOrg(organizationId, tx => findUser(tx, { token: userToken }))
+  if (!user) {
+    throw new HTTPException(404, { message: "User not found." });
   }
+  return user;
+}
 
-  // members
+async function authn(headers: Headers): Promise<PrivatePrincipal> {
+  const userToken = extractUserToken(headers)
+
+  // members (cookies)
   const memberSession = await auth.api.getSession({ headers })
   if (memberSession) {
     const organization = await requireOrganization(headers)
     const role = await getRole(memberSession.user.id, organization.id)
+    const user = userToken ? await requireUserByToken(organization.id, userToken) : undefined;
+
     return { type: 'member', session: memberSession, user, role, organizationId: organization.id }
   }
 
@@ -252,6 +256,8 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
     if (valid === true && !error && key) {
       const organization = await requireOrganization(key.metadata?.organizationId ?? "");
       const role = await getRole(key.userId, organization.id)
+      const user = userToken ? await requireUserByToken(organization.id, userToken) : undefined;
+
       return { type: 'apiKey', apiKey: key, user, role, organizationId: organization.id }
     }
   }
@@ -260,12 +266,15 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
 }
 
 async function authnUser(headers: Headers): Promise<UserPrincipal> {
-  const token = extractUserToken(headers)
+  const userToken = extractUserToken(headers)
 
-  if (token) {
-    const user = await findUser({ token })
+  if (userToken) {
+    // Public API find organization via user token.
+    const user = await db__dangerous.transaction(async tx => {
+      return await findUser(tx, { token: userToken })
+    })
     if (user) {
-      return { type: 'user', user }
+      return { type: 'user', user, organizationId: user.organizationId }
     }
   }
 
@@ -361,18 +370,13 @@ function requireMemberId(principal: Principal) {
 
 // CONFIG HELPERS
 
-async function requireConfig(): Promise<BaseAgentViewConfig> {
-  const configRow = await getConfigRow()
+async function requireConfig(tx: Transaction): Promise<BaseAgentViewConfig> {
+  const configRow = await getConfigRow(tx)
   if (!configRow) {
     throw new HTTPException(404, { message: "Config not found" });
   }
 
   return BaseConfigSchemaToZod.parse(configRow.config)
-  // const parsedConfig = await getParsedConfig()
-  // if (!parsedConfig) {
-  //   throw new HTTPException(404, { message: "Config not found" });
-  // }
-  // return parsedConfig
 }
 
 function requireAgentConfig(config: BaseAgentViewConfig, name: string) {
@@ -409,8 +413,8 @@ function requireUUID(id: string) {
   }
 }
 
-async function requireSession(sessionId: string) {
-  const session = await fetchSession(sessionId)
+async function requireSession(tx: Transaction, sessionId: string) {
+  const session = await fetchSession(tx, sessionId)
   if (!session) {
     throw new HTTPException(404, { message: "Session not found" });
   }
@@ -418,8 +422,8 @@ async function requireSession(sessionId: string) {
   return session
 }
 
-async function requireRun(runId: string) {
-  const run = await db.query.runs.findFirst({
+async function requireRun(tx: Transaction, runId: string) {
+  const run = await tx.query.runs.findFirst({
     where: eq(runs.id, runId),
     with: {
       sessionItems: {
@@ -443,8 +447,8 @@ async function requireSessionItem(session: Awaited<ReturnType<typeof requireSess
 }
 
 
-async function requireUser(arg: Parameters<typeof findUser>[0]) {
-  const user = await findUser(arg)
+async function requireUser(tx: Transaction, arg: Parameters<typeof findUser>[1]) {
+  const user = await findUser(tx, arg)
   if (!user) {
     throw new HTTPException(404, { message: "End user not found" });
   }
@@ -506,10 +510,12 @@ async function createComment(
   item: SessionItem,
   user: BetterAuthUser,
   content: string | null,
+  organizationId: string,
 ) {
 
   // Add comment
   const [newMessage] = await tx.insert(commentMessages).values({
+    organizationId,
     sessionItemId: item.id,
     userId: user.id,
     content,
@@ -526,6 +532,7 @@ async function createComment(
     if (userMentions.length > 0) {
       await tx.insert(commentMentions).values(
         userMentions.map((mentionedUserId: string) => ({
+          organizationId,
           commentMessageId: newMessage.id,
           mentionedUserId,
         }))
@@ -535,6 +542,7 @@ async function createComment(
 
   // Emit event (default true, can be disabled for batch operations)
   const [event] = await tx.insert(events).values({
+    organizationId,
     type: 'comment_created',
     authorId: user.id,
     payload: {
@@ -554,7 +562,8 @@ async function updateComment(
   session: Session,
   item: SessionItem,
   commentMessage: any,
-  newContent: string | null
+  newContent: string | null,
+  organizationId: string,
 ) {
   // Extract mentions from new content
   let newMentions, previousMentions;
@@ -567,6 +576,7 @@ async function updateComment(
 
   // Store previous content in edit history
   await tx.insert(commentMessageEdits).values({
+    organizationId,
     commentMessageId: commentMessage.id,
     previousContent: commentMessage.content,
   });
@@ -609,6 +619,7 @@ async function updateComment(
     if (newMentionsToAdd.length > 0) {
       await tx.insert(commentMentions).values(
         newMentionsToAdd.map((mentionedUserId: string) => ({
+          organizationId,
           commentMessageId: commentMessage.id,
           mentionedUserId,
         }))
@@ -618,6 +629,7 @@ async function updateComment(
 
   // Emit event
   const [event] = await tx.insert(events).values({
+    organizationId,
     type: 'comment_edited',
     authorId: commentMessage.userId,
     payload: {
@@ -638,6 +650,7 @@ async function deleteComment(
   item: SessionItem,
   commentId: any,
   user: BetterAuthUser,
+  organizationId: string,
 ): Promise<void> {
   await tx.delete(commentMentions).where(eq(commentMentions.commentMessageId, commentId));
   await tx.delete(scores).where(eq(scores.commentId, commentId));
@@ -648,6 +661,7 @@ async function deleteComment(
 
   // Emit event (default true, can be disabled for batch operations)
   const [event] = await tx.insert(events).values({
+    organizationId,
     type: 'comment_deleted',
     authorId: user.id,
     payload: {
@@ -745,10 +759,13 @@ app.openapi(usersPOSTRoute, async (c) => {
   const memberId = requireMemberId(principal);
   const body = await c.req.valid('json')
 
-  const newUser = await createUser({
-    createdBy: memberId,
-    env: body.env ?? 'playground',
-    externalId: body.externalId,
+  const newUser = await withOrg(principal.organizationId, async (tx) => {
+    return createUser(tx, {
+      organizationId: principal.organizationId,
+      createdBy: memberId,
+      env: body.env ?? 'playground',
+      externalId: body.externalId,
+    })
   })
 
   return c.json(newUser, 201);
@@ -813,11 +830,12 @@ app.openapi(userGETRoute, async (c) => {
 
   const { id } = c.req.param()
   requireUUID(id);
-  const user = await requireUser({ id })
 
-  await authorize(principal, { action: "end-user:read", user })
-
-  return c.json(user, 200);
+  return withOrg(principal.organizationId, async (tx) => {
+    const user = await requireUser(tx, { id })
+    await authorize(principal, { action: "end-user:read", user })
+    return c.json(user, 200);
+  })
 })
 
 const userByExternalIdGETRoute = createRoute({
@@ -843,11 +861,11 @@ app.openapi(userByExternalIdGETRoute, async (c) => {
   const { external_id } = c.req.param()
   const { env } = c.req.valid("query")
 
-  const user = await requireUser({ externalId: external_id, env: env as z.infer<typeof EnvSchema> })
-
-  await authorize(principal, { action: "end-user:read", user })
-
-  return c.json(user, 200);
+  return withOrg(principal.organizationId, async (tx) => {
+    const user = await requireUser(tx, { externalId: external_id, env: env as z.infer<typeof EnvSchema>, organizationId: principal.organizationId })
+    await authorize(principal, { action: "end-user:read", user })
+    return c.json(user, 200);
+  })
 })
 
 const apiUsersPATCHRoute = createRoute({
@@ -866,14 +884,15 @@ app.openapi(apiUsersPATCHRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
   const { id } = c.req.param()
-  const user = await requireUser({ id })
   const body = await c.req.valid('json')
 
-  await authorize(principal, { action: "end-user:update", user })
+  return withOrg(principal.organizationId, async (tx) => {
+    const user = await requireUser(tx, { id })
+    await authorize(principal, { action: "end-user:update", user })
 
-  const [updatedUser] = await db.update(endUsers).set(body).where(eq(endUsers.id, id)).returning();
-
-  return c.json(updatedUser, 200);
+    const [updatedUser] = await tx.update(endUsers).set(body).where(eq(endUsers.id, id)).returning();
+    return c.json(updatedUser, 200);
+  })
 })
 
 
@@ -983,7 +1002,7 @@ function mapSessionRow(row: { sessions: typeof sessions.$inferSelect; end_users:
   };
 }
 
-async function getSessions(params: SessionsGetQueryParams, principal: Principal) {
+async function getSessions(tx: Transaction, params: SessionsGetQueryParams, principal: Principal) {
   const limit = normalizeNumberParam(params.limit, DEFAULT_LIMIT);
   const page = normalizeNumberParam(params.page, DEFAULT_PAGE);
 
@@ -1010,7 +1029,7 @@ async function getSessions(params: SessionsGetQueryParams, principal: Principal)
   })();
 
   // Build count query
-  const countQuery = db
+  const countQuery = tx
     .select({ count: sql<number>`cast(count(*) as integer)` })
     .from(sessions)
     .$dynamic();
@@ -1026,7 +1045,7 @@ async function getSessions(params: SessionsGetQueryParams, principal: Principal)
   const totalCount = totalCountResult[0]?.count ?? 0;
 
   // Build sessions query
-  const sessionsQuery = db
+  const sessionsQuery = tx
     .select({ sessions, end_users: endUsers })
     .from(sessions)
     .$dynamic();
@@ -1065,8 +1084,11 @@ const sessionsGETRoute = createRoute({
 app.openapi(sessionsGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const params = c.req.valid("query");
-  const sessions = await getSessions(params, principal)
-  return c.json(sessions, 200);
+
+  return withOrg(principal.organizationId, async (tx) => {
+    const sessions = await getSessions(tx, params, principal)
+    return c.json(sessions, 200);
+  })
 })
 
 // public
@@ -1086,8 +1108,11 @@ const publicSessionsGETRoute = createRoute({
 app.openapi(publicSessionsGETRoute, async (c) => {
   const principal = await authnUser(c.req.raw.headers)
   const params = c.req.valid("query");
-  const sessions = await getSessions(params, principal)
-  return c.json(sessions, 200);
+
+  return withOrg(principal.organizationId, async (tx) => {
+    const sessions = await getSessions(tx, params, principal)
+    return c.json(sessions, 200);
+  })
 })
 
 type StatsResponse = {
@@ -1119,69 +1144,71 @@ app.openapi(sessionsGETStatsRoute, async (c) => {
 
   const { granular = false, ...params } = c.req.valid("query");
 
-  const result = await db
-    .select({
-      unreadSessions: countDistinct(inboxItems.sessionId),
-    })
-    .from(inboxItems)
-    .leftJoin(sessions, eq(inboxItems.sessionId, sessions.id))
-    .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
-    .where(
-      and(
-        eq(inboxItems.userId, memberPrincipal.session.user.id),
-        sql`${inboxItems.lastNotifiableEventId} > COALESCE(${inboxItems.lastReadEventId}, 0)`,
-        getSessionListFilter(params, principal)
+  return withOrg(principal.organizationId, async (tx) => {
+    const result = await tx
+      .select({
+        unreadSessions: countDistinct(inboxItems.sessionId),
+      })
+      .from(inboxItems)
+      .leftJoin(sessions, eq(inboxItems.sessionId, sessions.id))
+      .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
+      .where(
+        and(
+          eq(inboxItems.userId, memberPrincipal.session.user.id),
+          sql`${inboxItems.lastNotifiableEventId} > COALESCE(${inboxItems.lastReadEventId}, 0)`,
+          getSessionListFilter(params, principal)
+        )
       )
-    )
 
-  const response: StatsResponse = {
-    unseenCount: result[0].unreadSessions ?? 0,
-  }
+    const response: StatsResponse = {
+      unseenCount: result[0].unreadSessions ?? 0,
+    }
 
-  if (granular) {
-    const sessionsResult = await getSessions(params, principal);
-    const sessionIds = sessionsResult.sessions.map((row) => row.id);
+    if (granular) {
+      const sessionsResult = await getSessions(tx, params, principal);
+      const sessionIds = sessionsResult.sessions.map((row) => row.id);
 
-    response.sessions = {}
+      response.sessions = {}
 
-    const sessionRows = await db.query.sessions.findMany({
-      where: inArray(sessions.id, sessionIds),
-      with: {
-        user: true,
-        inboxItems: {
-          where: eq(inboxItems.userId, memberPrincipal.session.user.id),
+      const sessionRows = await tx.query.sessions.findMany({
+        where: inArray(sessions.id, sessionIds),
+        with: {
+          user: true,
+          inboxItems: {
+            where: eq(inboxItems.userId, memberPrincipal.session.user.id),
+          },
         },
-      },
-      orderBy: (session, { desc }: any) => [desc(session.updatedAt)],
-    })
+        orderBy: (session, { desc }: any) => [desc(session.updatedAt)],
+      })
 
-    sessionRows.map((session) => {
-      const sessionInboxItem = session.inboxItems.find((inboxItem) => inboxItem.sessionItemId === null);
-      const itemInboxItems = session.inboxItems.filter((inboxItem) => inboxItem.sessionItemId !== null);
+      sessionRows.map((session) => {
+        const sessionInboxItem = session.inboxItems.find((inboxItem) => inboxItem.sessionItemId === null);
+        const itemInboxItems = session.inboxItems.filter((inboxItem) => inboxItem.sessionItemId !== null);
 
-      function getUnseenEvents(inboxItem: InferSelectModel<typeof inboxItems> | null | undefined) {
-        if (isInboxItemUnread(inboxItem)) {
-          const render: any = inboxItem?.render;
-          return render?.events ?? [];
+        function getUnseenEvents(inboxItem: InferSelectModel<typeof inboxItems> | null | undefined) {
+          if (isInboxItemUnread(inboxItem)) {
+            const render: any = inboxItem?.render;
+            return render?.events ?? [];
+          }
+          return [];
         }
-        return [];
-      }
 
-      response.sessions![session.id] = {
-        unseenEvents: getUnseenEvents(sessionInboxItem),
-        items: {}
-      }
-
-      itemInboxItems.forEach((inboxItem) => {
-        response.sessions![session.id].items[inboxItem.sessionItemId!] = {
-          unseenEvents: getUnseenEvents(inboxItem),
+        response.sessions![session.id] = {
+          unseenEvents: getUnseenEvents(sessionInboxItem),
+          items: {}
         }
-      });
 
-    })
-  }
+        itemInboxItems.forEach((inboxItem) => {
+          response.sessions![session.id].items[inboxItem.sessionItemId!] = {
+            unseenEvents: getUnseenEvents(inboxItem),
+          }
+        });
 
-  return c.json(response, 200);
+      })
+    }
+
+    return c.json(response, 200);
+  })
 })
 
 
@@ -1202,12 +1229,12 @@ const sessionGETRoute = createRoute({
 app.openapi(sessionGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const { session_id } = c.req.param()
-  // requireUUID(session_id);
 
-  const session = await requireSession(session_id);
-
-  await authorize(principal, { action: "end-user:read", user: session.user });
-  return c.json(session, 200);
+  return withOrg(principal.organizationId, async (tx) => {
+    const session = await requireSession(tx, session_id);
+    await authorize(principal, { action: "end-user:read", user: session.user });
+    return c.json(session, 200);
+  })
 })
 
 const sessionPATCHRoute = createRoute({
@@ -1230,25 +1257,26 @@ const sessionPATCHRoute = createRoute({
 app.openapi(sessionPATCHRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const { session_id } = c.req.param()
-  // requireUUID(session_id);
-
   const body = await c.req.valid('json')
-  const session = await requireSession(session_id);
-  authorize(principal, { action: "end-user:update", user: session.user });
 
-  const config = await requireConfig()
-  const agentConfig = await requireAgentConfig(config, session.agent)
+  return withOrg(principal.organizationId, async (tx) => {
+    const session = await requireSession(tx, session_id);
+    authorize(principal, { action: "end-user:update", user: session.user });
 
-  const metadata = parseMetadata(agentConfig.metadata, agentConfig.allowUnknownMetadata ?? true, body.metadata, session.metadata);
+    const config = await requireConfig(tx)
+    const agentConfig = await requireAgentConfig(config, session.agent)
 
-  await db.update(sessions).set({
-    metadata,
-    summary: body.summary,
-    updatedAt: new Date().toISOString(),
-  }).where(eq(sessions.id, session_id));
+    const metadata = parseMetadata(agentConfig.metadata, agentConfig.allowUnknownMetadata ?? true, body.metadata, session.metadata);
 
-  const updatedSession = await requireSession(session_id);
-  return c.json(updatedSession, 200);
+    await tx.update(sessions).set({
+      metadata,
+      summary: body.summary,
+      updatedAt: new Date().toISOString(),
+    }).where(eq(sessions.id, session_id));
+
+    const updatedSession = await requireSession(tx, session_id);
+    return c.json(updatedSession, 200);
+  })
 })
 
 // Star a session
@@ -1272,15 +1300,19 @@ app.openapi(sessionStarPUTRoute, async (c) => {
   const { session_id } = c.req.param()
 
   const memberId = requireMemberId(principal);
-  const session = await requireSession(session_id);
-  authorize(principal, { action: "end-user:read", user: session.user });
 
-  await db.insert(starredSessions).values({
-    userId: memberId,
-    sessionId: session_id,
-  }).onConflictDoNothing();
+  return withOrg(principal.organizationId, async (tx) => {
+    const session = await requireSession(tx, session_id);
+    authorize(principal, { action: "end-user:read", user: session.user });
 
-  return c.json({ starred: true }, 200);
+    await tx.insert(starredSessions).values({
+      organizationId: (principal as PrivatePrincipal).organizationId,
+      userId: memberId,
+      sessionId: session_id,
+    }).onConflictDoNothing();
+
+    return c.json({ starred: true }, 200);
+  })
 })
 
 // Unstar a session
@@ -1304,17 +1336,20 @@ app.openapi(sessionStarDELETERoute, async (c) => {
   const { session_id } = c.req.param()
 
   const memberId = requireMemberId(principal);
-  const session = await requireSession(session_id);
-  authorize(principal, { action: "end-user:read", user: session.user });
 
-  await db.delete(starredSessions).where(
-    and(
-      eq(starredSessions.userId, memberId),
-      eq(starredSessions.sessionId, session_id)
-    )
-  );
+  return withOrg(principal.organizationId, async (tx) => {
+    const session = await requireSession(tx, session_id);
+    authorize(principal, { action: "end-user:read", user: session.user });
 
-  return c.json({ starred: false }, 200);
+    await tx.delete(starredSessions).where(
+      and(
+        eq(starredSessions.userId, memberId),
+        eq(starredSessions.sessionId, session_id)
+      )
+    );
+
+    return c.json({ starred: false }, 200);
+  })
 })
 
 // Check if session is starred
@@ -1338,17 +1373,20 @@ app.openapi(sessionStarGETRoute, async (c) => {
   const { session_id } = c.req.param()
 
   const memberId = requireMemberId(principal);
-  const session = await requireSession(session_id);
-  authorize(principal, { action: "end-user:read", user: session.user });
 
-  const star = await db.query.starredSessions.findFirst({
-    where: and(
-      eq(starredSessions.userId, memberId),
-      eq(starredSessions.sessionId, session_id)
-    )
-  });
+  return withOrg(principal.organizationId, async (tx) => {
+    const session = await requireSession(tx, session_id);
+    authorize(principal, { action: "end-user:read", user: session.user });
 
-  return c.json({ starred: !!star }, 200);
+    const star = await tx.query.starredSessions.findFirst({
+      where: and(
+        eq(starredSessions.userId, memberId),
+        eq(starredSessions.sessionId, session_id)
+      )
+    });
+
+    return c.json({ starred: !!star }, 200);
+  })
 })
 
 const publicSessionGETRoute = createRoute({
@@ -1372,20 +1410,22 @@ app.openapi(publicSessionGETRoute, async (c) => {
   const { session_id } = c.req.param()
   requireUUID(session_id);
 
-  const session = await requireSession(session_id);
-  authorize(principal, { action: "end-user:read", user: session.user });
+  return withOrg(principal.organizationId, async (tx) => {
+    const session = await requireSession(tx, session_id);
+    authorize(principal, { action: "end-user:read", user: session.user });
 
-  const sessionWithoutCollaboration = {
-    ...session,
-    runs: session.runs.map((run) => ({
-      ...run,
-      items: run.sessionItems.map(({ commentMessages, scores, ...item }) => ({
-        ...item
-      })),
-    }))
-  }
+    const sessionWithoutCollaboration = {
+      ...session,
+      runs: session.runs.map((run) => ({
+        ...run,
+        items: run.sessionItems.map(({ commentMessages, scores, ...item }) => ({
+          ...item
+        })),
+      }))
+    }
 
-  return c.json(sessionWithoutCollaboration, 200);
+    return c.json(sessionWithoutCollaboration, 200);
+  })
 })
 
 
@@ -1403,46 +1443,40 @@ const sessionsPOSTRoute = createRoute({
 
 app.openapi(sessionsPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-
   const body = await c.req.valid('json')
-
-  const config = await requireConfig()
-  const agentConfig = await requireAgentConfig(config, body.agent)
-
   const memberId = requireMemberId(principal);
 
-  // find user or create new one if not found
-  const user = await (async () => {
-    if (body.userId) {
-      return await requireUser({ id: body.userId });
-    }
+  return withOrg(principal.organizationId, async (tx) => {
+    const config = await requireConfig(tx)
+    const agentConfig = await requireAgentConfig(config, body.agent)
 
-    // if (body.userExternalId) {
-    //   return await requireUser({ externalId: body.userExternalId, env: body.env as z.infer<typeof EnvSchema> });
-    // }
+    // find user or create new one if not found
+    const user = await (async () => {
+      if (body.userId) {
+        return await requireUser(tx, { id: body.userId });
+      }
 
-    if (principal.user) {
-      return principal.user;
-    }
+      if (principal.user) {
+        return principal.user;
+      }
 
-    // We must create user, for that env must be defined
-    if (!body.env) {
-      throw new HTTPException(422, { message: "You must provide 'env' parameter, since you didn't provide 'userId' nor 'X-User-Token'." });
-    }
+      // We must create user, for that env must be defined
+      if (!body.env) {
+        throw new HTTPException(422, { message: "You must provide 'env' parameter, since you didn't provide 'userId' nor 'X-User-Token'." });
+      }
 
-    authorize(principal, { action: "end-user:create" });
+      authorize(principal, { action: "end-user:create" });
 
-    return await createUser({ createdBy: memberId, env: body.env as z.infer<typeof EnvSchema> }) // default user doesn't have external id, it's just empty
-  })()
+      return await createUser(tx, { organizationId: principal.organizationId, createdBy: memberId, env: body.env as z.infer<typeof EnvSchema> })
+    })()
 
-  authorize(principal, { action: "end-user:update", user });
+    authorize(principal, { action: "end-user:update", user });
 
-  /**
-   * METADATA
-   */
-  const metadata = parseMetadata(agentConfig.metadata, agentConfig.allowUnknownMetadata, body.metadata ?? {}, {});
+    /**
+     * METADATA
+     */
+    const metadata = parseMetadata(agentConfig.metadata, agentConfig.allowUnknownMetadata, body.metadata ?? {}, {});
 
-  const newSession = await db.transaction(async (tx) => {
     const handleSuffix = user.createdBy ? "s" : "";
 
     const sessionWithHighestHandleNumber = await tx.query.sessions.findFirst({
@@ -1453,6 +1487,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     const newHandleNumber = sessionWithHighestHandleNumber ? sessionWithHighestHandleNumber.handleNumber + 1 : 1;
 
     const [newSessionRow] = await tx.insert(sessions).values({
+      organizationId: principal.organizationId,
       handleNumber: newHandleNumber,
       handleSuffix: handleSuffix,
       metadata: metadata,
@@ -1463,6 +1498,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
 
     // add event (only for users, not endUsers)
     const [event] = await tx.insert(events).values({
+      organizationId: principal.organizationId,
       type: 'session_created',
       authorId: memberId,
       payload: {
@@ -1470,21 +1506,20 @@ app.openapi(sessionsPOSTRoute, async (c) => {
       }
     }).returning();
 
-    const newSession = await fetchSession(newSessionRow.id, tx);
+    const newSession = await fetchSession(tx, newSessionRow.id);
     if (!newSession) {
       throw new Error("[Internal Error] Session not found");
     }
 
     await updateInboxes(tx, event, newSession, null);
-    return newSession;
-  });
 
-  return c.json(newSession, 201);
+    return c.json(newSession, 201);
+  })
 })
 
 
 // watches session and its last run changes
-async function* watchSession(initSession: Session) {
+async function* watchSession(organizationId: string, initSession: Session) {
   yield {
     event: 'session.snapshot',
     data: initSession
@@ -1493,7 +1528,7 @@ async function* watchSession(initSession: Session) {
   let prevLastRun = getLastRun(initSession);
 
   while (true) {
-    const session = await requireSession(initSession.id)
+    const session = await withOrg(organizationId, async (tx) => requireSession(tx, initSession.id))
     const lastRun = getLastRun(session)
 
     if (lastRun) {
@@ -1581,11 +1616,11 @@ app.openapi(sessionWatchRoute, async (c) => {
   const principal = await authn(c.req.raw.headers);
 
   const { session_id } = c.req.param()
-  const session = await requireSession(session_id)
+  const session = await withOrg(principal.organizationId, async (tx) => requireSession(tx, session_id))
 
   authorize(principal, { action: "end-user:read", user: session.user });
 
-  const generator = watchSession(session);
+  const generator = watchSession(principal.organizationId, session);
 
   let running = true;
 
@@ -1724,14 +1759,16 @@ app.openapi(sessionSeenRoute, async (c) => {
 
   const { sessionId } = c.req.param()
 
-  await db.update(inboxItems).set({
-    lastReadEventId: sql`${inboxItems.lastNotifiableEventId}`,
-    updatedAt: new Date().toISOString(),
-  }).where(and(
-    eq(inboxItems.userId, userPrincipal.session.user.id),
-    eq(inboxItems.sessionId, sessionId),
-    isNull(inboxItems.sessionItemId),
-  ))
+  await withOrg(principal.organizationId, async tx => {
+    await tx.update(inboxItems).set({
+      lastReadEventId: sql`${inboxItems.lastNotifiableEventId}`,
+      updatedAt: new Date().toISOString(),
+    }).where(and(
+      eq(inboxItems.userId, userPrincipal.session.user.id),
+      eq(inboxItems.sessionId, sessionId),
+      isNull(inboxItems.sessionItemId),
+    ))
+  })
 
   return c.json({}, 200);
 })
@@ -1904,90 +1941,94 @@ const DEFAULT_IDLE_TIME = 1000 * 60; // 60 seconds
 app.openapi(runsPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const body = await c.req.valid('json')
-  const session = await requireSession(body.sessionId);
 
-  authorize(principal, { action: "end-user:update", user: session.user });
+  return withOrg(principal.organizationId, async (tx) => {
+    const session = await requireSession(tx, body.sessionId);
 
-  const config = await requireConfig()
-  const agentConfig = requireAgentConfig(config, session.agent)
+    authorize(principal, { action: "end-user:update", user: session.user });
 
-  const lastRun = getLastRun(session)
+    const config = await requireConfig(tx)
+    const agentConfig = requireAgentConfig(config, session.agent)
 
-  /** Only one in_progress run is allowed per session **/
-  if (lastRun?.status === 'in_progress') {
-    throw new HTTPException(422, { message: `Can't create a run because session has already a run in progress.` });
-  }
+    const lastRun = getLastRun(session)
 
-  /** Version compatibility checking **/
-  const parsedVersion = parseVersion(body.version);
-  if (!parsedVersion) {
-    throw new HTTPException(422, { message: "Invalid version number format. Should be like '1.2.3-xxx'" });
-  }
-
-  console.log('session.user.createdBy', session.user.createdBy);
-  console.log('parsedVersion', parsedVersion);
-  if (!session.user.createdBy && parsedVersion.suffix) { // production sessions can't have suffixes
-    throw new HTTPException(422, { message: "Production sessions can't have suffixed versions." });
-  }
-
-  if (lastRun?.version) { // compare semantic versions when previous version exists
-    const lastVersionParsed = parseVersion(lastRun.version.version);
-    if (!lastVersionParsed) {
-      throw new HTTPException(422, { message: "Invalid version format in previous run." });
+    /** Only one in_progress run is allowed per session **/
+    if (lastRun?.status === 'in_progress') {
+      throw new HTTPException(422, { message: `Can't create a run because session has already a run in progress.` });
     }
 
-    // Major version must match (major version changes are breaking)
-    if (lastVersionParsed.major !== parsedVersion.major) {
-      throw new HTTPException(422, { message: "Cannot continue a session with a different major version." });
+    /** Version compatibility checking **/
+    const parsedVersion = parseVersion(body.version);
+    if (!parsedVersion) {
+      throw new HTTPException(422, { message: "Invalid version number format. Should be like '1.2.3-xxx'" });
     }
 
-    // Current version must be >= last version (minor and patch upgrades are backward-compatible)
-    const comparison = compareVersions(parsedVersion, lastVersionParsed);
-    if (comparison < 0) {
-      throw new HTTPException(422, { message: "Cannot continue a session with an older version." });
+    console.log('session.user.createdBy', session.user.createdBy);
+    console.log('parsedVersion', parsedVersion);
+    if (!session.user.createdBy && parsedVersion.suffix) { // production sessions can't have suffixes
+      throw new HTTPException(422, { message: "Production sessions can't have suffixed versions." });
     }
-  }
 
-  /** Validate input item **/
-  if (body.items.length === 0) {
-    throw new AgentViewError("New run must have at least 1 item, input.", 422);
-  }
-  const [inputItem, ...nonInputItems] = body.items;
+    if (lastRun?.version) { // compare semantic versions when previous version exists
+      const lastVersionParsed = parseVersion(lastRun.version.version);
+      if (!lastVersionParsed) {
+        throw new HTTPException(422, { message: "Invalid version format in previous run." });
+      }
 
-  const runConfig = requireRunConfig(agentConfig, inputItem);
+      // Major version must match (major version changes are breaking)
+      if (lastVersionParsed.major !== parsedVersion.major) {
+        throw new HTTPException(422, { message: "Cannot continue a session with a different major version." });
+      }
 
-  const parsedInput = [runConfig.input.schema.parse(inputItem)] // must be true, because of line above
+      // Current version must be >= last version (minor and patch upgrades are backward-compatible)
+      const comparison = compareVersions(parsedVersion, lastVersionParsed);
+      if (comparison < 0) {
+        throw new HTTPException(422, { message: "Cannot continue a session with an older version." });
+      }
+    }
 
-  /** Validate rest items **/
-  const parsedNonInputItems = validateNonInputItems(runConfig, [parsedInput], nonInputItems, body.status ?? 'in_progress');
+    /** Validate input item **/
+    if (body.items.length === 0) {
+      throw new AgentViewError("New run must have at least 1 item, input.", 422);
+    }
+    const [inputItem, ...nonInputItems] = body.items;
 
-  const parsedItems = [...parsedInput, ...parsedNonInputItems];
+    const runConfig = requireRunConfig(agentConfig, inputItem);
 
-  /** Metadata **/
-  const metadata = parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, {})
+    const parsedInput = [runConfig.input.schema.parse(inputItem)] // must be true, because of line above
 
-  /** STATUS, FINISHED_AT, FAIL_REASON */
-  const status = body.status ?? 'in_progress';
-  const failReason = body.failReason ?? null;
+    /** Validate rest items **/
+    const parsedNonInputItems = validateNonInputItems(runConfig, [parsedInput], nonInputItems, body.status ?? 'in_progress');
 
-  if (failReason && status !== 'failed') {
-    throw new AgentViewError("failReason can only be set when status is 'failed'.", 422);
-  }
+    const parsedItems = [...parsedInput, ...parsedNonInputItems];
 
-  const isFinished = status === 'completed' || status === 'cancelled' || status === 'failed';
-  const finishedAt = isFinished ? new Date().toISOString() : null;
-  const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
-  const expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
+    /** Metadata **/
+    const metadata = parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, {})
 
-  // Create run and items
-  await db.transaction(async (tx) => {
-    await db.insert(versions).values({
+    /** STATUS, FINISHED_AT, FAIL_REASON */
+    const status = body.status ?? 'in_progress';
+    const failReason = body.failReason ?? null;
+
+    if (failReason && status !== 'failed') {
+      throw new AgentViewError("failReason can only be set when status is 'failed'.", 422);
+    }
+
+    const isFinished = status === 'completed' || status === 'cancelled' || status === 'failed';
+    const finishedAt = isFinished ? new Date().toISOString() : null;
+    const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
+    const expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
+
+    // Create run and items
+    const organizationId = principal.organizationId;
+    await tx.insert(versions).values({
+      organizationId,
       version: body.version,
     }).onConflictDoNothing();
 
     const [versionRow] = await tx.select().from(versions).where(eq(versions.version, body.version)).limit(1);
 
-    const [newRun] = await tx.insert(runs).values({
+    const [insertedRun] = await tx.insert(runs).values({
+      organizationId,
       sessionId: body.sessionId,
       status,
       failReason,
@@ -1999,18 +2040,20 @@ app.openapi(runsPOSTRoute, async (c) => {
 
     await tx.insert(sessionItems).values(
       parsedItems.map(item => ({
+        organizationId,
         sessionId: body.sessionId,
         content: item,
-        runId: newRun.id,
+        runId: insertedRun.id,
       }))
     ).returning();
 
     // insert state item
     if (body.state !== undefined) {
       await tx.insert(sessionItems).values({
+        organizationId,
         sessionId: body.sessionId,
         content: body.state,
-        runId: newRun.id,
+        runId: insertedRun.id,
         isState: true,
       })
     }
@@ -2019,6 +2062,7 @@ app.openapi(runsPOSTRoute, async (c) => {
     const isFirstRun = lastRun === undefined;
     if (isFirstRun && config.webhookUrl) {
       await tx.insert(webhookJobs).values({
+        organizationId,
         eventType: 'session.on_first_run_created',
         payload: { session_id: body.sessionId },
         sessionId: body.sessionId,
@@ -2026,12 +2070,12 @@ app.openapi(runsPOSTRoute, async (c) => {
         nextAttemptAt: new Date().toISOString(),
       });
     }
-  });
 
-  const updatedSession = await requireSession(body.sessionId);
-  const newRun = getLastRun(updatedSession)!;
+    const updatedSession = await requireSession(tx, body.sessionId);
+    const newRun = getLastRun(updatedSession)!;
 
-  return c.json(newRun, 201);
+    return c.json(newRun, 201);
+  })
 })
 
 
@@ -2061,62 +2105,64 @@ app.openapi(runPATCHRoute, async (c) => {
 
   const body = await c.req.valid('json')
 
-  const run = await requireRun(run_id);
-  const session = await requireSession(run.sessionId);
+  return withOrg(principal.organizationId, async (tx) => {
+    const run = await requireRun(tx, run_id);
+    const session = await requireSession(tx, run.sessionId);
 
-  authorize(principal, { action: "end-user:update", user: session.user });
+    authorize(principal, { action: "end-user:update", user: session.user });
 
-  const config = await requireConfig()
-  const agentConfig = requireAgentConfig(config, session.agent)
+    const config = await requireConfig(tx)
+    const agentConfig = requireAgentConfig(config, session.agent)
 
-  /** Find matching run **/
-  const inputItem = run.sessionItems[0].content;
+    /** Find matching run **/
+    const inputItem = run.sessionItems[0].content;
 
-  const runConfig = requireRunConfig(agentConfig, inputItem);
+    const runConfig = requireRunConfig(agentConfig, inputItem);
 
-  /** Validate items */
-  const items = body.items ?? [];
+    /** Validate items */
+    const items = body.items ?? [];
 
-  if (items.length > 0 && run.status !== 'in_progress') {
-    throw new AgentViewError("Cannot add items to a finished run.", 422);
-  }
-
-  const parsedItems = validateNonInputItems(runConfig, run.sessionItems.map(sessionItem => sessionItem.content), items, body.status ?? 'in_progress');
-
-  /** State */
-  if (body.state !== undefined && run.status !== 'in_progress') {
-    throw new AgentViewError("Cannot set state to a finished run.", 422);
-  }
-
-  /** Metadata **/
-  const metadata = parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, run.metadata ?? {});
-
-  /** Status, finished at, failReason */
-  if (run.status !== 'in_progress' && body.status && body.status !== run.status) {
-    throw new AgentViewError("Cannot change the status of a finished run.", 422);
-  }
-
-  const status = body.status ?? 'in_progress';
-  const failReason = body.failReason ?? null;
-
-  if (failReason) {
-    if (run.status !== 'in_progress') {
-      throw new AgentViewError("failReason cannot be set for a finished run.", 422);
+    if (items.length > 0 && run.status !== 'in_progress') {
+      throw new AgentViewError("Cannot add items to a finished run.", 422);
     }
-    else if (status !== 'failed') {
-      throw new AgentViewError("failReason can only be set when changing status to 'failed'.", 422);
+
+    const parsedItems = validateNonInputItems(runConfig, run.sessionItems.map(sessionItem => sessionItem.content), items, body.status ?? 'in_progress');
+
+    /** State */
+    if (body.state !== undefined && run.status !== 'in_progress') {
+      throw new AgentViewError("Cannot set state to a finished run.", 422);
     }
-  }
 
-  const isFinished = status === 'completed' || status === 'failed' || status === 'cancelled';
-  const finishedAt = run.finishedAt ?? (isFinished ? new Date().toISOString() : null);
-  const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
-  const expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
+    /** Metadata **/
+    const metadata = parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, run.metadata ?? {});
 
-  await db.transaction(async (tx) => {
+    /** Status, finished at, failReason */
+    if (run.status !== 'in_progress' && body.status && body.status !== run.status) {
+      throw new AgentViewError("Cannot change the status of a finished run.", 422);
+    }
+
+    const status = body.status ?? 'in_progress';
+    const failReason = body.failReason ?? null;
+
+    if (failReason) {
+      if (run.status !== 'in_progress') {
+        throw new AgentViewError("failReason cannot be set for a finished run.", 422);
+      }
+      else if (status !== 'failed') {
+        throw new AgentViewError("failReason can only be set when changing status to 'failed'.", 422);
+      }
+    }
+
+    const isFinished = status === 'completed' || status === 'failed' || status === 'cancelled';
+    const finishedAt = run.finishedAt ?? (isFinished ? new Date().toISOString() : null);
+    const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
+    const expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
+
+    const organizationId = principal.organizationId;
     if (parsedItems.length > 0) {
       await tx.insert(sessionItems).values(
         parsedItems?.map(item => ({
+          organizationId,
           sessionId: session.id,
           content: item,
           runId: run.id
@@ -2134,18 +2180,19 @@ app.openapi(runPATCHRoute, async (c) => {
 
     if (body.state !== undefined) {
       await tx.insert(sessionItems).values({
+        organizationId,
         sessionId: session.id,
         content: body.state,
         runId: run.id,
         isState: true,
       })
     }
-  });
 
-  const updatedSession = await requireSession(session.id);
-  const newRun = getLastRun(updatedSession)!;
+    const updatedSession = await requireSession(tx, session.id);
+    const newRun = getLastRun(updatedSession)!;
 
-  return c.json(newRun, 201);
+    return c.json(newRun, 201);
+  })
 })
 
 const runKeepAliveRoute = createRoute({
@@ -2164,29 +2211,31 @@ app.openapi(runKeepAliveRoute, async (c) => {
   const { run_id } = c.req.param()
   requireUUID(run_id);
 
-  const run = await requireRun(run_id);
-  const session = await requireSession(run.sessionId);
+  return withOrg(principal.organizationId, async (tx) => {
+    const run = await requireRun(tx, run_id);
+    const session = await requireSession(tx, run.sessionId);
 
-  authorize(principal, { action: "end-user:update", user: session.user });
+    authorize(principal, { action: "end-user:update", user: session.user });
 
-  const config = await requireConfig();
-  const agentConfig = requireAgentConfig(config, session.agent);
-  const inputItem = run.sessionItems[0].content;
-  const runConfig = requireRunConfig(agentConfig, inputItem);
+    const config = await requireConfig(tx);
+    const agentConfig = requireAgentConfig(config, session.agent);
+    const inputItem = run.sessionItems[0].content;
+    const runConfig = requireRunConfig(agentConfig, inputItem);
 
-  const status = run.status;
-  const isFinished = status === 'completed' || status === 'failed' || status === 'cancelled';
-  const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
-  const expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
+    const status = run.status;
+    const isFinished = status === 'completed' || status === 'failed' || status === 'cancelled';
+    const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
+    const expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
 
-  await db.update(runs).set({
-    status,
-    expiresAt
-  }).where(eq(runs.id, run.id));
+    await tx.update(runs).set({
+      status,
+      expiresAt
+    }).where(eq(runs.id, run.id));
 
-  return c.json({
-    expiresAt
-  }, 200);
+    return c.json({
+      expiresAt
+    }, 200);
+  })
 })
 
 const runWatchRoute = createRoute({
@@ -2214,15 +2263,23 @@ const runWatchRoute = createRoute({
 
 app.openapi(runWatchRoute, async (c) => {
   const principal = await authn(c.req.raw.headers);
+  const organizationId = principal.organizationId;
 
   const { run_id } = c.req.param()
-  const run = await requireRun(run_id)
-  const session_id = run.sessionId;
-  const session = await requireSession(session_id)
 
-  authorize(principal, { action: "end-user:read", user: session.user });
+  // Initial fetch with org context
+  const { session, lastRun } = await withOrg(organizationId, async (tx) => {
+    const run = await requireRun(tx, run_id)
+    const session_id = run.sessionId;
+    const session = await requireSession(tx, session_id)
 
-  const lastRun = getLastRun(session)
+    authorize(principal, { action: "end-user:read", user: session.user });
+
+    const lastRun = getLastRun(session)
+    return { session, lastRun };
+  });
+
+  const session_id = session.id;
 
   return streamSSE(c, async (stream) => {
     let running = true;
@@ -2248,7 +2305,7 @@ app.openapi(runWatchRoute, async (c) => {
      * Soon we'll need to create a proper messaging, when some LLM API will be streaming characters then even NOTIFY/LISTEN won't make it performance-wise.
      */
     while (running) {
-      const session = await requireSession(session_id)
+      const session = await withOrg(organizationId, (tx) => requireSession(tx, session_id))
       const lastRun = getLastRun(session)
 
       if (!lastRun) {
@@ -2332,16 +2389,18 @@ app.openapi(itemSeenRoute, async (c) => {
 
   const { sessionId, itemId } = c.req.param()
 
-  await db.update(inboxItems).set({
-    lastReadEventId: sql`${inboxItems.lastNotifiableEventId}`,
-    updatedAt: new Date().toISOString(),
-  }).where(and(
-    eq(inboxItems.userId, userPrincipal.session.user.id),
-    eq(inboxItems.sessionId, sessionId),
-    eq(inboxItems.sessionItemId, itemId),
-  ))
+  return withOrg(principal.organizationId, async (tx) => {
+    await tx.update(inboxItems).set({
+      lastReadEventId: sql`${inboxItems.lastNotifiableEventId}`,
+      updatedAt: new Date().toISOString(),
+    }).where(and(
+      eq(inboxItems.userId, userPrincipal.session.user.id),
+      eq(inboxItems.sessionId, sessionId),
+      eq(inboxItems.sessionItemId, itemId),
+    ))
 
-  return c.json({}, 200);
+    return c.json({}, 200);
+  })
 })
 
 
@@ -2410,14 +2469,14 @@ app.openapi(commentsPOSTRoute, async (c) => {
   const body = await c.req.valid('json')
   const { sessionId, itemId } = c.req.param()
 
-  const session = await requireSession(sessionId)
-  const item = await requireSessionItem(session, itemId);
+  return withOrg(principal.organizationId, async (tx) => {
+    const session = await requireSession(tx, sessionId)
+    const item = await requireSessionItem(session, itemId);
 
-  await db.transaction(async (tx) => {
-    await createComment(tx, session, item, userPrincipal.session.user, body.comment ?? null);
+    await createComment(tx, session, item, userPrincipal.session.user, body.comment ?? null, userPrincipal.organizationId);
+
+    return c.json({}, 201);
   })
-
-  return c.json({}, 201);
 })
 
 
@@ -2445,14 +2504,15 @@ app.openapi(commentsDELETERoute, async (c) => {
   const userPrincipal = requireMemberPrincipal(principal);
 
   const { commentId, sessionId, itemId } = c.req.param()
-  const session = await requireSession(sessionId)
-  const item = await requireSessionItem(session, itemId);
-  const commentMessage = await requireCommentMessageFromUser(item, commentId, userPrincipal.session.user);
 
-  await db.transaction(async (tx) => {
-    await deleteComment(tx, session, item, commentMessage.id, userPrincipal.session.user);
-  });
-  return c.json({}, 200);
+  return withOrg(principal.organizationId, async (tx) => {
+    const session = await requireSession(tx, sessionId)
+    const item = await requireSessionItem(session, itemId);
+    const commentMessage = await requireCommentMessageFromUser(item, commentId, userPrincipal.session.user);
+
+    await deleteComment(tx, session, item, commentMessage.id, userPrincipal.session.user, userPrincipal.organizationId);
+    return c.json({}, 200);
+  })
 })
 
 
@@ -2475,6 +2535,7 @@ const commentsPUTRoute = createRoute({
     400: response_error(),
     401: response_error(),
     404: response_error(),
+    422: response_error(),
   },
 })
 
@@ -2485,71 +2546,23 @@ app.openapi(commentsPUTRoute, async (c) => {
   const { sessionId, itemId, commentId } = c.req.param()
   const body = await c.req.valid('json')
 
-  const session = await requireSession(sessionId)
-  const item = await requireSessionItem(session, itemId)
-  const commentMessage = await requireCommentMessageFromUser(item, commentId, userPrincipal.session.user);
+  return withOrg(principal.organizationId, async (tx) => {
+    const session = await requireSession(tx, sessionId)
+    const item = await requireSessionItem(session, itemId)
+    const commentMessage = await requireCommentMessageFromUser(item, commentId, userPrincipal.session.user);
 
-  await db.transaction(async (tx) => {
     try {
-      await updateComment(tx, session, item, commentMessage, body.comment ?? null);
+      await updateComment(tx, session, item, commentMessage, body.comment ?? null, userPrincipal.organizationId);
     } catch (error) {
       return c.json({ message: `Invalid mention format: ${(error as Error).message}` }, 422);
     }
-  });
 
-  return c.json({}, 200);
+    return c.json({}, 200);
+  })
 })
 
 
 /* --------- SCORES --------- */
-
-
-// Scores GET (get all scores for an item)
-// const scoresGETRoute = createRoute({
-//   method: 'get',
-//   path: '/api/sessions/{sessionId}/items/{itemId}/scores',
-//   request: {
-//     params: z.object({
-//       sessionId: z.string(),
-//       itemId: z.string(),
-//     }),
-//   },
-//   responses: {
-//     200: response_data(z.array(z.object({
-//       name: z.string(),
-//       value: z.any()
-//     }))),
-//     401: response_error(),
-//     404: response_error(),
-//   },
-// })
-
-// app.openapi(scoresGETRoute, async (c) => {
-//   const principal = await authn(c.req.raw.headers)
-//   const userPrincipal = requireMemberPrincipal(principal);
-
-//   const { sessionId, itemId } = c.req.param()
-
-//   const session = await requireSession(sessionId)
-//   const item = await requireSessionItem(session, itemId);
-
-//   // Get all scores for this item created by the current user
-//   const itemScores = await db.query.scores.findMany({
-//     where: and(
-//       eq(scores.sessionItemId, itemId),
-//       eq(scores.createdBy, userPrincipal.session.user.id),
-//       isNull(scores.deletedAt)
-//     )
-//   });
-
-//   // Convert to array format
-//   const scoresArray = itemScores.map(score => ({
-//     name: score.name,
-//     value: score.value
-//   }));
-
-//   return c.json(scoresArray, 200);
-// })
 
 
 // Scores PATCH (create or update scores for an item)
@@ -2581,16 +2594,16 @@ app.openapi(scoresPATCHRoute, async (c) => {
   const { sessionId, itemId } = c.req.param()
   const inputScores = await c.req.valid('json');
 
-  const config = await requireConfig()
-  const session = await requireSession(sessionId)
-  const item = await requireSessionItem(session, itemId);
-  const run = session.runs.find(r => r.id === item.runId)!
+  return withOrg(principal.organizationId, async (tx) => {
+    const config = await requireConfig(tx)
+    const session = await requireSession(tx, sessionId)
+    const item = await requireSessionItem(session, itemId);
+    const run = session.runs.find(r => r.id === item.runId)!
 
-  const agentConfig = requireAgentConfig(config, session.agent);
-  const runConfig = requireRunConfig(agentConfig, run.sessionItems[0].content);
-  const itemConfig = requireItemConfig(runConfig, run.sessionItems, item.id).itemConfig;
+    const agentConfig = requireAgentConfig(config, session.agent);
+    const runConfig = requireRunConfig(agentConfig, run.sessionItems[0].content);
+    const itemConfig = requireItemConfig(runConfig, run.sessionItems, item.id).itemConfig;
 
-  await db.transaction(async (tx) => {
     for (const score of inputScores) {
       const { name, value } = score;
 
@@ -2609,12 +2622,8 @@ app.openapi(scoresPATCHRoute, async (c) => {
       // delete
       if (value === null || value === undefined) {
         if (existingScore) {
-          await deleteComment(tx, session, item, existingScore.commentId, userPrincipal.session.user);
+          await deleteComment(tx, session, item, existingScore.commentId, userPrincipal.session.user, userPrincipal.organizationId);
           await tx.delete(scores)
-            // .set({
-            //   deletedAt: new Date().toISOString(),
-            //   deletedBy: authSession.user.id
-            // })
             .where(eq(scores.id, existingScore.id));
         }
         else {
@@ -2642,8 +2651,9 @@ app.openapi(scoresPATCHRoute, async (c) => {
         }
         // create
         else {
-          const commentMessage = await createComment(tx, session, item, userPrincipal.session.user, null);
+          const commentMessage = await createComment(tx, session, item, userPrincipal.session.user, null, userPrincipal.organizationId);
           await tx.insert(scores).values({
+            organizationId: userPrincipal.organizationId,
             sessionItemId: itemId,
             name,
             value,
@@ -2653,104 +2663,13 @@ app.openapi(scoresPATCHRoute, async (c) => {
         }
       }
     }
-  });
 
-  return c.json({}, 200);
+    return c.json({}, 200);
+  })
 })
 
 
-/* --------- USERS --------- */
-
-
-// // Members GET (list all users)
-// const membersGETRoute = createRoute({
-//   method: 'get',
-//   path: '/api/members',
-//   responses: {
-//     200: response_data(z.array(MemberSchema)),
-//     401: response_error(),
-//   },
-// })
-
-// app.openapi(membersGETRoute, async (c) => {
-//   const principal = await authn(c.req.raw.headers)
-//   const userPrincipal = requireMemberPrincipal(principal);
-
-//   const members = await db.select().from(users);
-
-//   return c.json(members.map((member) => ({
-//     id: member.id,
-//     email: member.email,
-//     name: member.name,
-//     role: member.role ?? "user",
-//     image: member.image ?? null,
-//     createdAt: member.createdAt,
-//   })), 200);
-// })
-
-// // Member POST (update role)
-// const memberPOSTRoute = createRoute({
-//   method: 'post',
-//   path: '/api/members/{memberId}',
-//   request: {
-//     params: z.object({
-//       memberId: z.string(),
-//     }),
-//     body: body(MemberUpdateSchema)
-//   },
-//   responses: {
-//     200: response_data(z.object({})),
-//     400: response_error(),
-//     401: response_error(),
-//     404: response_error(),
-//   },
-// })
-
-// app.openapi(memberPOSTRoute, async (c) => {
-//   const principal = await authn(c.req.raw.headers)
-//   authorize(principal, { action: "admin" });
-
-//   const { memberId } = c.req.param()
-//   const body = await c.req.valid('json')
-
-//   await auth.api.setRole({
-//     headers: c.req.raw.headers,
-//     body: { userId: memberId, role: body.role },
-//   });
-
-//   return c.json({}, 200);
-// })
-
-// // User DELETE (delete user)
-// const memberDELETERoute = createRoute({
-//   method: 'delete',
-//   path: '/api/members/{memberId}',
-//   request: {
-//     params: z.object({
-//       memberId: z.string(),
-//     }),
-//   },
-//   responses: {
-//     200: response_data(z.object({})),
-//     400: response_error(),
-//     401: response_error(),
-//     404: response_error(),
-//   },
-// })
-
-// app.openapi(memberDELETERoute, async (c) => {
-//   const principal = await authn(c.req.raw.headers)
-//   authorize(principal, { action: "admin" });
-
-//   const { memberId } = c.req.param()
-
-//   await auth.api.removeUser({
-//     headers: c.req.raw.headers,
-//     body: { userId: memberId },
-//   });
-
-//   return c.json({}, 200);
-// })
+/* --------- INVITATIONS --------- */
 
 const invitationDetailGETRoute = createRoute({
   method: 'get',
@@ -2766,142 +2685,14 @@ app.openapi(invitationDetailGETRoute, async (c) => {
 
   const invitation = await requireValidInvitation(invitation_id, organization.id);
 
-  const user = await db.query.users.findFirst({
-    where: eq(users.email, invitation.email)
+  const user = await withOrg(organization.id, async tx => {
+    return await tx.query.users.findFirst({
+      where: eq(users.email, invitation.email)
+    })
   })
 
-  return c.json({...invitation, userExists: !!user }, 200)
+  return c.json({ ...invitation, userExists: !!user }, 200)
 })
-
-// // Check if a user exists for an invitation's email
-// const invitationUserExistsGETRoute = createRoute({
-//   method: 'get',
-//   path: '/api/invitations/{invitation_id}/user-exists',
-//   responses: {
-//     200: response_data(z.object({
-//       userExists: z.boolean(),
-//       email: z.string()
-//     })),
-//   },
-// })
-
-// app.openapi(invitationUserExistsGETRoute, async (c) => {
-//   const organization = await requireOrganization(c.req.raw.headers)
-//   const { invitation_id } = c.req.param()
-
-//   const invitation = await requireValidInvitation(invitation_id, organization.id);
-
-//   const user = await db.query.users.findFirst({
-//     where: eq(users.email, invitation.email)
-//   })
-
-//   return c.json({ userExists: !!user, email: invitation.email }, 200)
-// })
-
-
-// /* --------- INVITATIONS --------- */
-
-// // Invitations POST (create invitation)
-// const invitationsPOSTRoute = createRoute({
-//   method: 'post',
-//   path: '/api/invitations',
-//   request: {
-//     body: body(InvitationCreateSchema)
-//   },
-//   responses: {
-//     201: response_data(InvitationSchema),
-//     400: response_error(),
-//   },
-// })
-
-
-// app.openapi(invitationsPOSTRoute, async (c) => {
-//   const principal = await authn(c.req.raw.headers)
-//   authorize(principal, { action: "admin" });
-
-//   const inviterId = requireMemberId(principal);
-
-//   const body = await c.req.valid('json')
-
-//   await createInvitation(body.email, body.role, inviterId);
-
-//   // Get the created invitation to return it
-//   const pendingInvitations = await getPendingInvitations();
-//   const createdInvitation = pendingInvitations.find(inv => inv.email === body.email);
-
-//   if (!createdInvitation) {
-//     return c.json({ message: "Failed to create invitation" }, 400);
-//   }
-
-//   return c.json(createdInvitation, 201);
-// })
-
-// // Invitations GET (get pending invitations)
-// const invitationsGETRoute = createRoute({
-//   method: 'get',
-//   path: '/api/invitations',
-//   responses: {
-//     200: response_data(z.array(InvitationSchema)),
-//     400: response_error(),
-//   },
-// })
-
-// app.openapi(invitationsGETRoute, async (c) => {
-//   const principal = await authn(c.req.raw.headers)
-//   authorize(principal, { action: "admin" });
-
-//   const pendingInvitations = await getPendingInvitations();
-//   return c.json(pendingInvitations, 200);
-// })
-
-// // Invitation DELETE (cancel invitation)
-// const invitationDELETERoute = createRoute({
-//   method: 'delete',
-//   path: '/api/invitations/{id}',
-//   request: {
-//     params: z.object({
-//       id: z.string(),
-//     }),
-//   },
-//   responses: {
-//     200: response_data(z.object({})),
-//     400: response_error(),
-//     404: response_error(),
-//   },
-// })
-
-// app.openapi(invitationDELETERoute, async (c) => {
-//   const principal = await authn(c.req.raw.headers)
-//   authorize(principal, { action: "admin" });
-
-//   const { id } = c.req.param()
-
-//   await cancelInvitation(id);
-//   return c.json({}, 200);
-// })
-
-// // Invitation validation
-// const invitationValidateRoute = createRoute({
-//   method: 'get',
-//   path: '/api/invitations/{invitationId}',
-//   request: {
-//     params: z.object({
-//       invitationId: z.string(),
-//     }),
-//   },
-//   responses: {
-//     200: response_data(InvitationSchema),
-//     400: response_error(),
-//   },
-// })
-
-// app.openapi(invitationValidateRoute, async (c) => {
-//   const { invitationId } = c.req.param()
-
-//   const invitation = await getValidInvitation(invitationId);
-//   return c.json(invitation, 200);
-// })
-
 
 /* --------- EMAILS --------- */
 
@@ -2918,19 +2709,21 @@ app.openapi(emailsGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   authorize(principal, { action: "admin" });
 
-  const emailRows = await db
-    .select({
-      id: emails.id,
-      to: emails.to,
-      subject: emails.subject,
-      from: emails.from,
-      createdAt: emails.createdAt,
-    })
-    .from(emails)
-    .orderBy(desc(emails.createdAt))
-    .limit(100);
+  return withOrg(principal.organizationId, async tx => {
+    const emailRows = await tx
+      .select({
+        id: emails.id,
+        to: emails.to,
+        subject: emails.subject,
+        from: emails.from,
+        createdAt: emails.createdAt,
+      })
+      .from(emails)
+      .orderBy(desc(emails.createdAt))
+      .limit(100);
 
-  return c.json(emailRows, 200);
+    return c.json(emailRows, 200);
+  });
 })
 
 /* --------- EMAIL DETAIL --------- */
@@ -2948,8 +2741,11 @@ app.openapi(emailDetailGETRoute, async (c) => {
   authorize(principal, { action: "admin" });
 
   const { id } = c.req.param()
-  const emailRow = await db.query.emails.findFirst({ where: eq(emails.id, id) })
-  return c.json(emailRow, 200)
+
+  return withOrg(principal.organizationId, async tx => {
+    const emailRow = await tx.query.emails.findFirst({ where: eq(emails.id, id) })
+    return c.json(emailRow, 200)
+  })
 })
 
 /* --------- SCHEMAS ---------   */
@@ -2966,8 +2762,10 @@ app.openapi(configGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   authorize(principal, { action: "config" });
 
-  const configRow = await getConfigRow();
-  return c.json(configRow, 200)
+  return withOrg(principal.organizationId, async (tx) => {
+    const configRow = await getConfigRow(tx);
+    return c.json(configRow, 200)
+  })
 })
 
 const configPutRoute = createRoute({
@@ -2989,7 +2787,6 @@ app.openapi(configPutRoute, async (c) => {
   const userId = requireMemberId(principal);
 
   const body = await c.req.valid('json')
-  const configRow = await getConfigRow()
 
   // validate & parse body.config
   const { data, success, error } = BaseConfigSchema.safeParse(body.config)
@@ -2997,19 +2794,24 @@ app.openapi(configPutRoute, async (c) => {
     return c.json({ message: "Invalid config", code: 'parse.schema', details: error.issues }, 422);
   }
 
-  // @ts-ignore
-  if (configRow && equalJSON(configRow.config, data)) {
-    return c.json(configRow, 200)
-  }
+  return withOrg(principal.organizationId, async (tx) => {
+    const configRow = await getConfigRow(tx)
 
-  console.log('Updating config!');
+    // @ts-ignore
+    if (configRow && equalJSON(configRow.config, data)) {
+      return c.json(configRow, 200)
+    }
 
-  const [newConfigRow] = await db.insert(configs).values({
-    config: data,
-    createdBy: userId,
-  }).returning()
+    console.log('Updating config!');
 
-  return c.json(newConfigRow, 200)
+    const [newConfigRow] = await tx.insert(configs).values({
+      organizationId: principal.organizationId,
+      config: data,
+      createdBy: userId,
+    }).returning()
+
+    return c.json(newConfigRow, 200)
+  })
 })
 
 
@@ -3021,42 +2823,15 @@ const healthRoute = createRoute({
   responses: {
     200: response_data(z.object({
       status: z.literal("ok"),
-      is_active: z.boolean(),
+      // is_active: z.boolean(),
     })),
   },
 })
 
 app.openapi(healthRoute, async (c) => {
-  const hasUsers = await getTotalMemberCount() > 0;
-  return c.json({ status: "ok", is_active: hasUsers }, 200);
+  return c.json({ status: "ok" }, 200);
 })
 
-/* --------- USER EXISTS --------- */
-
-const userExistsRoute = createRoute({
-  method: 'get',
-  path: '/api/user-exists',
-  request: {
-    query: z.object({
-      email: z.string().email(),
-    }),
-  },
-  responses: {
-    200: response_data(z.object({
-      exists: z.boolean(),
-    })),
-  },
-})
-
-app.openapi(userExistsRoute, async (c) => {
-  const { email } = c.req.valid('query');
-
-  const user = await db.query.users.findFirst({
-    where: (u, { eq }) => eq(u.email, email),
-  });
-
-  return c.json({ exists: !!user }, 200);
-})
 
 /* --------- EMAILS --------- */
 
