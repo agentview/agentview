@@ -92,17 +92,17 @@ The AgentView Team`,
                 const image = `color:${randomColor}:${firstLetter}`;
 
                 // TODO: does it work?
-                
-                // await auth.api.updateUser({
-                //     body: {
-                //         image
-                //     },
-                //     headers
-                // })
 
-                await db__dangerous.update(users).set({
-                    image: image
-                }).where(eq(users.email, ctx.body.email))
+                await auth.api.updateUser({
+                    body: {
+                        image
+                    },
+                    headers
+                })
+
+                // await db__dangerous.update(users).set({
+                //     image: image
+                // }).where(eq(users.email, ctx.body.email))
 
                 /**
                  * This is commented for now. We rely on manual accept in UI or auto-accept on the front-end side.

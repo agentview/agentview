@@ -34,18 +34,19 @@ async function loader({ request }: LoaderFunctionArgs) {
   }
 
   // If it's a new installation redirect to signup
-  const statusResponse = await apiFetch<{ is_active: boolean }>('/api/health');
+  // const statusResponse = await apiFetch<{ is_active: boolean }>('/api/health');
 
-  if (!statusResponse.ok) {
-    throw data(statusResponse.error, {
-      status: statusResponse.status,
-    });
-  }
+  // if (!statusResponse.ok) {
+  //   throw data(statusResponse.error, {
+  //     status: statusResponse.status,
+  //   });
+  // }
 
-  if (!statusResponse.data.is_active) {
-    throw data({ message: "Empty instance."})
-    // return redirect("/signup");
-  }
+  // if (!statusResponse.data.is_active) {
+  //   throw data({ message: "Empty instance."})
+  //   // return redirect("/signup");
+  // }
+  
 }
 
 async function action({
