@@ -15,6 +15,3 @@ import { getDatabaseURL } from './getDatabaseURL';
 export const db__dangerous = drizzle(getDatabaseURL(), {
   schema
 });
-
-// Re-export for backward compatibility during migration - will be removed
-export const db = db__dangerous;
