@@ -20,14 +20,6 @@ async function loader({ request }: LoaderFunctionArgs): Promise<ActionResponse<L
     return redirect('/');
   }
 
-  // Check if new installation
-  // const statusResponse = await apiFetch<{ is_active: boolean }>('/api/health');
-  // if (!statusResponse.ok) {
-  //   throw data(statusResponse.error, {
-  //     status: statusResponse.status,
-  //   });
-  // }
-
   const url = new URL(request.url);
   const invitationId = url.searchParams.get('invitationId');
 
@@ -45,57 +37,6 @@ async function loader({ request }: LoaderFunctionArgs): Promise<ActionResponse<L
       invitation: invitationResponse.data
     }
   }
-
-  // // If invitationId provided, fetch invitation details
-  // if (invitationId) {
-  //   const invitationResponse = await authClient.organization.getInvitation({
-  //     query: { id: invitationId }
-  //   });
-
-  //   if (!invitationResponse.data) {
-  //     return {
-  //       ok: false,
-  //       error: { message: "Invitation not found or has expired." }
-  //     };
-  //   }
-
-  //   if (invitationResponse.data.status !== 'pending') {
-  //     return {
-  //       ok: false,
-  //       error: { message: "This invitation has already been used." }
-  //     };
-  //   }
-
-  //   // Check if invitation has expired
-  //   if (invitationResponse.data.expiresAt && new Date(invitationResponse.data.expiresAt) < new Date()) {
-  //     return {
-  //       ok: false,
-  //       error: { message: "This invitation has expired." }
-  //     };
-  //   }
-
-  //   return {
-  //     ok: true,
-  //     data: {
-  //       invitationId,
-  //       invitationEmail: invitationResponse.data.email,
-  //       organizationName: invitationResponse.data.organization?.name ?? null,
-  //       role: invitationResponse.data.role ?? null,
-  //     },
-  //   };
-  // }
-
-  // return {
-  //   ok: true,
-  //   data: {
-  //     invitationId,
-  //     email,
-  //     role,
-  //     org,
-  //     // organizationName: null,
-  //     // role: null,
-  //   },
-  // };
 }
 
 

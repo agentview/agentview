@@ -10,6 +10,9 @@ import { colorValues } from "agentview/colors";
 import { addEmail } from "./email";
 import { requireValidInvitation } from "./invitations";
 import { getAllowedOrigin } from "./getAllowedOrigin";
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const auth = betterAuth({
     // trustedOrigins: [getStudioURL()],
@@ -49,9 +52,18 @@ export const auth = betterAuth({
                 const signupUrl = `${studioUrl}/accept-invitation?invitationId=${encodeURIComponent(invitation.id)}`;
                 const organization = invitation.organization;
 
-                await addEmail({
-                    to: invitation.email,
+                console.log('############ SENDING INVITATION EMAIL ############');
+
+                const { data, error } = await resend.emails.send({
+                    from: 'AgentView <noreply@agentview.app>',
+                    to: [invitation.email],
                     subject: `You're invited to join ${organization.name}`,
+                    html: `<p>Hello,</p>
+<p>You've been invited to join <strong>${organization.name}</strong> as a <strong>${invitation.role}</strong>.</p>
+<p>To accept your invitation and create your account, please click the link below:</p>
+<p><a href="${signupUrl}">Accept Invitation</a></p>
+<p>If you did not expect this invitation, you can safely ignore this email.</p>
+<p>Best regards,<br/>The AgentView Team</p>`,
                     text: `Hello,
 
 You've been invited to join ${organization.name} as ${invitation.role}.
@@ -63,14 +75,18 @@ If you did not expect this invitation, you can safely ignore this email.
 
 Best regards,
 The AgentView Team`,
-                    html: `<p>Hello,</p>
-<p>You've been invited to join <strong>${organization.name}</strong> as a <strong>${invitation.role}</strong>.</p>
-<p>To accept your invitation and create your account, please click the link below:</p>
-<p><a href="${signupUrl}">Accept Invitation</a></p>
-<p>If you did not expect this invitation, you can safely ignore this email.</p>
-<p>Best regards,<br/>The AgentView Team</p>`
-                }, invitation.inviter.user.id, organization.id);
-              },
+                });
+
+                if (error) {
+                    console.error("Error!");
+                    console.error({ error });
+                }
+                else {
+                    console.log("Success!");
+                    console.log({ data });
+                }
+
+            },
         })
     ],
     hooks: {

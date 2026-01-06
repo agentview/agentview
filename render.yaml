@@ -25,6 +25,8 @@ services:
         value: "10000"
       - key: BETTER_AUTH_SECRET
         generateValue: true
+      - key: RESEND_API_KEY
+        sync: false
 
   # Background Worker
   - type: worker

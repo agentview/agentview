@@ -52,6 +52,9 @@ importers:
       pg:
         specifier: ^8.16.3
         version: 8.16.3
+      resend:
+        specifier: ^6.6.0
+        version: 6.6.0
       tsx:
         specifier: ^4.7.1
         version: 4.20.5
@@ -1956,6 +1959,9 @@ packages:
     resolution: {integrity: sha512-Inmfye5opZXe3HI0GaksqBnQiM7glcNySoG6DH1GgkO1Lh9dvuV4XSV9DK02DReUVX39HpcDob9nxHELjECoQw==}
     engines: {node: '>=20.0.0'}
 
+  '@stablelib/base64@1.0.1':
+    resolution: {integrity: sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==}
+
   '@standard-schema/spec@1.0.0':
     resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
 
@@ -2175,6 +2181,9 @@ packages:
 
   '@types/node@20.19.17':
     resolution: {integrity: sha512-gfehUI8N1z92kygssiuWvLiwcbOB3IRktR6hTDgJlXMYh5OvkPSRmgfoBUmfZt+vhwJtX7v1Yw4KvvAf7c5QKQ==}
+
+  '@types/node@22.19.3':
+    resolution: {integrity: sha512-1N9SBnWYOJTrNZCdh/yJE+t910Y128BoyY+zBLWhL3r0TYzlTmFdXrPwHL9DyFZmlEXNQQolTZh3KHV31QDhyA==}
 
   '@types/node@24.10.1':
     resolution: {integrity: sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ==}
@@ -2790,6 +2799,9 @@ packages:
     resolution: {integrity: sha512-FGgH2h8zKNim9ljj7dankFPcICIK9Cp5bm+c2gQSYePhpaG5+esrLODihIorn+Pe6FGJzWhXQotPv73jTaldXA==}
     engines: {node: '>= 0.4'}
 
+  es6-promise@4.2.8:
+    resolution: {integrity: sha512-HJDGx5daxeIvxdBxvG2cb9g4tEvwIk3i8+nhX0yGrYmZUzbkdg8QbDevheDB8gd0//uPj4c1EQua8Q+MViT0/w==}
+
   esast-util-from-estree@2.0.0:
     resolution: {integrity: sha512-4CyanoAudUSBAn5K13H4JhsMH6L9ZP7XbLVe/dKybkxMO7eDyLsT8UHl9TRNrU2Gr9nz+FovfSIjuXWJ81uVwQ==}
 
@@ -2886,6 +2898,9 @@ packages:
   fast-equals@5.3.3:
     resolution: {integrity: sha512-/boTcHZeIAQ2r/tL11voclBHDeP9WPxLt+tyAbVSyyXuUFyh0Tne7gJZTqGbxnvj79TjLdCXLOY7UIPhyG5MTw==}
     engines: {node: '>=6.0.0'}
+
+  fast-sha256@1.3.0:
+    resolution: {integrity: sha512-n11RGP/lrWEFI/bWdygLxhI+pVeo1ZYIVwvvPkW7azl/rOy+F3HYRZ2K5zeE9mmkhQppyv9sQFx0JM9UabnpPQ==}
 
   fast-uri@3.1.0:
     resolution: {integrity: sha512-iPeeDKJSWf4IEOasVVrknXpaBV0IApz/gp7S2bb7Z4Lljbl2MGJRqInZiUrQwV16cpzw/D3S5j5Julj/gT52AA==}
@@ -3764,6 +3779,9 @@ packages:
     resolution: {integrity: sha512-YWWTjgABSKcvs/nWBi9PycY/JiPJqOD4JA6o9Sej2AtvSGarXxKC3OQSk4pAarbdQlKAh5D4FCQkJNkW+GAn3w==}
     engines: {node: '>=0.6'}
 
+  querystringify@2.2.0:
+    resolution: {integrity: sha512-FIqgj2EUvTa7R50u0rGsyTftzjYmv/a3hO345bZNrqabNqjtgiDMgmo4mkUjd+nzU5oF3dClKqFIPUKybUyqoQ==}
+
   range-parser@1.2.1:
     resolution: {integrity: sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==}
     engines: {node: '>= 0.6'}
@@ -3878,6 +3896,18 @@ packages:
 
   require-main-filename@2.0.0:
     resolution: {integrity: sha512-NKN5kMDylKuldxYLSUfrbo5Tuzh4hd+2E8NPPX02mZtn1VuREQToYe/ZdlJy+J3uCpfaiGF05e7B8W0iXbQHmg==}
+
+  requires-port@1.0.0:
+    resolution: {integrity: sha512-KigOCHcocU3XODJxsu8i/j8T9tzT4adHiecwORRQ0ZZFcp7ahwXuRU1m+yuO90C5ZUyGeGfocHDI14M3L3yDAQ==}
+
+  resend@6.6.0:
+    resolution: {integrity: sha512-d1WoOqSxj5x76JtQMrieNAG1kZkh4NU4f+Je1yq4++JsDpLddhEwnJlNfvkCzvUuZy9ZquWmMMAm2mENd2JvRw==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@react-email/render': '*'
+    peerDependenciesMeta:
+      '@react-email/render':
+        optional: true
 
   resolve-pkg-maps@1.0.0:
     resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
@@ -4052,6 +4082,9 @@ packages:
     resolution: {integrity: sha512-MpUEN2OodtUzxvKQl72cUF7RQ5EiHsGvSsVG0ia9c5RbWGL2CI4C7EpPS8UTBIplnlzZiNuV56w+FuNxy3ty2Q==}
     engines: {node: '>=10'}
 
+  svix@1.76.1:
+    resolution: {integrity: sha512-CRuDWBTgYfDnBLRaZdKp9VuoPcNUq9An14c/k+4YJ15Qc5Grvf66vp0jvTltd4t7OIRj+8lM1DAgvSgvf7hdLw==}
+
   tailwind-merge@3.4.0:
     resolution: {integrity: sha512-uSaO4gnW+b3Y2aWoWfFpX62vn2sR3skfhbjsEnaBI81WD1wBLlHZe5sWf0AqjksNdYTbGBEd0UasQMT3SNV15g==}
 
@@ -4199,6 +4232,9 @@ packages:
     peerDependencies:
       browserslist: '>= 4.21.0'
 
+  url-parse@1.5.10:
+    resolution: {integrity: sha512-WypcfiRhfeUP9vvF0j6rw0J3hrWrw6iZv3+22h6iRMJ/8z1Tj6XfLP4DsUix5MhMPnXpiHDoKyoZ/bdCkwBCiQ==}
+
   use-callback-ref@1.3.3:
     resolution: {integrity: sha512-jQL3lRnocaFtu3V00JToYz/4QkNWswxijDaCVNZRiRTO3HQDLsdu1ZtmIUvV4yPp+rvWm5j0y0TG/S61cuijTg==}
     engines: {node: '>=10'}
@@ -4226,6 +4262,10 @@ packages:
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
+
+  uuid@10.0.0:
+    resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
+    hasBin: true
 
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
@@ -5690,6 +5730,8 @@ snapshots:
       '@peculiar/asn1-x509': 2.5.0
       '@peculiar/x509': 1.14.0
 
+  '@stablelib/base64@1.0.1': {}
+
   '@standard-schema/spec@1.0.0': {}
 
   '@standard-schema/utils@0.3.0': {}
@@ -5926,6 +5968,10 @@ snapshots:
   '@types/ms@2.1.0': {}
 
   '@types/node@20.19.17':
+    dependencies:
+      undici-types: 6.21.0
+
+  '@types/node@22.19.3':
     dependencies:
       undici-types: 6.21.0
 
@@ -6498,6 +6544,8 @@ snapshots:
       es-errors: 1.3.0
     optional: true
 
+  es6-promise@4.2.8: {}
+
   esast-util-from-estree@2.0.0:
     dependencies:
       '@types/estree-jsx': 1.0.5
@@ -6702,6 +6750,8 @@ snapshots:
     optional: true
 
   fast-equals@5.3.3: {}
+
+  fast-sha256@1.3.0: {}
 
   fast-uri@3.1.0:
     optional: true
@@ -7776,6 +7826,8 @@ snapshots:
       side-channel: 1.1.0
     optional: true
 
+  querystringify@2.2.0: {}
+
   range-parser@1.2.1:
     optional: true
 
@@ -7910,6 +7962,12 @@ snapshots:
     optional: true
 
   require-main-filename@2.0.0: {}
+
+  requires-port@1.0.0: {}
+
+  resend@6.6.0:
+    dependencies:
+      svix: 1.76.1
 
   resolve-pkg-maps@1.0.0: {}
 
@@ -8131,6 +8189,15 @@ snapshots:
     dependencies:
       has-flag: 4.0.0
 
+  svix@1.76.1:
+    dependencies:
+      '@stablelib/base64': 1.0.1
+      '@types/node': 22.19.3
+      es6-promise: 4.2.8
+      fast-sha256: 1.3.0
+      url-parse: 1.5.10
+      uuid: 10.0.0
+
   tailwind-merge@3.4.0: {}
 
   tailwindcss@4.1.13: {}
@@ -8272,6 +8339,11 @@ snapshots:
       escalade: 3.2.0
       picocolors: 1.1.1
 
+  url-parse@1.5.10:
+    dependencies:
+      querystringify: 2.2.0
+      requires-port: 1.0.0
+
   use-callback-ref@1.3.3(@types/react@19.1.13)(react@19.2.0):
     dependencies:
       react: 19.2.0
@@ -8292,6 +8364,8 @@ snapshots:
       react: 19.2.0
 
   util-deprecate@1.0.2: {}
+
+  uuid@10.0.0: {}
 
   vary@1.1.2:
     optional: true

@@ -316,12 +316,8 @@ function Component() {
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>}
-
-
             </SidebarContent>
-
           </>}
-
 
           {isSettings && <>
             <SidebarHeader>
