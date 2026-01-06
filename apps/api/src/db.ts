@@ -1,6 +1,12 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 import { schema } from "./schemas/schema";
 import { getDatabaseURL } from './getDatabaseURL';
+
+const pool = new Pool({
+  connectionString: getDatabaseURL(),
+  max: 20,
+});
 
 /**
  * DANGEROUS: Direct database access without RLS organization context.
@@ -12,6 +18,6 @@ import { getDatabaseURL } from './getDatabaseURL';
  *
  * For all other operations, use withOrg() to ensure proper tenant isolation.
  */
-export const db__dangerous = drizzle(getDatabaseURL(), {
+export const db__dangerous = drizzle(pool, {
   schema
 });
