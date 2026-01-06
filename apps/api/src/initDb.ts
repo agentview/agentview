@@ -8,7 +8,17 @@ export async function initDb() {
     await migrate(db__dangerous, { migrationsFolder: './drizzle' });
     console.log("✅ Database migrated successfully");
 
-    // Grant privileges to app_user for RLS enforcement
+    // Create app_user and grant privileges to app_user for RLS enforcement
+    await db__dangerous.execute(sql`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_user') THEN
+            CREATE ROLE app_user NOINHERIT NOLOGIN;
+          END IF;
+        END
+        $$
+      `);
+
     // Schema usage is needed because db:clear recreates the public schema
     await db__dangerous.execute(sql`GRANT USAGE ON SCHEMA public TO app_user`);
     await db__dangerous.execute(sql`GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user`);
