@@ -23,8 +23,6 @@ services:
           property: connectionString
       - key: AGENTVIEW_API_PORT
         value: "10000"
-      - key: AGENTVIEW_STUDIO_URL
-        sync: false
       - key: BETTER_AUTH_SECRET
         generateValue: true
 

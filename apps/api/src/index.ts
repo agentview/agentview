@@ -20,10 +20,7 @@ import { extractMentions } from './extractMentions'
 import { auth } from './auth'
 // import { createInvitation, cancelInvitation, getPendingInvitations, getValidInvitation } from './invitations'
 import { fetchSession } from './sessions'
-import { callAgentAPI, AgentAPIError } from './agentApi'
-import { getStudioURL } from './getStudioURL'
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { getActiveRuns, getAllSessionItems, getLastRun } from 'agentview/sessionUtils'
+import { getAllSessionItems, getLastRun } from 'agentview/sessionUtils'
 import {
   UserSchema,
   UserCreateSchema,
@@ -48,6 +45,7 @@ import { equalJSON } from './equalJSON'
 import { AgentViewError } from 'agentview/AgentViewError'
 import { requireValidInvitation } from './invitations'
 import { initDb } from './initDb'
+import { getAllowedOrigin } from './getAllowedOrigin'
 
 
 await initDb();
@@ -97,22 +95,10 @@ app.onError((error, c) => {
 /** --------- CORS --------- */
 
 app.use('*', cors({
-  origin: [getStudioURL()],
-  // origin: (origin) => {
-  //   if (!origin) return;
-
-  //   try {
-  //     const url = new URL(origin)
-
-  //     const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.endsWith('.localhost')
-
-  //     if (isLocalhost) {
-  //       return origin;
-  //     }
-  //   } catch {
-  //     return;
-  //   }
-  // },
+  // origin: [getStudioURL()],
+  origin: (origin, c) => {
+    return getAllowedOrigin(c.req.raw.headers);
+  },
   credentials: true,
 }))
 

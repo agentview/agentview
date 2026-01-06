@@ -5,15 +5,23 @@ import { createAuthMiddleware, APIError } from "better-auth/api";
 import { apiKey, organization } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db__dangerous } from "./db";
-import { users } from "./schemas/auth-schema";
-import { eq } from "drizzle-orm";
 import { getStudioURL } from "./getStudioURL";
 import { colorValues } from "agentview/colors";
 import { addEmail } from "./email";
 import { requireValidInvitation } from "./invitations";
+import { getAllowedOrigin } from "./getAllowedOrigin";
 
 export const auth = betterAuth({
-    trustedOrigins: [getStudioURL()],
+    // trustedOrigins: [getStudioURL()],
+    trustedOrigins: async (request) => {
+        const allowedOrigin = getAllowedOrigin(request.headers);
+        if (allowedOrigin) {
+            return [allowedOrigin];
+        }
+
+        return [];
+    },
+
     database: drizzleAdapter(db__dangerous, {
         provider: "pg",
         usePlural: true
@@ -37,7 +45,7 @@ export const auth = betterAuth({
         }),
         organization({
             async sendInvitationEmail(invitation) {
-                const studioUrl = getStudioURL();
+                const studioUrl = getStudioURL(invitation.organization.id);
                 const signupUrl = `${studioUrl}/accept-invitation?invitationId=${encodeURIComponent(invitation.id)}`;
                 const organization = invitation.organization;
 
