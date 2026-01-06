@@ -1,6 +1,6 @@
 databases:
   - name: agentview-db
-    plan: starter
+    plan: basic-1gb
     databaseName: agentview
     user: agentview
     region: virginia
@@ -12,9 +12,10 @@ services:
     runtime: docker
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
+    dockerCommand: pnpm run http:start
     region: virginia
     plan: starter
-    healthCheckPath: /
+    healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -33,7 +34,7 @@ services:
     runtime: docker
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
-    dockerCommand: pnpm run start:worker
+    dockerCommand: pnpm run worker:start
     region: virginia
     plan: starter
     envVars:
