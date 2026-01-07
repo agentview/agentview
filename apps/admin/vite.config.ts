@@ -5,6 +5,9 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
+  resolve: {
+    dedupe: ["react", "react-dom"],
+  },
   server: {
     // watch: {
     //   // pnpm uses symlinks in node_modules pointing to .pnpm store.

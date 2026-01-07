@@ -18,7 +18,9 @@
     ".": "./src/index.ts",
     "./components/*": "./src/components/*.tsx",
     "./components/ui/*": "./src/components/ui/*.tsx",
+    "./components/internal/*": "./src/components/internal/*.tsx",
     "./lib/*": "./src/lib/*.ts",
+    "./hooks/*": "./src/hooks/*.tsx",
     "./styles.css": {
       "default": "./src/styles.css"
     }

@@ -1,20 +1,22 @@
-import { redirect, Form, useActionData, data, type LoaderFunctionArgs, type ActionFunctionArgs, type RouteObject } from "react-router";
+import { redirect, Form, useActionData, Link, useSearchParams, useNavigation } from "react-router";
+import type { Route } from "./+types/login";
 import { Button } from "@agentview/studio/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@agentview/studio/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@agentview/studio/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@agentview/studio/components/ui/alert";
 import { Input } from "@agentview/studio/components/ui/input";
 import { Label } from "@agentview/studio/components/ui/label";
-import { AlertCircleIcon } from "lucide-react";
+import { AlertCircleIcon, Loader2 } from "lucide-react";
 import { betterAuthErrorToBaseError, type ActionResponse } from "@agentview/studio/lib/errors";
-import { authClient } from "../../authClient";
+import { authClient } from "~/authClient";
 
 function getRedirectUrl(request: Request) {
   const url = new URL(request.url);
 
   // If invitationId is present, redirect to accept-invitation after login
   const invitationId = url.searchParams.get('invitationId');
-  if (invitationId) {
-    return '/accept-invitation?invitationId=' + encodeURIComponent(invitationId);
+  const organizationId = url.searchParams.get('organizationId');
+  if (invitationId && organizationId) {
+    return `/accept-invitation?invitationId=${encodeURIComponent(invitationId)}&organizationId=${encodeURIComponent(organizationId)}`;
   }
 
   // Otherwise use the redirect param or default to /
@@ -27,14 +29,10 @@ function getRedirectUrl(request: Request) {
 
 export async function clientAction({
   request,
-}: ActionFunctionArgs): Promise<ActionResponse> {
-  console.log("Login action");
+}: Route.ActionArgs): Promise<ActionResponse> {
   const formData = await request.formData();
   const email = formData.get('email') as string || '';
   const password = formData.get('password') as string || '';
-
-  console.log("Email:", email);
-  console.log("Password:", password);
 
   const { error } = await authClient.signIn.email({
       email,
@@ -42,30 +40,39 @@ export async function clientAction({
   });
 
   if (error) {
-    console.log("Error:", error);
     return { ok: false, error: betterAuthErrorToBaseError(error) };
   }
 
-  console.log("Redirecting to:", getRedirectUrl(request));
   return { ok: true, data: redirect(getRedirectUrl(request)) };
 }
 
 export default function LoginPage() {
   const actionData = useActionData<typeof clientAction>();
+  const [searchParams] = useSearchParams();
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+
+  // Build signup link with same params (for invitation flow)
+  const signupParams = new URLSearchParams();
+  const invitationId = searchParams.get('invitationId');
+  const organizationId = searchParams.get('organizationId');
+  if (invitationId) signupParams.set('invitationId', invitationId);
+  if (organizationId) signupParams.set('organizationId', organizationId);
+  const signupUrl = signupParams.toString() ? `/signup?${signupParams.toString()}` : '/signup';
 
   return (
     <div className="container mx-auto p-4 max-w-md mt-16">
       <Card>
         <CardHeader>
-          <CardTitle className="text-center">Login</CardTitle>
+          <CardTitle className="text-center">Sign in</CardTitle>
         </CardHeader>
         <CardContent>
           <Form className="flex flex-col gap-4" method="post">
             {/* General error alert */}
             {actionData?.ok === false && (
               <Alert variant="destructive">
-                <AlertCircleIcon />
-                <AlertTitle>Login failed.</AlertTitle>
+                <AlertCircleIcon className="h-4 w-4" />
+                <AlertTitle>Login failed</AlertTitle>
                 <AlertDescription>{actionData.error.message}</AlertDescription>
               </Alert>
             )}
@@ -78,11 +85,12 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 name="email"
-                placeholder="Enter your email"
+                placeholder="you@example.com"
                 required
+                autoComplete="email"
               />
               {actionData?.ok === false && actionData?.error.fieldErrors?.email && (
-                <p id="email-error" className="text-sm text-destructive">
+                <p className="text-sm text-destructive">
                   {actionData.error.fieldErrors.email}
                 </p>
               )}
@@ -98,19 +106,35 @@ export default function LoginPage() {
                 name="password"
                 placeholder="Enter your password"
                 required
+                autoComplete="current-password"
               />
               {actionData?.ok === false && actionData?.error.fieldErrors?.password && (
-                <p id="password-error" className="text-sm text-destructive">
+                <p className="text-sm text-destructive">
                   {actionData.error.fieldErrors.password}
                 </p>
               )}
             </div>
 
-            <Button type="submit">
-              Login
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign in"
+              )}
             </Button>
           </Form>
         </CardContent>
+        <CardFooter className="justify-center">
+          <p className="text-sm text-muted-foreground">
+            Don't have an account?{" "}
+            <Link to={signupUrl} className="text-primary hover:underline">
+              Sign up
+            </Link>
+          </p>
+        </CardFooter>
       </Card>
     </div>
   );

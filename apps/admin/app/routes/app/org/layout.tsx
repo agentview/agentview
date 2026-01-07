@@ -4,6 +4,8 @@ import {
   Outlet,
   useLoaderData,
   useLocation,
+  useNavigate,
+  useParams,
   type LoaderFunctionArgs
 } from "react-router";
 
@@ -20,13 +22,15 @@ import {
   SidebarMenuItem,
   SidebarProvider
 } from "@agentview/studio/components/ui/sidebar";
-import { ChevronUp, LockKeyhole, LogOut, Settings, UserIcon, UsersIcon } from "lucide-react";
+import { Building2, ChevronDown, ChevronUp, KeyRound, LockKeyhole, LogOut, Settings, UserIcon, UsersIcon } from "lucide-react";
 
 import { UserAvatar } from "@agentview/studio/components/internal/UserAvatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@agentview/studio/components/ui/dropdown-menu";
 import { betterAuthErrorToBaseError } from "@agentview/studio/lib/errors";
 import { matchPath } from "react-router";
 import { authClient } from "~/authClient";
+import { requireOrganization } from "~/requireOrganization";
+import { requireMember, requireMemberByUserId } from "~/requireMember";
 
 export async function clientLoader({ request, params }: LoaderFunctionArgs) {
   const session = await authClient.getSession();
@@ -35,13 +39,16 @@ export async function clientLoader({ request, params }: LoaderFunctionArgs) {
   }
   const user = session.data!.user;
 
-  const organizationResponse = await authClient.organization.getFullOrganization({ query: { organizationId: params.orgId } });
-  if (organizationResponse.error) {
-    throw data(betterAuthErrorToBaseError(organizationResponse.error))
+  // Get list of all organizations user belongs to
+  const orgsResponse = await authClient.organization.list();
+  if (orgsResponse.error) {
+    throw data(betterAuthErrorToBaseError(orgsResponse.error))
   }
-  const organization = organizationResponse.data;
+  const organizations = orgsResponse.data;
 
-  const member = organization.members.find((member) => member.userId === user?.id);
+  // Get full details of current organization
+  const organization = await requireOrganization(params.orgId!);
+  const member = await requireMemberByUserId(organization, user.id);
 
   const me = {
     ...user,
@@ -52,21 +59,30 @@ export async function clientLoader({ request, params }: LoaderFunctionArgs) {
 
   return {
     organization,
+    organizations,
     me,
     locale
   };
 }
 
-export default function AppLayout() {
-  const { organization, me, locale } = useLoaderData<typeof clientLoader>()
-
+export default function OrgLayout() {
+  const { organization, organizations, me } = useLoaderData<typeof clientLoader>()
+  const { orgId } = useParams();
+  const navigate = useNavigate();
   const location = useLocation();
 
+  const basePath = `/orgs/${orgId}`;
+
   const isMenuLinkActive = (linkPath: string) => {
-    const linkUrl = new URL(linkPath, window.location.origin)
-    const pathMatches = matchPath({ path: linkUrl.pathname, end: false }, location.pathname)
+    const fullPath = `${basePath}${linkPath}`;
+    const linkUrl = new URL(fullPath, window.location.origin)
+    const pathMatches = matchPath({ path: linkUrl.pathname, end: linkPath === "" }, location.pathname)
     if (!pathMatches) return false
     return true
+  }
+
+  const handleOrgChange = (newOrgId: string) => {
+    navigate(`/orgs/${newOrgId}`);
   }
 
   return (
@@ -74,37 +90,60 @@ export default function AppLayout() {
       <div className="flex h-screen bg-background w-full">
         <Sidebar className="border-r">
 
-          <SidebarHeader>
-            { organization.name }
-            {/* <Button variant="ghost" size="sm" className="justify-start" asChild>
-              <Link to="/">
-                <ArrowLeft className="h-4 w-4" />
-                Back to app
-              </Link>
-            </Button> */}
+          <SidebarHeader className="p-4 space-y-3">
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <img src="/symbol_light.svg" className="size-6" alt="AgentView Logo" />
+              <span className="font-semibold">AgentView</span>
+            </div>
+
+            {/* Organization Picker */}
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton className="w-full justify-between">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        <span className="truncate">{organization.name}</span>
+                      </div>
+                      <ChevronDown className="h-4 w-4 shrink-0" />
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-[--radix-popper-anchor-width]" align="start">
+                    {organizations.map((org) => (
+                      <DropdownMenuItem
+                        key={org.id}
+                        onClick={() => handleOrgChange(org.id)}
+                        className={org.id === orgId ? "bg-accent" : ""}
+                      >
+                        <Building2 className="h-4 w-4" />
+                        <span>{org.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </SidebarMenuItem>
+            </SidebarMenu>
           </SidebarHeader>
-          
+
           <SidebarContent>
             <SidebarGroup>
               <SidebarGroupLabel>Account</SidebarGroupLabel>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isMenuLinkActive("/settings/profile")}>
-                    <Link to="/settings/profile">
+                  <SidebarMenuButton asChild isActive={isMenuLinkActive("/profile")}>
+                    <Link to={`${basePath}/profile`}>
                       <UserIcon className="h-4 w-4" />
                       <span>Profile</span>
                     </Link>
                   </SidebarMenuButton>
-                  <SidebarMenuButton asChild isActive={isMenuLinkActive("/settings/password")}>
-                    <Link to="/settings/password">
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isMenuLinkActive("/password")}>
+                    <Link to={`${basePath}/password`}>
                       <LockKeyhole className="h-4 w-4" />
                       <span>Password</span>
-                    </Link>
-                  </SidebarMenuButton>
-                  <SidebarMenuButton asChild isActive={isMenuLinkActive("/settings/api-keys")}>
-                    <Link to="/settings/api-keys">
-                      <UserIcon className="h-4 w-4" />
-                      <span>API Keys</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -115,8 +154,24 @@ export default function AppLayout() {
               <SidebarGroupLabel>Organisation</SidebarGroupLabel>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isMenuLinkActive("/settings/members")}>
-                    <Link to="/settings/members">
+                  <SidebarMenuButton asChild isActive={isMenuLinkActive("/details")}>
+                    <Link to={`${basePath}/details`}>
+                      <Building2 className="h-4 w-4" />
+                      <span>Details</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isMenuLinkActive("/api-keys")}>
+                    <Link to={`${basePath}/api-keys`}>
+                      <KeyRound className="h-4 w-4" />
+                      <span>API Keys</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isMenuLinkActive("/members")}>
+                    <Link to={`${basePath}/members`}>
                       <UsersIcon className="h-4 w-4" />
                       <span>Members</span>
                     </Link>
@@ -125,42 +180,7 @@ export default function AppLayout() {
               </SidebarMenu>
             </SidebarGroup>}
 
-            {/* {(me.role === "admin" || me.role === "owner") && <SidebarGroup>
-              <SidebarGroupLabel>Dev</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isMenuLinkActive("/settings/config")}>
-                      <Link to="/settings/config">
-                        <Database className="h-4 w-4" />
-                        <span>Config</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>}
-
-
-            {import.meta.env.DEV && <SidebarGroup>
-              <SidebarGroupLabel>Internal</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isMenuLinkActive("/settings/emails")}>
-                      <Link to="/settings/emails">
-                        <Mail className="h-4 w-4" />
-                        <span>Emails</span>
-                      </Link>
-                    </SidebarMenuButton>
-
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>} */}
-
           </SidebarContent>
-
 
           <SidebarFooter className="border-t p-3">
             <SidebarMenu>
@@ -178,15 +198,9 @@ export default function AppLayout() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent side="top" className="min-w-[200px]">
                     <DropdownMenuItem asChild>
-                      <Link to="/settings/profile">
+                      <Link to={`${basePath}/profile`}>
                         <UserIcon className="h-4 w-4" />
                         <span>Profile</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/settings/profile">
-                        <Settings className="h-4 w-4" />
-                        <span>Settings</span>
                       </Link>
                     </DropdownMenuItem>
 
@@ -200,8 +214,6 @@ export default function AppLayout() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-
-
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarFooter>

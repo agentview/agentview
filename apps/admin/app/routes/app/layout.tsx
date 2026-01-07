@@ -20,6 +20,8 @@ export async function clientLoader({ request }: LoaderFunctionArgs) {
       return redirect('/login');
     }
   }
+
+  return null;
 }
 
 export default function AppLayout() {
