@@ -53,7 +53,6 @@ export async function getSession() {
     return response.data;
 }
 
-
 export type Member = Awaited<ReturnType<typeof getMember>>;
 export type User = NonNullable<Awaited<ReturnType<typeof getSession>>>["user"]
 export type Organization = Awaited<ReturnType<typeof getOrganization>>;
