@@ -1,17 +1,27 @@
-import type { Route } from "./+types/layout";
-import { authClient } from "../../authClient";
-import { redirect, Outlet } from "react-router";
+import {
+  Outlet,
+  redirect,
+  type LoaderFunctionArgs
+} from "react-router";
 
-export async function clientLoader({ request }: Route.LoaderArgs) {
-  const sessionResponse = await authClient.getSession()
-  if (!sessionResponse.data) {
-    return redirect("/login");
+import { authClient } from "~/authClient";
+
+export async function clientLoader({ request }: LoaderFunctionArgs) {
+  const session = await authClient.getSession()
+
+  const url = new URL(request.url);
+  const relativeUrl = url.pathname + url.search + url.hash;
+
+  if (!session.data) {
+    if (relativeUrl !== '/') {
+      return redirect('/login?redirect=' + encodeURIComponent(relativeUrl));
+    }
+    else {
+      return redirect('/login');
+    }
   }
 }
 
-export default function Layout() {
-  return <div>
-    <h1>App layout</h1>
-    <Outlet />
-  </div>;
+export default function AppLayout() {
+  return <Outlet />
 }
