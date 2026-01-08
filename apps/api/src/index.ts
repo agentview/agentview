@@ -2655,15 +2655,7 @@ app.openapi(scoresPATCHRoute, async (c) => {
 
 /* --------- INVITATIONS --------- */
 
-const invitationDetailGETRoute = createRoute({
-  method: 'get',
-  path: '/api/invitations/{invitation_id}',
-  responses: {
-    200: response_data(z.any()),
-  },
-})
-
-app.openapi(invitationDetailGETRoute, async (c) => {
+app.get('/api/invitations/:invitation_id', async (c) => {
   const { invitation_id } = c.req.param();
   const invitation = await requireValidInvitation(invitation_id);
 
