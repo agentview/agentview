@@ -30,11 +30,6 @@ async function loader({ request }: LoaderFunctionArgs) {
   if (token) {
     window.localStorage.setItem('agentview_token', token);
     url.searchParams.delete('token');
-    console.log('YESSSS')
-    console.log('token', token);
-    console.log('url', url.toString());
-    console.log('getRedirectUrl', getRedirectUrl(url.toString()));
-    
     return redirect(getRedirectUrl(url.toString()));
   }
 }
