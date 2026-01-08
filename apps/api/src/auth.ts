@@ -1,5 +1,3 @@
-import "@agentview/utils/loadEnv"
-
 import { betterAuth } from "better-auth";
 import { createAuthMiddleware, APIError } from "better-auth/api";
 import { apiKey, organization, bearer } from "better-auth/plugins"

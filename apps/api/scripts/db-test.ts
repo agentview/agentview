@@ -1,4 +1,3 @@
-import "@agentview/utils/loadEnv";
 import { db__dangerous } from "../src/db";
 
 console.log("Running 'select 1' test SQL query");

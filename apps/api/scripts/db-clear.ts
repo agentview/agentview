@@ -1,4 +1,3 @@
-import "@agentview/utils/loadEnv";
 import { db__dangerous } from "../src/db";
 import { sql } from "drizzle-orm";
 
