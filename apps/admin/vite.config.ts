@@ -17,8 +17,6 @@ export default defineConfig({
     dedupe: ["react", "react-dom"],
   },
   server: {
-    host: "0.0.0.0", // listens to all interfaces
-    port,
-    allowedHosts: ['alias.localhost'],
+    port
   },
 });

@@ -148,7 +148,8 @@ function SessionPage() {
                     credentials: 'include', // ensure cookies are sent
                     signal: abortController.signal,
                     headers: {
-                        "X-Organization-Id": config.organizationId
+                        "X-Organization-Id": config.organizationId,
+                        'Authorization': `Bearer ${localStorage.getItem("agentview_token") || ""}`,
                     }
                 });
 

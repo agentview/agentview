@@ -132,12 +132,12 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
                 },
               ],
             },
+            {
+              path: "logout",
+              ...logoutRoute
+            },
             ...agentCustomRoutes
           ],
-        },
-        {
-          path: "logout",
-          ...logoutRoute
         },
         {
           path: "login",

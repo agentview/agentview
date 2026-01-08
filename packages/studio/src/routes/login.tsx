@@ -1,13 +1,7 @@
-import { redirect, Form, useActionData, data, type LoaderFunctionArgs, type ActionFunctionArgs, type RouteObject } from "react-router";
+import { redirect, type LoaderFunctionArgs, type RouteObject } from "react-router";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { AlertCircleIcon } from "lucide-react";
-import { betterAuthErrorToBaseError, type ActionResponse } from "../lib/errors";
 import { authClient } from "../lib/auth-client";
-import { apiFetch } from "../lib/apiFetch";
 
 function getRedirectUrl(stringUrl: string) {
   const url = new URL(stringUrl);
@@ -28,55 +22,24 @@ async function loader({ request }: LoaderFunctionArgs) {
     return redirect(getRedirectUrl(request.url));
   }
 
+  // Check for token in query params
   const url = new URL(request.url);
-  const token = url.searchParams.get('origin');
+  const token = url.searchParams.get('token');
 
-  // redirected from admin app
   if (token) {
     window.localStorage.setItem('agentview_token', token);
-    url.searchParams.delete('origin');
-    return redirect(url.toString());
+    url.searchParams.delete('token');
+    console.log('YESSSS')
+    console.log('token', token);
+    console.log('url', url.toString());
+    console.log('getRedirectUrl', getRedirectUrl(url.toString()));
+    
+    return redirect(getRedirectUrl(url.toString()));
   }
-
-
-
-  // If it's a new installation redirect to signup
-  // const statusResponse = await apiFetch<{ is_active: boolean }>('/api/health');
-
-  // if (!statusResponse.ok) {
-  //   throw data(statusResponse.error, {
-  //     status: statusResponse.status,
-  //   });
-  // }
-
-  // if (!statusResponse.data.is_active) {
-  //   throw data({ message: "Empty instance."})
-  //   // return redirect("/signup");
-  // }
-  
 }
 
-// async function action({
-//   request,
-// }: ActionFunctionArgs): Promise<ActionResponse> {
-//   const formData = await request.formData();
-//   const email = formData.get('email') as string || '';
-//   const password = formData.get('password') as string || '';
-
-//   const { error } = await authClient.signIn.email({
-//       email,
-//       password,
-//   });
-
-//   if (error) {
-//     return { ok: false, error: betterAuthErrorToBaseError(error) };
-//   }
-
-//   return { ok: true, data: redirect(getRedirectUrl(request)) };
-// }
-
 function Component() {
-  const authUrl = new URL("http://alias.localhost:1991/auth");
+  const authUrl = new URL("http://localhost:1991/auth");
   authUrl.searchParams.set("origin", window.location.href);
 
   return (
@@ -89,56 +52,6 @@ function Component() {
           <Button asChild className="w-full">
             <a href={authUrl.toString()}>Login</a>
           </Button>
-
-          {/* <Form className="flex flex-col gap-4" method="post">
-            {actionData?.ok === false && (
-              <Alert variant="destructive">
-                <AlertCircleIcon />
-                <AlertTitle>Login failed.</AlertTitle>
-                <AlertDescription>{actionData.error.message}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                name="email"
-                placeholder="Enter your email"
-                required
-              />
-              {actionData?.ok === false && actionData?.error.fieldErrors?.email && (
-                <p id="email-error" className="text-sm text-destructive">
-                  {actionData.error.fieldErrors.email}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="password" className="text-sm font-medium">
-                Password
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                name="password"
-                placeholder="Enter your password"
-                required
-              />
-              {actionData?.ok === false && actionData?.error.fieldErrors?.password && (
-                <p id="password-error" className="text-sm text-destructive">
-                  {actionData.error.fieldErrors.password}
-                </p>
-              )}
-            </div>
-
-            <Button type="submit">
-              Login
-            </Button>
-          </Form> */}
         </CardContent>
       </Card>
     </div>
@@ -148,5 +61,4 @@ function Component() {
 export const loginRoute : RouteObject = {
   Component,
   loader,
-  // action,
 }

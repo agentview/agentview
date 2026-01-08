@@ -1,18 +1,19 @@
 import { redirect, data, type RouteObject } from "react-router";
-import { authClient } from "../lib/auth-client";
+// import { authClient } from "../lib/auth-client";
 
 async function loader() {
-  const sessionResponse = await authClient.getSession()
+  localStorage.removeItem("agentview_token");
+  // const sessionResponse = await authClient.getSession()
 
-  if (!sessionResponse.data) {
-    return redirect("/");
-  }
+  // if (!sessionResponse.data) {
+  //   return redirect("/");
+  // }
 
-  const response = await authClient.signOut();
+  // const response = await authClient.signOut();
 
-  if (response.error) {
-    throw data(response.error.message ?? "Logout failed", { status: response.error.status })
-  }
+  // if (response.error) {
+  //   throw data(response.error.message ?? "Logout failed", { status: response.error.status })
+  // }
 
   return redirect('/');
 }

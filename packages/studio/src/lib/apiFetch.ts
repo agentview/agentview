@@ -27,6 +27,7 @@ export async function apiFetch<T = any>(endpoint: string, options: APIOptions = 
         headers: {
             'Content-Type': 'application/json',
             'X-Organization-Id': config.organizationId,
+            'Authorization': `Bearer ${localStorage.getItem("agentview_token") || ""}`,
         },
         body: options.body ? JSON.stringify(options.body) : undefined,
     });
