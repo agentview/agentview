@@ -39,6 +39,8 @@ export async function clientAction({ request }: Route.ActionArgs): Promise<Actio
   const password = formData.get('password') as string || '';
   const confirmPassword = formData.get('confirmPassword') as string || '';
 
+  console.log('!!!', email);
+
   // Validation
   if (name.trim() === '') {
     return { ok: false, error: { message: "Validation error", fieldErrors: { name: "Name is required." } } };
@@ -127,15 +129,17 @@ export default function Signup() {
               </Label>
 
               <Input
-                id="email"
+                id={"email"}
                 type="email"
-                name="email"
+                name={"email"}
                 placeholder="you@example.com"
                 required
                 autoComplete="email"
-                value={invitation ? invitation.email : ''}
-                disabled={!!invitation}
+                defaultValue={invitation ? invitation.email : ''}
+                readOnly={!!invitation}
+                className={invitation ? 'text-muted-foreground' : ''}
               />
+
               {actionData?.ok === false && actionData?.error?.fieldErrors?.email && (
                 <p className="text-sm text-destructive">
                   {actionData.error.fieldErrors.email}

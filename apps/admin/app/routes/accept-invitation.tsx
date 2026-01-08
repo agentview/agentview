@@ -7,8 +7,6 @@ import type { Route } from "./+types/accept-invitation";
 import { Alert, AlertDescription, AlertTitle } from "@agentview/studio/components/ui/alert";
 import { fetchInvitation } from "~/fetchInvitation";
 
-const API_BASE_URL = "http://localhost:1990";
-
 export async function clientLoader({ request }: Route.LoaderArgs): Promise<ActionResponse | Response> {
   const url = new URL(request.url);
   const invitationId = url.searchParams.get('invitationId');
@@ -37,11 +35,14 @@ export async function clientLoader({ request }: Route.LoaderArgs): Promise<Actio
     });
 
     if (acceptResult.error) {
-      throw data({ message: acceptResult.error.message || "Failed to accept invitation." }, { status: 400 });
+      return {
+        ok: false,
+        error: { message: acceptResult.error.message || "Failed to accept invitation." }
+      }
     }
 
     // Redirect to the organization they just joined
-    return redirect(`/orgs/${invitation.organizationid}`);
+    return redirect(`/orgs/${invitation.organizationId}`);
   }
   // Not logged in
   else {
