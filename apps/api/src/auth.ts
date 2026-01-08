@@ -91,16 +91,12 @@ The AgentView Team`,
     ],
     hooks: {
         before: createAuthMiddleware(async (ctx) => {
-            const organizationId = ctx.headers?.get("X-Organization-Id");
 
-            // When X-Organization-Id is provided, then sign-up is allowed only with the valid invitation (no custom sign-ups via Studio)
-            if (organizationId && ctx.path === "/sign-up/email") {
-                if (!ctx.body.invitationId) {
-                    throw new APIError("BAD_REQUEST", {
-                        message: "Invitation ID must be provided.",
-                    });
+            // When invitation is provided, validate it
+            if (ctx.path === "/sign-up/email") {
+                if (ctx.body.invitationId) {
+                    await requireValidInvitation(ctx.body.invitationId, undefined, ctx.body.email)
                 }
-                await requireValidInvitation(ctx.body.invitationId, organizationId, ctx.body.email)
             }
         }),
         after: createAuthMiddleware(async (ctx) => {

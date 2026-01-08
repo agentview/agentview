@@ -1,4 +1,4 @@
-import { redirect, Form, useActionData, useSearchParams, Link } from "react-router";
+import { redirect, Form, useActionData, useSearchParams, Link, data, useLoaderData } from "react-router";
 import type { Route } from "./+types/signup";
 import { Button } from "@agentview/studio/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@agentview/studio/components/ui/card";
@@ -9,15 +9,25 @@ import { AlertCircleIcon, Loader2 } from "lucide-react";
 import { betterAuthErrorToBaseError, type ActionResponse } from "@agentview/studio/lib/errors";
 import { authClient } from "~/authClient";
 import { useNavigation } from "react-router";
+import { fetchInvitation } from "~/fetchInvitation";
 
 export async function clientLoader({ request }: Route.LoaderArgs) {
-  const session = await authClient.getSession();
+  const url = new URL(request.url);
+  const invitationId = url.searchParams.get('invitationId');
 
-  if (session.data) {
-    return redirect('/');
+  // validate invitationId
+  if (invitationId) {
+    const invitationResponse = await fetchInvitation(invitationId);
+    if (!invitationResponse.ok) {
+      throw data(invitationResponse.error, { status: 400 });
+    }
+
+    return {
+      invitation: invitationResponse.data
+    }
   }
 
-  return null;
+  return {}
 }
 
 export async function clientAction({ request }: Route.ActionArgs): Promise<ActionResponse | Response> {
@@ -84,21 +94,19 @@ export async function clientAction({ request }: Route.ActionArgs): Promise<Actio
 }
 
 export default function Signup() {
+  const { invitation } = useLoaderData<typeof clientLoader>();
   const actionData = useActionData<typeof clientAction>();
-  const [searchParams] = useSearchParams();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
-
-  const invitationId = searchParams.get('invitationId');
 
   return (
     <div className="container mx-auto p-4 max-w-md mt-16">
       <Card>
         <CardHeader>
           <CardTitle className="text-center">Create an account</CardTitle>
-          {invitationId && (
+          {invitation && (
             <CardDescription className="text-center">
-              Complete your signup to join the organization
+              Complete your signup to join the organization <span className="font-semibold">{invitation.organization.name}</span>
             </CardDescription>
           )}
         </CardHeader>
@@ -112,6 +120,28 @@ export default function Signup() {
                 <AlertDescription>{actionData.error.message}</AlertDescription>
               </Alert>
             )}
+
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email
+              </Label>
+
+              <Input
+                id="email"
+                type="email"
+                name="email"
+                placeholder="you@example.com"
+                required
+                autoComplete="email"
+                value={invitation ? invitation.email : ''}
+                disabled={!!invitation}
+              />
+              {actionData?.ok === false && actionData?.error?.fieldErrors?.email && (
+                <p className="text-sm text-destructive">
+                  {actionData.error.fieldErrors.email}
+                </p>
+              )}
+            </div>
 
             <div className="flex flex-col gap-1">
               <Label htmlFor="name" className="text-sm font-medium">
@@ -128,25 +158,6 @@ export default function Signup() {
               {actionData?.ok === false && actionData?.error?.fieldErrors?.name && (
                 <p className="text-sm text-destructive">
                   {actionData.error.fieldErrors.name}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                name="email"
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
-              />
-              {actionData?.ok === false && actionData?.error?.fieldErrors?.email && (
-                <p className="text-sm text-destructive">
-                  {actionData.error.fieldErrors.email}
                 </p>
               )}
             </div>

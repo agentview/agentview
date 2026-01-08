@@ -2666,18 +2666,25 @@ const invitationDetailGETRoute = createRoute({
 })
 
 app.openapi(invitationDetailGETRoute, async (c) => {
-  const organization = await requireOrganization(c.req.raw.headers)
-  const { invitation_id } = c.req.param()
+  const { invitation_id } = c.req.param();
+  const invitation = await requireValidInvitation(invitation_id);
 
-  const invitation = await requireValidInvitation(invitation_id, organization.id);
-
-  const user = await withOrg(organization.id, async tx => {
-    return await tx.query.users.findFirst({
+  const { user, organization } = await withOrg(invitation.organizationId, async tx => {
+    const user = await tx.query.users.findFirst({
       where: eq(users.email, invitation.email)
     })
+
+    const organization = await tx.query.organizations.findFirst({
+      where: eq(organizations.id, invitation.organizationId)
+    })
+
+    return {
+      user,
+      organization
+    }
   })
 
-  return c.json({ ...invitation, userExists: !!user }, 200)
+  return c.json({ ...invitation, userExists: !!user, organization }, 200)
 })
 
 /* --------- EMAILS --------- */
