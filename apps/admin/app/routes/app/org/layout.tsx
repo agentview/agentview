@@ -22,7 +22,7 @@ import {
   SidebarMenuItem,
   SidebarProvider
 } from "@agentview/studio/components/ui/sidebar";
-import { Building2, ChevronDown, ChevronUp, KeyRound, LockKeyhole, LogOut, Settings, UserIcon, UsersIcon } from "lucide-react";
+import { Building2, ChevronDown, ChevronsUpDownIcon, ChevronUp, KeyRound, LockKeyhole, LogOut, Settings, UserIcon, UsersIcon } from "lucide-react";
 
 import { UserAvatar } from "@agentview/studio/components/internal/UserAvatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@agentview/studio/components/ui/dropdown-menu";
@@ -92,13 +92,36 @@ export default function OrgLayout() {
 
           <SidebarHeader className="p-4 space-y-3">
             {/* Logo */}
-            <div className="flex items-center gap-2">
-              <img src="/symbol_light.svg" className="size-6" alt="AgentView Logo" />
-              <span className="font-semibold">AgentView</span>
+            <div className="flex flex-row gap-2 items-center">
+              <img src="/symbol_light.svg" className="size-4" alt="AgentView Logo" />
+
+              <span className="text-gray-300 text-lg">/</span>
+
+              <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton className="w-full truncate">
+                      { organization.name }
+                      <ChevronsUpDownIcon className="h-2 w-2"/>
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-[--radix-popper-anchor-width]" align="start">
+                    {organizations.map((org) => (
+                      <DropdownMenuItem
+                        key={org.id}
+                        onClick={() => handleOrgChange(org.id)}
+                        className={org.id === orgId ? "bg-accent" : ""}
+                      >
+                        <Building2 className="h-4 w-4" />
+                        <span>{org.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
             </div>
 
             {/* Organization Picker */}
-            <SidebarMenu>
+            {/* <SidebarMenu>
               <SidebarMenuItem>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -124,7 +147,7 @@ export default function OrgLayout() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </SidebarMenuItem>
-            </SidebarMenu>
+            </SidebarMenu> */}
           </SidebarHeader>
 
           <SidebarContent>
