@@ -15,12 +15,10 @@ export async function clientAction({ request, params }: Route.ActionArgs): Promi
   const email = formData.get("email") as string;
   const role = formData.get("role") as "admin" | "member" | "owner";
 
-  // Set active org before inviting
-  await authClient.organization.setActive({ organizationId: params.orgId });
-
   const result = await authClient.organization.inviteMember({
     email,
     role,
+    organizationId: params.orgId,
   });
 
   if (result.error) {

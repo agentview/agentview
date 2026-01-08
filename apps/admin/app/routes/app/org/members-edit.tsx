@@ -26,6 +26,7 @@ export async function clientAction({ request, params }: Route.ActionArgs): Promi
   const result = await authClient.organization.updateMemberRole({
     memberId,
     role,
+    organizationId: params.orgId,
   });
 
   if (result.error) {

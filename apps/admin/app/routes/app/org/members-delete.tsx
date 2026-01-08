@@ -22,6 +22,7 @@ export async function clientAction({ request, params }: Route.ActionArgs): Promi
 
   const result = await authClient.organization.removeMember({
     memberIdOrEmail: memberId,
+    organizationId: params.orgId,
   });
 
   if (result.error) {
