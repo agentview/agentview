@@ -102,7 +102,7 @@ export default function OrgLayout() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="xs">
                       <span className="truncate">{ organization.name }</span>
-                      <ChevronsUpDownIcon className="size-3 shrink-0"/>
+                      <ChevronsUpDownIcon className="size-3 shrink-0 ml-1"/>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-[--radix-popper-anchor-width]" align="start">
