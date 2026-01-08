@@ -31,6 +31,7 @@ import { matchPath } from "react-router";
 import { authClient } from "~/authClient";
 import { requireOrganization } from "~/requireOrganization";
 import { requireMember, requireMemberByUserId } from "~/requireMember";
+import { Button } from "@agentview/studio/components/ui/button";
 
 export async function clientLoader({ request, params }: LoaderFunctionArgs) {
   const session = await authClient.getSession();
@@ -92,17 +93,17 @@ export default function OrgLayout() {
 
           <SidebarHeader className="p-4 space-y-3">
             {/* Logo */}
-            <div className="flex flex-row gap-2 items-center">
+            <div className="flex flex-row items-center">
               <img src="/symbol_light.svg" className="size-4" alt="AgentView Logo" />
 
-              <span className="text-gray-300 text-lg">/</span>
+              <span className="text-gray-300 text-lg ml-3 mr-1">/</span>
 
               <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton className="w-full truncate">
-                      { organization.name }
-                      <ChevronsUpDownIcon className="h-2 w-2"/>
-                    </SidebarMenuButton>
+                    <Button variant="ghost" size="xs">
+                      <span className="truncate">{ organization.name }</span>
+                      <ChevronsUpDownIcon className="size-3 shrink-0"/>
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-[--radix-popper-anchor-width]" align="start">
                     {organizations.map((org) => (
@@ -111,8 +112,7 @@ export default function OrgLayout() {
                         onClick={() => handleOrgChange(org.id)}
                         className={org.id === orgId ? "bg-accent" : ""}
                       >
-                        <Building2 className="h-4 w-4" />
-                        <span>{org.name}</span>
+                        { org.name }
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
