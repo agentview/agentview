@@ -1,5 +1,3 @@
-import '@agentview/utils/loadEnv'
-
 import { db__dangerous } from './db';
 import { withOrg } from './withOrg';
 import { runs, webhookJobs, configs } from './schemas/schema';

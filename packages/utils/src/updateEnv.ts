@@ -28,7 +28,8 @@ function updateEnvFile(envFilePath: string, key: string, value: string) {
   writeFileSync(envFilePath, envContents, 'utf8');
 }
 
-export function updateEnv(key: string, value: string) {
+export function updateEnv(key: string, value: string, options?: { includeExamples?: boolean }) {
+  const includeExamples = options?.includeExamples ?? true;
   const monorepoRoot = getMonorepoRootPath();
   
   // Update root .env (required - exit if doesn't exist)
@@ -36,16 +37,19 @@ export function updateEnv(key: string, value: string) {
   updateEnvFile(rootEnvFilePath, key, value);
   
   // Update .env files in all example projects
-  const examplesDir = path.join(monorepoRoot, "apps", "examples");
-  if (existsSync(examplesDir)) {
-    const entries = readdirSync(examplesDir);
-    for (const entry of entries) {
-      const entryPath = path.join(examplesDir, entry);
-      const stats = statSync(entryPath);
-      if (stats.isDirectory()) {
-        const exampleEnvPath = path.join(entryPath, ".env");
-        updateEnvFile(exampleEnvPath, key, value);
+  if (includeExamples) {
+    const examplesDir = path.join(monorepoRoot, "apps", "examples");
+    if (existsSync(examplesDir)) {
+      const entries = readdirSync(examplesDir);
+      for (const entry of entries) {
+        const entryPath = path.join(examplesDir, entry);
+        const stats = statSync(entryPath);
+        if (stats.isDirectory()) {
+          const exampleEnvPath = path.join(entryPath, ".env");
+          updateEnvFile(exampleEnvPath, key, value);
+        }
       }
     }
   }
+  
 }

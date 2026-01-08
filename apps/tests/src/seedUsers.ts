@@ -1,4 +1,3 @@
-import '@agentview/utils/loadEnv'
 import { createTestAuthClient } from './authClient'
 
 export async function seedUsers(slug: string) {
