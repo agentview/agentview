@@ -96,7 +96,7 @@ export default function OrgLayout() {
             <div className="flex flex-row items-center">
               <img src="/symbol_light.svg" className="size-4" alt="AgentView Logo" />
 
-              <span className="text-gray-300 text-lg ml-3 mr-1">/</span>
+              <span className="text-gray-300 text-xl font-extralight ml-2 mr-1">/</span>
 
               <DropdownMenu>
                   <DropdownMenuTrigger asChild>
