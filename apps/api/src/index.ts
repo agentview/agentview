@@ -2685,60 +2685,6 @@ app.openapi(invitationDetailGETRoute, async (c) => {
   return c.json({ ...invitation, userExists: !!user, organization }, 200)
 })
 
-/* --------- EMAILS --------- */
-
-// Emails GET
-const emailsGETRoute = createRoute({
-  method: 'get',
-  path: '/api/dev/emails',
-  responses: {
-    200: response_data(z.any()),
-  },
-})
-
-app.openapi(emailsGETRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  authorize(principal, { action: "admin" });
-
-  return withOrg(principal.organizationId, async tx => {
-    const emailRows = await tx
-      .select({
-        id: emails.id,
-        to: emails.to,
-        subject: emails.subject,
-        from: emails.from,
-        createdAt: emails.createdAt,
-      })
-      .from(emails)
-      .orderBy(desc(emails.createdAt))
-      .limit(100);
-
-    return c.json(emailRows, 200);
-  });
-})
-
-/* --------- EMAIL DETAIL --------- */
-
-const emailDetailGETRoute = createRoute({
-  method: 'get',
-  path: '/api/dev/emails/{id}',
-  responses: {
-    200: response_data(z.any()),
-  },
-})
-
-app.openapi(emailDetailGETRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  authorize(principal, { action: "admin" });
-
-  const { id } = c.req.param()
-
-  return withOrg(principal.organizationId, async tx => {
-    const emailRow = await tx.query.emails.findFirst({ where: eq(emails.id, id) })
-    return c.json(emailRow, 200)
-  })
-})
-
 /* --------- SCHEMAS ---------   */
 
 const configGETRoute = createRoute({
