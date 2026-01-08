@@ -6,7 +6,7 @@ async function main() {
 
   console.log('Organization id: ' + organization.id)
   updateEnv("AGENTVIEW_ORGANIZATION_ID", organization.id, { includeExamples: false });
-  updateEnv("VITE_AGENTVIEW_ORGANIZATION_ID", organization.id);
+  updateEnv("VITE_AGENTVIEW_ORGANIZATION_ID", organization.id, { includeRoot: false });
 
   // Let's write the API key to the .env file
   console.log('API Key: ' + apiKey.key)

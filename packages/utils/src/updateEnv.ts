@@ -2,8 +2,6 @@ import { writeFileSync, existsSync, readFileSync, readdirSync, statSync } from '
 import path from "node:path";
 import { getMonorepoRootPath } from "./getMonorepoRootPath";
 
-// const API_KEY_ENV_VAR = "AGENTVIEW_API_KEY";
-
 function updateEnvFile(envFilePath: string, key: string, value: string) {
   let envContents = '';
   if (existsSync(envFilePath)) {
@@ -28,13 +26,18 @@ function updateEnvFile(envFilePath: string, key: string, value: string) {
   writeFileSync(envFilePath, envContents, 'utf8');
 }
 
-export function updateEnv(key: string, value: string, options?: { includeExamples?: boolean }) {
+export function updateEnv(key: string, value: string, options?: { includeExamples?: boolean, includeRoot?: boolean }) {
   const includeExamples = options?.includeExamples ?? true;
+  const includeRoot = options?.includeRoot ?? true;
+
   const monorepoRoot = getMonorepoRootPath();
   
+
   // Update root .env (required - exit if doesn't exist)
-  const rootEnvFilePath = path.join(monorepoRoot, ".env");
-  updateEnvFile(rootEnvFilePath, key, value);
+  if (includeRoot) {
+    const rootEnvFilePath = path.join(monorepoRoot, ".env");
+    updateEnvFile(rootEnvFilePath, key, value);
+  }
   
   // Update .env files in all example projects
   if (includeExamples) {

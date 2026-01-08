@@ -4,20 +4,6 @@ import type { User, Run, Session } from 'agentview';
 import { z } from 'zod';
 import { seedUsers } from './seedUsers';
 
-if (!process.env.AGENTVIEW_API_BASE_URL) {
-  throw new Error('AGENTVIEW_API_BASE_URL is not set')
-}
-if (!process.env.AGENTVIEW_API_KEY) {
-  throw new Error('AGENTVIEW_API_KEY is not set')
-}
-
-const apiBaseUrl = process.env.AGENTVIEW_API_BASE_URL
-
-// const av = new AgentView({
-//   apiBaseUrl,
-//   apiKey: process.env.AGENTVIEW_API_KEY,
-// })
-
 describe('API', () => {
   let initUser1: User
   let initUser2: User
@@ -36,7 +22,6 @@ describe('API', () => {
     const { organization, apiKey } = await seedUsers(orgSlug);
 
     av = new AgentView({
-      apiBaseUrl,
       apiKey: apiKey.key,
     })
 

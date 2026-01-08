@@ -9,10 +9,7 @@ import { streamSSE } from 'hono/streaming'
 
 const app = new Hono();
 
-const av = new AgentView({
-  apiBaseUrl: 'http://localhost:1990',
-  apiKey: process.env.AGENTVIEW_API_KEY!
-})
+const av = new AgentView()
 
 app.use('*', cors({
   origin: ['http://localhost:1989'],

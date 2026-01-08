@@ -22,8 +22,8 @@ import { serializeConfig } from './configUtils.js'
 import { enhanceSession } from './sessionUtils.js'
 
 export interface AgentViewOptions {
-  apiBaseUrl: string
-  apiKey: string
+  // apiBaseUrl: string
+  apiKey?: string
   userToken?: string
   env?: Env
 }
@@ -34,20 +34,30 @@ export class AgentView {
   private userToken?: string
   private env: Env
 
-  constructor(options: AgentViewOptions) {
-    this.apiBaseUrl = options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
-    this.apiKey = options.apiKey
+  constructor(options?: AgentViewOptions) {
+    if (!process.env.AGENTVIEW_API_BASE_URL) {
+      throw new Error("AgentView: Missing 'AGENTVIEW_API_BASE_URL'.")
+    }
+    
+    this.apiBaseUrl = process.env.AGENTVIEW_API_BASE_URL; //options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
 
-    if (!this.apiBaseUrl) {
-      throw new Error("AgentView: Missing 'apiBaseUrl'.")
+    const apiKey = options?.apiKey ?? process.env.AGENTVIEW_API_KEY
+    if (!apiKey) {
+      throw new Error("AgentView: Missing API Key. Set it either via apiKey property of AgentView constructor or via AGENTVIEW_API_KEY environment variable.")
     }
 
-    if (!this.apiKey) {
-      throw new Error("AgentView: Missing 'apiKey'.")
-    }
+    this.apiKey = apiKey
 
-    this.userToken = options.userToken
-    this.env = options.env ?? "playground";
+    // if (!this.apiBaseUrl) {
+    //   throw new Error("AgentView: Missing 'apiBaseUrl'.")
+    // }
+
+    // if (!this.apiKey) {
+    //   throw new Error("AgentView: Missing 'apiKey'.")
+    // }
+
+    this.userToken = options?.userToken
+    this.env = options?.env ?? "playground";
   }
 
   private async request<T>(
@@ -174,7 +184,7 @@ export class AgentView {
     const userToken = typeof userOrToken === 'string' ? userOrToken : userOrToken.token;
 
     return new AgentView({
-      apiBaseUrl: this.apiBaseUrl,
+      // apiBaseUrl: this.apiBaseUrl,
       apiKey: this.apiKey,
       userToken,
     })

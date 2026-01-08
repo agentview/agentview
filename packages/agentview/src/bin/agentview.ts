@@ -152,20 +152,19 @@ function getApiBaseUrl(config: AgentViewConfig): string {
 function getAPIKey(): string {
   const apiKey = process.env.AGENTVIEW_API_KEY;
   if (!apiKey) {
-    throw new Error("you must set AGENTVIEW_API_KEY env var to push config.");
+    throw new Error("You must set AGENTVIEW_API_KEY env var to push config.");
   }
   return apiKey;
 }
 
 async function pushConfig(configPath: string) {
   const config = await loadConfig(configPath);
-//   const serializedConfig = serializeConfig(config);
+  
   const baseUrl = getApiBaseUrl(config);
   const apiKey = getAPIKey();
 
   const av = new AgentView({
-    apiBaseUrl: baseUrl,
-    apiKey: apiKey,
+    apiKey,
   });
 
   try {

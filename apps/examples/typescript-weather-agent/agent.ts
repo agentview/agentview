@@ -15,10 +15,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 const app = new Hono();
 const client = new OpenAI();
 
-const av = new AgentView({
-  apiBaseUrl: 'http://localhost:1990',
-  apiKey: process.env.AGENTVIEW_API_KEY!
-})
+const av = new AgentView()
 
 app.use('*', cors({
   origin: ['http://localhost:1989'],
