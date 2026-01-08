@@ -5,12 +5,11 @@ import { createAuthMiddleware, APIError } from "better-auth/api";
 import { apiKey, organization } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db__dangerous } from "./db";
-import { getStudioURL } from "./getStudioURL";
 import { colorValues } from "agentview/colors";
-import { addEmail } from "./email";
 import { requireValidInvitation } from "./invitations";
 import { getAllowedOrigin } from "./getAllowedOrigin";
 import { Resend } from 'resend';
+import { getAdminUrl } from "./getAdminUrl";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -48,11 +47,8 @@ export const auth = betterAuth({
         }),
         organization({
             async sendInvitationEmail(invitation) {
-                const studioUrl = getStudioURL(invitation.organization.id);
-                const signupUrl = `${studioUrl}/accept-invitation?invitationId=${encodeURIComponent(invitation.id)}`;
+                const signupUrl = `${getAdminUrl()}/accept-invitation?invitationId=${encodeURIComponent(invitation.id)}`;
                 const organization = invitation.organization;
-
-                console.log('############ SENDING INVITATION EMAIL ############');
 
                 const { data, error } = await resend.emails.send({
                     from: 'AgentView <noreply@agentview.app>',
@@ -78,12 +74,7 @@ The AgentView Team`,
                 });
 
                 if (error) {
-                    console.error("Error!");
-                    console.error({ error });
-                }
-                else {
-                    console.log("Success!");
-                    console.log({ data });
+                    console.error("Error sending invitation email", { error });
                 }
 
             },

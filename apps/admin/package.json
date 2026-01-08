@@ -18,7 +18,9 @@
     "lucide-react": "^0.548.0",
     "@agentview/studio": "workspace:*",
     "better-auth": "^1.2.12",
-    "sonner": "^2.0.0"
+    "sonner": "^2.0.0",
+    "@agentview/utils": "workspace:*",
+    "dotenv": "^17.2.3"
   },
   "devDependencies": {
     "@react-router/dev": "7.10.1",
