@@ -3,7 +3,7 @@
     "private": true,
     "version": "0.1.1",
     "scripts": {
-        "dev": "mint dev --port 1991"
+        "dev": "mint dev --port 1992"
     },
     "dependencies": {
         "@agentview/studio": "workspace:*"

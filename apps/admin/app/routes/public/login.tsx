@@ -12,11 +12,16 @@ import { authClient } from "~/authClient";
 function getRedirectUrl(request: Request) {
   const url = new URL(request.url);
 
+  // If origin is present, redirect to auth
+  const origin = url.searchParams.get('origin');
+  if (origin) {
+    return `/auth?origin=${encodeURIComponent(origin)}`;
+  }
+
   // If invitationId is present, redirect to accept-invitation after login
   const invitationId = url.searchParams.get('invitationId');
-  const organizationId = url.searchParams.get('organizationId');
-  if (invitationId && organizationId) {
-    return `/accept-invitation?invitationId=${encodeURIComponent(invitationId)}&organizationId=${encodeURIComponent(organizationId)}`;
+  if (invitationId) {
+    return `/accept-invitation?invitationId=${encodeURIComponent(invitationId)}`;
   }
 
   // Otherwise use the redirect param or default to /
@@ -29,21 +34,24 @@ function getRedirectUrl(request: Request) {
 
 export async function clientAction({
   request,
-}: Route.ActionArgs): Promise<ActionResponse> {
+  params
+}: Route.ActionArgs): Promise<ActionResponse | Response> {
   const formData = await request.formData();
   const email = formData.get('email') as string || '';
   const password = formData.get('password') as string || '';
 
-  const { error } = await authClient.signIn.email({
+  const { data, error } = await authClient.signIn.email({
       email,
       password,
   });
+
+  console.log('@@@@@@@@@@@@@', data, error);
 
   if (error) {
     return { ok: false, error: betterAuthErrorToBaseError(error) };
   }
 
-  return { ok: true, data: redirect(getRedirectUrl(request)) };
+  return redirect(getRedirectUrl(request));
 }
 
 export default function LoginPage() {

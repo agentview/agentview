@@ -2,7 +2,7 @@ import "@agentview/utils/loadEnv"
 
 import { betterAuth } from "better-auth";
 import { createAuthMiddleware, APIError } from "better-auth/api";
-import { apiKey, organization } from "better-auth/plugins"
+import { apiKey, organization, bearer } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db__dangerous } from "./db";
 import { colorValues } from "agentview/colors";
@@ -35,6 +35,7 @@ export const auth = betterAuth({
         enabled: true
     },
     plugins: [
+        bearer(),
         // admin(),
         apiKey({
             keyExpiration: {

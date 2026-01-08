@@ -9,6 +9,9 @@ import { authClient } from "~/authClient";
 export async function clientLoader({ request }: LoaderFunctionArgs) {
   const session = await authClient.getSession()
 
+  console.log('MAIN APP LAYOUT!!!!!');
+  console.log('session', session);
+
   const url = new URL(request.url);
   const relativeUrl = url.pathname + url.search + url.hash;
 

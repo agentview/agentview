@@ -1,13 +1,6 @@
 import { createBrowserRouter, type NonIndexRouteObject, type RouteObject } from "react-router";
 import { sidebarLayoutRoute } from "./routes/sidebar_layout";
 import { homeRoute } from "./routes/home";
-import { membersRoute } from "./routes/members";
-import { membersInviteRoute } from "./routes/membersInvite";
-import { membersInviteCancelRoute } from "./routes/membersInviteCancel";
-import { membersEditRoute } from "./routes/membersEdit";
-import { membersDeleteRoute } from "./routes/membersDelete";
-import { emailsRoute } from "./routes/emails";
-import { emailDetailRoute } from "./routes/emailDetail";
 import { userUpdateRoute } from "./routes/userUpdate";
 import { sessionsRoute } from "./routes/sessions";
 import { sessionsIndexRoute } from "./routes/sessionsIndex";
@@ -19,16 +12,11 @@ import { sessionItemCommentRoute } from "./routes/sessionItemComment";
 import { configsRoute } from "./routes/configs";
 import { logoutRoute } from "./routes/logout";
 import { loginRoute } from "./routes/login";
-import { signupRoute } from "./routes/signup";
-import { acceptInvitationRoute } from "./routes/acceptInvitation";
 import { rootRoute } from "./root";
 import { sessionRunRoute } from "./routes/sessionRun";
 import { settingsRoute } from "./routes/settings";
-import { settingsProfileRoute } from "./routes/settingsProfile";
-import { settingsApiKeysRoute } from "./routes/settingsApiKeys";
 import type { AgentViewConfig } from "agentview/types";
 import { sessionItemScoresRoute } from "./routes/sessionItemScores";
-import { settingsPasswordRoute } from "./routes/settingsPassword";
 import { uiRoute } from "./routes/ui";
 
 export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObject[] {
@@ -52,52 +40,52 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
               path: "settings",
               ...settingsRoute,
               children: [
-                {
-                  path: "profile",
-                  ...settingsProfileRoute,
-                },
-                {
-                  path: "api-keys",
-                  ...settingsApiKeysRoute,
-                },
-                {
-                  path: "password",
-                  ...settingsPasswordRoute,
-                },
-                {
-                  path: "members",
-                  ...membersRoute,
-                  children: [
-                    {
-                      path: "invitations/new",
-                      ...membersInviteRoute,
-                    },
-                    {
-                      path: "invitations/:invitationId/cancel",
-                      ...membersInviteCancelRoute,
-                    },
-                    {
-                      path: ":memberId/edit",
-                      ...membersEditRoute,
-                    },
-                    {
-                      path: ":memberId/delete",
-                      ...membersDeleteRoute,
-                    },
-                  ],
-                },
+                // {
+                //   path: "profile",
+                //   ...settingsProfileRoute,
+                // },
+                // {
+                //   path: "api-keys",
+                //   ...settingsApiKeysRoute,
+                // },
+                // {
+                //   path: "password",
+                //   ...settingsPasswordRoute,
+                // },
+                // {
+                //   path: "members",
+                //   ...membersRoute,
+                //   children: [
+                //     {
+                //       path: "invitations/new",
+                //       ...membersInviteRoute,
+                //     },
+                //     {
+                //       path: "invitations/:invitationId/cancel",
+                //       ...membersInviteCancelRoute,
+                //     },
+                //     {
+                //       path: ":memberId/edit",
+                //       ...membersEditRoute,
+                //     },
+                //     {
+                //       path: ":memberId/delete",
+                //       ...membersDeleteRoute,
+                //     },
+                //   ],
+                // },
                 {
                   path: "config",
                   ...configsRoute,
                 },
-                {
-                  path: "emails",
-                  ...emailsRoute,
-                },
-                {
-                  path: "emails/:id",
-                  ...emailDetailRoute,
-                },
+                // {
+                //   path: "emails",
+                //   ...emailsRoute,
+                // },
+                // {
+                //   path: "emails/:id",
+                //   ...emailDetailRoute,
+                // },
               ]
             },
             {
@@ -155,14 +143,14 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
           path: "login",
           ...loginRoute
         },
-        {
-          path: "signup",
-          ...signupRoute
-        },
-        {
-          path: "accept-invitation",
-          ...acceptInvitationRoute
-        },
+        // {
+        //   path: "signup",
+        //   ...signupRoute
+        // },
+        // {
+        //   path: "accept-invitation",
+        //   ...acceptInvitationRoute
+        // },
         {
           path: "ui",
           ...uiRoute

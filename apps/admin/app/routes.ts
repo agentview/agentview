@@ -29,5 +29,5 @@ export default [
     // Special routes
     route("logout", "routes/logout.tsx"),
     route("accept-invitation", "routes/accept-invitation.tsx"),
-
+    route("auth", "routes/auth.tsx"),
 ] satisfies RouteConfig;
