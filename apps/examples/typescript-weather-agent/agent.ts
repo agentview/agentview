@@ -18,7 +18,7 @@ const client = new OpenAI();
 const av = new AgentView()
 
 app.use('*', cors({
-  origin: ['http://localhost:1989'],
+  origin: ['http://localhost:1989', 'http://127.0.0.1:1989'],
   credentials: true,
 }))
 
