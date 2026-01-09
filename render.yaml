@@ -26,6 +26,8 @@ services:
         value: "10000"
       - key: BETTER_AUTH_SECRET
         generateValue: true
+      - key: POSTGRES_APP_USER
+        value: "agentview"
 
   # Background Worker
   - type: worker

@@ -25,7 +25,7 @@ export async function withOrg<T>(
 ): Promise<T> {
   return db__dangerous.transaction(async (tx) => {
     // Switch to app_user role to enforce RLS (admin is superuser, bypasses RLS)
-    await tx.execute(sql`SET LOCAL ROLE app_user`);
+    await tx.execute(sql.raw(`SET LOCAL ROLE "${process.env.POSTGRES_APP_USER}"`));
     
     // Set the organization context for RLS policies
     await tx.execute(
