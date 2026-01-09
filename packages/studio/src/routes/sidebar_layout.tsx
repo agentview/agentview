@@ -12,7 +12,7 @@ import {
   type RouteObject,
 } from "react-router";
 
-import { LogOut, ChevronUp, UserIcon, Edit, Lock, Users, Mail, MessageCircle, Database, Inbox, BotIcon, ChevronsUpDown, ChevronDown, WrenchIcon, CircleGauge, PlusIcon, UsersIcon, StarIcon, Settings, ArrowLeft, LockKeyhole } from "lucide-react"
+import { LogOut, ChevronUp, UserIcon, Edit, Lock, Users, Mail, MessageCircle, Database, Inbox, BotIcon, ChevronsUpDown, ChevronDown, WrenchIcon, CircleGauge, PlusIcon, UsersIcon, StarIcon, Settings, ArrowLeft, LockKeyhole, Building2Icon } from "lucide-react"
 import {
   SidebarProvider,
   Sidebar,
@@ -329,7 +329,7 @@ function Component() {
               </Button>
             </SidebarHeader>
             <SidebarContent>
-              <SidebarGroup>
+              {/* <SidebarGroup>
                 <SidebarGroupLabel>Account</SidebarGroupLabel>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -352,12 +352,6 @@ function Component() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  {/* <SidebarMenuItem>
-                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
-                  </SidebarMenuItem> */}
                 </SidebarMenu>
               </SidebarGroup>
 
@@ -372,14 +366,8 @@ function Component() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  {/* <SidebarMenuItem>
-                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton><WrenchIcon className="h-4 w-4" />Playground</SidebarMenuButton>
-                  </SidebarMenuItem> */}
                 </SidebarMenu>
-              </SidebarGroup>}
+              </SidebarGroup>} */}
 
               { (me.role === "admin" || me.role === "owner") && <SidebarGroup>
                 <SidebarGroupLabel>Dev</SidebarGroupLabel>
@@ -398,7 +386,7 @@ function Component() {
               </SidebarGroup>}
 
 
-              {import.meta.env.DEV && <SidebarGroup>
+              {/* {import.meta.env.DEV && <SidebarGroup>
                 <SidebarGroupLabel>Internal</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
@@ -413,7 +401,7 @@ function Component() {
                     </SidebarMenuItem>
                   </SidebarMenu>
                 </SidebarGroupContent>
-              </SidebarGroup>}
+              </SidebarGroup>} */}
 
             </SidebarContent>
           </>}
@@ -436,15 +424,15 @@ function Component() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent side="top" className="min-w-[200px]">
                     <DropdownMenuItem asChild>
-                      <Link to="/settings/profile">
+                      <Link to={import.meta.env.VITE_AGENTVIEW_WEBAPP_URL + "/orgs/" + organization.id + "/profile"} target="_blank">
                         <UserIcon className="h-4 w-4" />
                         <span>Profile</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/settings/profile">
-                        <Settings className="h-4 w-4" />
-                        <span>Settings</span>
+                      <Link to={import.meta.env.VITE_AGENTVIEW_WEBAPP_URL + "/orgs/" + organization.id + "/details"} target="_blank">
+                        <Building2Icon className="h-4 w-4" />
+                        <span>Organization</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
