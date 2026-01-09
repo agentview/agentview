@@ -19,7 +19,7 @@ type APIOptions = {
 }
 
 export async function apiFetch<T = any>(endpoint: string, options: APIOptions = { method: 'GET', body: undefined }): Promise<APIResponse<T>> {
-    const url = new URL(endpoint, import.meta.env.VITE_AGENTVIEW_API_BASE_URL).toString();
+    const url = new URL(endpoint, import.meta.env.VITE_AGENTVIEW_API_URL).toString();
 
     const response = await fetch(url, {
         ...options,

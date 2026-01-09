@@ -22,7 +22,6 @@ import { serializeConfig } from './configUtils.js'
 import { enhanceSession } from './sessionUtils.js'
 
 export interface AgentViewOptions {
-  // apiBaseUrl: string
   apiKey?: string
   userToken?: string
   env?: Env
@@ -35,11 +34,11 @@ export class AgentView {
   private env: Env
 
   constructor(options?: AgentViewOptions) {
-    if (!process.env.VITE_AGENTVIEW_API_BASE_URL) {
+    if (!process.env.VITE_AGENTVIEW_API_URL) {
       throw new Error("AgentView: Missing apiBaseUrl.")
     }
     
-    this.apiBaseUrl = process.env.VITE_AGENTVIEW_API_BASE_URL; //options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
+    this.apiBaseUrl = process.env.VITE_AGENTVIEW_API_URL; //options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
 
     const apiKey = options?.apiKey ?? process.env.AGENTVIEW_API_KEY
     if (!apiKey) {
@@ -206,11 +205,11 @@ export class PublicAgentView {
   private userToken: string
 
   constructor(options: PublicAgentViewOptions) {
-    if (!process.env.VITE_AGENTVIEW_API_BASE_URL) {
+    if (!process.env.VITE_AGENTVIEW_API_URL) {
       throw new Error("AgentView: Missing apiBaseUrl.")
     }
     
-    this.apiBaseUrl = process.env.VITE_AGENTVIEW_API_BASE_URL; //options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
+    this.apiBaseUrl = process.env.VITE_AGENTVIEW_API_URL; //options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
 
     // this.apiBaseUrl = options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
     this.userToken = options.userToken
