@@ -94,15 +94,16 @@ export default function OrgLayout() {
           <SidebarHeader className="p-4 space-y-3">
             {/* Logo */}
             <div className="flex flex-row items-center">
-              <img src="/symbol_light.svg" className="size-4" alt="AgentView Logo" />
+              <img src="/symbol_light.svg" className="size-4 flex-none" alt="AgentView Logo" />
 
-              <span className="text-gray-300 text-xl font-extralight ml-2 mr-1">/</span>
+              <div className="text-gray-300 text-xl font-extralight ml-2 mr-1 flex-none">/</div>
 
-              <DropdownMenu>
+              <div className="flex-1 min-w-0">
+                <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="xs">
-                      <span className="truncate">{ organization.name }</span>
-                      <ChevronsUpDownIcon className="size-3 shrink-0 ml-1"/>
+                      <span className="truncate">{organization.name}</span>
+                      <ChevronsUpDownIcon className="size-3 shrink-0 ml-1" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-[--radix-popper-anchor-width]" align="start">
@@ -112,11 +113,15 @@ export default function OrgLayout() {
                         onClick={() => handleOrgChange(org.id)}
                         className={org.id === orgId ? "bg-accent" : ""}
                       >
-                        { org.name }
+                        {org.name}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+
+
+
+              </div>
 
             </div>
 
