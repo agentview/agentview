@@ -10,6 +10,8 @@ import { AlertCircleIcon, CopyIcon, KeyRoundIcon, Loader2Icon } from "lucide-rea
 import { betterAuthErrorToBaseError, type ActionResponse } from "@agentview/studio/lib/errors";
 import { useFetcherSuccess } from "@agentview/studio/hooks/useFetcherSuccess";
 import { authClient } from "~/authClient";
+import { queryClient } from "~/queryClient";
+import { queryKeys } from "~/queryKeys";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -23,7 +25,10 @@ import {
 import type { clientLoader as orgLayoutLoader } from "./layout";
 
 export async function clientLoader({ params }: Route.LoaderArgs) {
-  const response = await authClient.apiKey.list();
+  const response = await queryClient.fetchQuery({
+    queryKey: queryKeys.apiKeys(),
+    queryFn: () => authClient.apiKey.list(),
+  });
 
   if (response.error) {
     return { mainApiKey: null };
@@ -56,6 +61,9 @@ export async function clientAction({
     if (response.error) {
       return { ok: false, error: betterAuthErrorToBaseError(response.error) };
     }
+
+    // Invalidate API keys cache
+    await queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys() });
 
     return { ok: true, data: { apiKey: response.data } };
 
@@ -91,6 +99,9 @@ export async function clientAction({
     if (createResponse.error) {
       return { ok: false, error: betterAuthErrorToBaseError(createResponse.error) };
     }
+
+    // Invalidate API keys cache
+    await queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys() });
 
     return { ok: true, data: { apiKey: createResponse.data } };
   }

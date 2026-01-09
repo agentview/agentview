@@ -5,6 +5,8 @@ import { Alert, AlertDescription, AlertTitle } from "@agentview/studio/component
 import { AlertCircleIcon } from "lucide-react";
 import { Button } from "@agentview/studio/components/ui/button";
 import { authClient } from "~/authClient";
+import { queryClient } from "~/queryClient";
+import { queryKeys } from "~/queryKeys";
 import { betterAuthErrorToBaseError, type ActionResponse } from "@agentview/studio/lib/errors";
 import type { clientLoader as orgLayoutLoader } from "./layout";
 import { requireMember } from "~/requireMember";
@@ -28,6 +30,9 @@ export async function clientAction({ request, params }: Route.ActionArgs): Promi
   if (result.error) {
     return { ok: false, error: betterAuthErrorToBaseError(result.error) };
   }
+
+  // Invalidate organization cache (members are part of organization data)
+  await queryClient.invalidateQueries({ queryKey: queryKeys.organization(params.orgId) });
 
   return redirect(`/orgs/${params.orgId}/members`);
 }

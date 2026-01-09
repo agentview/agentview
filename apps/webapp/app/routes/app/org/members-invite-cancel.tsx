@@ -1,5 +1,7 @@
 import type { Route } from "./+types/members-invite-cancel";
 import { authClient } from "~/authClient";
+import { queryClient } from "~/queryClient";
+import { queryKeys } from "~/queryKeys";
 import { betterAuthErrorToBaseError, type ActionResponse } from "@agentview/studio/lib/errors";
 
 export async function clientAction({ params }: Route.ActionArgs): Promise<ActionResponse> {
@@ -10,6 +12,9 @@ export async function clientAction({ params }: Route.ActionArgs): Promise<Action
   if (result.error) {
     return { ok: false, error: betterAuthErrorToBaseError(result.error) };
   }
+
+  // Invalidate organization cache (invitations are part of organization data)
+  await queryClient.invalidateQueries({ queryKey: queryKeys.organization(params.orgId!) });
 
   return { ok: true, data: null };
 }

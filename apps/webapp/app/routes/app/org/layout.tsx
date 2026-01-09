@@ -29,26 +29,40 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { betterAuthErrorToBaseError } from "@agentview/studio/lib/errors";
 import { matchPath } from "react-router";
 import { authClient } from "~/authClient";
+import { queryClient } from "~/queryClient";
+import { queryKeys } from "~/queryKeys";
 import { requireOrganization } from "~/requireOrganization";
-import { requireMember, requireMemberByUserId } from "~/requireMember";
+import { requireMemberByUserId } from "~/requireMember";
 import { Button } from "@agentview/studio/components/ui/button";
 
 export async function clientLoader({ request, params }: LoaderFunctionArgs) {
-  const session = await authClient.getSession();
+  // Fetch session and organizations list in parallel (they don't depend on each other)
+  const [session, orgsResponse] = await Promise.all([
+    queryClient.fetchQuery({
+      queryKey: queryKeys.session,
+      queryFn: () => authClient.getSession(),
+    }),
+    queryClient.fetchQuery({
+      queryKey: queryKeys.organizations,
+      queryFn: () => authClient.organization.list(),
+    }),
+  ]);
+
   if (session.error) {
-    throw data(betterAuthErrorToBaseError(session.error))
+    throw data(betterAuthErrorToBaseError(session.error));
   }
   const user = session.data!.user;
 
-  // Get list of all organizations user belongs to
-  const orgsResponse = await authClient.organization.list();
   if (orgsResponse.error) {
-    throw data(betterAuthErrorToBaseError(orgsResponse.error))
+    throw data(betterAuthErrorToBaseError(orgsResponse.error));
   }
   const organizations = orgsResponse.data;
 
-  // Get full details of current organization
-  const organization = await requireOrganization(params.orgId!);
+  // Get full details of current organization (depends on orgId param)
+  const organization = await queryClient.fetchQuery({
+    queryKey: queryKeys.organization(params.orgId!),
+    queryFn: () => requireOrganization(params.orgId!),
+  });
   const member = await requireMemberByUserId(organization, user.id);
 
   const me = {

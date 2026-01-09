@@ -9,6 +9,8 @@ import { AlertCircleIcon } from "lucide-react";
 import { betterAuthErrorToBaseError, type ActionResponse } from "@agentview/studio/lib/errors";
 import { useFetcherSuccess } from "@agentview/studio/hooks/useFetcherSuccess";
 import { authClient } from "~/authClient";
+import { queryClient } from "~/queryClient";
+import { queryKeys } from "~/queryKeys";
 import { toast } from "sonner";
 import type { clientLoader as orgLayoutLoader } from "./layout";
 
@@ -25,6 +27,9 @@ export async function clientAction({
   if (error) {
     return { ok: false, error: betterAuthErrorToBaseError(error) };
   }
+
+  // Invalidate session cache (user profile is part of session)
+  await queryClient.invalidateQueries({ queryKey: queryKeys.session });
 
   return { ok: true, data };
 }
