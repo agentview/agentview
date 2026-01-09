@@ -1,5 +1,5 @@
 import { authClient } from "~/authClient";
-import type { Route } from "./+types/home";
+import type { Route } from "./+types/dashboard";
 import { betterAuthErrorToBaseError } from "@agentview/studio/lib/errors";
 import { data, redirect } from "react-router";
 

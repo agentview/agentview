@@ -1,9 +1,16 @@
 import { type RouteConfig, index, layout, route } from "@react-router/dev/routes";
 
 export default [
+    // General routes
+    index("routes/landing.tsx"),
+
+    route("accept-invitation", "routes/accept-invitation.tsx"),
+    route("auth", "routes/auth.tsx"),
+
     // Authenticated routes
     layout("routes/app/layout.tsx", [
-        index("routes/app/home.tsx"),
+        route("dashboard", "routes/app/dashboard.tsx"),
+        route("logout", "routes/logout.tsx"),
 
         route("orgs/:orgId", "routes/app/org/layout.tsx", [
             index("routes/app/org/home.tsx"),
@@ -20,14 +27,10 @@ export default [
         ]),
     ]),
 
-    // Public routes
+    // Unauthenticated routes
     layout("routes/public/layout.tsx", [
         route("login", "routes/public/login.tsx"),
         route("signup", "routes/public/signup.tsx"),
     ]),
 
-    // Special routes
-    route("logout", "routes/logout.tsx"),
-    route("accept-invitation", "routes/accept-invitation.tsx"),
-    route("auth", "routes/auth.tsx"),
 ] satisfies RouteConfig;

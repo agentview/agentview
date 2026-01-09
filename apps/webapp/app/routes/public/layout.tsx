@@ -5,7 +5,7 @@ import { Outlet, redirect } from "react-router";
 export async function clientLoader({ request }: Route.LoaderArgs) {
   const sessionResponse = await authClient.getSession()
   if (sessionResponse.data) {
-    return redirect("/");
+    return redirect("/dashboard");
   }
 }
 
