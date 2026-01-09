@@ -1,49 +1,59 @@
-import { serve } from '@hono/node-server'
-import { HTTPException } from 'hono/http-exception'
+import { serve } from '@hono/node-server';
+import { HTTPException } from 'hono/http-exception';
 
-import { cors } from 'hono/cors'
-import { streamSSE } from 'hono/streaming'
+import type { User as BetterAuthUser } from "better-auth";
 import { APIError as BetterAuthAPIError } from "better-auth/api";
-import type { User as BetterAuthUser, ZodError } from "better-auth";
+import { cors } from 'hono/cors';
+import { streamSSE } from 'hono/streaming';
 
-import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi'
-import { swaggerUI } from '@hono/swagger-ui'
-import { db__dangerous } from './db'
-import { withOrg } from './withOrg'
-import { endUsers, sessions, sessionItems, runs, emails, commentMessages, commentMessageEdits, commentMentions, versions, scores, configs, events, inboxItems, starredSessions, webhookJobs } from './schemas/schema'
-import { eq, desc, and, inArray, ne, gt, isNull, isNotNull, or, gte, sql, countDistinct, DrizzleQueryError, type InferSelectModel } from 'drizzle-orm'
-import { response_data, response_error, body } from './hono_utils'
-import { isUUID } from './isUUID'
-import { extractMentions } from './extractMentions'
-import { auth } from './auth'
+import { swaggerUI } from '@hono/swagger-ui';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { and, countDistinct, desc, DrizzleQueryError, eq, inArray, isNull, sql, type InferSelectModel } from 'drizzle-orm';
+import { auth } from './auth';
+import { db__dangerous } from './db';
+import { extractMentions } from './extractMentions';
+import { body, response_data, response_error } from './hono_utils';
+import { isUUID } from './isUUID';
+import { commentMentions, commentMessageEdits, commentMessages, configs, endUsers, events, inboxItems, runs, scores, sessionItems, sessions, starredSessions, versions, webhookJobs } from './schemas/schema';
+import { withOrg } from './withOrg';
 // import { createInvitation, cancelInvitation, getPendingInvitations, getValidInvitation } from './invitations'
-import { fetchSession } from './sessions'
-import { getAllSessionItems, getLastRun } from 'agentview/sessionUtils'
+import { AgentViewError } from 'agentview/AgentViewError';
 import {
-  UserSchema,
-  UserCreateSchema,
-  SessionSchema,
-  SessionCreateSchema,
-  SessionUpdateSchema,
+  ConfigCreateSchema,
+  ConfigSchema,
+  EnvSchema,
+  PublicSessionsGetQueryParamsSchema,
+  RunCreateSchema,
   RunSchema,
-  type Session, type SessionItem, ConfigSchema, ConfigCreateSchema, SessionBaseSchema, SessionsPaginatedResponseSchema, type CommentMessage, type SessionItemWithCollaboration, type SessionWithCollaboration, type RunBody, SessionWithCollaborationSchema, RunCreateSchema, RunUpdateSchema, type User, type Run, type PublicSessionsGetQueryParams, type SessionsGetQueryParams, PublicSessionsGetQueryParamsSchema, SessionsGetQueryParamsSchema,
-  EnvSchema
-} from 'agentview/apiTypes'
-import { BaseConfigSchema, BaseConfigSchemaToZod } from 'agentview/configUtils'
-import { getConfigRow } from './getConfig'
-import { type BaseAgentViewConfig, type Metadata, type BaseRunConfig } from 'agentview/configTypes'
-import { members, users, organizations, invitations } from './schemas/auth-schema'
-import { updateInboxes } from './updateInboxes'
-import { isInboxItemUnread } from './inboxItems'
-import { findUser, createUser } from './users'
-import packageJson from '../package.json'
-import type { Transaction } from './types'
-import { findItemConfig, findItemConfigById, requireRunConfig } from 'agentview/configUtils'
-import { equalJSON } from './equalJSON'
-import { AgentViewError } from 'agentview/AgentViewError'
-import { requireValidInvitation } from './invitations'
-import { initDb } from './initDb'
-import { getAllowedOrigin } from './getAllowedOrigin'
+  RunUpdateSchema,
+  SessionCreateSchema,
+  SessionSchema,
+  SessionsGetQueryParamsSchema,
+  SessionsPaginatedResponseSchema,
+  SessionUpdateSchema,
+  SessionWithCollaborationSchema,
+  UserCreateSchema,
+  UserSchema,
+  type Session, type SessionItem,
+  type SessionItemWithCollaboration,
+  type SessionsGetQueryParams,
+  type User
+} from 'agentview/apiTypes';
+import { type BaseAgentViewConfig, type BaseRunConfig, type Metadata } from 'agentview/configTypes';
+import { BaseConfigSchema, BaseConfigSchemaToZod, findItemConfig, findItemConfigById, requireRunConfig } from 'agentview/configUtils';
+import { getAllSessionItems, getLastRun } from 'agentview/sessionUtils';
+import packageJson from '../package.json';
+import { equalJSON } from './equalJSON';
+import { getAllowedOrigin } from './getAllowedOrigin';
+import { getConfigRow } from './getConfig';
+import { isInboxItemUnread } from './inboxItems';
+import { initDb } from './initDb';
+import { requireValidInvitation } from './invitations';
+import { members, organizations, users } from './schemas/auth-schema';
+import { fetchSession } from './sessions';
+import type { Transaction } from './types';
+import { updateInboxes } from './updateInboxes';
+import { createUser, findUser } from './users';
 
 
 await initDb();
