@@ -36,15 +36,15 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
             </a>
             {isAuthenticated ? (
               <Button asChild>
-                <Link to={import.meta.env.VITE_AGENTVIEW_WEBAPP_URL + "/dashboard"}>Dashboard</Link>
+                <Link to={"/dashboard"}>Dashboard</Link>
               </Button>
             ) : (
               <div className="flex items-center gap-2">
                 <Button variant="ghost" asChild>
-                  <Link to={import.meta.env.VITE_AGENTVIEW_WEBAPP_URL + "/login"}>Log in</Link>
+                  <Link to={"/login"}>Log in</Link>
                 </Button>
                 <Button asChild>
-                  <Link to={import.meta.env.VITE_AGENTVIEW_WEBAPP_URL + "/signup"}>Get Started</Link>
+                  <Link to={"/signup"}>Get Started</Link>
                 </Button>
               </div>
             )}
