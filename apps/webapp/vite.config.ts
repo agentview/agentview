@@ -3,11 +3,11 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-if (!process.env.AGENTVIEW_ADMIN_PORT) {
-  throw new Error('AGENTVIEW_ADMIN_PORT is not set');
+if (!process.env.AGENTVIEW_WEBAPP_PORT) {
+  throw new Error('AGENTVIEW_WEBAPP_PORT is not set');
 }
 
-const port = parseInt(process.env.AGENTVIEW_ADMIN_PORT);
+const port = parseInt(process.env.AGENTVIEW_WEBAPP_PORT);
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],

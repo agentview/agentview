@@ -1,5 +1,5 @@
 {
-  "name": "@agentview/dashboard",
+  "name": "@agentview/webapp",
   "private": true,
   "type": "module",
   "scripts": {

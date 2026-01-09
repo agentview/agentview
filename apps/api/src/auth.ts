@@ -7,7 +7,7 @@ import { colorValues } from "agentview/colors";
 import { requireValidInvitation } from "./invitations";
 import { getAllowedOrigin } from "./getAllowedOrigin";
 import { Resend } from 'resend';
-import { getAdminUrl } from "./getAdminUrl";
+import { getWebAppUrl } from "./getWebAppUrl";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -46,7 +46,7 @@ export const auth = betterAuth({
         }),
         organization({
             async sendInvitationEmail(invitation) {
-                const signupUrl = `${getAdminUrl()}/accept-invitation?invitationId=${encodeURIComponent(invitation.id)}`;
+                const signupUrl = `${getWebAppUrl()}/accept-invitation?invitationId=${encodeURIComponent(invitation.id)}`;
                 const organization = invitation.organization;
 
                 const { data, error } = await resend.emails.send({

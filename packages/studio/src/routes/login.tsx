@@ -2,7 +2,7 @@ import { redirect, type LoaderFunctionArgs, type RouteObject } from "react-route
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { authClient } from "../lib/auth-client";
-import { getAdminUrl } from "../getAdminUrl";
+import { getWebAppUrl } from "../getWebAppUrl";
 
 function getRedirectUrl(stringUrl: string) {
   const url = new URL(stringUrl);
@@ -35,7 +35,7 @@ async function loader({ request }: LoaderFunctionArgs) {
 }
 
 function Component() {
-  const authUrl = new URL(getAdminUrl() + "/auth");
+  const authUrl = new URL(getWebAppUrl() + "/auth");
   authUrl.searchParams.set("origin", window.location.href);
 
   return (
