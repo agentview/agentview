@@ -10,6 +10,7 @@ import { betterAuthErrorToBaseError, type ActionResponse } from "@agentview/stud
 import { authClient } from "~/authClient";
 import { useNavigation } from "react-router";
 import { fetchInvitation } from "~/fetchInvitation";
+import { CardPageLayout } from "~/components/CardPageLayout";
 
 export async function clientLoader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -38,8 +39,6 @@ export async function clientAction({ request }: Route.ActionArgs): Promise<Actio
   const email = formData.get('email') as string || '';
   const password = formData.get('password') as string || '';
   const confirmPassword = formData.get('confirmPassword') as string || '';
-
-  console.log('!!!', email);
 
   // Validation
   if (name.trim() === '') {
@@ -102,8 +101,8 @@ export default function Signup() {
   const isSubmitting = navigation.state === "submitting";
 
   return (
-    <div className="container mx-auto p-4 max-w-md mt-16">
-      <Card>
+    <CardPageLayout>
+      <Card>  
         <CardHeader>
           <CardTitle className="text-center">Create an account</CardTitle>
           {invitation && (
@@ -225,6 +224,6 @@ export default function Signup() {
           </p>
         </CardFooter>
       </Card>
-    </div>
+    </CardPageLayout>
   );
 }

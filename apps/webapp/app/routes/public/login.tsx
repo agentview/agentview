@@ -8,6 +8,7 @@ import { Label } from "@agentview/studio/components/ui/label";
 import { AlertCircleIcon, Loader2 } from "lucide-react";
 import { betterAuthErrorToBaseError, type ActionResponse } from "@agentview/studio/lib/errors";
 import { authClient } from "~/authClient";
+import { CardPageLayout } from "~/components/CardPageLayout";
 
 function getRedirectUrl(request: Request) {
   const url = new URL(request.url);
@@ -67,7 +68,7 @@ export default function LoginPage() {
   const signupUrl = signupParams.toString() ? `/signup?${signupParams.toString()}` : '/signup';
 
   return (
-    <div className="container mx-auto p-4 max-w-md mt-16">
+    <CardPageLayout>
       <Card>
         <CardHeader>
           <CardTitle className="text-center">Sign in</CardTitle>
@@ -142,6 +143,6 @@ export default function LoginPage() {
           </p>
         </CardFooter>
       </Card>
-    </div>
+    </CardPageLayout>
   );
 }

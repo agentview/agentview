@@ -17,7 +17,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center">
-            <img src="/logo_dark.svg" alt="AgentView" className="h-8" />
+            <img src="/logo_light.svg" alt="AgentView" className="h-7" />
           </Link>
 
           <nav className="flex items-center gap-6">

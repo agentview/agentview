@@ -5,6 +5,7 @@ import { AlertCircleIcon } from "lucide-react";
 import { redirect, useLoaderData } from "react-router";
 import type { Route } from "./+types/auth";
 import { authClient } from "~/authClient";
+import { CardPageLayout } from "~/components/CardPageLayout";
 
 export async function clientLoader({ request }: Route.LoaderArgs) : Promise<ActionResponse | Response> {
   const url = new URL(request.url);
@@ -74,7 +75,7 @@ export default function AuthPage() {
   const loaderData = useLoaderData<typeof clientLoader>();
   
   return (
-    <div className="container mx-auto p-4 max-w-md mt-16">
+    <CardPageLayout>
       <Card>
         <CardHeader>
           <CardTitle className="text-center">Authenticate</CardTitle>
@@ -87,6 +88,6 @@ export default function AuthPage() {
           }
         </CardContent>
       </Card>
-    </div>
+    </CardPageLayout>
   );
 }
