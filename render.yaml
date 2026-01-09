@@ -44,3 +44,5 @@ services:
         fromDatabase:
           name: agentview-db
           property: connectionString
+      - key: POSTGRES_APP_USER
+        value: "agentview"
