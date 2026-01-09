@@ -4,7 +4,6 @@ import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessag
 import { Brain } from "lucide-react";
 
 export default defineConfig({
-  apiBaseUrl: "http://localhost:1990",
   agents: [
     {
       name: "simple_chat",

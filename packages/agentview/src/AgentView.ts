@@ -35,11 +35,11 @@ export class AgentView {
   private env: Env
 
   constructor(options?: AgentViewOptions) {
-    if (!process.env.AGENTVIEW_API_BASE_URL) {
-      throw new Error("AgentView: Missing 'AGENTVIEW_API_BASE_URL'.")
+    if (!process.env.VITE_AGENTVIEW_API_BASE_URL) {
+      throw new Error("AgentView: Missing apiBaseUrl.")
     }
     
-    this.apiBaseUrl = process.env.AGENTVIEW_API_BASE_URL; //options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
+    this.apiBaseUrl = process.env.VITE_AGENTVIEW_API_BASE_URL; //options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
 
     const apiKey = options?.apiKey ?? process.env.AGENTVIEW_API_KEY
     if (!apiKey) {
@@ -197,7 +197,7 @@ export class AgentView {
 
 
 export interface PublicAgentViewOptions {
-  apiBaseUrl: string
+  // apiBaseUrl: string
   userToken: string
 }
 
@@ -206,7 +206,13 @@ export class PublicAgentView {
   private userToken: string
 
   constructor(options: PublicAgentViewOptions) {
-    this.apiBaseUrl = options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
+    if (!process.env.VITE_AGENTVIEW_API_BASE_URL) {
+      throw new Error("AgentView: Missing apiBaseUrl.")
+    }
+    
+    this.apiBaseUrl = process.env.VITE_AGENTVIEW_API_BASE_URL; //options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
+
+    // this.apiBaseUrl = options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
     this.userToken = options.userToken
   }
 

@@ -139,10 +139,10 @@ function SessionPage() {
 
         const abortController = new AbortController();
 
-        (async () => {
+        (async () => {  
 
             try {
-                const url = new URL(`/api/sessions/${session.id}/watch`, config.apiBaseUrl).toString();
+                const url = new URL(`/api/sessions/${session.id}/watch`, import.meta.env.VITE_AGENTVIEW_API_BASE_URL).toString();
 
                 const response = await fetch(url, {
                     credentials: 'include', // ensure cookies are sent

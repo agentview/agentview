@@ -1,9 +1,7 @@
 import type { ActionResponse } from "@agentview/studio/lib/errors";
 
-const API_BASE_URL = "http://localhost:1990";
-
 export async function fetchInvitation(invitationId: string) : Promise<ActionResponse> {
-  const invitationResponse = await fetch(`${API_BASE_URL}/api/invitations/${invitationId}`, {
+  const invitationResponse = await fetch(`${import.meta.env.VITE_AGENTVIEW_API_BASE_URL}/api/invitations/${invitationId}`, {
     headers: {
       'Content-Type': 'application/json',
     }

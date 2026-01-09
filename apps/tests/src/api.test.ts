@@ -218,7 +218,6 @@ describe('API', () => {
 
         test("works for existing users", async () => {
           const avPublic1 = new PublicAgentView({
-            apiBaseUrl,
             userToken: initUser1.token
           })
           const user1 = await avPublic1.getMe()
@@ -226,7 +225,6 @@ describe('API', () => {
           expect(user1.externalId).toBe(EXTERNAL_ID_1)
 
           const avPublic2 = new PublicAgentView({
-            apiBaseUrl,
             userToken: initUser2.token
           })
           const user2 = await avPublic2.getMe()
@@ -236,7 +234,6 @@ describe('API', () => {
 
         test("fails for unknown key", async () => {
           const avPublic1 = new PublicAgentView({
-            apiBaseUrl,
             userToken: "xxx"
           })
 
@@ -253,7 +250,6 @@ describe('API', () => {
           const session = await av.createSession({ agent: "test", userId: initUser1.id })
 
           const avPublic1 = new PublicAgentView({
-            apiBaseUrl,
             userToken: initUser1.token
           })
 
@@ -266,7 +262,6 @@ describe('API', () => {
           const session = await av.createSession({ agent: "test", userId: initUser1.id })
 
           const avPublic2 = new PublicAgentView({
-            apiBaseUrl,
             userToken: initUser2.token
           })
 
@@ -716,7 +711,6 @@ describe('API', () => {
 
       test("[public api] works", async () => {
         const avPublic1 = new PublicAgentView({
-          apiBaseUrl,
           userToken: initUser1.token
         })
 
@@ -728,7 +722,6 @@ describe('API', () => {
 
 
         const avPublic2 = new PublicAgentView({
-          apiBaseUrl,
           userToken: initUser2.token
         })
 
@@ -1759,8 +1752,6 @@ describe('Multi-Tenancy isolation', () => {
   let av_a: AgentView;
   let av_b: AgentView;
 
-  const apiBaseUrl = process.env.AGENTVIEW_API_BASE_URL!;
-
   beforeAll(async () => {
     // Create two separate organizations
     const orgASlug = "orga-" + Math.random().toString(36).slice(2);
@@ -1775,8 +1766,8 @@ describe('Multi-Tenancy isolation', () => {
     orgAApiKey = apiKey1.key;
     orgBApiKey = apiKey2.key;
 
-    av_a = new AgentView({ apiBaseUrl, apiKey: orgAApiKey });
-    av_b = new AgentView({ apiBaseUrl, apiKey: orgBApiKey });
+    av_a = new AgentView({ apiKey: orgAApiKey });
+    av_b = new AgentView({ apiKey: orgBApiKey });
 
     const config = {
       agents: [{

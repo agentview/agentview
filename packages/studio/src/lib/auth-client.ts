@@ -22,7 +22,7 @@ export function createBetterAuthClient({ baseURL }: { baseURL: string }) {
     })
 }
 
-export const authClient = createBetterAuthClient({ baseURL: new URL('/api/auth', config.apiBaseUrl).toString() })
+export const authClient = createBetterAuthClient({ baseURL: new URL('/api/auth', import.meta.env.VITE_AGENTVIEW_API_BASE_URL).toString() })
 
 
 export async function getOrganization() {

@@ -29,7 +29,7 @@ function getRedirectUrl(request: Request) {
   if (redirectTo && redirectTo.startsWith('/')) {
     return redirectTo;
   }
-  return '/';
+  return '/dashboard';
 }
 
 export async function clientAction({
@@ -44,8 +44,6 @@ export async function clientAction({
       email,
       password,
   });
-
-  console.log('@@@@@@@@@@@@@', data, error);
 
   if (error) {
     return { ok: false, error: betterAuthErrorToBaseError(error) };

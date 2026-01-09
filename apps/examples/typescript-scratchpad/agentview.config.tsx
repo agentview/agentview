@@ -7,7 +7,6 @@ import { WeatherItem } from './src/WeatherItem';
 
 
 export default defineConfig({
-  apiBaseUrl: "http://localhost:1990",
   agents: [
     {
       name: "weather-chat",

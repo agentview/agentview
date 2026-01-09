@@ -10,7 +10,6 @@ import { Colors } from "agentview/colors";
 import { CustomPage } from "./src/CustomPage";
 
 export default defineConfig({
-  apiBaseUrl: "http://localhost:1990",
   agents: [
     {
       name: "simple_chat",

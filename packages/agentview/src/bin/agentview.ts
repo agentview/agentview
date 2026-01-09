@@ -141,10 +141,10 @@ async function loadConfig(configPath: string): Promise<AgentViewConfig> {
   return config as AgentViewConfig;
 }
 
-function getApiBaseUrl(config: AgentViewConfig): string {
-  const baseUrl = config.apiBaseUrl;
+function getApiBaseUrl(): string {
+  const baseUrl = process.env.VITE_AGENTVIEW_API_BASE_URL;
   if (!baseUrl) {
-    throw new Error("apiBaseUrl is required in Agent View config.");
+    throw new Error("baseUrl is required in Agent View config.");
   }
   return baseUrl;
 }
@@ -160,7 +160,7 @@ function getAPIKey(): string {
 async function pushConfig(configPath: string) {
   const config = await loadConfig(configPath);
   
-  const baseUrl = getApiBaseUrl(config);
+  const baseUrl = getApiBaseUrl();
   const apiKey = getAPIKey();
 
   const av = new AgentView({
