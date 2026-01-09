@@ -27,6 +27,8 @@ services:
         generateValue: true
       - key: RESEND_API_KEY
         sync: false
+      - key: AGENTVIEW_WEBAPP_URL
+        sync: false
 
   # Background Worker
   - type: worker
