@@ -101,7 +101,7 @@ export default function OrgLayout() {
               <div className="flex-1 min-w-0">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="xs">
+                    <Button variant="ghost" size="xs" className="max-w-full">
                       <span className="truncate">{organization.name}</span>
                       <ChevronsUpDownIcon className="size-3 shrink-0 ml-1" />
                     </Button>
