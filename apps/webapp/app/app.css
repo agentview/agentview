@@ -1,2 +1,6 @@
 @import "@agentview/studio/styles.css";
 @source "../node_modules/@agentview/studio";
+
+html, body {
+    background-color:#F7F8F3;
+}
