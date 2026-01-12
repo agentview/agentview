@@ -189,7 +189,7 @@ function Component() {
         <ComponentWrapper title="PillMultiSelect">
           <PillMultiSelect
             value={multiSelectValue}
-            onChange={setMultiSelectValue}
+            onChange={(value) => setMultiSelectValue(value ?? [])}
             options={shapeOptions}
             placeholder="Select shapes..."
             className="w-full"
