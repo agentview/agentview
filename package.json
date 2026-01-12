@@ -8,5 +8,10 @@
     "db:generate": "pnpm --filter ./apps/api drizzle-kit generate",
     "api:dev": "pnpm --filter ./apps/api dev",
     "seed-users": "pnpm --filter ./apps/tests seed-users"
+  },
+  "pnpm": {
+    "overrides": {
+      "zod": "^4.1.12"
+    }
   }
 }

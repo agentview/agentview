@@ -56,6 +56,9 @@ export const endUsers = pgTable("end_users", {
   createTenantPolicy('end_users'),
 ]);
 
+
+
+
 // export const endUserAuthSessions = pgTable("end_user_auth_sessions", {
 //   id: uuid("id").primaryKey().defaultRandom(),
 //   expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
