@@ -18,7 +18,7 @@ class TestUsers:
         user = client.create_user(external_id=external_id)
 
         assert user.external_id == external_id
-        assert user.env.value == "playground"
+        assert user.space.value == "playground"
         assert user.token is not None
 
     def test_create_user_no_options(self, client: AgentView):

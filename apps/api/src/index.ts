@@ -21,7 +21,7 @@ import { AgentViewError } from 'agentview/AgentViewError';
 import {
   ConfigCreateSchema,
   ConfigSchema,
-  EnvSchema,
+  SpaceSchema,
   PublicSessionsGetQueryParamsSchema,
   RunCreateSchema,
   RunSchema,
@@ -318,7 +318,7 @@ function authorize(principal: Principal, action: Action) {
     else if (principal.type === 'member') {
       const memberId = principal.session.user.id
 
-      if (action.action === "end-user:read" && (action.user.env === 'production' || action.user.env === 'shared-playground' || (action.user.env === 'playground' && action.user.createdBy === memberId))) { // sessions without owner or shared -> read access
+      if (action.action === "end-user:read" && (action.user.space === 'production' || action.user.space === 'shared-playground' || (action.user.space === 'playground' && action.user.createdBy === memberId))) { // sessions without owner or shared -> read access
         return true;
       }
 
@@ -757,7 +757,7 @@ app.openapi(usersPOSTRoute, async (c) => {
     return createUser(tx, {
       organizationId: principal.organizationId,
       createdBy: memberId,
-      env: body.env ?? 'playground',
+      space: body.space ?? 'playground',
       externalId: body.externalId,
     })
   })
@@ -837,7 +837,7 @@ const userByExternalIdGETRoute = createRoute({
   path: '/api/users/by-external-id/{external_id}',
   request: {
     query: z.object({
-      env: EnvSchema,
+      space: SpaceSchema,
     }),
     params: z.object({
       external_id: z.string(),
@@ -853,10 +853,10 @@ app.openapi(userByExternalIdGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
   const { external_id } = c.req.param()
-  const { env } = c.req.valid("query")
+  const { space } = c.req.valid("query")
 
   return withOrg(principal.organizationId, async (tx) => {
-    const user = await requireUser(tx, { externalId: external_id, env: env as z.infer<typeof EnvSchema>, organizationId: principal.organizationId })
+    const user = await requireUser(tx, { externalId: external_id, space: space as z.infer<typeof SpaceSchema>, organizationId: principal.organizationId })
     await authorize(principal, { action: "end-user:read", user })
     return c.json(user, 200);
   })
@@ -899,7 +899,7 @@ const DEFAULT_LIMIT = 50
 const DEFAULT_PAGE = 1
 
 function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchema>, principal: Principal) {
-  const { agent, env, userId } = params;
+  const { agent, space, userId } = params;
 
   const filters: any[] = []
 
@@ -909,18 +909,18 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
 
   if (principal.type === 'member' || principal.type === 'apiKey') {
 
-    if (!env && !userId) {
-      throw new HTTPException(422, { message: "You must set either `env` or `userId` to make this request." });
+    if (!space && !userId) {
+      throw new HTTPException(422, { message: "You must set either `space` or `userId` to make this request." });
     }
-    if (env && userId) {
-      throw new HTTPException(422, { message: "You must set either `env` or `userId`, not both." });
+    if (space && userId) {
+      throw new HTTPException(422, { message: "You must set either `space` or `userId`, not both." });
     }
     if (userId && principal.user) {
       throw new HTTPException(422, { message: "You can't set both X-User-Token and userId query param" });
     }
 
-    if (env) { // env
-      filters.push(eq(endUsers.env, env));
+    if (space) { // space
+      filters.push(eq(endUsers.space, space));
     }
 
     if (userId) { // explicit user
@@ -931,7 +931,7 @@ function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchem
       filters.push(eq(endUsers.id, principal.user.id));
     }
 
-    if (env === "playground") {
+    if (space === "playground") {
 
       if (principal.type === 'member') {
         filters.push(eq(endUsers.createdBy, principal.session.user.id));
@@ -991,7 +991,7 @@ function mapSessionRow(row: { sessions: typeof sessions.$inferSelect; end_users:
     summary: row.sessions.summary,
     agent: row.sessions.agent,
     user: row.end_users!,
-    env: row.end_users!.env,
+    space: row.end_users!.space,
     userId: row.end_users!.id,
   };
 }
@@ -1454,14 +1454,14 @@ app.openapi(sessionsPOSTRoute, async (c) => {
         return principal.user;
       }
 
-      // We must create user, for that env must be defined
-      if (!body.env) {
-        throw new HTTPException(422, { message: "You must provide 'env' parameter, since you didn't provide 'userId' nor 'X-User-Token'." });
+      // We must create user, for that space must be defined
+      if (!body.space) {
+        throw new HTTPException(422, { message: "You must provide 'space' parameter, since you didn't provide 'userId' nor 'X-User-Token'." });
       }
 
       authorize(principal, { action: "end-user:create" });
 
-      return await createUser(tx, { organizationId: principal.organizationId, createdBy: memberId, env: body.env as z.infer<typeof EnvSchema> })
+      return await createUser(tx, { organizationId: principal.organizationId, createdBy: memberId, space: body.space as z.infer<typeof SpaceSchema> })
     })()
 
     authorize(principal, { action: "end-user:update", user });

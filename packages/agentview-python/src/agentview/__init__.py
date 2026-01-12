@@ -6,7 +6,7 @@ from .models import (
     CommentMessage,
     Config,
     ConfigCreate,
-    Env,
+    Space,
     Invitation,
     InvitationCreate,
     Member,
@@ -43,7 +43,7 @@ __all__ = [
     # Errors
     "AgentViewError",
     # Enums
-    "Env",
+    "Space",
     "Role",
     "Status",
     # Models

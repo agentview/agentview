@@ -2,7 +2,7 @@ import { endUsers } from './schemas/schema'
 import { eq, and } from 'drizzle-orm'
 import { randomBytes } from 'crypto'
 import type { z } from 'better-auth'
-import type { EnvSchema } from 'agentview/apiTypes'
+import type { SpaceSchema } from 'agentview/apiTypes'
 import { AgentViewError } from 'agentview/AgentViewError'
 import type { Transaction } from './types'
 
@@ -11,9 +11,9 @@ export function generateUserToken(): string {
   return randomBytes(32).toString('hex')
 }
 
-export async function createUser(tx: Transaction, values: { organizationId: string, createdBy: string, env: z.infer<typeof EnvSchema>, externalId?: string | null }) {
+export async function createUser(tx: Transaction, values: { organizationId: string, createdBy: string, space: z.infer<typeof SpaceSchema>, externalId?: string | null }) {
   if (values.externalId) {
-    const existingUserWithExternalId = await findUser(tx, { externalId: values.externalId, env: values.env, organizationId: values.organizationId })
+    const existingUserWithExternalId = await findUser(tx, { externalId: values.externalId, space: values.space, organizationId: values.organizationId })
     if (existingUserWithExternalId) {
       throw new AgentViewError('User with this external ID already exists', 422)
     }
@@ -22,8 +22,8 @@ export async function createUser(tx: Transaction, values: { organizationId: stri
   const [newEndUser] = await tx.insert(endUsers).values({
     organizationId: values.organizationId,
     externalId: values.externalId ?? null,
-    createdBy: values.env === 'production' ? null : values.createdBy,
-    env: values.env,
+    createdBy: values.space === 'production' ? null : values.createdBy,
+    space: values.space,
     token: generateUserToken(),
   }).returning()
 
@@ -107,7 +107,7 @@ type FindUserByIdOptions = {
 
 type FindUserByExternalIdOptions = {
   externalId: string,
-  env: z.infer<typeof EnvSchema>,
+  space: z.infer<typeof SpaceSchema>,
   organizationId: string,
 }
 
@@ -126,7 +126,7 @@ export async function findUser(tx: Transaction, args: FindUserByIdOptions | Find
     return await tx.query.endUsers.findFirst({
       where: and(
         eq(endUsers.externalId, args.externalId),
-        eq(endUsers.env, args.env),
+        eq(endUsers.space, args.space),
         eq(endUsers.organizationId, args.organizationId)
       ),
     });

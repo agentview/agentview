@@ -54,7 +54,7 @@ function Component() {
     <div className="basis-[300px] flex-shrink-0 flex-grow-0 min-w-0 border-r flex flex-col ">
 
       <Header className="px-3">
-        <HeaderTitle title={`${listParams.env === "production" ? "Sessions" : listParams.env === "playground" ? "Private Playground" : "Shared Playground"}`} />
+        <HeaderTitle title={`${listParams.space === "production" ? "Sessions" : listParams.space === "playground" ? "Private Playground" : "Shared Playground"}`} />
       </Header>
 
       <div className="flex-1 overflow-y-auto pb-12">

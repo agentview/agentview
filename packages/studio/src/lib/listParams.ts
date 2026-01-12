@@ -1,4 +1,4 @@
-import { envAllowedValues, type Env } from "agentview/apiTypes";
+import { spaceAllowedValues, type Space } from "agentview/apiTypes";
 import { config } from "../config";
 
 export function getAgentParamAndCheckForRedirect(request: Request) {
@@ -23,25 +23,25 @@ export function getAgentParamAndCheckForRedirect(request: Request) {
 export function getListParamsAndCheckForRedirect(request: Request) {
     const url = new URL(request.url);
 
-    let envParam = url.searchParams.get('env')
-    let env: Env;
+    let spaceParam = url.searchParams.get('space')
+    let space: Space;
     let needsRedirect = false;
 
-    if (!envParam) {
-        envParam = "production";
+    if (!spaceParam) {
+        spaceParam = "production";
         needsRedirect = true;
     }
-    if (envParam === "production" || !envParam) {
-        env = "production";
+    if (spaceParam === "production" || !spaceParam) {
+        space = "production";
     }
-    else if (envParam === "shared-playground") {
-        env = "shared-playground";
+    else if (spaceParam === "shared-playground") {
+        space = "shared-playground";
     }
-    else if (envParam === "playground") {
-        env = "playground";
+    else if (spaceParam === "playground") {
+        space = "playground";
     }
     else {
-        throw new Error(`[session list] invalid env: ${envParam}. Allowed envs are: ${envAllowedValues.join(", ")}`);
+        throw new Error(`[session list] invalid space: ${spaceParam}. Allowed spaces are: ${spaceAllowedValues.join(", ")}`);
     }
 
     let agent = url.searchParams.get('agent');
@@ -58,7 +58,7 @@ export function getListParamsAndCheckForRedirect(request: Request) {
     const page = url.searchParams.get('page') ?? undefined
     const limit = url.searchParams.get('limit') ?? undefined
 
-    const listParams = { env, agent, page, limit };
+    const listParams = { space, agent, page, limit };
 
     return {
         listParams,

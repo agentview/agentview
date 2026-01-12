@@ -476,9 +476,9 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
 function ShareForm({ session }: { session: Session }) {
     const fetcher = useFetcher();
     return <fetcher.Form method="put" action={`/users/${session.user.id}/update`}>
-        <input type="hidden" name="env" value={session.user.env === "shared-playground" ? "playground" : "shared-playground"} />
+        <input type="hidden" name="space" value={session.user.space === "shared-playground" ? "playground" : "shared-playground"} />
         <Button variant={"outline"} size="sm" type="submit">
-            <UsersIcon fill={session.user.env === "shared-playground" ? "black" : "none"} stroke={session.user.env === "shared-playground" ? "none" : "black"} /> {session.user.env === "shared-playground" ? "Shared" : "Share"}
+            <UsersIcon fill={session.user.space === "shared-playground" ? "black" : "none"} stroke={session.user.space === "shared-playground" ? "none" : "black"} /> {session.user.space === "shared-playground" ? "Shared" : "Share"}
         </Button>
     </fetcher.Form>
 }

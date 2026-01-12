@@ -6,7 +6,7 @@ from ._http import HTTPClient
 from ._utils import with_model
 from .models import (
     Config,
-    Env,
+    Space,
     Run,
     RunCreate,
     RunUpdate,
@@ -29,19 +29,19 @@ class AgentView:
         api_base_url: str,
         api_key: str,
         user_token: str | None = None,
-        env: Env | Literal["playground", "production", "shared-playground"] = "playground",
+        space: Space | Literal["playground", "production", "shared-playground"] = "playground",
     ):
         self._http = HTTPClient(api_base_url, api_key, user_token)
         self._api_base_url = api_base_url
         self._api_key = api_key
         self._user_token = user_token
-        self._env = Env(env) if isinstance(env, str) else env
+        self._space = Space(space) if isinstance(space, str) else space
 
     # --- User Methods ---
 
     @with_model(UserCreate)
     def create_user(self, options: UserCreate | None = None) -> User:
-        body: dict[str, Any] = {"env": self._env.value}
+        body: dict[str, Any] = {"space": self._space.value}
         if options:
             body.update(options.model_dump(by_alias=True, exclude_none=True))
         data = self._http.request("POST", "/api/users", json=body)
@@ -49,7 +49,7 @@ class AgentView:
 
     @with_model(UserCreate)
     async def acreate_user(self, options: UserCreate | None = None) -> User:
-        body: dict[str, Any] = {"env": self._env.value}
+        body: dict[str, Any] = {"space": self._space.value}
         if options:
             body.update(options.model_dump(by_alias=True, exclude_none=True))
         data = await self._http.arequest("POST", "/api/users", json=body)
@@ -65,7 +65,7 @@ class AgentView:
     def get_user(self, *, token: str) -> User: ...
 
     @overload
-    def get_user(self, *, external_id: str, env: Env | None = None) -> User: ...
+    def get_user(self, *, external_id: str, space: Space | None = None) -> User: ...
 
     def get_user(
         self,
@@ -73,7 +73,7 @@ class AgentView:
         id: str | None = None,
         token: str | None = None,
         external_id: str | None = None,
-        env: Env | None = None,
+        space: Space | None = None,
     ) -> User:
         if id:
             data = self._http.request("GET", f"/api/users/{id}")
@@ -84,9 +84,9 @@ class AgentView:
                 )
             data = self.as_(token)._http.request("GET", "/api/users/me")
         elif external_id:
-            env_val = (env or self._env).value
+            space_val = (space or self._space).value
             data = self._http.request(
-                "GET", f"/api/users/by-external-id/{external_id}?env={env_val}"
+                "GET", f"/api/users/by-external-id/{external_id}?space={space_val}"
             )
         else:
             data = self._http.request("GET", "/api/users/me")
@@ -102,7 +102,7 @@ class AgentView:
     async def aget_user(self, *, token: str) -> User: ...
 
     @overload
-    async def aget_user(self, *, external_id: str, env: Env | None = None) -> User: ...
+    async def aget_user(self, *, external_id: str, space: Space | None = None) -> User: ...
 
     async def aget_user(
         self,
@@ -110,7 +110,7 @@ class AgentView:
         id: str | None = None,
         token: str | None = None,
         external_id: str | None = None,
-        env: Env | None = None,
+        space: Space | None = None,
     ) -> User:
         if id:
             data = await self._http.arequest("GET", f"/api/users/{id}")
@@ -121,9 +121,9 @@ class AgentView:
                 )
             data = await self.as_(token)._http.arequest("GET", "/api/users/me")
         elif external_id:
-            env_val = (env or self._env).value
+            space_val = (space or self._space).value
             data = await self._http.arequest(
-                "GET", f"/api/users/by-external-id/{external_id}?env={env_val}"
+                "GET", f"/api/users/by-external-id/{external_id}?space={space_val}"
             )
         else:
             data = await self._http.arequest("GET", "/api/users/me")
@@ -145,14 +145,14 @@ class AgentView:
 
     @with_model(SessionCreate)
     def create_session(self, options: SessionCreate) -> Session:
-        body: dict[str, Any] = {"env": self._env.value}
+        body: dict[str, Any] = {"space": self._space.value}
         body.update(options.model_dump(by_alias=True, exclude_none=True))
         data = self._http.request("POST", "/api/sessions", json=body)
         return Session.model_validate(data)
 
     @with_model(SessionCreate)
     async def acreate_session(self, options: SessionCreate) -> Session:
-        body: dict[str, Any] = {"env": self._env.value}
+        body: dict[str, Any] = {"space": self._space.value}
         body.update(options.model_dump(by_alias=True, exclude_none=True))
         data = await self._http.arequest("POST", "/api/sessions", json=body)
         return Session.model_validate(data)
@@ -167,14 +167,14 @@ class AgentView:
 
     @with_model(SessionsGetQueryParams)
     def get_sessions(self, options: SessionsGetQueryParams | None = None) -> SessionsPaginatedResponse:
-        params: dict[str, Any] = {"env": self._env.value}
+        params: dict[str, Any] = {"space": self._space.value}
         if options:
             dumped = options.model_dump(by_alias=True, exclude_none=True)
             # Convert values to strings for query params
             for k, v in dumped.items():
                 if isinstance(v, bool):
                     params[k] = "true" if v else "false"
-                elif isinstance(v, Env):
+                elif isinstance(v, Space):
                     params[k] = v.value
                 else:
                     params[k] = str(v)
@@ -183,13 +183,13 @@ class AgentView:
 
     @with_model(SessionsGetQueryParams)
     async def aget_sessions(self, options: SessionsGetQueryParams | None = None) -> SessionsPaginatedResponse:
-        params: dict[str, Any] = {"env": self._env.value}
+        params: dict[str, Any] = {"space": self._space.value}
         if options:
             dumped = options.model_dump(by_alias=True, exclude_none=True)
             for k, v in dumped.items():
                 if isinstance(v, bool):
                     params[k] = "true" if v else "false"
-                elif isinstance(v, Env):
+                elif isinstance(v, Space):
                     params[k] = v.value
                 else:
                     params[k] = str(v)
@@ -281,7 +281,7 @@ class AgentView:
             api_base_url=self._api_base_url,
             api_key=self._api_key,
             user_token=token,
-            env=self._env,
+            space=self._space,
         )
 
 

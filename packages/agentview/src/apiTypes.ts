@@ -1,10 +1,10 @@
 import { z } from 'zod'
 
-export const envAllowedValues = ['production', 'playground', 'shared-playground'] as const;
+export const spaceAllowedValues = ['production', 'playground', 'shared-playground'] as const;
 
 
-export const EnvSchema = z.enum(envAllowedValues);
-export type Env = z.infer<typeof EnvSchema>
+export const SpaceSchema = z.enum(spaceAllowedValues);
+export type Space = z.infer<typeof SpaceSchema>
 
 export const UserSchema = z.object({
   id: z.string(),
@@ -12,7 +12,7 @@ export const UserSchema = z.object({
   createdAt: z.iso.date(),
   updatedAt: z.iso.date(),
   createdBy: z.string().nullable(),
-  env: EnvSchema,
+  space: SpaceSchema,
   token: z.string(),
 })
 
@@ -20,7 +20,7 @@ export type User = z.infer<typeof UserSchema>
 
 export const UserCreateSchema = UserSchema.pick({
   externalId: true,
-  env: true, // default -> playground
+  space: true, // default -> playground
 }).partial()
 
 export type UserCreate = z.infer<typeof UserCreateSchema>
@@ -161,7 +161,7 @@ export const SessionBaseSchema = z.object({
   metadata: z.record(z.string(), z.any()).nullable(),
   user: UserSchema,
   userId: z.string(), // potential bloat
-  env: EnvSchema, // this is actually user.env, but allows to "think user-less"
+  space: SpaceSchema, // this is actually user.space, but allows to "think user-less"
   state: z.any().nullable().optional(),
   summary: z.string().nullable(),
 })
@@ -184,7 +184,7 @@ export const SessionCreateSchema = z.object({
   agent: z.string(),
   metadata: z.record(z.string(), z.any()).optional(),
   userId: z.string().optional(),
-  env: EnvSchema.optional(), // necessary if userId is not provided
+  space: SpaceSchema.optional(), // necessary if userId is not provided
   summary: z.string().nullish(),
 })
 
@@ -212,7 +212,7 @@ export const PublicSessionsGetQueryParamsSchema = z.object({
 
 export const SessionsGetQueryParamsSchema = PublicSessionsGetQueryParamsSchema.extend({
   userId: z.string().optional(),
-  env: EnvSchema.optional(), // necessary if userId is not provided
+  space: SpaceSchema.optional(), // necessary if userId is not provided
   starred: z.union([z.boolean(), z.literal('true'), z.literal('false')]).optional(),
 })
 

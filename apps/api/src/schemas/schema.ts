@@ -47,12 +47,12 @@ export const endUsers = pgTable("end_users", {
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 
   createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
-  env: varchar("env", { length: 24 }).notNull().$type<'production' | 'playground' | 'shared-playground'>(), // production, playground, shared-playground
+  space: varchar("space", { length: 24 }).notNull().$type<'production' | 'playground' | 'shared-playground'>(), // production, playground, shared-playground
 
   token: text("token").notNull().unique(),
 
 }, (table) => [
-  uniqueIndex('end_user_external_id_env_org_unique').on(table.externalId, table.env, table.organizationId),
+  uniqueIndex('end_user_external_id_space_org_unique').on(table.externalId, table.space, table.organizationId),
   createTenantPolicy('end_users'),
 ]);
 

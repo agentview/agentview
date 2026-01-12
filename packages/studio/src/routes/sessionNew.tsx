@@ -42,7 +42,7 @@ async function action({ request, params }: ActionFunctionArgs): Promise<ActionRe
   const userResponse = await apiFetch('/api/users', {
     method: 'POST',
     body: {
-      env: "playground",
+      space: "playground",
     }
   });
 

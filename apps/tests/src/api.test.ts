@@ -27,7 +27,7 @@ describe('API', () => {
 
     initUser1 = await av.createUser({ externalId: EXTERNAL_ID_1 })
     initUser2 = await av.createUser({ externalId: EXTERNAL_ID_2 })
-    initProdUser = await av.createUser({ externalId: EXTERNAL_ID_1, env: "production" })
+    initProdUser = await av.createUser({ externalId: EXTERNAL_ID_1, space: "production" })
 
     expect(initUser1).toBeDefined()
     expect(initUser1.externalId).toBe(EXTERNAL_ID_1)
@@ -326,7 +326,7 @@ describe('API', () => {
         user: {
           id: initUser1.id,
           externalId: EXTERNAL_ID_1,
-          env: "playground",
+          space: "playground",
           token: initUser1.token,
         }
       })
@@ -1787,7 +1787,7 @@ describe('Multi-Tenancy isolation', () => {
 
   test('org_a cannot see org_b users', async () => {
     // Create a user in org2
-    const user_a = await av_a.createUser({ env: 'playground' });
+    const user_a = await av_a.createUser({ space: 'playground' });
     expect(user_a).toBeDefined();
     expect(user_a.id).toBeDefined();
 
@@ -1797,7 +1797,7 @@ describe('Multi-Tenancy isolation', () => {
 
   test('org_a cannot see org_a sessions', async () => {
     // Create a user and session in org2
-    const user_b = await av_b.createUser({ env: 'playground' });
+    const user_b = await av_b.createUser({ space: 'playground' });
     const session_b = await av_b.createSession({ userId: user_b.id, agent: 'test-agent' });
     expect(session_b).toBeDefined();
 
@@ -1807,8 +1807,8 @@ describe('Multi-Tenancy isolation', () => {
 
   test('listing sessions only returns own org data', async () => {
     // Create users and sessions in both orgs
-    const user_a = await av_a.createUser({ env: 'playground' });
-    const user_b = await av_b.createUser({ env: 'playground' });
+    const user_a = await av_a.createUser({ space: 'playground' });
+    const user_b = await av_b.createUser({ space: 'playground' });
 
     const session_a = await av_a.createSession({ userId: user_a.id, agent: 'test-agent' });
     const session_b = await av_b.createSession({ userId: user_b.id, agent: 'test-agent' });
@@ -1825,7 +1825,7 @@ describe('Multi-Tenancy isolation', () => {
 
   test('org1 cannot modify org2 resources', async () => {
     // Create a session in org2 with a run
-    const user_b = await av_b.createUser({ env: 'playground' });
+    const user_b = await av_b.createUser({ space: 'playground' });
     const session_b = await av_b.createSession({ userId: user_b.id, agent: 'test-agent' });
 
     const run_b = await av_b.createRun({

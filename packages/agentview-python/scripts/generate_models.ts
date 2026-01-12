@@ -6,7 +6,7 @@ import * as schemas from '../../agentview/src/apiTypes.js'
 // Schemas to export for Python SDK
 const schemasToExport: Record<string, z.ZodTypeAny> = {
   // Enums
-  Env: schemas.EnvSchema,
+  Space: schemas.SpaceSchema,
 
   // Core entities
   User: schemas.UserSchema,

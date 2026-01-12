@@ -9,7 +9,7 @@ import {
   type SessionUpdate,
   type Config,
   type ConfigCreate,
-  type Env,
+  type Space,
   type SessionsGetQueryParams,
   type SessionsPaginatedResponse,
   type PublicSessionsGetQueryParams,
@@ -24,14 +24,14 @@ import { enhanceSession } from './sessionUtils.js'
 export interface AgentViewOptions {
   apiKey?: string
   userToken?: string
-  env?: Env
+  space?: Space
 }
 
 export class AgentView {
   private apiBaseUrl: string
   private apiKey: string
   private userToken?: string
-  private env: Env
+  private space: Space
 
   constructor(options?: AgentViewOptions) {
     if (!process.env.VITE_AGENTVIEW_API_URL) {
@@ -56,7 +56,7 @@ export class AgentView {
     // }
 
     this.userToken = options?.userToken
-    this.env = options?.env ?? "playground";
+    this.space = options?.space ?? "playground";
   }
 
   private async request<T>(
@@ -90,7 +90,7 @@ export class AgentView {
   }
 
   async createSession(options: SessionCreate) {
-    return enhanceSession(await this.request<Session>('POST', `/api/sessions`, { env: this.env, ...options }))
+    return enhanceSession(await this.request<Session>('POST', `/api/sessions`, { space: this.space, ...options }))
   }
 
   async getSession(options: { id: string }) {
@@ -106,7 +106,7 @@ export class AgentView {
     if (options?.limit) params.append('limit', options.limit.toString());
     if (options?.userId) params.append('userId', options.userId);
     if (options?.starred) params.append('starred', 'true');
-    params.append('env', options?.env ?? this.env);
+    params.append('space', options?.space ?? this.space);
 
     const queryString = params.toString();
     if (queryString) {
@@ -145,10 +145,10 @@ export class AgentView {
   }
 
   async createUser(options?: UserCreate): Promise<User> {
-    return await this.request<User>('POST', `/api/users`, { env: this.env, ...options })
+    return await this.request<User>('POST', `/api/users`, { space: this.space, ...options })
   }
 
-  async getUser(options?: { id: string } | { token: string } | { externalId: string, env?: Env } | undefined): Promise<User> {
+  async getUser(options?: { id: string } | { token: string } | { externalId: string, space?: Space } | undefined): Promise<User> {
     if (!options) {
       return await this.request<User>('GET', `/api/users/me`)
     }
@@ -162,7 +162,7 @@ export class AgentView {
       return await this.as(options.token).request<User>('GET', `/api/users/me`)
     }
     if ('externalId' in options) {
-      return await this.request<User>('GET', `/api/users/by-external-id/${options.externalId}?env=${options.env ?? this.env}`)
+      return await this.request<User>('GET', `/api/users/by-external-id/${options.externalId}?space=${options.space ?? this.space}`)
     }
     throw new Error('Invalid options')
   }

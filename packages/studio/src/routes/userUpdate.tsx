@@ -1,15 +1,15 @@
-import type { Env } from "agentview/apiTypes";
+import type { Space } from "agentview/apiTypes";
 import { apiFetch } from "../lib/apiFetch";
 import type { ActionFunctionArgs, RouteObject } from "react-router";
 
 async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
 
-  const env = formData.get("env") as Env;
-  
+  const space = formData.get("space") as Space;
+
   const response = await apiFetch(`/api/users/${params.userId}`, {
     method: "PATCH",
-    body: { env },
+    body: { space },
   });
 
   if (!response.ok) {
