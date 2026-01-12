@@ -1,5 +1,5 @@
 {
-  "id": "1950d7db-357b-4e40-a951-b88e2b7f1800",
+  "id": "4fe52f9f-1c7b-480a-87af-3d1978f21e74",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -334,6 +334,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "value": {
           "name": "value",
           "type": "jsonb",
@@ -369,6 +375,19 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
+        "configs_user_id_users_id_fk": {
+          "name": "configs_user_id_users_id_fk",
+          "tableFrom": "configs",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "configs_created_by_users_id_fk": {
           "name": "configs_created_by_users_id_fk",
           "tableFrom": "configs",
@@ -384,7 +403,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "configs_org_user_unique": {
+          "name": "configs_org_user_unique",
+          "nullsNotDistinct": true,
+          "columns": [
+            "organization_id",
+            "user_id"
+          ]
+        }
+      },
       "policies": {
         "configs_tenant_isolation": {
           "name": "configs_tenant_isolation",
@@ -575,8 +603,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "env": {
-          "name": "env",
+        "space": {
+          "name": "space",
           "type": "varchar(24)",
           "primaryKey": false,
           "notNull": true
@@ -589,8 +617,8 @@
         }
       },
       "indexes": {
-        "end_user_external_id_env_org_unique": {
-          "name": "end_user_external_id_env_org_unique",
+        "end_user_external_id_space_org_unique": {
+          "name": "end_user_external_id_space_org_unique",
           "columns": [
             {
               "expression": "external_id",
@@ -599,7 +627,7 @@
               "nulls": "last"
             },
             {
-              "expression": "env",
+              "expression": "space",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

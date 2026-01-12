@@ -74,4 +74,5 @@ Do not play with UI unless I explicitly say to do so.
 - be concise
 - if something is unclear ask clarifying question
 - do not touch UI Studio or run example projects unless explicitly said to do it.
-- when you build backend features, please test features "end-to-end", which means directly on the API. The best way to do it is to add tests in `apps/tests`. Try to use our SDK if possible, we want to be dogfooding our SDK. You can extend it if you need. For operations related to authentication also use API directly, the easiest way to do it is via better-auth client SDK (check out `seed-users` script in `apps/tests`).
+- when you build backend features, please test features "end-to-end", which means directly on the API. The best way to do it is to add tests in `apps/tests`. Try to use our SDK if possible, we want to be dogfooding our SDK. You can extend it if you need. 
+- when running dev servers in background, after the usage please clean up the process tree, not just parent (kill -9 -f "pattern" instead of kill -f "pattern"). You can check with ps aux | grep <pattern> | grep -v grep

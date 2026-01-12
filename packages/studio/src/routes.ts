@@ -37,57 +37,61 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
               index: true,
             },
             {
-              path: "settings",
-              ...settingsRoute,
-              children: [
-                // {
-                //   path: "profile",
-                //   ...settingsProfileRoute,
-                // },
-                // {
-                //   path: "api-keys",
-                //   ...settingsApiKeysRoute,
-                // },
-                // {
-                //   path: "password",
-                //   ...settingsPasswordRoute,
-                // },
-                // {
-                //   path: "members",
-                //   ...membersRoute,
-                //   children: [
-                //     {
-                //       path: "invitations/new",
-                //       ...membersInviteRoute,
-                //     },
-                //     {
-                //       path: "invitations/:invitationId/cancel",
-                //       ...membersInviteCancelRoute,
-                //     },
-                //     {
-                //       path: ":memberId/edit",
-                //       ...membersEditRoute,
-                //     },
-                //     {
-                //       path: ":memberId/delete",
-                //       ...membersDeleteRoute,
-                //     },
-                //   ],
-                // },
-                {
-                  path: "config",
-                  ...configsRoute,
-                },
-                // {
-                //   path: "emails",
-                //   ...emailsRoute,
-                // },
-                // {
-                //   path: "emails/:id",
-                //   ...emailDetailRoute,
-                // },
-              ]
+              path: "config",
+              ...configsRoute,
             },
+            // {
+            //   path: "settings",
+            //   ...settingsRoute,
+            //   children: [
+            //     // {
+            //     //   path: "profile",
+            //     //   ...settingsProfileRoute,
+            //     // },
+            //     // {
+            //     //   path: "api-keys",
+            //     //   ...settingsApiKeysRoute,
+            //     // },
+            //     // {
+            //     //   path: "password",
+            //     //   ...settingsPasswordRoute,
+            //     // },
+            //     // {
+            //     //   path: "members",
+            //     //   ...membersRoute,
+            //     //   children: [
+            //     //     {
+            //     //       path: "invitations/new",
+            //     //       ...membersInviteRoute,
+            //     //     },
+            //     //     {
+            //     //       path: "invitations/:invitationId/cancel",
+            //     //       ...membersInviteCancelRoute,
+            //     //     },
+            //     //     {
+            //     //       path: ":memberId/edit",
+            //     //       ...membersEditRoute,
+            //     //     },
+            //     //     {
+            //     //       path: ":memberId/delete",
+            //     //       ...membersDeleteRoute,
+            //     //     },
+            //     //   ],
+            //     // },
+            //     {
+            //       path: "config",
+            //       ...configsRoute,
+            //     },
+            //     // {
+            //     //   path: "emails",
+            //     //   ...emailsRoute,
+            //     // },
+            //     // {
+            //     //   path: "emails/:id",
+            //     //   ...emailDetailRoute,
+            //     // },
+            //   ]
+            // },
             {
               path: "users/:userId/update",
               ...userUpdateRoute,

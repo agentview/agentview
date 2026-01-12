@@ -221,6 +221,7 @@ export type SessionsGetQueryParams = z.infer<typeof SessionsGetQueryParamsSchema
 
 export const ConfigSchema = z.object({
   id: z.string(),
+  envId: z.string().nullable(), // null = production config, string = user's dev config
   config: z.any(),
   createdAt: z.iso.date(),
   createdBy: z.string(),

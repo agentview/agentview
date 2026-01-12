@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1767626770473,
-      "tag": "0000_wide_revanche",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1768215562746,
-      "tag": "0001_yummy_puff_adder",
+      "when": 1768243707888,
+      "tag": "0000_ancient_namorita",
       "breakpoints": true
     }
   ]

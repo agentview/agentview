@@ -147,6 +147,7 @@ async function verifyAndGetKey(bearer: string) { // this function exists just fo
 type MemberPrincipal = {
   type: 'member',
   session: NonNullable<Awaited<ReturnType<(typeof getBetterAuthSession)>>>,
+  env: 'prod' | 'dev', // required in member principal, can be extracted from API Key directly
 
   role: string,
   organizationId: any,
@@ -232,10 +233,19 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
   const memberSession = await auth.api.getSession({ headers })
   if (memberSession) {
     const organization = await requireOrganization(headers)
+
+    // cookies authentication requires x-env to know whether Studio should use production config
+    const envHeader  = headers.get('x-env') ?? 'dev';
+    if (!['prod', 'dev'].includes(envHeader)) {
+      throw new HTTPException(400, { message: "X-Env can be either 'prod' or 'dev'." });
+    }
+    const env = envHeader as 'prod' | 'dev';
+
+    // TODO: add config to principal
     const role = await getRole(memberSession.user.id, organization.id)
     const user = userToken ? await requireUserByToken(organization.id, userToken) : undefined;
 
-    return { type: 'member', session: memberSession, user, role, organizationId: organization.id }
+    return { type: 'member', session: memberSession, user, role, organizationId: organization.id, env }
   }
 
   // API Keys
@@ -342,7 +352,7 @@ function authorize(principal: Principal, action: Action) {
     }
   }
   else if (action.action === "config") {
-    if (principal.type === 'apiKey' || principal.type === 'member') { // TODO: fixme!!! Just api key!
+    if (principal.type === 'apiKey' || principal.type === 'member') {
       return true;
     }
   }
@@ -364,14 +374,36 @@ function requireMemberId(principal: Principal) {
 
 // CONFIG HELPERS
 
-async function requireConfig(tx: Transaction): Promise<BaseAgentViewConfig> {
-  const configRow = await getConfigRow(tx)
+function getEnvId(principal: PrivatePrincipal): string | null {
+  if (principal.type === 'apiKey') {
+    return principal.apiKey.metadata?.env === 'prod' ? null : principal.apiKey.userId;
+  }
+  else if (principal.type === 'member') {
+    return principal.env === 'prod' ? null : principal.session.user.id;
+  }
+  throw new HTTPException(401, { message: "Unauthorized" });
+}
+
+async function getConfigRowByPrincipal(tx: Transaction, principal: PrivatePrincipal): Promise<Awaited<ReturnType<typeof getConfigRow>> | undefined> {
+  const configRow = await getConfigRow(tx, getEnvId(principal));
+
+  if (!configRow) {
+    return undefined;
+  }
+
+  return configRow;
+}
+
+async function requireConfig(tx: Transaction, principal: PrivatePrincipal): Promise<BaseAgentViewConfig> {
+  let configRow = await getConfigRowByPrincipal(tx, principal);
+
   if (!configRow) {
     throw new HTTPException(404, { message: "Config not found" });
   }
 
   return BaseConfigSchemaToZod.parse(configRow.config)
 }
+
 
 function requireAgentConfig(config: BaseAgentViewConfig, name: string) {
   const agentConfig = config.agents?.find((agent) => agent.name === name)
@@ -1257,7 +1289,7 @@ app.openapi(sessionPATCHRoute, async (c) => {
     const session = await requireSession(tx, session_id);
     authorize(principal, { action: "end-user:update", user: session.user });
 
-    const config = await requireConfig(tx)
+    const config = await requireConfig(tx, principal)
     const agentConfig = await requireAgentConfig(config, session.agent)
 
     const metadata = parseMetadata(agentConfig.metadata, agentConfig.allowUnknownMetadata ?? true, body.metadata, session.metadata);
@@ -1441,7 +1473,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
   const memberId = requireMemberId(principal);
 
   return withOrg(principal.organizationId, async (tx) => {
-    const config = await requireConfig(tx)
+    const config = await requireConfig(tx, principal)
     const agentConfig = await requireAgentConfig(config, body.agent)
 
     // find user or create new one if not found
@@ -1941,7 +1973,7 @@ app.openapi(runsPOSTRoute, async (c) => {
 
     authorize(principal, { action: "end-user:update", user: session.user });
 
-    const config = await requireConfig(tx)
+    const config = await requireConfig(tx, principal)
     const agentConfig = requireAgentConfig(config, session.agent)
 
     const lastRun = getLastRun(session)
@@ -2105,7 +2137,7 @@ app.openapi(runPATCHRoute, async (c) => {
 
     authorize(principal, { action: "end-user:update", user: session.user });
 
-    const config = await requireConfig(tx)
+    const config = await requireConfig(tx, principal)
     const agentConfig = requireAgentConfig(config, session.agent)
 
     /** Find matching run **/
@@ -2211,7 +2243,7 @@ app.openapi(runKeepAliveRoute, async (c) => {
 
     authorize(principal, { action: "end-user:update", user: session.user });
 
-    const config = await requireConfig(tx);
+    const config = await requireConfig(tx, principal);
     const agentConfig = requireAgentConfig(config, session.agent);
     const inputItem = run.sessionItems[0].content;
     const runConfig = requireRunConfig(agentConfig, inputItem);
@@ -2589,7 +2621,7 @@ app.openapi(scoresPATCHRoute, async (c) => {
   const inputScores = await c.req.valid('json');
 
   return withOrg(principal.organizationId, async (tx) => {
-    const config = await requireConfig(tx)
+    const config = await requireConfig(tx, principal)
     const session = await requireSession(tx, sessionId)
     const item = await requireSessionItem(session, itemId);
     const run = session.runs.find(r => r.id === item.runId)!
@@ -2702,8 +2734,8 @@ app.openapi(configGETRoute, async (c) => {
   authorize(principal, { action: "config" });
 
   return withOrg(principal.organizationId, async (tx) => {
-    const configRow = await getConfigRow(tx);
-    return c.json(configRow, 200)
+    const configRow = await getConfigRowByPrincipal(tx, principal);
+    return c.json(configRow ?? null, 200)
   })
 })
 
@@ -2721,9 +2753,8 @@ const configPutRoute = createRoute({
 
 app.openapi(configPutRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-
   authorize(principal, { action: "config" });
-  const userId = requireMemberId(principal);
+  const createdBy = requireMemberId(principal);
 
   const body = await c.req.valid('json')
 
@@ -2734,20 +2765,28 @@ app.openapi(configPutRoute, async (c) => {
   }
 
   return withOrg(principal.organizationId, async (tx) => {
-    const configRow = await getConfigRow(tx)
+    const configRow = await getConfigRowByPrincipal(tx, principal);
 
     // @ts-ignore
     if (configRow && equalJSON(configRow.config, data)) {
       return c.json(configRow, 200)
     }
 
-    console.log('Updating config!');
-
+    // Upsert: insert or update existing config for this user
     const [newConfigRow] = await tx.insert(configs).values({
       organizationId: principal.organizationId,
+      envId: getEnvId(principal),
       config: data,
-      createdBy: userId,
-    }).returning()
+      createdBy: createdBy,
+    })
+    .onConflictDoUpdate({
+      target: [configs.organizationId, configs.envId],
+      set: {
+        config: data,
+        createdBy: createdBy,
+      }
+    })
+    .returning()
 
     return c.json(newConfigRow, 200)
   })

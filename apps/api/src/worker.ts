@@ -81,7 +81,7 @@ async function processWebhookJobs() {
     for (const job of jobs) {
       // Get org-specific config using withOrg (each org has its own webhook URL)
       const webhookUrl = await withOrg(job.organizationId, async (tx) => {
-        const configRow = await getConfigRow(tx);
+        const configRow = await getConfigRow(tx, null); // Use production config for webhooks
         return (configRow?.config as any).webhookUrl;
         // const configRows = await tx.select().from(configs).orderBy(desc(configs.createdAt)).limit(1);
         // return (configRows[0]?.config as any)?.webhookUrl;
@@ -177,9 +177,9 @@ setInterval(() => {
 
 // Run webhook job processor every 5 seconds
 setInterval(() => {
-  processWebhookJobs();
+  // processWebhookJobs();
 }, 5000);
 
 // Run immediately on startup
 processExpiredRuns();
-processWebhookJobs();
+// processWebhookJobs();

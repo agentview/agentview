@@ -20,7 +20,8 @@ export async function seedUsers(slug: string) {
   const apiKey = await authClient.apiKey.create({
     name: "main",
     metadata: {
-      organizationId: organization.id
+      organizationId: organization.id,
+      env: 'dev'
     }
   })
 
