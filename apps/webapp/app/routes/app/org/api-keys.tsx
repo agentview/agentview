@@ -96,7 +96,7 @@ export default function ApiKeys() {
                       <div className="font-medium">{apiKey.name || "Unnamed"}</div>
                     </TableCell>
                     <TableCell>
-                      {apiKey.metadata?.type === "prod" ? (
+                      {apiKey.metadata?.env === "prod" ? (
                         <Badge>Production</Badge>
                       ) : (
                         <Badge variant="secondary">Development</Badge>

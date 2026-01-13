@@ -17,11 +17,21 @@ export async function seedUsers(slug: string) {
   })
   
   // Create API key for admin user
-  const apiKey = await authClient.apiKey.create({
-    name: "main",
+  const apiKeyDev = await authClient.apiKey.create({
+    name: "Test dev key",
+    prefix: 'dev',
     metadata: {
       organizationId: organization.id,
       env: 'dev'
+    }
+  })
+
+  const apiKeyProd = await authClient.apiKey.create({
+    name: "Test prod key",
+    prefix: 'prod',
+    metadata: {
+      organizationId: organization.id,
+      env: 'prod'
     }
   })
 
@@ -68,6 +78,7 @@ export async function seedUsers(slug: string) {
 
   return {
     organization,
-    apiKey
+    apiKeyDev,
+    apiKeyProd
   }
 }

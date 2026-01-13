@@ -31,11 +31,14 @@ export async function clientAction({
   const name = formData.get("name") as string;
   const isProd = formData.get("isProd") === "true";
 
+  const env = isProd ? "prod" : "dev";
+
   const response = await authClient.apiKey.create({
     name,
+    prefix: env + '_',
     metadata: {
       organizationId: params.orgId,
-      type: isProd ? "prod" : "dev",
+      env
     },
   });
 

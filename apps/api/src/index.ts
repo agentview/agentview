@@ -16,7 +16,6 @@ import { body, response_data, response_error } from './hono_utils';
 import { isUUID } from './isUUID';
 import { commentMentions, commentMessageEdits, commentMessages, configs, endUsers, events, inboxItems, runs, scores, sessionItems, sessions, starredSessions, versions, webhookJobs } from './schemas/schema';
 import { withOrg } from './withOrg';
-// import { createInvitation, cancelInvitation, getPendingInvitations, getValidInvitation } from './invitations'
 import { AgentViewError } from 'agentview/AgentViewError';
 import {
   ConfigCreateSchema,
@@ -37,7 +36,8 @@ import {
   type Session, type SessionItem,
   type SessionItemWithCollaboration,
   type SessionsGetQueryParams,
-  type User
+  type User,
+  type Space
 } from 'agentview/apiTypes';
 import { type BaseAgentViewConfig, type BaseRunConfig, type Metadata } from 'agentview/configTypes';
 import { BaseConfigSchema, BaseConfigSchemaToZod, findItemConfig, findItemConfigById, requireRunConfig } from 'agentview/configUtils';
@@ -232,10 +232,7 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
   // members (cookies)
   const memberSession = await auth.api.getSession({ headers })
 
-  console.log('Authn', headers);
-
   if (memberSession) {
-    console.log('Member session found');
     const organization = await requireOrganization(headers)
 
     // cookies authentication requires x-env to know whether Studio should use production config
@@ -256,14 +253,12 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
   const bearer = extractBearerToken(headers)
 
   if (bearer) {
-    console.log('API key found');
     const { valid, error, key } = await auth.api.verifyApiKey({
       body: {
         key: bearer,
       },
     })
     if (valid === true && !error && key) {
-      console.log('API key verified');
       const organization = await requireOrganization(key.metadata?.organizationId ?? "");
       const role = await getRole(key.userId, organization.id)
       const user = userToken ? await requireUserByToken(organization.id, userToken) : undefined;
@@ -307,12 +302,28 @@ type Action = {
   action: "end-user:update",
   user: User
 } | {
-  action: "end-user:create"
+  action: "end-user:create",
+  space: Space
 } | {
   action: "admin"
 } | {
   action: "config"
 }
+
+// extra check. We don't allow write actions in dev environment for end users in production space.
+function validateIfEndUserWriteActionAllowed(principal: PrivatePrincipal, action: Action) {
+  const isProdEnv = getEnvId(principal) === null;
+  const endUserBelongsToProdSpace = 
+    (action.action === "end-user:create" && action.space === 'production') || 
+    (action.action === "end-user:update" && action.user.space === 'production');
+
+  if (isProdEnv || (!isProdEnv && !endUserBelongsToProdSpace)) {
+    return true;
+  }
+
+  throw new HTTPException(401, { message: "End user write action not allowed in dev environment for end users in production space." });
+}
+
 
 function authorize(principal: Principal, action: Action) {
 
@@ -338,6 +349,8 @@ function authorize(principal: Principal, action: Action) {
         return true;
       }
 
+      validateIfEndUserWriteActionAllowed(principal, action);
+
       if (action.action === "end-user:create") {
         return true;
       }
@@ -345,10 +358,16 @@ function authorize(principal: Principal, action: Action) {
       if (action.action === "end-user:update" && action.user.createdBy === memberId) { // all access for your sessions
         return true;
       }
-
     }
     else if (principal.type === 'apiKey') { // god mode access to api keys for now
-      return true;
+
+      if (action.action === "end-user:read") {
+        return true;
+      }
+      else {
+        validateIfEndUserWriteActionAllowed(principal, action);
+        return true;
+      }
     }
 
   }
@@ -786,16 +805,18 @@ const usersPOSTRoute = createRoute({
 
 app.openapi(usersPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  await authorize(principal, { action: "end-user:create" })
+  const body = await c.req.valid('json')
+  const space = body.space ?? 'playground';
+
+  await authorize(principal, { action: "end-user:create", space })
 
   const memberId = requireMemberId(principal);
-  const body = await c.req.valid('json')
 
   const newUser = await withOrg(principal.organizationId, async (tx) => {
     return createUser(tx, {
       organizationId: principal.organizationId,
       createdBy: memberId,
-      space: body.space ?? 'playground',
+      space,
       externalId: body.externalId,
     })
   })
@@ -1504,9 +1525,10 @@ app.openapi(sessionsPOSTRoute, async (c) => {
         throw new HTTPException(422, { message: "You must provide 'space' parameter, since you didn't provide 'userId' nor 'X-User-Token'." });
       }
 
-      authorize(principal, { action: "end-user:create" });
+      const space = body.space as z.infer<typeof SpaceSchema>;
+      authorize(principal, { action: "end-user:create", space });
 
-      return await createUser(tx, { organizationId: principal.organizationId, createdBy: memberId, space: body.space as z.infer<typeof SpaceSchema> })
+      return await createUser(tx, { organizationId: principal.organizationId, createdBy: memberId, space})
     })()
 
     authorize(principal, { action: "end-user:update", user });

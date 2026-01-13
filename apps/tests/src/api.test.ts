@@ -15,6 +15,7 @@ describe('API', () => {
   const EXTERNAL_ID_2 = 'external-id-2'
 
   let av: AgentView;
+  let avProd: AgentView;
   let orgSlug: string;
   let organization: { id: string };
 
@@ -24,15 +25,18 @@ describe('API', () => {
 
     const result = await seedUsers(orgSlug);
     organization = result.organization;
-    const apiKey = result.apiKey;
 
     av = new AgentView({
-      apiKey: apiKey.key,
+      apiKey: result.apiKeyDev.key,
+    })
+
+    avProd = new AgentView({
+      apiKey: result.apiKeyProd.key,
     })
 
     initUser1 = await av.createUser({ externalId: EXTERNAL_ID_1 })
     initUser2 = await av.createUser({ externalId: EXTERNAL_ID_2 })
-    initProdUser = await av.createUser({ externalId: EXTERNAL_ID_1, space: "production" })
+    initProdUser = await avProd.createUser({ externalId: EXTERNAL_ID_1, space: "production" })
 
     expect(initUser1).toBeDefined()
     expect(initUser1.externalId).toBe(EXTERNAL_ID_1)
@@ -54,7 +58,7 @@ describe('API', () => {
     }))
   }
 
-  const updateConfig = async (options: { strictMatching?: boolean, runMetadata?: Record<string, z.ZodType>, allowUnknownMetadata?: boolean, validateSteps?: boolean } = {}) => {
+  const updateConfig = async (options: { strictMatching?: boolean, runMetadata?: Record<string, z.ZodType>, allowUnknownMetadata?: boolean, validateSteps?: boolean, prod?: boolean } = {}) => {
 
     let inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() })
     let stepSchema = z.looseObject({ type: z.literal("reasoning"), content: z.string() })
@@ -87,7 +91,12 @@ describe('API', () => {
       ]
     }
 
-    await av.__updateConfig({ config })
+    if (options.prod) {
+      await avProd.__updateConfig({ config })
+    }
+    else {
+      await av.__updateConfig({ config })
+    }
   }
 
   const baseInput = { type: "message", role: "user", content: "Hello" }
@@ -325,6 +334,7 @@ describe('API', () => {
       await authClient.signIn.email({ email: `bob@${orgSlug}.com`, password: "blablabla" });
       const bobApiKey = await authClient.apiKey.create({
         name: "bob-key",
+        prefix: 'dev',
         metadata: { organizationId: organization.id, env: 'dev' }
       });
       await authClient.signOut();
@@ -333,6 +343,7 @@ describe('API', () => {
       await authClient.signIn.email({ email: `alice@${orgSlug}.com`, password: "blablabla" });
       const aliceApiKey = await authClient.apiKey.create({
         name: "alice-key",
+        prefix: 'dev',
         metadata: { organizationId: organization.id, env: 'dev' }
       });
       await authClient.signOut();
@@ -377,6 +388,31 @@ describe('API', () => {
       // Alice cannot create sessions for Bob's agent (not in her config)
       await expect(avAlice.createSession({ agent: "bob-agent", userId: aliceUser.id }))
         .rejects.toThrowError(expect.objectContaining({ statusCode: 404 }));
+    })
+
+    test("write operations for sessions or end users with dev api key fail in prod environment", async () => {
+      await updateConfig()
+      await updateConfig({ prod: true });
+
+      // creating prod user allowed with prod key
+      const prodUser = await avProd.createUser({ space: "production" })
+      expect(prodUser).toBeDefined()
+
+      // creating prod session allowed with prod key
+      const prodSession = await avProd.createSession({ agent: "test", userId: prodUser.id })
+      expect(prodSession).toBeDefined()
+
+      // creating prod user not allowed with dev key
+      await expect(av.createUser({ space: "production" })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 401,
+        message: expect.any(String),
+      }))
+
+      // creating prod session not allowed with dev key
+      await expect(av.createSession({ agent: "test", userId: prodUser.id })).rejects.toThrowError(expect.objectContaining({
+        statusCode: 401,
+        message: expect.any(String),
+      }))
     })
   })
 
@@ -646,33 +682,33 @@ describe('API', () => {
       let agentName = 'agent-for-testing-lists'
 
       beforeAll(async () => {
-        await av.__updateConfig({ config: { agents: [{ name: agentName }] } })
+        await avProd.__updateConfig({ config: { agents: [{ name: agentName }] } })
 
         // Create 20 sessions for testing
         user1Sessions = []
         for (let i = 0; i < USER_1_SESSIONS_COUNT; i++) {
-          const session = await av.createSession({ agent: agentName, userId: initUser1.id })
+          const session = await avProd.createSession({ agent: agentName, userId: initUser1.id })
           user1Sessions.push(session)
           await new Promise(resolve => setTimeout(resolve, 10)) // Small delay to ensure different updatedAt timestamps
         }
 
         user2Sessions = []
         for (let i = 0; i < USER_2_SESSIONS_COUNT; i++) {
-          const session = await av.createSession({ agent: agentName, userId: initUser2.id })
+          const session = await avProd.createSession({ agent: agentName, userId: initUser2.id })
           user2Sessions.push(session)
           await new Promise(resolve => setTimeout(resolve, 10)) // Small delay to ensure different updatedAt timestamps
         }
 
         prodUserSessions = []
         for (let i = 0; i < PROD_USER_SESSIONS_COUNT; i++) {
-          const session = await av.createSession({ agent: agentName, userId: initProdUser.id })
+          const session = await avProd.createSession({ agent: agentName, userId: initProdUser.id })
           prodUserSessions.push(session)
           await new Promise(resolve => setTimeout(resolve, 10)) // Small delay to ensure different updatedAt timestamps
         }
       })
 
       test("no pagination params", async () => {
-        const result = await av.getSessions({ agent: agentName })
+        const result = await avProd.getSessions({ agent: agentName })
 
         expect(result.sessions).toBeDefined()
         expect(Array.isArray(result.sessions)).toBe(true)
@@ -688,7 +724,7 @@ describe('API', () => {
       })
 
       test("5 items per page, first page", async () => {
-        const result = await av.getSessions({ agent: agentName, limit: 5, page: 1 })
+        const result = await avProd.getSessions({ agent: agentName, limit: 5, page: 1 })
 
         expect(result.sessions).toBeDefined()
         expect(result.sessions.length).toBe(5)
@@ -702,7 +738,7 @@ describe('API', () => {
       })
 
       test("5 items per page, second page", async () => {
-        const result = await av.getSessions({ agent: agentName, limit: 5, page: 2 })
+        const result = await avProd.getSessions({ agent: agentName, limit: 5, page: 2 })
 
         expect(result.sessions).toBeDefined()
         expect(result.sessions.length).toBe(5)
@@ -717,7 +753,7 @@ describe('API', () => {
         const itemsPerPage = 5
         const lastPage = Math.ceil(TOTAL_SESSIONS_COUNT / itemsPerPage)
 
-        const result = await av.getSessions({ agent: agentName, limit: 5, page: lastPage })
+        const result = await avProd.getSessions({ agent: agentName, limit: 5, page: lastPage })
 
         expect(result.sessions).toBeDefined()
         expect(result.sessions.length).toBeGreaterThan(0)
@@ -734,7 +770,7 @@ describe('API', () => {
         const itemsPerPage = 5
         const lastPage = Math.ceil(TOTAL_SESSIONS_COUNT / itemsPerPage)
 
-        const result = await av.getSessions({ agent: agentName, limit: 5, page: 100 })
+        const result = await avProd.getSessions({ agent: agentName, limit: 5, page: 100 })
 
         expect(result.sessions).toBeDefined()
         expect(result.sessions.length).toEqual(0)
@@ -746,25 +782,25 @@ describe('API', () => {
       })
 
       test("different page numbers", async () => {
-        const page3 = await av.getSessions({ limit: 5, page: 3 })
+        const page3 = await avProd.getSessions({ limit: 5, page: 3 })
         expect(page3.pagination.page).toBe(3)
         expect(page3.sessions.length).toBe(5)
 
-        const page4 = await av.getSessions({ limit: 5, page: 4 })
+        const page4 = await avProd.getSessions({ limit: 5, page: 4 })
         expect(page4.pagination.page).toBe(4)
         expect(page4.sessions.length).toBe(5)
       })
 
       test("page limit exceeds maximum (999999) should error", async () => {
-        await expect(av.getSessions({ agent: agentName, limit: 999999 })).rejects.toThrowError(expect.objectContaining({
+        await expect(avProd.getSessions({ agent: agentName, limit: 999999 })).rejects.toThrowError(expect.objectContaining({
           statusCode: 422,
           message: expect.any(String)
         }))
       })
 
       test("user scoping works", async () => {
-        const user1FetchedSessions = await av.as(initUser1).getSessions({ agent: agentName, limit: 10 })
-        const user2FetchedSessions = await av.as(initUser2).getSessions({ agent: agentName, limit: 10 })
+        const user1FetchedSessions = await avProd.as(initUser1).getSessions({ agent: agentName, limit: 10 })
+        const user2FetchedSessions = await avProd.as(initUser2).getSessions({ agent: agentName, limit: 10 })
 
         expect(user1FetchedSessions.sessions.length).toBe(10)
         expect(user1FetchedSessions.sessions.every(session => session.userId === initUser1.id)).toBe(true)
@@ -1286,11 +1322,11 @@ describe('API', () => {
 
 
       test("compatibility enforced - production", async () => {
-        await updateConfig()
-        const session = await av.createSession({ agent: "test", userId: initProdUser.id })
+        await updateConfig({ prod: true })
+        const session = await avProd.createSession({ agent: "test", userId: initProdUser.id })
 
-        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0-dev" }), 422) // production can't have suffixes
-        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.1-local" }), 422) // production can't have suffixes
+        await expectToFail(avProd.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0-dev" }), 422) // production can't have suffixes
+        await expectToFail(avProd.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.1-local" }), 422) // production can't have suffixes
       })
 
     });
@@ -1826,8 +1862,8 @@ describe('Multi-Tenancy isolation', () => {
     console.log("Creating orgA:", orgASlug);
     console.log("Creating orgB:", orgBSlug);
 
-    const { apiKey: apiKey1 } = await seedUsers(orgASlug);
-    const { apiKey: apiKey2 } = await seedUsers(orgBSlug);
+    const { apiKeyDev: apiKey1 } = await seedUsers(orgASlug);
+    const { apiKeyDev: apiKey2 } = await seedUsers(orgBSlug);
 
     orgAApiKey = apiKey1.key;
     orgBApiKey = apiKey2.key;
