@@ -77,7 +77,6 @@ export const app = new OpenAPIHono({
 app.onError((error, c) => {
   console.error(error)
   if (error instanceof AgentViewError) {
-    console.log('#########################');
     const payload = { message: error.message, ...(error.details ?? {}) }
     console.log('AgentViewError', error.statusCode, payload);
     return c.json(payload, error.statusCode as any);
@@ -259,6 +258,7 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
         key: bearer,
       },
     })
+
     if (valid === true && !error && key) {
       const organization = await requireOrganization(key.metadata?.organizationId ?? "");
       const role = await getRole(key.userId, organization.id)
@@ -1877,6 +1877,10 @@ function parseVersion(version: string): ParsedVersion | undefined {
   return { major, minor, patch, ...(suffix ? { suffix } : {}) };
 }
 
+function versionToString(version: ParsedVersion): string {
+  return `${version.major}.${version.minor}.${version.patch}${version.suffix ? `-${version.suffix}` : ''}`;
+}
+
 function compareVersions(v1: ParsedVersion, v2: ParsedVersion): number {
   // Returns: -1 if v1 < v2, 0 if v1 === v2, 1 if v1 > v2
   // Note: Suffixes are ignored for comparison purposes
@@ -2040,10 +2044,12 @@ app.openapi(runsPOSTRoute, async (c) => {
       throw new HTTPException(422, { message: "Invalid version number format. Should be like '1.2.3-xxx'" });
     }
 
-    console.log('session.user.createdBy', session.user.createdBy);
-    console.log('parsedVersion', parsedVersion);
-    if (!session.user.createdBy && parsedVersion.suffix) { // production sessions can't have suffixes
+    if (session.user.space === 'production' && parsedVersion.suffix) { // production sessions can't have suffixes
       throw new HTTPException(422, { message: "Production sessions can't have suffixed versions." });
+    }
+
+    if ((session.user.space === 'playground' || session.user.space === 'shared-playground') && !parsedVersion.suffix) {
+      parsedVersion.suffix = 'dev';
     }
 
     if (lastRun?.version) { // compare semantic versions when previous version exists
@@ -2095,14 +2101,16 @@ app.openapi(runsPOSTRoute, async (c) => {
     const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
     const expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
 
+    const version = versionToString(parsedVersion);
+
     // Create run and items
     const organizationId = principal.organizationId;
     await tx.insert(versions).values({
       organizationId,
-      version: body.version,
+      version,
     }).onConflictDoNothing();
 
-    const [versionRow] = await tx.select().from(versions).where(eq(versions.version, body.version)).limit(1);
+    const [versionRow] = await tx.select().from(versions).where(eq(versions.version, version)).limit(1);
 
     const [insertedRun] = await tx.insert(runs).values({
       organizationId,
