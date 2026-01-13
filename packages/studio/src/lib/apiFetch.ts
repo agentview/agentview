@@ -1,5 +1,6 @@
 import type { BaseError } from "./errors";
 import { config } from "../config";
+import { getEnv } from "../getEnv";
 
 type APISuccessResponse<T> = Response & {
     ok: true;
@@ -18,6 +19,14 @@ type APIOptions = {
     body?: any
 }
 
+export function getAuthHeaders(): HeadersInit {
+    return {
+        'X-Organization-Id': config.organizationId,
+        'X-Env': getEnv(),
+        'Authorization': `Bearer ${localStorage.getItem("agentview_token") || ""}`,
+    }
+}
+
 export async function apiFetch<T = any>(endpoint: string, options: APIOptions = { method: 'GET', body: undefined }): Promise<APIResponse<T>> {
     const url = new URL(endpoint, import.meta.env.VITE_AGENTVIEW_API_URL).toString();
 
@@ -26,14 +35,13 @@ export async function apiFetch<T = any>(endpoint: string, options: APIOptions = 
         credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
-            'X-Organization-Id': config.organizationId,
-            'Authorization': `Bearer ${localStorage.getItem("agentview_token") || ""}`,
+            ...getAuthHeaders(),
         },
         body: options.body ? JSON.stringify(options.body) : undefined,
     });
 
     let body: any;
-    
+
     try {
         body = await response.json();
     } catch (error) {

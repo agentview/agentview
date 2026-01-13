@@ -1,39 +1,38 @@
-import { useLoaderData, useFetcher, Outlet, Link, Form, data, useParams, useSearchParams, useNavigate, useRevalidator } from "react-router";
-import type { LoaderFunctionArgs, RouteObject } from "react-router";
-import { Button } from "../components/ui/button";
-import { Header, HeaderTitle } from "../components/header";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { type RunWithCollaboration, type Session, type SessionItemWithCollaboration, type SessionWithCollaboration } from "agentview/apiTypes";
+import { findItemConfigById, findMatchingRunConfigs, requireAgentConfig } from "agentview/configUtils";
+import { enhanceSession, getActiveRuns, getAllSessionItems, getLastRun, getVersions } from "agentview/sessionUtils";
+import type { AgentConfig, ScoreConfig, SessionItemConfig, SessionItemDisplayComponentProps } from "agentview/types";
+import { AlertCircleIcon, ChevronDown, CircleGauge, InfoIcon, MessageCirclePlus, UsersIcon } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { parseSSE } from "../lib/parseSSE";
-import { apiFetch } from "../lib/apiFetch";
-import { getLastRun, getAllSessionItems, getVersions, getActiveRuns, enhanceSession } from "agentview/sessionUtils";
-import { type Run, type RunWithCollaboration, type Session, type SessionItem, type SessionItemWithCollaboration, type SessionWithCollaboration } from "agentview/apiTypes";
-import { getListParams, toQueryParams } from "../lib/listParams";
-import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "../components/PropertyList";
-import { AlertCircleIcon, BugIcon, CheckIcon, ChevronDown, ChevronsDownUp, CircleCheck, CircleDollarSign, CircleDollarSignIcon, CircleGauge, EllipsisVerticalIcon, ExternalLinkIcon, FilePenLineIcon, InfoIcon, MessageCircleIcon, MessageCirclePlus, MessageCirclePlusIcon, MessageSquareTextIcon, PencilIcon, PencilLineIcon, PenTool, PlayCircleIcon, ReceiptIcon, ReceiptText, SendHorizonalIcon, SettingsIcon, Share, SquareIcon, SquareTerminal, TagsIcon, TerminalIcon, ThumbsDown, ThumbsDownIcon, ThumbsUp, ThumbsUpIcon, TimerIcon, UserIcon, UsersIcon, WorkflowIcon, WrenchIcon } from "lucide-react";
-import { useFetcherSuccess } from "../hooks/useFetcherSuccess";
-import { useSessionContext } from "../lib/SessionContext";
-import type { SessionItemConfig, AgentConfig, ScoreConfig, SessionItemDisplayComponentProps } from "agentview/types";
+import { useForm } from "react-hook-form";
+import type { LoaderFunctionArgs, RouteObject } from "react-router";
+import { data, Link, Outlet, useFetcher, useLoaderData, useNavigate, useRevalidator } from "react-router";
+import { toast } from "sonner";
+import { z } from "zod";
+import { DisplayProperties } from "../components/DisplayProperties";
+import { Header, HeaderTitle } from "../components/header";
+import { CommentsThread } from "../components/internal/comments";
+import { ErrorBoundary } from "../components/internal/ErrorBoundary";
 import { AVFormField } from "../components/internal/form";
 import { ItemsWithCommentsLayout } from "../components/internal/ItemsWithCommentsLayout";
-import { CommentsThread } from "../components/internal/comments";
-import { Popover, PopoverTrigger, PopoverContent } from "../components/ui/popover";
-import { config } from "../config";
-import { findItemConfigById, findMatchingRunConfigs, requireAgentConfig } from "agentview/configUtils";
 import { Loader } from "../components/internal/Loader";
-import { Alert, AlertDescription } from "../components/ui/alert";
-import type { BaseError } from "../lib/errors";
-import { DisplayProperties } from "../components/DisplayProperties";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Form as HookForm } from "../components/ui/form";
 import { Pill } from "../components/Pill";
+import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "../components/PropertyList";
+import { AssistantMessage, StepItem, UserMessage } from "../components/session-item";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
+import { Form as HookForm } from "../components/ui/form";
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
+import { config } from "../config";
+import { getEnv } from "../getEnv";
+import { useFetcherSuccess } from "../hooks/useFetcherSuccess";
 import { useRerender } from "../hooks/useRerender";
-import { ItemCard, ItemCardContent, ItemCardTitle, ItemCardJSON, ItemCardMarkdown, UserMessage, AssistantMessage, StepItem } from "../components/session-item";
-import { debugRun } from "../lib/debugRun";
-import { ErrorBoundary } from "../components/internal/ErrorBoundary";
-import { toast } from "sonner";
-import { like } from "../scores";
+import { apiFetch } from "../lib/apiFetch";
+import { getListParams, toQueryParams } from "../lib/listParams";
+import { parseSSE } from "../lib/parseSSE";
+import { useSessionContext } from "../lib/SessionContext";
+import { getAuthHeaders } from "../lib/apiFetch";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<SessionWithCollaboration>(`/api/sessions/${params.id}`);
@@ -147,10 +146,7 @@ function SessionPage() {
                 const response = await fetch(url, {
                     credentials: 'include', // ensure cookies are sent
                     signal: abortController.signal,
-                    headers: {
-                        "X-Organization-Id": config.organizationId,
-                        'Authorization': `Bearer ${localStorage.getItem("agentview_token") || ""}`,
-                    }
+                    headers: getAuthHeaders()
                 });
 
                 for await (const event of parseSSE(response)) {

@@ -231,7 +231,11 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
 
   // members (cookies)
   const memberSession = await auth.api.getSession({ headers })
+
+  console.log('Authn', headers);
+
   if (memberSession) {
+    console.log('Member session found');
     const organization = await requireOrganization(headers)
 
     // cookies authentication requires x-env to know whether Studio should use production config
@@ -252,12 +256,14 @@ async function authn(headers: Headers): Promise<PrivatePrincipal> {
   const bearer = extractBearerToken(headers)
 
   if (bearer) {
+    console.log('API key found');
     const { valid, error, key } = await auth.api.verifyApiKey({
       body: {
         key: bearer,
       },
     })
     if (valid === true && !error && key) {
+      console.log('API key verified');
       const organization = await requireOrganization(key.metadata?.organizationId ?? "");
       const role = await getRole(key.userId, organization.id)
       const user = userToken ? await requireUserByToken(organization.id, userToken) : undefined;
