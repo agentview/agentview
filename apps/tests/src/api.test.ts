@@ -13,6 +13,7 @@ describe('API', () => {
 
   const EXTERNAL_ID_1 = 'external-id-1'
   const EXTERNAL_ID_2 = 'external-id-2'
+  const EXTERNAL_PROD_ID_1 = 'external-prod-id-1'
 
   let av: AgentView;
   let avProd: AgentView;
@@ -38,7 +39,7 @@ describe('API', () => {
 
     initUser1 = await av.createUser({ externalId: EXTERNAL_ID_1 })
     initUser2 = await av.createUser({ externalId: EXTERNAL_ID_2 })
-    initProdUser = await avProd.createUser({ externalId: EXTERNAL_ID_1, space: "production" })
+    initProdUser = await avProd.createUser({ externalId: EXTERNAL_PROD_ID_1, space: "production" })
 
     expect(initUser1).toBeDefined()
     expect(initUser1.externalId).toBe(EXTERNAL_ID_1)
@@ -49,7 +50,7 @@ describe('API', () => {
     expect(initUser1.createdBy).toBeDefined()
 
     expect(initProdUser).toBeDefined()
-    expect(initProdUser.externalId).toBe(EXTERNAL_ID_1) // external id the same as initUSer1, but in prod
+    expect(initProdUser.externalId).toBe(EXTERNAL_PROD_ID_1) // external id the same as initUSer1, but in prod
     expect(initProdUser.createdBy).toBeNull()
   })
 
@@ -209,7 +210,7 @@ describe('API', () => {
       })
     })
 
-    describe.only("environment-related behaviour", () => {
+    describe("environment-related behaviour", () => {
       test("[dev api-key] default space for new user is playground and createdBy is set based on key", async () => {
         const user = await av.createUser()
         expect(user.space).toBe("playground")
@@ -763,7 +764,7 @@ describe('API', () => {
       })
 
       test("no pagination params", async () => {
-        const result = await avProd.getSessions({ agent: agentName })
+        const result = await avProd.getSessions({ agent: agentName, space: "playground" })
 
         expect(result.sessions).toBeDefined()
         expect(Array.isArray(result.sessions)).toBe(true)
@@ -779,7 +780,7 @@ describe('API', () => {
       })
 
       test("5 items per page, first page", async () => {
-        const result = await avProd.getSessions({ agent: agentName, limit: 5, page: 1 })
+        const result = await avProd.getSessions({ agent: agentName, space: "playground", limit: 5, page: 1 })
 
         expect(result.sessions).toBeDefined()
         expect(result.sessions.length).toBe(5)
@@ -793,7 +794,7 @@ describe('API', () => {
       })
 
       test("5 items per page, second page", async () => {
-        const result = await avProd.getSessions({ agent: agentName, limit: 5, page: 2 })
+        const result = await avProd.getSessions({ agent: agentName, space: "playground", limit: 5, page: 2 })
 
         expect(result.sessions).toBeDefined()
         expect(result.sessions.length).toBe(5)
@@ -808,7 +809,7 @@ describe('API', () => {
         const itemsPerPage = 5
         const lastPage = Math.ceil(TOTAL_SESSIONS_COUNT / itemsPerPage)
 
-        const result = await avProd.getSessions({ agent: agentName, limit: 5, page: lastPage })
+        const result = await avProd.getSessions({ agent: agentName, space: "playground", limit: 5, page: lastPage })
 
         expect(result.sessions).toBeDefined()
         expect(result.sessions.length).toBeGreaterThan(0)
@@ -825,7 +826,7 @@ describe('API', () => {
         const itemsPerPage = 5
         const lastPage = Math.ceil(TOTAL_SESSIONS_COUNT / itemsPerPage)
 
-        const result = await avProd.getSessions({ agent: agentName, limit: 5, page: 100 })
+        const result = await avProd.getSessions({ agent: agentName, space: "playground", limit: 5, page: 100 })
 
         expect(result.sessions).toBeDefined()
         expect(result.sessions.length).toEqual(0)
@@ -837,25 +838,25 @@ describe('API', () => {
       })
 
       test("different page numbers", async () => {
-        const page3 = await avProd.getSessions({ limit: 5, page: 3 })
+        const page3 = await avProd.getSessions({ space: "playground", limit: 5, page: 3 })
         expect(page3.pagination.page).toBe(3)
         expect(page3.sessions.length).toBe(5)
 
-        const page4 = await avProd.getSessions({ limit: 5, page: 4 })
+        const page4 = await avProd.getSessions({ space: "playground", limit: 5, page: 4 })
         expect(page4.pagination.page).toBe(4)
         expect(page4.sessions.length).toBe(5)
       })
 
       test("page limit exceeds maximum (999999) should error", async () => {
-        await expect(avProd.getSessions({ agent: agentName, limit: 999999 })).rejects.toThrowError(expect.objectContaining({
+        await expect(avProd.getSessions({ agent: agentName, space: "playground", limit: 999999 })).rejects.toThrowError(expect.objectContaining({
           statusCode: 422,
           message: expect.any(String)
         }))
       })
 
       test("user scoping works", async () => {
-        const user1FetchedSessions = await avProd.as(initUser1).getSessions({ agent: agentName, limit: 10 })
-        const user2FetchedSessions = await avProd.as(initUser2).getSessions({ agent: agentName, limit: 10 })
+        const user1FetchedSessions = await avProd.as(initUser1).getSessions({ space: "playground", agent: agentName, limit: 10 })
+        const user2FetchedSessions = await avProd.as(initUser2).getSessions({ space: "playground", agent: agentName, limit: 10 })
 
         expect(user1FetchedSessions.sessions.length).toBe(10)
         expect(user1FetchedSessions.sessions.every(session => session.userId === initUser1.id)).toBe(true)
@@ -945,13 +946,13 @@ describe('API', () => {
         // Star session1, leave session2 unstarred
         await av.starSession(testSession1.id)
 
-        const starredSessions = await av.getSessions({ agent: starredAgentName, starred: true })
+        const starredSessions = await av.getSessions({ agent: starredAgentName, space: "playground", starred: true })
         expect(starredSessions.sessions.some(s => s.id === testSession1.id)).toBe(true)
         expect(starredSessions.sessions.some(s => s.id === testSession2.id)).toBe(false)
 
         // Star session2 as well
         await av.starSession(testSession2.id)
-        const updatedStarredSessions = await av.getSessions({ agent: starredAgentName, starred: true })
+        const updatedStarredSessions = await av.getSessions({ agent: starredAgentName, space: "playground", starred: true })
         expect(updatedStarredSessions.sessions.some(s => s.id === testSession1.id)).toBe(true)
         expect(updatedStarredSessions.sessions.some(s => s.id === testSession2.id)).toBe(true)
 
@@ -1971,7 +1972,7 @@ describe('Multi-Tenancy isolation', () => {
     const session_b = await av_b.createSession({ userId: user_b.id, agent: 'test-agent' });
 
     // List sessions from org1
-    const sessions_a = await av_a.getSessions();
+    const sessions_a = await av_a.getSessions({ space: 'playground' });
 
     // Should contain org1's session
     expect(sessions_a.sessions.some(s => s.id === session_a.id)).toBe(true);

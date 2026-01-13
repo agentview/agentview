@@ -53,7 +53,7 @@ import { members, organizations, users } from './schemas/auth-schema';
 import { fetchSession } from './sessions';
 import type { Transaction } from './types';
 import { updateInboxes } from './updateInboxes';
-import { createUser, findUser } from './users';
+import { findUser } from './users';
 import { randomBytes } from 'crypto';
 
 
@@ -816,18 +816,14 @@ const usersPOSTRoute = createRoute({
   },
 })
 
-async function createUser222(principal: PrivatePrincipal, space_?: Space | null, externalId?: string | null) {
+async function createUser(principal: PrivatePrincipal, space_?: Space | null, externalId?: string | null) {
   const space = space_ ?? (getEnvId(principal) === null ? 'production' : 'playground');
-
-  console.log('_space_', space_);
-  console.log('space', space);
-  console.log('getEnvId(principal)', getEnvId(principal));
 
   await authorize(principal, { action: "end-user:create", space })
 
   return await withOrg(principal.organizationId, async (tx) => {
     if (externalId) {
-      const existingUserWithExternalId = await findUser(tx, { externalId, space, organizationId: principal.organizationId })
+      const existingUserWithExternalId = await findUser(tx, { externalId, organizationId: principal.organizationId })
       if (existingUserWithExternalId) {
         throw new AgentViewError('User with this external ID already exists', 422)
       }
@@ -835,7 +831,10 @@ async function createUser222(principal: PrivatePrincipal, space_?: Space | null,
   
     const createdBy = getMemberId(principal);
     if (space === 'production' && createdBy !== null) { // sanity check
-      throw new AgentViewError('Production space cannot be created by a member', 422)
+      throw new AgentViewError('Users in production space can be created only with production api key.', 401)
+    }
+    if ((space === 'playground' || space === 'shared-playground') && createdBy === null) {
+      throw new AgentViewError(`Users in '${space}' space can't be created with production api key, only via member login.`, 401)
     }
   
     const [newEndUser] = await tx.insert(endUsers).values({
@@ -853,23 +852,7 @@ async function createUser222(principal: PrivatePrincipal, space_?: Space | null,
 app.openapi(usersPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const body = await c.req.valid('json')
-  // const space = body.space ?? 'playground' //(getEnvId(principal) === null ? 'production' : 'playground');
-
-  console.log('#####', body);
-
-  const newUser = await createUser222(principal, body.space, body.externalId);
-
-  // await authorize(principal, { action: "end-user:create", space })
-
-  // const newUser = await withOrg(principal.organizationId, async (tx) => {
-  //   return createUser(tx, {
-  //     organizationId: principal.organizationId,
-  //     createdBy: getMemberId(principal),
-  //     space,
-  //     externalId: body.externalId,
-  //   })
-  // })
-
+  const newUser = await createUser(principal, body.space, body.externalId);
   return c.json(newUser, 201);
 })
 
@@ -944,9 +927,6 @@ const userByExternalIdGETRoute = createRoute({
   method: 'get',
   path: '/api/users/by-external-id/{external_id}',
   request: {
-    query: z.object({
-      space: SpaceSchema,
-    }),
     params: z.object({
       external_id: z.string(),
     }),
@@ -961,10 +941,9 @@ app.openapi(userByExternalIdGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
 
   const { external_id } = c.req.param()
-  const { space } = c.req.valid("query")
 
   return withOrg(principal.organizationId, async (tx) => {
-    const user = await requireUser(tx, { externalId: external_id, space: space as z.infer<typeof SpaceSchema>, organizationId: principal.organizationId })
+    const user = await requireUser(tx, { externalId: external_id, organizationId: principal.organizationId })
     await authorize(principal, { action: "end-user:read", user })
     return c.json(user, 200);
   })
@@ -1111,9 +1090,6 @@ function mapSessionRow(row: { sessions: typeof sessions.$inferSelect; end_users:
 async function getSessions(tx: Transaction, params: SessionsGetQueryParams, principal: Principal) {
   const limit = normalizeNumberParam(params.limit, DEFAULT_LIMIT);
   const page = normalizeNumberParam(params.page, DEFAULT_PAGE);
-
-  console.log('limit', limit);
-  console.log('page', page);
 
   const MAX_LIMIT = 1000;
   if (limit > MAX_LIMIT) {
@@ -1553,7 +1529,6 @@ const sessionsPOSTRoute = createRoute({
 app.openapi(sessionsPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const body = await c.req.valid('json')
-  const memberId = requireMemberId(principal);
 
   return withOrg(principal.organizationId, async (tx) => {
     const config = await requireConfig(tx, principal)
@@ -1569,15 +1544,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
         return principal.user;
       }
 
-      // We must create user, for that space must be defined
-      // if (!body.space) {
-      //   throw new HTTPException(422, { message: "You must provide 'space' parameter, since you didn't provide 'userId' nor 'X-User-Token'." });
-      // }
-
-      const space = body.space as z.infer<typeof SpaceSchema> ?? 'playground';
-      authorize(principal, { action: "end-user:create", space });
-
-      return await createUser(tx, { organizationId: principal.organizationId, createdBy: memberId, space})
+      return await createUser(principal, body.space, undefined);
     })()
 
     authorize(principal, { action: "end-user:update", user });
@@ -1610,7 +1577,7 @@ app.openapi(sessionsPOSTRoute, async (c) => {
     const [event] = await tx.insert(events).values({
       organizationId: principal.organizationId,
       type: 'session_created',
-      authorId: memberId,
+      authorId: getMemberId(principal),
       payload: {
         session_id: newSessionRow.id,
       }

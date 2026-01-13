@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, varchar, jsonb, boolean, uniqueIndex, integer, bigserial, bigint, serial, unique, smallint, index, pgPolicy } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, varchar, jsonb, boolean, uniqueIndex, integer, bigserial, bigint, serial, unique, smallint, index, pgPolicy, check } from "drizzle-orm/pg-core";
 import { users, accounts, verifications, authSessions, apikeys, organizations, members, invitations, invitationsRelations, organizationsRelations, membersRelations } from "./auth-schema";
 import { relations, sql } from "drizzle-orm";
 
@@ -52,8 +52,10 @@ export const endUsers = pgTable("end_users", {
   token: text("token").notNull().unique(),
 
 }, (table) => [
-  uniqueIndex('end_user_external_id_space_org_unique').on(table.externalId, table.space, table.organizationId),
+  uniqueIndex('end_user_external_id_org_unique').on(table.externalId, table.organizationId),
   createTenantPolicy('end_users'),
+  // If space = 'production' then createdBy must be null, otherwise createdBy must be defined
+  check('end_users_created_by_space_check', sql`(space = 'production' AND created_by IS NULL) OR (space != 'production' AND created_by IS NOT NULL)`),
 ]);
 
 

@@ -108,7 +108,7 @@ export class AgentView {
     if (options?.limit) params.append('limit', options.limit.toString());
     if (options?.userId) params.append('userId', options.userId);
     if (options?.starred) params.append('starred', 'true');
-    // params.append('space', options?.space ?? this.space);
+    if (options?.space) params.append('space', options.space);
 
     const queryString = params.toString();
     if (queryString) {
