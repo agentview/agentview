@@ -4,6 +4,7 @@ import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessag
 import { Brain } from "lucide-react";
 
 export default defineConfig({
+  organizationId: import.meta.env.VITE_AGENTVIEW_ORGANIZATION_ID,
   agents: [
     {
       name: "simple_chat",

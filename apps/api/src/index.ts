@@ -927,7 +927,7 @@ app.openapi(apiUsersPATCHRoute, async (c) => {
  * SESSIONS
  */
 
-const DEFAULT_LIMIT = 50
+const DEFAULT_LIMIT = 10
 const DEFAULT_PAGE = 1
 
 function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchema>, principal: Principal) {
@@ -996,6 +996,10 @@ function normalizeNumberParam(value: number | string | undefined, defaultValue: 
     numValue = value;
   }
 
+  if (isNaN(numValue)) {
+    return 1;
+  }
+
   return Math.max(numValue, 1);
 }
 
@@ -1031,6 +1035,9 @@ function mapSessionRow(row: { sessions: typeof sessions.$inferSelect; end_users:
 async function getSessions(tx: Transaction, params: SessionsGetQueryParams, principal: Principal) {
   const limit = normalizeNumberParam(params.limit, DEFAULT_LIMIT);
   const page = normalizeNumberParam(params.page, DEFAULT_PAGE);
+
+  console.log('limit', limit);
+  console.log('page', page);
 
   const MAX_LIMIT = 1000;
   if (limit > MAX_LIMIT) {

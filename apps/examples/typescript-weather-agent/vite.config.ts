@@ -6,8 +6,7 @@ export default defineConfig({
   plugins: [tailwindcss(), react()],
   server: {
     port: 1989,
-    host: "0.0.0.0",
-    allowedHosts: ['alias.localhost'],
+    host: "0.0.0.0"
   },
   build: {
     outDir: "dist",
