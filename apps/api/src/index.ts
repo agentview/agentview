@@ -927,7 +927,7 @@ app.openapi(apiUsersPATCHRoute, async (c) => {
  * SESSIONS
  */
 
-const DEFAULT_LIMIT = 10
+const DEFAULT_LIMIT = 50
 const DEFAULT_PAGE = 1
 
 function getSessionListFilter(params: z.infer<typeof SessionsGetQueryParamsSchema>, principal: Principal) {
