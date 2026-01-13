@@ -3,6 +3,7 @@ import { AgentView, PublicAgentView } from 'agentview'
 import type { User, Run, Session } from 'agentview';
 import { z } from 'zod';
 import { seedUsers } from './seedUsers';
+import { createTestAuthClient } from './authClient';
 
 describe('API', () => {
   let initUser1: User
@@ -14,12 +15,16 @@ describe('API', () => {
   const EXTERNAL_ID_2 = 'external-id-2'
 
   let av: AgentView;
+  let orgSlug: string;
+  let organization: { id: string };
 
   beforeAll(async () => {
-    const orgSlug = "test-" + Math.random().toString(36).slice(2);
+    orgSlug = "test-" + Math.random().toString(36).slice(2);
     console.log("Seeding users for org: ", orgSlug);
 
-    const { organization, apiKey } = await seedUsers(orgSlug);
+    const result = await seedUsers(orgSlug);
+    organization = result.organization;
+    const apiKey = result.apiKey;
 
     av = new AgentView({
       apiKey: apiKey.key,
@@ -311,6 +316,67 @@ describe('API', () => {
         statusCode: 422,
         message: expect.any(String),
       }))
+    })
+
+    test("each developer has their own dev config", async () => {
+      const authClient = createTestAuthClient();
+
+      // Sign in as Bob and create his API key
+      await authClient.signIn.email({ email: `bob@${orgSlug}.com`, password: "blablabla" });
+      const bobApiKey = await authClient.apiKey.create({
+        name: "bob-key",
+        metadata: { organizationId: organization.id, env: 'dev' }
+      });
+      await authClient.signOut();
+
+      // Sign in as Alice and create her API key
+      await authClient.signIn.email({ email: `alice@${orgSlug}.com`, password: "blablabla" });
+      const aliceApiKey = await authClient.apiKey.create({
+        name: "alice-key",
+        metadata: { organizationId: organization.id, env: 'dev' }
+      });
+      await authClient.signOut();
+
+      const avBob = new AgentView({ apiKey: bobApiKey.key });
+      const avAlice = new AgentView({ apiKey: aliceApiKey.key });
+
+      // Bob uploads his config
+      const BOB_CONFIG = { agents: [{ name: "bob-agent" }] };
+      await avBob.__updateConfig({ config: BOB_CONFIG });
+
+      // Alice uploads her config
+      const ALICE_CONFIG = { agents: [{ name: "alice-agent" }] };
+      await avAlice.__updateConfig({ config: ALICE_CONFIG });
+
+      // Verify each developer sees only their own config
+      const bobConfig = await avBob.__getConfig();
+      expect(bobConfig.config).toEqual(BOB_CONFIG);
+
+      const aliceConfig = await avAlice.__getConfig();
+      expect(aliceConfig.config).toEqual(ALICE_CONFIG);
+
+      // Double-check Bob's config wasn't overwritten by Alice's
+      const bobConfigAgain = await avBob.__getConfig();
+      expect(bobConfigAgain.config).toEqual(BOB_CONFIG);
+
+      // Test that configs are isolated for real operations (sessions/runs)
+      // Bob can create sessions for his agent
+      const bobUser = await avBob.createUser({ externalId: "bob-test-user" });
+      const bobSession = await avBob.createSession({ agent: "bob-agent", userId: bobUser.id });
+      expect(bobSession.agent).toBe("bob-agent");
+
+      // Alice can create sessions for her agent
+      const aliceUser = await avAlice.createUser({ externalId: "alice-test-user" });
+      const aliceSession = await avAlice.createSession({ agent: "alice-agent", userId: aliceUser.id });
+      expect(aliceSession.agent).toBe("alice-agent");
+
+      // Bob cannot create sessions for Alice's agent (not in his config)
+      await expect(avBob.createSession({ agent: "alice-agent", userId: bobUser.id }))
+        .rejects.toThrowError(expect.objectContaining({ statusCode: 404 }));
+
+      // Alice cannot create sessions for Bob's agent (not in her config)
+      await expect(avAlice.createSession({ agent: "bob-agent", userId: aliceUser.id }))
+        .rejects.toThrowError(expect.objectContaining({ statusCode: 404 }));
     })
   })
 
