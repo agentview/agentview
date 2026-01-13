@@ -224,7 +224,6 @@ export const ConfigSchema = z.object({
   envId: z.string().nullable(), // null = production config, string = user's dev config
   config: z.any(),
   createdAt: z.iso.date(),
-  createdBy: z.string(),
 })
 
 export type Config = z.infer<typeof ConfigSchema>

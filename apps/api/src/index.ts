@@ -54,6 +54,7 @@ import { fetchSession } from './sessions';
 import type { Transaction } from './types';
 import { updateInboxes } from './updateInboxes';
 import { createUser, findUser } from './users';
+import { randomBytes } from 'crypto';
 
 
 await initDb();
@@ -386,14 +387,25 @@ function authorize(principal: Principal, action: Action) {
 }
 
 // Can call this function after authorise safely
-function requireMemberId(principal: Principal) {
+
+function getMemberId(principal: PrivatePrincipal) {
   if (principal.type === 'member') {
     return principal.session.user.id;
   }
   else if (principal.type === 'apiKey') {
-    return principal.apiKey.userId;
+    if (principal.apiKey.metadata?.env !== 'prod') {
+      return principal.apiKey.userId;
+    }
   }
-  throw new HTTPException(401, { message: "Unauthorized" });
+  return null;
+}
+
+function requireMemberId(principal: PrivatePrincipal) {
+  const memberId = getMemberId(principal);
+  if (!memberId) {
+    throw new HTTPException(401, { message: "Unauthorized" });
+  }
+  return memberId;
 }
 
 
@@ -408,6 +420,7 @@ function getEnvId(principal: PrivatePrincipal): string | null {
   }
   throw new HTTPException(401, { message: "Unauthorized" });
 }
+
 
 async function getConfigRowByPrincipal(tx: Transaction, principal: PrivatePrincipal): Promise<Awaited<ReturnType<typeof getConfigRow>> | undefined> {
   const configRow = await getConfigRow(tx, getEnvId(principal));
@@ -803,23 +816,59 @@ const usersPOSTRoute = createRoute({
   },
 })
 
-app.openapi(usersPOSTRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  const body = await c.req.valid('json')
-  const space = body.space ?? 'playground';
+async function createUser222(principal: PrivatePrincipal, space_?: Space | null, externalId?: string | null) {
+  const space = space_ ?? (getEnvId(principal) === null ? 'production' : 'playground');
+
+  console.log('_space_', space_);
+  console.log('space', space);
+  console.log('getEnvId(principal)', getEnvId(principal));
 
   await authorize(principal, { action: "end-user:create", space })
 
-  const memberId = requireMemberId(principal);
-
-  const newUser = await withOrg(principal.organizationId, async (tx) => {
-    return createUser(tx, {
+  return await withOrg(principal.organizationId, async (tx) => {
+    if (externalId) {
+      const existingUserWithExternalId = await findUser(tx, { externalId, space, organizationId: principal.organizationId })
+      if (existingUserWithExternalId) {
+        throw new AgentViewError('User with this external ID already exists', 422)
+      }
+    }
+  
+    const createdBy = getMemberId(principal);
+    if (space === 'production' && createdBy !== null) { // sanity check
+      throw new AgentViewError('Production space cannot be created by a member', 422)
+    }
+  
+    const [newEndUser] = await tx.insert(endUsers).values({
       organizationId: principal.organizationId,
-      createdBy: memberId,
+      externalId,
+      createdBy,
       space,
-      externalId: body.externalId,
-    })
+      token: randomBytes(32).toString('hex'),
+    }).returning()
+  
+    return newEndUser
   })
+}
+
+app.openapi(usersPOSTRoute, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+  const body = await c.req.valid('json')
+  // const space = body.space ?? 'playground' //(getEnvId(principal) === null ? 'production' : 'playground');
+
+  console.log('#####', body);
+
+  const newUser = await createUser222(principal, body.space, body.externalId);
+
+  // await authorize(principal, { action: "end-user:create", space })
+
+  // const newUser = await withOrg(principal.organizationId, async (tx) => {
+  //   return createUser(tx, {
+  //     organizationId: principal.organizationId,
+  //     createdBy: getMemberId(principal),
+  //     space,
+  //     externalId: body.externalId,
+  //   })
+  // })
 
   return c.json(newUser, 201);
 })
@@ -1521,11 +1570,11 @@ app.openapi(sessionsPOSTRoute, async (c) => {
       }
 
       // We must create user, for that space must be defined
-      if (!body.space) {
-        throw new HTTPException(422, { message: "You must provide 'space' parameter, since you didn't provide 'userId' nor 'X-User-Token'." });
-      }
+      // if (!body.space) {
+      //   throw new HTTPException(422, { message: "You must provide 'space' parameter, since you didn't provide 'userId' nor 'X-User-Token'." });
+      // }
 
-      const space = body.space as z.infer<typeof SpaceSchema>;
+      const space = body.space as z.infer<typeof SpaceSchema> ?? 'playground';
       authorize(principal, { action: "end-user:create", space });
 
       return await createUser(tx, { organizationId: principal.organizationId, createdBy: memberId, space})
@@ -2789,7 +2838,6 @@ const configPutRoute = createRoute({
 app.openapi(configPutRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   authorize(principal, { action: "config" });
-  const createdBy = requireMemberId(principal);
 
   const body = await c.req.valid('json')
 
@@ -2812,13 +2860,11 @@ app.openapi(configPutRoute, async (c) => {
       organizationId: principal.organizationId,
       envId: getEnvId(principal),
       config: data,
-      createdBy: createdBy,
     })
     .onConflictDoUpdate({
       target: [configs.organizationId, configs.envId],
       set: {
         config: data,
-        createdBy: createdBy,
       }
     })
     .returning()

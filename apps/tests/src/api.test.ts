@@ -18,6 +18,7 @@ describe('API', () => {
   let avProd: AgentView;
   let orgSlug: string;
   let organization: { id: string };
+  let adminUser: { id: string; email: string; name: string; }; // matches shape of adminUser returned by seedUsers
 
   beforeAll(async () => {
     orgSlug = "test-" + Math.random().toString(36).slice(2);
@@ -25,6 +26,7 @@ describe('API', () => {
 
     const result = await seedUsers(orgSlug);
     organization = result.organization;
+    adminUser = result.adminUser;
 
     av = new AgentView({
       apiKey: result.apiKeyDev.key,
@@ -207,6 +209,59 @@ describe('API', () => {
       })
     })
 
+    describe.only("environment-related behaviour", () => {
+      test("[dev api-key] default space for new user is playground and createdBy is set based on key", async () => {
+        const user = await av.createUser()
+        expect(user.space).toBe("playground")
+        expect(user.createdBy).toBe(adminUser.id)
+      })
+
+      test("[dev api-key] shared-playground can be set, createdBy is set based on key", async () => {
+        const user = await av.createUser({ space: "shared-playground" })
+        expect(user.space).toBe("shared-playground")
+        expect(user.createdBy).toBe(adminUser.id)
+      })
+
+      test("[dev api-key] production space is blocked", async () => {
+        await expect(av.createUser({ space: "production" })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 401,
+          message: expect.any(String),
+        }))
+      })
+
+      test("[prod api-key] default space for new user is production and createdBy is null", async () => {
+        const user = await avProd.createUser()
+        expect(user.space).toBe("production")
+        expect(user.createdBy).toBeNull()
+      })
+
+      test("[prod api-key] playground or shared-playground are not allowed with production api-key (you must be logged in as member to do it)", async () => {
+        await expect(avProd.createUser({ space: "playground" })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 401,
+          message: expect.any(String),
+        }))
+
+        await expect(avProd.createUser({ space: "shared-playground" })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 401,
+          message: expect.any(String),
+        }))
+      })
+      
+
+      // test("[prod api-key] playground is possible only with explicit ", async () => {
+      //   const user = await av.createUser({ space: "shared-playground" })
+      //   expect(user.space).toBe("shared-playground")
+      //   expect(user.createdBy).toBeNull()
+      // })
+
+      // test("[dev api-key] production space is blocked", async () => {
+      //   await expect(av.createUser({ space: "production" })).rejects.toThrowError(expect.objectContaining({
+      //     statusCode: 401,
+      //     message: expect.any(String),
+      //   }))
+      // })
+    })
+
     describe("get me", () => {
       test("works", async () => {
         const user1 = await av.as(initUser1).getUser()
@@ -292,7 +347,7 @@ describe('API', () => {
 
 
 
-  describe("configs", () => {
+  describe("environments", () => {
 
     test("works", async () => {
       const CONFIG = { agents: [{ name: "test" }] };

@@ -2,9 +2,9 @@ import { createTestAuthClient } from './authClient'
 
 export async function seedUsers(slug: string) {
   const authClient = createTestAuthClient();
-  
+
   // First sign up - admin user
-  await authClient.signUp.email({
+  const admin = await authClient.signUp.email({
     email: `admin@${slug}.com`,
     password: "blablabla",
     name: "Admin"
@@ -79,6 +79,7 @@ export async function seedUsers(slug: string) {
   return {
     organization,
     apiKeyDev,
-    apiKeyProd
+    apiKeyProd,
+    adminUser: admin.user
   }
 }
