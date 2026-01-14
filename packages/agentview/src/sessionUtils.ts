@@ -22,8 +22,8 @@ export function getVersions(session: Session | SessionWithCollaboration) {
   return session.runs
     .map((run) => run.version)
     .filter((version) => {
-      if (!version || seen.has(version.id)) return false;
-      seen.add(version.id);
+      if (!version) return false;
+      seen.add(version);
       return true;
     });
 }

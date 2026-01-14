@@ -456,8 +456,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
                     <PropertyListTextValue>
                         {versions.length === 0 && <span className="text-muted-foreground">-</span>}
                         {versions.length > 0 && <div className="flex flex-row gap-1">{versions.map(version => {
-                            const versionString = version?.version ?? "";
-                            return <Pill key={versionString}>{versionString}</Pill>
+                            return <Pill key={version}>{version}</Pill>
                         })}</div>}
                     </PropertyListTextValue>
                 </PropertyListItem>
