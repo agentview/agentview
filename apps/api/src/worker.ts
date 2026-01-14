@@ -238,7 +238,7 @@ setInterval(() => {
 // Run webhook job processor every 5 seconds
 setInterval(() => {
   processWebhookJobs();
-}, 5000);
+}, 3000);
 
 // Run immediately on startup
 processExpiredRuns();

@@ -12,7 +12,6 @@ import { eq, and, asc } from 'drizzle-orm';
  * Requires OPENAI_API_KEY environment variable to be set.
  */
 export async function generateSessionSummary(sessionId: string, organizationId: string): Promise<string | undefined> {
-  throw new Error('generateSessionSummary is not implemented');
   const client = new OpenAI();
 
   // Fetch session with its first item
