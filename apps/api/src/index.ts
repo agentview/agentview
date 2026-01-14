@@ -384,9 +384,10 @@ function authorize(principal: Principal, action: Action) {
     return true;
   }
   else if (action.action === "environment:write") {
-    if (principal.type === 'member' && principal.env === 'prod') { // safety check
-      throw new HTTPException(401, { message: "Unauthorized. You can't write to production environment with cookies authentication." });
-    }
+    /** It's commented out for now, to make DX better (open studio -> sync). But it's not secure! */
+    // if (principal.type === 'member' && principal.env === 'prod') { // safety check
+    //   throw new HTTPException(401, { message: "Unauthorized. You can't write to production environment with cookies authentication." });
+    // }
     return true;
   }
 

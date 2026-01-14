@@ -65,17 +65,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const env = getEnv();
 
-  // in development we just update the config
-  if (env === "dev") {
+  // For now for prod too. It's not secure though.
+  if (env === "dev" || env === "prod") {
     try {
       await updateRemoteConfig(config); // update schema on every page load
     } catch (error) {
       console.warn("Error while updating remote config", error);
     }
-  }
-  // in prod, we rely on the API to update the config
-  else {
-    await requireEnvironment();
   }
 
   // Organisation
