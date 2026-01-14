@@ -141,14 +141,6 @@ async function loadConfig(configPath: string): Promise<AgentViewConfig> {
   return config as AgentViewConfig;
 }
 
-function getApiBaseUrl(): string {
-  const baseUrl = process.env.VITE_AGENTVIEW_API_URL;
-  if (!baseUrl) {
-    throw new Error("baseUrl is required in Agent View config.");
-  }
-  return baseUrl;
-}
-
 function getAPIKey(): string {
   const apiKey = process.env.AGENTVIEW_API_KEY;
   if (!apiKey) {
@@ -160,7 +152,6 @@ function getAPIKey(): string {
 async function pushConfig(configPath: string) {
   const config = await loadConfig(configPath);
   
-  const baseUrl = getApiBaseUrl();
   const apiKey = getAPIKey();
 
   const av = new AgentView({
@@ -168,7 +159,7 @@ async function pushConfig(configPath: string) {
   });
 
   try {
-    await av.__updateConfig({ config });
+    await av.updateEnvironment({ config });
   } catch (error) {
     if (error instanceof AgentViewError) {
       console.error(`Error (${error.statusCode}): ${error.message}`);
@@ -181,7 +172,7 @@ async function pushConfig(configPath: string) {
     process.exit(1);
   }
 
-  console.log(`Config pushed to ${baseUrl}`);
+  console.log(`Config pushed`);
 }
 
 async function watchConfig(configPath: string) {

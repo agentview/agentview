@@ -41,8 +41,9 @@ import { config } from "../config";
 import { apiFetch } from "../lib/apiFetch";
 import { authClient, getMember, getOrganization } from "../lib/auth-client";
 import { getCurrentAgent } from "../lib/currentAgent";
-import { updateRemoteConfig } from "../lib/environment";
+import { getEnvironment, requireEnvironment, updateRemoteConfig } from "../lib/environment";
 import { SessionContext } from "../lib/SessionContext";
+import { getEnv } from "../getEnv";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await authClient.getSession()
@@ -62,10 +63,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const agent = getCurrentAgent(request);
 
-  try {
-    await updateRemoteConfig(config); // update schema on every page load
-  } catch(error) {
-    console.warn("Error while updating remote config", error);
+  const env = getEnv();
+
+  // in development we just update the config
+  if (env === "dev") {
+    try {
+      await updateRemoteConfig(config); // update schema on every page load
+    } catch (error) {
+      console.warn("Error while updating remote config", error);
+    }
+  }
+  // in prod, we rely on the API to update the config
+  else {
+    await requireEnvironment();
   }
 
   // Organisation
@@ -80,7 +90,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   // }
   const organization = await getOrganization();
   await authClient.organization.setActive({ organizationId: config.organizationId });
-  
+
   // const organization = await authClient.organization.getFullOrganization();
 
   // const orgListResponse = await authClient.organization.list();
@@ -195,8 +205,8 @@ function Component() {
   const prodUnseenCount = getUnseenCount(agent, "production")
   const playgroundUnseenCount = getUnseenCount(agent, "playground")
   const sharedPlaygroundUnseenCount = getUnseenCount(agent, "shared-playground")
-  
-  const agentCustomRoutes : AgentCustomRoute[] = [];
+
+  const agentCustomRoutes: AgentCustomRoute[] = [];
   for (const route of config.customRoutes ?? []) {
     if (route.type === "agent" && route.agent === agent) {
       agentCustomRoutes.push(route);
@@ -272,7 +282,7 @@ function Component() {
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                         <SidebarMenuSubItem >
-                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&space=shared-playground`)}  className={"justify-between"}>
+                          <SidebarMenuSubButton asChild isActive={isMenuLinkActive(`/sessions?agent=${agent}&space=shared-playground`)} className={"justify-between"}>
                             <Link to={`/sessions?agent=${agent}&space=shared-playground`}>
                               <div>Shared</div>
                               {sharedPlaygroundUnseenCount > 0 && <NotificationBadge>{sharedPlaygroundUnseenCount}</NotificationBadge>}
@@ -293,7 +303,7 @@ function Component() {
                 </SidebarGroupContent>
               </SidebarGroup>
 
-              { agentCustomRoutes.length > 0 && <SidebarGroup>
+              {agentCustomRoutes.length > 0 && <SidebarGroup>
                 <SidebarGroupLabel>Pages</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
@@ -366,7 +376,7 @@ function Component() {
                 </SidebarMenu>
               </SidebarGroup>} */}
 
-              { (me.role === "admin" || me.role === "owner") && <SidebarGroup>
+              {(me.role === "admin" || me.role === "owner") && <SidebarGroup>
                 <SidebarGroupLabel>Dev</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>

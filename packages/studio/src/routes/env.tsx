@@ -1,16 +1,16 @@
 import { TerminalIcon } from "lucide-react";
-import { useFetcher, useLoaderData } from "react-router";
+import { data, useLoaderData } from "react-router";
 import type { RouteObject } from "react-router";
 
 import { Header, HeaderTitle } from "../components/header";
 import { Button } from "../components/ui/button";
-import { getEnvironment } from "../lib/environment";
+import { requireEnvironment } from "../lib/environment";
 import { useSessionContext } from "../lib/SessionContext";
-import { Pill } from "../components/Pill";
 import { PropertyList, PropertyListTextValue, PropertyListItem, PropertyListTitle } from "../components/PropertyList";
 
 async function loader() {
-  return { environment: await getEnvironment() };
+  const environment = await requireEnvironment();
+  return { environment };
 }
 
 function Component() {
@@ -47,7 +47,7 @@ function Component() {
   </div>
 }
 
-export const configsRoute: RouteObject = {
+export const envRoute: RouteObject = {
   Component,
   loader,
 }

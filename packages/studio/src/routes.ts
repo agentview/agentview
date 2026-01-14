@@ -9,7 +9,7 @@ import { sessionRoute } from "./routes/session";
 import { sessionItemRoute } from "./routes/sessionItem";
 import { sessionItemCommentsRoute } from "./routes/sessionItemComments";
 import { sessionItemCommentRoute } from "./routes/sessionItemComment";
-import { configsRoute } from "./routes/configs";
+import { envRoute } from "./routes/env";
 import { logoutRoute } from "./routes/logout";
 import { loginRoute } from "./routes/login";
 import { rootRoute } from "./root";
@@ -37,8 +37,8 @@ export function routes(customRoutes: AgentViewConfig["customRoutes"]): RouteObje
               index: true,
             },
             {
-              path: "config",
-              ...configsRoute,
+              path: "env",
+              ...envRoute,
             },
             // {
             //   path: "settings",
