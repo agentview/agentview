@@ -2048,12 +2048,12 @@ app.openapi(runsPOSTRoute, async (c) => {
       throw new HTTPException(422, { message: "Production sessions can't have suffixed versions." });
     }
 
-    if ((session.user.space === 'playground' || session.user.space === 'shared-playground') && !parsedVersion.suffix) {
+    if (getEnvId(principal) !== null && !parsedVersion.suffix) {
       parsedVersion.suffix = 'dev';
     }
 
     if (lastRun?.version) { // compare semantic versions when previous version exists
-      const lastVersionParsed = parseVersion(lastRun.version.version);
+      const lastVersionParsed = parseVersion(lastRun.version);
       if (!lastVersionParsed) {
         throw new HTTPException(422, { message: "Invalid version format in previous run." });
       }

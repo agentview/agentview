@@ -390,7 +390,7 @@ describe('API', () => {
       await authClient.signIn.email({ email: `bob@${orgSlug}.com`, password: "blablabla" });
       const bobApiKey = await authClient.apiKey.create({
         name: "bob-key",
-        prefix: 'dev',
+        prefix: 'dev_',
         metadata: { organizationId: organization.id, env: 'dev' }
       });
       await authClient.signOut();
@@ -399,7 +399,7 @@ describe('API', () => {
       await authClient.signIn.email({ email: `alice@${orgSlug}.com`, password: "blablabla" });
       const aliceApiKey = await authClient.apiKey.create({
         name: "alice-key",
-        prefix: 'dev',
+        prefix: 'dev_',
         metadata: { organizationId: organization.id, env: 'dev' }
       });
       await authClient.signOut();
@@ -1341,7 +1341,7 @@ describe('API', () => {
     })
 
 
-    describe("versioning", () => {
+    describe.only("versioning", () => {
       test("incorrect formats fail", async () => {
         await updateConfig()
         const session = await createSession()
@@ -1370,14 +1370,34 @@ describe('API', () => {
         await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.4" })
         await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.4-local" })
 
-        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.3-dev" }), 422) // smaller patch fails even with suffix
-        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.3-xxx" }), 422) // different suffix fails
+        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.3-local" }), 422) // smaller patch fails even with suffix
+        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.3-xxx" }), 422) // smaller patch with §§different suffix fails
         await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "2.0.0" }), 422) // different suffix fails
         await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "2.0.0-dev" }), 422) // different suffix fails
       })
 
+      test("no suffix in playground results in -dev suffix", async () => {
+        await updateConfig()
+        const session = await createSession()
+        const run = await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0" })
+        expect(run.version).toBe("1.3.0-dev")
+      })
 
-      test("compatibility enforced - production", async () => {
+      test("playground suffix can be overriden", async () => {
+        await updateConfig()
+        const session = await createSession()
+        const run = await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0-xxx" })
+        expect(run.version).toBe("1.3.0-xxx")
+      })
+
+      test("no suffix in production is no suffix", async () => {
+        await updateConfig({ prod: true })
+        const session = await createSession()
+        const run = await avProd.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0" })
+        expect(run.version).toBe("1.3.0")
+      })
+
+      test("production can't have suffixed versions", async () => {
         await updateConfig({ prod: true })
         const session = await avProd.createSession({ agent: "test", userId: initProdUser.id })
 

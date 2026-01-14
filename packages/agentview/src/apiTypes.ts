@@ -42,11 +42,11 @@ export type UserCreate = z.infer<typeof UserCreateSchema>
 //   role: z.enum(['admin', 'user']),
 // })
 
-export const VersionSchema = z.object({
-  id: z.string(),
-  version: z.string(),
-  createdAt: z.iso.date(),
-})
+// export const VersionSchema = z.object({
+//   id: z.string(),
+//   version: z.string(),
+//   createdAt: z.iso.date(),
+// })
 
 // export const VersionCreateSchema = z.object({
 //     version: z.string(),
@@ -114,7 +114,7 @@ export const RunSchema = z.object({
   finishedAt: z.iso.date().nullable(),
   status: z.string(),
   failReason: z.any().nullable(),
-  version: VersionSchema,
+  version: z.string(),
   metadata: z.record(z.string(), z.any()).nullable(),
   sessionItems: z.array(SessionItemSchema),
 
