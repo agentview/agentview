@@ -1341,7 +1341,7 @@ describe('API', () => {
     })
 
 
-    describe.only("versioning", () => {
+    describe("versioning", () => {
       test("incorrect formats fail", async () => {
         await updateConfig()
         const session = await createSession()

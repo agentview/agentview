@@ -55,6 +55,7 @@ import type { Transaction } from './types';
 import { updateInboxes } from './updateInboxes';
 import { findUser } from './users';
 import { randomBytes } from 'crypto';
+import type { Env } from './env';
 
 
 await initDb();
@@ -313,12 +314,13 @@ type Action = {
 
 // extra check. We don't allow write actions in dev environment for end users in production space.
 function validateIfEndUserWriteActionAllowed(principal: PrivatePrincipal, action: Action) {
-  const isProdEnv = getEnvId(principal) === null;
+  const env = getEnv(principal);
+
   const endUserBelongsToProdSpace = 
     (action.action === "end-user:create" && action.space === 'production') || 
     (action.action === "end-user:update" && action.user.space === 'production');
 
-  if (isProdEnv || (!isProdEnv && !endUserBelongsToProdSpace)) {
+  if (env.type === 'prod' || (env.type === 'dev' && !endUserBelongsToProdSpace)) {
     return true;
   }
 
@@ -411,19 +413,20 @@ function requireMemberId(principal: PrivatePrincipal) {
 
 // CONFIG HELPERS
 
-function getEnvId(principal: PrivatePrincipal): string | null {
+
+function getEnv(principal: PrivatePrincipal): Env {
   if (principal.type === 'apiKey') {
-    return principal.apiKey.metadata?.env === 'prod' ? null : principal.apiKey.userId;
+    return principal.apiKey.metadata?.env === 'prod' ? { type: 'prod' } : { type: 'dev', memberId: principal.apiKey.userId };
   }
   else if (principal.type === 'member') {
-    return principal.env === 'prod' ? null : principal.session.user.id;
+    return principal.env === 'prod' ? { type: 'prod' } : { type: 'dev', memberId: principal.session.user.id };
   }
   throw new HTTPException(401, { message: "Unauthorized" });
 }
 
 
 async function getConfigRowByPrincipal(tx: Transaction, principal: PrivatePrincipal): Promise<Awaited<ReturnType<typeof getConfigRow>> | undefined> {
-  const configRow = await getConfigRow(tx, getEnvId(principal));
+  const configRow = await getConfigRow(tx, getEnv(principal));
 
   if (!configRow) {
     return undefined;
@@ -817,7 +820,8 @@ const usersPOSTRoute = createRoute({
 })
 
 async function createUser(principal: PrivatePrincipal, space_?: Space | null, externalId?: string | null) {
-  const space = space_ ?? (getEnvId(principal) === null ? 'production' : 'playground');
+  const env = getEnv(principal);
+  const space : Space = space_ ?? (env.type === 'prod' ? 'production' : 'playground'); // default space is set based on environment
 
   await authorize(principal, { action: "end-user:create", space })
 
@@ -2048,7 +2052,8 @@ app.openapi(runsPOSTRoute, async (c) => {
       throw new HTTPException(422, { message: "Production sessions can't have suffixed versions." });
     }
 
-    if (getEnvId(principal) !== null && !parsedVersion.suffix) {
+    const env = getEnv(principal);
+    if (env.type === 'dev' && !parsedVersion.suffix) {
       parsedVersion.suffix = 'dev';
     }
 
@@ -2830,10 +2835,12 @@ app.openapi(configPutRoute, async (c) => {
       return c.json(configRow, 200)
     }
 
+    const env = getEnv(principal);
+
     // Upsert: insert or update existing config for this user
     const [newConfigRow] = await tx.insert(configs).values({
       organizationId: principal.organizationId,
-      envId: getEnvId(principal),
+      envId: env.type === 'prod' ? null : env.memberId,
       config: data,
     })
     .onConflictDoUpdate({
