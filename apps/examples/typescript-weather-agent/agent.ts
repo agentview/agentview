@@ -1,15 +1,14 @@
-import 'dotenv/config'
-import { Hono } from 'hono'
-import { serve } from '@hono/node-server'
+import { serve } from '@hono/node-server';
+import { Runner } from "@openai/agents";
 import { AgentView, AgentViewError } from "agentview";
+import 'dotenv/config';
+import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { Runner, RunItemStreamEvent } from "@openai/agents"
-import { weatherAgent } from './src/weatherAgent';
-import { streamSSE } from 'hono/streaming'
-import { HTTPException } from 'hono/http-exception';
+import { streamSSE } from 'hono/streaming';
 import { OpenAI } from 'openai';
-import { z } from 'zod';
 import { zodTextFormat } from "openai/helpers/zod";
+import { z } from 'zod';
+import { weatherAgent } from './src/weatherAgent';
 
 
 const app = new Hono();

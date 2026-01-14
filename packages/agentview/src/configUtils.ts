@@ -3,6 +3,7 @@ import type { BaseAgentViewConfig, BaseAgentConfig, BaseSessionItemConfig, BaseS
 import { z } from "zod";
 import { AgentViewError } from "./AgentViewError.js";
 import { convertJsonSchemaToZod } from '@agentview/zod-from-json-schema';
+import type { AgentViewConfig } from "./types.js";
 
 
 // Register `callId` meta for zod schemas
@@ -215,101 +216,11 @@ function matchItemConfigs<T extends BaseSessionItemConfig>(itemConfigs: T[], ite
 
             }
         }
-
-        // if (itemParseResult.success) {
-        //     matches.push({ ...itemConfig, content: itemParseResult.data });
-        // }
-
-        // if (itemConfig.callResult) {
-        //     const toolResultParseResult = itemConfig.callResult.schema.safeParse(item);
-
-        //     if (!toolResultParseResult.success) {
-        //         continue;
-        //     }
-
-        //     const callIdKey = getCallIdKey(itemConfig.schema);
-        //     const resultIdKey = getCallIdKey(itemConfig.callResult.schema);
-
-        //     if (!callIdKey || !resultIdKey) {
-        //         console.warn('Both callIdKey and resultIdKey must be defined for result');
-        //         break;
-        //     }
-
-        //     for (let i = itemsBefore.length - 1; i >= 0; i--) {
-        //         const prevItem = itemsBefore[i];
-
-        //         // if (callResultSchema.safeParse(prevItem).success) { // If we encounter *any* matching result in previous items that already looks like matching response, then we stop looking. 
-        //         //     break;
-        //         // }
-
-        //         const toolCallParseResult = itemConfig.schema.safeParse(prevItem);
-
-        //         if (toolCallParseResult.success && prevItem[callIdKey] === item[resultIdKey]) { // if both keys are `undefined`, first match.
-        //             matches.push({
-        //                 ...itemConfig.callResult,
-        //                 content: toolResultParseResult.data,
-        //                 toolCallContent: prevItem,
-        //             } as T);
-        //             break;
-        //         }
-        //     }
-        // }
     }
 
     return matches;
 }
 
-
-
-// // 1. remove functions and react components
-// // 2. convert zod schemas to json schemas
-// export function makeObjectSerializable(obj: any, path?: string): any {
-//     if (obj === null || obj === undefined) {
-//         return obj;
-//     }
-
-//     // Handle Zod schemas
-//     if (obj instanceof z.ZodType) {
-//         return z.toJSONSchema(obj);
-//     }
-
-//     // Handle arrays
-//     if (Array.isArray(obj)) {
-//         return obj.map((value, index) => makeObjectSerializable(value, path ? `${path}[${index}]` : index.toString()));
-//     }
-
-//     // Handle objects
-//     if (typeof obj === "object") {
-//         const result: any = {};
-//         for (const [key, value] of Object.entries(obj)) {
-//             console.log('key-value', path + "." + key);
-//             if (isFunction(value) || isReactComponent(value)) {
-//                 continue;
-//             }
-//             result[key] = makeObjectSerializable(value, path ? `${path}.${key}` : key);
-//         }
-//         return result;
-//     }
-
-//     // Primitives
-//     return obj;
-// }
-
-// // Helper function to check if a value is a React component
-// function isReactComponent(value: any): boolean {
-//     return typeof value === 'function' && (
-//         value.displayName ||
-//         value.name?.startsWith('React') ||
-//         value.$$typeof === Symbol.for('react.element') ||
-//         value.$$typeof === Symbol.for('react.memo') ||
-//         value.$$typeof === Symbol.for('react.forward_ref')
-//     );
-// }
-
-// // Helper function to check if a value is a function (excluding React components)
-// function isFunction(value: any): boolean {
-//     return typeof value === 'function' && !isReactComponent(value);
-// }
 
 
 

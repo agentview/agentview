@@ -1,15 +1,15 @@
-import { z } from "zod";
-import { defineConfig } from "agentview";
-import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput, select, multiSelect, Colors } from "@agentview/studio";
-import { Book, Brain, CircleDollarSign, DollarSign } from "lucide-react";
-import { WeatherItem } from './src/WeatherItem';
-import * as React from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@agentview/studio/components/ui/select";
+import { AssistantMessage, Colors, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput, multiSelect, select } from "@agentview/studio";
 import { Button } from "@agentview/studio/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@agentview/studio/components/ui/select";
+import { defineConfig } from "agentview";
+import { Book, Brain } from "lucide-react";
+import * as React from "react";
+import { z } from "zod";
 import { CustomPage } from "./src/CustomPage";
+import { WeatherItem } from './src/WeatherItem';
 
 export default defineConfig({
-  organizationId: import.meta.env.VITE_AGENTVIEW_ORGANIZATION_ID,
+  organizationId: "GqADYGDxFo1QqcEnHLrYOSzhCa4YUx5j",
   agents: [
     {
       name: "weather-chat",
