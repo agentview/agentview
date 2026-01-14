@@ -308,7 +308,9 @@ type Action = {
 } | {
   action: "admin"
 } | {
-  action: "environment"
+  action: "environment:write"
+} | {
+  action: "environment:read"
 }
 
 // extra check. We don't allow write actions in dev environment for end users in production space.
@@ -378,10 +380,14 @@ function authorize(principal: Principal, action: Action) {
       return true;
     }
   }
-  else if (action.action === "environment") {
-    if (principal.type === 'apiKey' || principal.type === 'member') {
-      return true;
+  else if (action.action === "environment:read") {
+    return true;
+  }
+  else if (action.action === "environment:write") {
+    if (principal.type === 'member' && principal.env === 'prod') { // safety check
+      throw new HTTPException(401, { message: "Unauthorized. You can't write to production environment with cookies authentication." });
     }
+    return true;
   }
 
   throw new HTTPException(401, { message: "Unauthorized" });
@@ -2797,7 +2803,7 @@ const environmentGETRoute = createRoute({
 
 app.openapi(environmentGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  authorize(principal, { action: "environment" });
+  authorize(principal, { action: "environment:read" });
 
   return withOrg(principal.organizationId, async (tx) => {
     const environment = await getEnvironmentByPrincipal(tx, principal);
@@ -2819,7 +2825,7 @@ const environmentPATCHRoute = createRoute({
 
 app.openapi(environmentPATCHRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  authorize(principal, { action: "environment" });
+  authorize(principal, { action: "environment:write" });
 
   const body = await c.req.valid('json')
 

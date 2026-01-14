@@ -1,51 +1,48 @@
-import React from "react";
 import {
   data,
   Form,
   Link,
   Outlet,
   redirect,
-  useFetcher,
   useLoaderData,
   useLocation,
   type LoaderFunctionArgs,
-  type RouteObject,
+  type RouteObject
 } from "react-router";
 
-import { LogOut, ChevronUp, UserIcon, Edit, Lock, Users, Mail, MessageCircle, Database, Inbox, BotIcon, ChevronsUpDown, ChevronDown, WrenchIcon, CircleGauge, PlusIcon, UsersIcon, StarIcon, Settings, ArrowLeft, LockKeyhole, Building2Icon } from "lucide-react"
+import { ArrowLeft, Building2Icon, ChevronDown, ChevronUp, Database, LogOut, MessageCircle, PlusIcon, UserIcon, WrenchIcon } from "lucide-react";
+import { NotificationBadge } from "../components/internal/NotificationBadge";
 import {
-  SidebarProvider,
   Sidebar,
-  SidebarHeader,
   SidebarContent,
   SidebarFooter,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarInset,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarMenuSub,
-  SidebarMenuSubItem,
   SidebarMenuSubButton,
-} from "../components/ui/sidebar"
-import { NotificationBadge } from "../components/internal/NotificationBadge";
+  SidebarMenuSubItem,
+  SidebarProvider,
+} from "../components/ui/sidebar";
 
 // Removed Framework Mode type import
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
-import { authClient, getOrganization, getMember, type Organization } from "../lib/auth-client";
-import { SessionContext } from "../lib/SessionContext";
-import { apiFetch } from "../lib/apiFetch";
-import { updateRemoteConfig } from "../lib/remoteConfig";
-import { config } from "../config";
-import { type Space, spaceAllowedValues } from "agentview/apiTypes";
-import { Button } from "../components/ui/button";
-import { getCurrentAgent } from "../lib/currentAgent";
+import { spaceAllowedValues, type Space } from "agentview/apiTypes";
+import type { AgentCustomRoute } from "agentview/types";
 import { matchPath } from "react-router";
 import { UserAvatar } from "../components/internal/UserAvatar";
-import type { AgentCustomRoute } from "agentview/types";
-import { betterAuthErrorToBaseError } from "../lib/errors";
+import { Button } from "../components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
+import { config } from "../config";
+import { apiFetch } from "../lib/apiFetch";
+import { authClient, getMember, getOrganization } from "../lib/auth-client";
+import { getCurrentAgent } from "../lib/currentAgent";
+import { updateRemoteConfig } from "../lib/environment";
+import { SessionContext } from "../lib/SessionContext";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await authClient.getSession()

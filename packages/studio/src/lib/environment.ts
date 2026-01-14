@@ -4,9 +4,8 @@ import { serializeConfig } from "agentview/configUtils";
 
 
 // TODO: this code could use SDK
-
-export async function getRemoteConfig() {
-    const response = await apiFetch(`/api/config`);
+export async function getEnvironment() {
+    const response = await apiFetch(`/api/environment`);
 
     if (!response.ok) {
         throw response.error;
@@ -18,8 +17,8 @@ export async function getRemoteConfig() {
 export async function updateRemoteConfig(config: AgentViewConfig) {
     const baseConfig = serializeConfig(config);
     
-    const response = await apiFetch(`/api/config`, {
-        method: "PUT",
+    const response = await apiFetch(`/api/environment`, {
+        method: "PATCH",
         body: {
             config: baseConfig
         }

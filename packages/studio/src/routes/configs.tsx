@@ -4,19 +4,19 @@ import type { RouteObject } from "react-router";
 
 import { Header, HeaderTitle } from "../components/header";
 import { Button } from "../components/ui/button";
-import { getRemoteConfig } from "../lib/remoteConfig";
+import { getEnvironment } from "../lib/environment";
 import { useSessionContext } from "../lib/SessionContext";
 import { Pill } from "../components/Pill";
 import { PropertyList, PropertyListTextValue, PropertyListItem, PropertyListTitle } from "../components/PropertyList";
 
 async function loader() {
-  return { config: await getRemoteConfig() };
+  return { environment: await getEnvironment() };
 }
 
 function Component() {
-  const { config } = useLoaderData<typeof loader>();
+  const { environment } = useLoaderData<typeof loader>();
   const { organization } = useSessionContext()
-  const configEnvOwner = organization.members.find(m => m.userId === config.envId);
+  const configEnvOwner = organization.members.find(m => m.userId === environment.userId);
 
   return <div>
     <Header>
@@ -29,18 +29,18 @@ function Component() {
           <PropertyListItem>
             <PropertyListTitle>Environment</PropertyListTitle>
             <PropertyListTextValue>
-              {config.envId === null && "production"}
-              {config.envId !== null && `dev (${configEnvOwner?.user.email})`}
+              {environment.userId === null && "production"}
+              {environment.userId !== null && `dev (${configEnvOwner?.user.email})`}
             </PropertyListTextValue>
           </PropertyListItem>
 
         </PropertyList>
         
         <Button variant="outline" onClick={() => {
-          console.log(config.config);
+          console.log(environment.config);
         }} className="mt-4"><TerminalIcon /> Print config to console</Button>
         <pre className="bg-gray-100 p-4 rounded overflow-x-auto text-sm mt-4">
-          {JSON.stringify(config.config, null, 2)}
+          {JSON.stringify(environment.config, null, 2)}
         </pre>
       </div>
     </div>
