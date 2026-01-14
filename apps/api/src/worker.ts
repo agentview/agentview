@@ -4,6 +4,7 @@ import { runs, webhookJobs, environments } from './schemas/schema';
 import { eq, and, lt, or, isNull, desc } from 'drizzle-orm';
 import { getEnvironment } from './environments';
 import { initDb } from './initDb';
+import { generateSessionSummary } from './summaries';
 
 await initDb();
 
@@ -79,29 +80,28 @@ async function processWebhookJobs() {
       .limit(10);
 
     for (const job of jobs) {
-      const webhookUrl = await withOrg(job.organizationId, async (tx) => {
-        const environment = await tx.query.environments.findFirst({
+      const environment = await withOrg(job.organizationId, async (tx) => {
+        return tx.query.environments.findFirst({
           where: eq(environments.id, job.environmentId),
         });
-
-        if (!environment) {
-          console.error(`Environment ${job.environmentId} not found`);
-          return;
-        }
-
-        return (environment.config as any).webhookUrl;
       });
 
-      if (webhookUrl) {
-        await processWebhookJob(job, webhookUrl);
+      if (!environment) {
+        console.error(`Environment ${job.environmentId} not found`);
+        continue;
       }
+
+      const config = environment.config as any;
+      const webhookUrl = config?.webhookUrl;
+
+      await processWebhookJob(job, config, webhookUrl);
     }
   } catch (error) {
     console.error('Error in webhook job processor:', error);
   }
 }
 
-async function processWebhookJob(job: typeof webhookJobs.$inferSelect, webhookUrl: string) {
+async function processWebhookJob(job: typeof webhookJobs.$inferSelect, config: any, webhookUrl: string | undefined) {
   const now = new Date();
 
   // Mark as processing (using withOrg for RLS enforcement)
@@ -112,19 +112,76 @@ async function processWebhookJob(job: typeof webhookJobs.$inferSelect, webhookUr
   });
 
   try {
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event: job.eventType,
-        payload: job.payload,
-        job_id: job.id,
-      }),
-    });
+    // summary generation
+    if (job.eventType === 'session.generate_summary') {
+      const payload = job.payload as { session_id: string };
+      const disableSummaries = config?.__internal?.disableSummaries;
 
-    if (!response.ok) {
-      throw new Error(`Webhook returned ${response.status}: ${await response.text()}`);
+      if (disableSummaries) {
+        throw new Error(`Summary generation is disabled`);
+      }
+
+      await generateSessionSummary(payload.session_id, job.organizationId);
     }
+    // webhook
+    else {
+      if (!webhookUrl) {
+        throw new Error(`Webhook URL is not configured`); // if webhook url disappeared while job is pending -> fail the job.
+      }
+
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: job.eventType,
+          payload: job.payload,
+          job_id: job.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Webhook returned ${response.status}: ${await response.text()}`);
+      }
+
+      console.log(`Webhook job ${job.id} completed successfully`);
+    }
+
+
+    // // Deliver webhook if URL is configured
+    // if (webhookUrl) {
+    //   const response = await fetch(webhookUrl, {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({
+    //       event: job.eventType,
+    //       payload: job.payload,
+    //       job_id: job.id,
+    //     }),
+    //   });
+
+    //   if (!response.ok) {
+    //     throw new Error(`Webhook returned ${response.status}: ${await response.text()}`);
+    //   }
+
+    //   console.log(`Webhook job ${job.id} completed successfully`);
+    // }
+
+    // // Generate summary for session.on_first_run_created events (best-effort, doesn't fail the job)
+    // if (job.eventType === 'session.on_first_run_created') {
+    //   const payload = job.payload as { session_id: string };
+    //   const disableSummaries = config?.__internal?.disableSummaries;
+
+    //   if (!disableSummaries && process.env.OPENAI_API_KEY) {
+    //     try {
+    //       await generateSessionSummary(payload.session_id, job.organizationId);
+    //       console.log(`Summary generated for session ${payload.session_id}`);
+    //     } catch (err) {
+    //       console.error(`Summary generation failed for session ${payload.session_id}:`, err);
+    //       // Don't fail the job - summary is best-effort
+    //     }
+    //   }
+    // }
+
 
     // Success - mark as completed
     await withOrg(job.organizationId, async (tx) => {
@@ -132,8 +189,6 @@ async function processWebhookJob(job: typeof webhookJobs.$inferSelect, webhookUr
         .set({ status: 'completed', updatedAt: new Date().toISOString() })
         .where(eq(webhookJobs.id, job.id));
     });
-
-    console.log(`Webhook job ${job.id} completed successfully`);
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

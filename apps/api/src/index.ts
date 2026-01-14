@@ -2156,18 +2156,32 @@ app.openapi(runsPOSTRoute, async (c) => {
       })
     }
 
-    // Queue webhook job on first run (if webhookUrl is configured)
+    // Queue webhook job on first run (for summary generation and/or webhook delivery)
     const isFirstRun = lastRun === undefined;
-    if (isFirstRun && config.webhookUrl) {
-      await tx.insert(webhookJobs).values({
-        organizationId,
-        eventType: 'session.on_first_run_created',
-        payload: { session_id: body.sessionId },
-        sessionId: body.sessionId,
-        status: 'pending',
-        nextAttemptAt: new Date().toISOString(),
-        environmentId: environment.id,
-      });
+    if (isFirstRun) {
+      if (config.webhookUrl) { // enqueue job if 
+        await tx.insert(webhookJobs).values({
+          organizationId,
+          eventType: 'session.on_first_run_created',
+          payload: { session_id: body.sessionId },
+          sessionId: body.sessionId,
+          status: 'pending',
+          nextAttemptAt: new Date().toISOString(),
+          environmentId: environment.id,
+        });
+      }
+
+      if (!config.__internal?.disableSummaries) {
+        await tx.insert(webhookJobs).values({
+          organizationId,
+          eventType: 'session.generate_summary',
+          payload: { session_id: body.sessionId },
+          sessionId: body.sessionId,
+          status: 'pending',
+          nextAttemptAt: new Date().toISOString(),
+          environmentId: environment.id,
+        });
+      }
     }
 
     const updatedSession = await requireSession(tx, body.sessionId);

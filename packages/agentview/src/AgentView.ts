@@ -20,6 +20,7 @@ import { serializeConfig } from './configUtils.js'
 
 
 import { enhanceSession } from './sessionUtils.js'
+import type { InternalConfig } from './configTypes.js'
 
 export interface AgentViewOptions {
   apiKey?: string
@@ -27,17 +28,21 @@ export interface AgentViewOptions {
   space?: Space
 }
 
+export const configDefaults: {
+  __internal?: InternalConfig
+} = { __internal: undefined }
+
+
 export class AgentView {
   private apiBaseUrl: string
   private apiKey: string
   private userToken?: string
-  // private space: Space
 
   constructor(options?: AgentViewOptions) {
     if (!process.env.VITE_AGENTVIEW_API_URL) {
       throw new Error("AgentView: Missing apiBaseUrl.")
     }
-    
+
     this.apiBaseUrl = process.env.VITE_AGENTVIEW_API_URL; //options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
 
     const apiKey = options?.apiKey ?? process.env.AGENTVIEW_API_KEY
@@ -46,17 +51,7 @@ export class AgentView {
     }
 
     this.apiKey = apiKey
-
-    // if (!this.apiBaseUrl) {
-    //   throw new Error("AgentView: Missing 'apiBaseUrl'.")
-    // }
-
-    // if (!this.apiKey) {
-    //   throw new Error("AgentView: Missing 'apiKey'.")
-    // }
-
     this.userToken = options?.userToken
-    // this.space = options?.space ?? "playground";
   }
 
   private async request<T>(
@@ -91,8 +86,6 @@ export class AgentView {
 
   async createSession(options: SessionCreate) {
     return enhanceSession(await this.request<Session>('POST', `/api/sessions`, options))
-
-    // return enhanceSession(await this.request<Session>('POST', `/api/sessions`, { space: this.space, ...options }))
   }
 
   async getSession(options: { id: string }) {
@@ -148,7 +141,6 @@ export class AgentView {
 
   async createUser(options?: UserCreate): Promise<User> {
     return await this.request<User>('POST', `/api/users`, options ?? {})
-    // return await this.request<User>('POST', `/api/users`, { space: this.space, ...options })
   }
 
   async getUser(options?: { id: string } | { token: string } | { externalId: string, space?: Space } | undefined): Promise<User> {
@@ -166,8 +158,6 @@ export class AgentView {
     }
     if ('externalId' in options) {
       return await this.request<User>('GET', `/api/users/by-external-id/${options.externalId}`)
-      // return await this.request<User>('GET', `/api/users/by-external-id/${options.externalId}?space=${options.space ?? this.space}`)
-
     }
     throw new Error('Invalid options')
   }
@@ -181,14 +171,25 @@ export class AgentView {
   }
 
   async updateEnvironment(body: EnvironmentCreate): Promise<Environment> {
-    return await this.request<Environment>('PATCH', `/api/environment`, { ...body, config: serializeConfig(body.config) })
+    let config = body.config;
+
+    if (configDefaults.__internal) {
+      config = {
+        ...config,
+        __internal: {
+          ...configDefaults.__internal,
+          ...(config.__internal ?? {}),
+        }
+      }
+    }
+
+    return await this.request<Environment>('PATCH', `/api/environment`, { ...body, config: serializeConfig(config) })
   }
 
   as(userOrToken: User | string) {
     const userToken = typeof userOrToken === 'string' ? userOrToken : userOrToken.token;
 
     return new AgentView({
-      // apiBaseUrl: this.apiBaseUrl,
       apiKey: this.apiKey,
       userToken,
     })
@@ -201,7 +202,6 @@ export class AgentView {
 
 
 export interface PublicAgentViewOptions {
-  // apiBaseUrl: string
   userToken: string
 }
 
@@ -214,9 +214,7 @@ export class PublicAgentView {
       throw new Error("AgentView: Missing apiBaseUrl.")
     }
     
-    this.apiBaseUrl = process.env.VITE_AGENTVIEW_API_URL; //options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
-
-    // this.apiBaseUrl = options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
+    this.apiBaseUrl = process.env.VITE_AGENTVIEW_API_URL;
     this.userToken = options.userToken
   }
 

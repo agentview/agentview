@@ -30,7 +30,12 @@ export interface BaseAgentConfig<TRunConfig extends BaseRunConfig = BaseRunConfi
     runs?: TRunConfig[];
 }
 
+export type InternalConfig = {
+    disableSummaries?: boolean;
+}
+
 export type BaseAgentViewConfig<TAgentConfig extends BaseAgentConfig = BaseAgentConfig> = {
     agents?: TAgentConfig[],
     webhookUrl?: string,
+    __internal?: InternalConfig,
 }

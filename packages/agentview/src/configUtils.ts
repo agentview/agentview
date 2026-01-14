@@ -280,6 +280,9 @@ function baseConfigSchema<T extends z.ZodType>(jsonSchemaSchema: T) {
             })).optional(),
         })).optional(),
         webhookUrl: z.string().optional(),
+        __internal: z.object({
+            disableSummaries: z.boolean().optional(),
+        }).optional(),
     })
 }
 

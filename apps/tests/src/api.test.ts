@@ -1,9 +1,14 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest'
-import { AgentView, PublicAgentView } from 'agentview'
+import { AgentView, PublicAgentView, configDefaults } from 'agentview'
 import type { User, Run, Session } from 'agentview';
 import { z } from 'zod';
 import { seedUsers } from './seedUsers';
 import { createTestAuthClient } from './authClient';
+
+// globally disable summaries for all tests
+configDefaults.__internal = {
+  disableSummaries: true,
+}
 
 describe('API', () => {
   let initUser1: User
@@ -247,7 +252,7 @@ describe('API', () => {
           message: expect.any(String),
         }))
       })
-      
+
 
       // test("[prod api-key] playground is possible only with explicit ", async () => {
       //   const user = await av.createUser({ space: "shared-playground" })
@@ -351,7 +356,7 @@ describe('API', () => {
   describe("environments", () => {
 
     test("works", async () => {
-      const CONFIG = { agents: [{ name: "test" }] };
+      const CONFIG = { agents: [{ name: "test" }], __internal: { disableSummaries: true } };
 
       let environment = await av.updateEnvironment({ config: CONFIG })
       expect(environment.config).toEqual(CONFIG);
@@ -359,7 +364,7 @@ describe('API', () => {
       environment = await av.getEnvironment();
       expect(environment.config).toEqual(CONFIG);
 
-      const CONFIG_2 = { agents: [{ name: "test2" }] };
+      const CONFIG_2 = { agents: [{ name: "test2" }], __internal: { disableSummaries: true } };
 
       environment = await av.updateEnvironment({ config: CONFIG_2 })
       expect(environment.config).toEqual(CONFIG_2);
@@ -369,11 +374,14 @@ describe('API', () => {
     })
 
     test("non-config fields are stripped", async () => {
-      let environment = await av.updateEnvironment({ config: { agents: [], animal: "cat" } })
-      expect(environment.config).toEqual({ agents: [] });
+      const CONFIG = { agents: [], __internal: { disableSummaries: true } };
+      const CONFIG_WITH_ANIMAL = { ...CONFIG, animal: "dog" };
+
+      let environment = await av.updateEnvironment({ config: CONFIG_WITH_ANIMAL})
+      expect(environment.config).toEqual(CONFIG);
 
       environment = await av.getEnvironment();
-      expect(environment.config).toEqual({ agents: [] });
+      expect(environment.config).toEqual(CONFIG);
     })
 
     test("invalid config throws", async () => {
@@ -408,11 +416,11 @@ describe('API', () => {
       const avAlice = new AgentView({ apiKey: aliceApiKey.key });
 
       // Bob uploads his config
-      const BOB_CONFIG = { agents: [{ name: "bob-agent" }] };
+      const BOB_CONFIG = { agents: [{ name: "bob-agent" }], __internal: { disableSummaries: true } };
       await avBob.updateEnvironment({ config: BOB_CONFIG });
 
       // Alice uploads her config
-      const ALICE_CONFIG = { agents: [{ name: "alice-agent" }] };
+      const ALICE_CONFIG = { agents: [{ name: "alice-agent" }], __internal: { disableSummaries: true } };
       await avAlice.updateEnvironment({ config: ALICE_CONFIG });
 
       // Verify each developer sees only their own config
@@ -1652,7 +1660,7 @@ describe('API', () => {
 
       // Wait for expiration (timeout + worker interval buffer)
       // Worker runs every 5 seconds, so wait timeout + 6s to be safe
-      await new Promise(resolve => setTimeout(resolve, SHORT_TIMEOUT*2))
+      await new Promise(resolve => setTimeout(resolve, SHORT_TIMEOUT * 2))
 
       const updatedSession = await av.getSession({ id: session.id })
 
@@ -1712,7 +1720,7 @@ describe('API', () => {
    * These tests use a mock HTTP server to receive and verify webhook calls.
    * The webhookUrl is configured via the config (not env var).
    */
-  describe.skip("webhook jobs - session.on_first_run_created", () => {
+  describe.only("webhook jobs - session.on_first_run_created", () => {
     const WEBHOOK_PORT = 3456;
     const WEBHOOK_URL = `http://localhost:${WEBHOOK_PORT}/webhook`;
 
@@ -1797,7 +1805,7 @@ describe('API', () => {
               output: { schema: outputSchema },
             }]
           }]
-        }
+        },
       });
     };
 
@@ -1921,6 +1929,33 @@ describe('API', () => {
       }
     }, 30000);
   });
+
+  // describe('Session AI Summaries', () => {
+  //   test('session summary remains null by default in this test set', async () => {
+  //     // Create a session
+  //     const session = await av.createSession({ userId: initUser1.id, agent: 'test-agent' });
+  //     expect(session).toBeDefined();
+  //     expect(session.summary).toBeNull();
+
+  //     // Create first run (this triggers the webhook job which handles summary generation)
+  //     await av.createRun({
+  //       sessionId: session.id,
+  //       version: '1.0.0',
+  //       items: [
+  //         { type: 'message', content: 'Hello, I need help with the weather!' },
+  //         { type: 'output', content: 'I can help you with weather information!' }
+  //       ],
+  //       status: 'completed'
+  //     });
+
+  //     // Wait for the worker to process the job (worker runs every 5 seconds)
+  //     await new Promise(r => setTimeout(r, 7000));
+
+  //     // Fetch session again and verify summary is still null (because disableSummaries=true)
+  //     const updatedSession = await av.getSession({ id: session.id });
+  //     expect(updatedSession.summary).toBeNull();
+  //   }, 15000);
+  // });
 });
 
 
@@ -2021,6 +2056,8 @@ describe('Multi-Tenancy isolation', () => {
     })).rejects.toThrow();
   });
 });
+
+
 
 
 /** Quick JSON.parse-based deep compare, ignores order of keys in objects */

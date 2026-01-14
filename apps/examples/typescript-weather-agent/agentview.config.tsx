@@ -9,7 +9,7 @@ import { CustomPage } from "./src/CustomPage";
 import { WeatherItem } from './src/WeatherItem';
 
 export default defineConfig({
-  organizationId: "GqADYGDxFo1QqcEnHLrYOSzhCa4YUx5j",
+  organizationId: import.meta.env.VITE_AGENTVIEW_ORGANIZATION_ID,
   agents: [
     {
       name: "weather-chat",
@@ -167,7 +167,7 @@ export default defineConfig({
       />
     }
   ],
-  webhookUrl: "http://localhost:3000/webhook",
+  // webhookUrl: "http://localhost:3000/webhook",
   customRoutes: [
     {
       type: "agent",
