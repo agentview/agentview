@@ -62,7 +62,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   const agent = getCurrentAgent(request);
-
   const env = getEnv();
 
   // For now for prod too. It's not secure though.

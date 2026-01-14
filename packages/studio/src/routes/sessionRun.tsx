@@ -83,7 +83,7 @@ function Component() {
                     <PropertyListItem>
                         <PropertyListTitle>Version</PropertyListTitle>
                         <PropertyListTextValue>
-                            {run.version?.version ?? "-"}
+                            {run.version ?? "-"}
                         </PropertyListTextValue>
                     </PropertyListItem>
 
