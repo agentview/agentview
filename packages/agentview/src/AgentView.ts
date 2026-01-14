@@ -7,8 +7,8 @@ import {
   type RunUpdate,
   type SessionCreate,
   type SessionUpdate,
-  type Config,
-  type ConfigCreate,
+  type Environment,
+  type EnvironmentCreate,
   type Space,
   type SessionsGetQueryParams,
   type SessionsPaginatedResponse,
@@ -176,12 +176,12 @@ export class AgentView {
     return await this.request<User>('PATCH', `/api/users/${options.id}`, options)
   }
 
-  async __getConfig(): Promise<Config> {
-    return await this.request<Config>('GET', `/api/config`)
+  async getEnvironment(): Promise<Environment> {
+    return await this.request<Environment>('GET', `/api/environment`)
   }
 
-  async __updateConfig(body: ConfigCreate): Promise<Config> {
-    return await this.request<Config>('PUT', `/api/config`, { ...body, config: serializeConfig(body.config) })
+  async updateEnvironment(body: EnvironmentCreate): Promise<Environment> {
+    return await this.request<Environment>('PATCH', `/api/environment`, { ...body, config: serializeConfig(body.config) })
   }
 
   as(userOrToken: User | string) {

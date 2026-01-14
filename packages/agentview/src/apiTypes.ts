@@ -219,20 +219,20 @@ export const SessionsGetQueryParamsSchema = PublicSessionsGetQueryParamsSchema.e
 export type PublicSessionsGetQueryParams = z.infer<typeof PublicSessionsGetQueryParamsSchema>
 export type SessionsGetQueryParams = z.infer<typeof SessionsGetQueryParamsSchema>
 
-export const ConfigSchema = z.object({
+export const EnvironmentSchema = z.object({
   id: z.string(),
-  envId: z.string().nullable(), // null = production config, string = user's dev config
+  userId: z.string().nullable(), // null = production config, string = user's dev config
   config: z.any(),
   createdAt: z.iso.date(),
 })
 
-export type Config = z.infer<typeof ConfigSchema>
+export type Environment = z.infer<typeof EnvironmentSchema>
 
-export const ConfigCreateSchema = ConfigSchema.pick({
+export const EnvironmentCreateSchema = EnvironmentSchema.pick({
   config: true,
 })
 
-export type ConfigCreate = z.infer<typeof ConfigCreateSchema>
+export type EnvironmentCreate = z.infer<typeof EnvironmentCreateSchema>
 
 // // member - user of organization, works in agentview panel, not end user
 // export const MemberSchema = z.object({

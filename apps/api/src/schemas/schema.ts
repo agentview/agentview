@@ -230,15 +230,15 @@ export const inboxItems = pgTable('inbox_items', {
 ]);
 
 
-export const configs = pgTable('configs', {
+export const environments = pgTable('environments', {
   id: uuid('id').primaryKey().defaultRandom(),
   organizationId: text("organization_id").notNull().references(() => organizations.id),
-  envId: text("user_id").references(() => users.id, { onDelete: 'cascade' }), // NULL = production config, non-NULL = user's dev config (for now env id is actually user id - we have one dev env per user. It's simplification but it's ok for now.)
+  userId: text("user_id").references(() => users.id, { onDelete: 'cascade' }), // NULL = production, non-NULL = user's dev environment
   config: jsonb('value').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 }, (table) => [
-  unique('configs_org_user_unique').on(table.organizationId, table.envId).nullsNotDistinct(),
-  createTenantPolicy('configs')
+  unique('environments_org_user_unique').on(table.organizationId, table.userId).nullsNotDistinct(),
+  createTenantPolicy('environments')
 ]);
 
 export const starredSessions = pgTable('starred_sessions', {
@@ -474,7 +474,7 @@ export const schema = {
 
   events,
   inboxItems,
-  configs,
+  environments,
   starredSessions,
   webhookJobs,
 

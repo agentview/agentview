@@ -15,6 +15,13 @@
       "when": 1768328090357,
       "tag": "0001_loose_firebrand",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768383970170,
+      "tag": "0002_cool_ultragirl",
+      "breakpoints": true
     }
   ]
 }

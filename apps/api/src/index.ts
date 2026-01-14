@@ -14,12 +14,12 @@ import { db__dangerous } from './db';
 import { extractMentions } from './extractMentions';
 import { body, response_data, response_error } from './hono_utils';
 import { isUUID } from './isUUID';
-import { commentMentions, commentMessageEdits, commentMessages, configs, endUsers, events, inboxItems, runs, scores, sessionItems, sessions, starredSessions, versions, webhookJobs } from './schemas/schema';
+import { commentMentions, commentMessageEdits, commentMessages, environments, endUsers, events, inboxItems, runs, scores, sessionItems, sessions, starredSessions, versions, webhookJobs } from './schemas/schema';
 import { withOrg } from './withOrg';
 import { AgentViewError } from 'agentview/AgentViewError';
 import {
-  ConfigCreateSchema,
-  ConfigSchema,
+  EnvironmentCreateSchema,
+  EnvironmentSchema,
   SpaceSchema,
   PublicSessionsGetQueryParamsSchema,
   RunCreateSchema,
@@ -45,7 +45,7 @@ import { getAllSessionItems, getLastRun } from 'agentview/sessionUtils';
 import packageJson from '../package.json';
 import { equalJSON } from './equalJSON';
 import { getAllowedOrigin } from './getAllowedOrigin';
-import { getConfigRow } from './getConfig';
+import { getEnvironment, type Env } from './environments';
 import { isInboxItemUnread } from './inboxItems';
 import { initDb } from './initDb';
 import { requireValidInvitation } from './invitations';
@@ -55,7 +55,6 @@ import type { Transaction } from './types';
 import { updateInboxes } from './updateInboxes';
 import { findUser } from './users';
 import { randomBytes } from 'crypto';
-import type { Env } from './env';
 
 
 await initDb();
@@ -309,7 +308,7 @@ type Action = {
 } | {
   action: "admin"
 } | {
-  action: "config"
+  action: "environment"
 }
 
 // extra check. We don't allow write actions in dev environment for end users in production space.
@@ -379,7 +378,7 @@ function authorize(principal: Principal, action: Action) {
       return true;
     }
   }
-  else if (action.action === "config") {
+  else if (action.action === "environment") {
     if (principal.type === 'apiKey' || principal.type === 'member') {
       return true;
     }
@@ -425,24 +424,24 @@ function getEnv(principal: PrivatePrincipal): Env {
 }
 
 
-async function getConfigRowByPrincipal(tx: Transaction, principal: PrivatePrincipal): Promise<Awaited<ReturnType<typeof getConfigRow>> | undefined> {
-  const configRow = await getConfigRow(tx, getEnv(principal));
+async function getEnvironmentByPrincipal(tx: Transaction, principal: PrivatePrincipal): Promise<Awaited<ReturnType<typeof getEnvironment>> | undefined> {
+  const environment = await getEnvironment(tx, getEnv(principal));
 
-  if (!configRow) {
+  if (!environment) {
     return undefined;
   }
 
-  return configRow;
+  return environment;
 }
 
 async function requireConfig(tx: Transaction, principal: PrivatePrincipal): Promise<BaseAgentViewConfig> {
-  let configRow = await getConfigRowByPrincipal(tx, principal);
+  let environment = await getEnvironmentByPrincipal(tx, principal);
 
-  if (!configRow) {
-    throw new HTTPException(404, { message: "Config not found" });
+  if (!environment) {
+    throw new HTTPException(404, { message: "Environment not found" });
   }
 
-  return BaseConfigSchemaToZod.parse(configRow.config)
+  return BaseConfigSchemaToZod.parse(environment.config)
 }
 
 
@@ -2785,73 +2784,74 @@ app.get('/api/invitations/:invitation_id', async (c) => {
 
 /* --------- SCHEMAS ---------   */
 
-const configGETRoute = createRoute({
+const environmentGETRoute = createRoute({
   method: 'get',
-  path: '/api/config',
+  path: '/api/environment',
   responses: {
-    200: response_data(ConfigSchema.nullable()),
+    200: response_data(EnvironmentSchema.nullable()),
   },
 })
 
-app.openapi(configGETRoute, async (c) => {
+app.openapi(environmentGETRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  authorize(principal, { action: "config" });
+  authorize(principal, { action: "environment" });
 
   return withOrg(principal.organizationId, async (tx) => {
-    const configRow = await getConfigRowByPrincipal(tx, principal);
-    return c.json(configRow ?? null, 200)
+    const environment = await getEnvironmentByPrincipal(tx, principal);
+    return c.json(environment ?? null, 200)
   })
 })
 
-const configPutRoute = createRoute({
-  method: 'put',
-  path: '/api/config',
+const environmentPATCHRoute = createRoute({
+  method: 'patch',
+  path: '/api/environment',
   request: {
-    body: body(ConfigCreateSchema)
+    body: body(EnvironmentCreateSchema)
   },
   responses: {
-    200: response_data(ConfigSchema),
+    200: response_data(EnvironmentCreateSchema),
     422: response_error(),
   },
 })
 
-app.openapi(configPutRoute, async (c) => {
+app.openapi(environmentPATCHRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
-  authorize(principal, { action: "config" });
+  authorize(principal, { action: "environment" });
 
   const body = await c.req.valid('json')
 
   // validate & parse body.config
   const { data, success, error } = BaseConfigSchema.safeParse(body.config)
   if (!success) {
+    console.log(error.issues)
     return c.json({ message: "Invalid config", code: 'parse.schema', details: error.issues }, 422);
   }
 
   return withOrg(principal.organizationId, async (tx) => {
-    const configRow = await getConfigRowByPrincipal(tx, principal);
+    const environment = await getEnvironmentByPrincipal(tx, principal);
 
     // @ts-ignore
-    if (configRow && equalJSON(configRow.config, data)) {
-      return c.json(configRow, 200)
+    if (environment && equalJSON(environment.config, data)) {
+      return c.json(environment, 200)
     }
 
     const env = getEnv(principal);
 
     // Upsert: insert or update existing config for this user
-    const [newConfigRow] = await tx.insert(configs).values({
+    const [newEnvironment] = await tx.insert(environments).values({
       organizationId: principal.organizationId,
-      envId: env.type === 'prod' ? null : env.memberId,
+      userId: env.type === 'prod' ? null : env.memberId,
       config: data,
     })
     .onConflictDoUpdate({
-      target: [configs.organizationId, configs.envId],
+      target: [environments.organizationId, environments.userId],
       set: {
         config: data,
       }
     })
     .returning()
 
-    return c.json(newConfigRow, 200)
+    return c.json(newEnvironment, 200)
   })
 })
 

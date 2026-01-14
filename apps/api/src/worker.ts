@@ -1,8 +1,8 @@
 import { db__dangerous } from './db';
 import { withOrg } from './withOrg';
-import { runs, webhookJobs, configs } from './schemas/schema';
+import { runs, webhookJobs, environments } from './schemas/schema';
 import { eq, and, lt, or, isNull, desc } from 'drizzle-orm';
-import { getConfigRow } from './getConfig';
+import { getEnvironment } from './environments';
 import { initDb } from './initDb';
 
 await initDb();
@@ -79,17 +79,14 @@ async function processWebhookJobs() {
       .limit(10);
 
     for (const job of jobs) {
-      // Get org-specific config using withOrg (each org has its own webhook URL)
-      const webhookUrl = await withOrg(job.organizationId, async (tx) => {
-        const configRow = await getConfigRow(tx, null); // Use production config for webhooks
-        return (configRow?.config as any).webhookUrl;
-        // const configRows = await tx.select().from(configs).orderBy(desc(configs.createdAt)).limit(1);
-        // return (configRows[0]?.config as any)?.webhookUrl;
-      });
+      // const webhookUrl = await withOrg(job.organizationId, async (tx) => {
+      //   const configRow = await getConfigRow(tx, null); // Use production config for webhooks
+      //   return (configRow?.config as any).webhookUrl;
+      // });
 
-      if (webhookUrl) {
-        await processWebhookJob(job, webhookUrl);
-      }
+      // if (webhookUrl) {
+      //   await processWebhookJob(job, webhookUrl);
+      // }
     }
   } catch (error) {
     console.error('Error in webhook job processor:', error);
