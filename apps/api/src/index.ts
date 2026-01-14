@@ -45,7 +45,7 @@ import { getAllSessionItems, getLastRun } from 'agentview/sessionUtils';
 import packageJson from '../package.json';
 import { equalJSON } from './equalJSON';
 import { getAllowedOrigin } from './getAllowedOrigin';
-import { getEnvironment, type Env } from './environments';
+import { getEnvironment, requireEnvironment, type Env } from './environments';
 import { isInboxItemUnread } from './inboxItems';
 import { initDb } from './initDb';
 import { requireValidInvitation } from './invitations';
@@ -2052,6 +2052,8 @@ app.openapi(runsPOSTRoute, async (c) => {
     }
 
     const env = getEnv(principal);
+    const environment = await requireEnvironment(tx, env);
+
     if (env.type === 'dev' && !parsedVersion.suffix) {
       parsedVersion.suffix = 'dev';
     }
@@ -2157,6 +2159,7 @@ app.openapi(runsPOSTRoute, async (c) => {
         sessionId: body.sessionId,
         status: 'pending',
         nextAttemptAt: new Date().toISOString(),
+        environmentId: environment.id,
       });
     }
 

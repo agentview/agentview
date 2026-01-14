@@ -79,14 +79,22 @@ async function processWebhookJobs() {
       .limit(10);
 
     for (const job of jobs) {
-      // const webhookUrl = await withOrg(job.organizationId, async (tx) => {
-      //   const configRow = await getConfigRow(tx, null); // Use production config for webhooks
-      //   return (configRow?.config as any).webhookUrl;
-      // });
+      const webhookUrl = await withOrg(job.organizationId, async (tx) => {
+        const environment = await tx.query.environments.findFirst({
+          where: eq(environments.id, job.environmentId),
+        });
 
-      // if (webhookUrl) {
-      //   await processWebhookJob(job, webhookUrl);
-      // }
+        if (!environment) {
+          console.error(`Environment ${job.environmentId} not found`);
+          return;
+        }
+
+        return (environment.config as any).webhookUrl;
+      });
+
+      if (webhookUrl) {
+        await processWebhookJob(job, webhookUrl);
+      }
     }
   } catch (error) {
     console.error('Error in webhook job processor:', error);
@@ -174,9 +182,9 @@ setInterval(() => {
 
 // Run webhook job processor every 5 seconds
 setInterval(() => {
-  // processWebhookJobs();
+  processWebhookJobs();
 }, 5000);
 
 // Run immediately on startup
 processExpiredRuns();
-// processWebhookJobs();
+processWebhookJobs();

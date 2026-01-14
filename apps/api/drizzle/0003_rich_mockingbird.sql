@@ -1,0 +1,2 @@
+ALTER TABLE "webhook_jobs" ADD COLUMN "environment_id" uuid NOT NULL;--> statement-breakpoint
+ALTER TABLE "webhook_jobs" ADD CONSTRAINT "webhook_jobs_environment_id_environments_id_fk" FOREIGN KEY ("environment_id") REFERENCES "public"."environments"("id") ON DELETE cascade ON UPDATE no action;

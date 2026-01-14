@@ -1,6 +1,7 @@
 import { environments } from "./schemas/schema";
 import { eq, isNull, and } from "drizzle-orm";
 import type { Transaction } from "./types";
+import { HTTPException } from "hono/http-exception";
 
 export type ProdEnv = {
     type: 'prod'
@@ -31,4 +32,12 @@ export async function getEnvironment(tx: Transaction, env: Env) { // envId is ac
     }
 
     return configRows[0] ?? undefined;
+}
+
+export async function requireEnvironment(tx: Transaction, env: Env) {
+    const environment = await getEnvironment(tx, env);
+    if (!environment) {
+        throw new HTTPException(404, { message: "Environment not found" });
+    }
+    return environment;
 }

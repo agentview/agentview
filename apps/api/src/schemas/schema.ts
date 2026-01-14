@@ -255,6 +255,7 @@ export const starredSessions = pgTable('starred_sessions', {
 export const webhookJobs = pgTable('webhook_jobs', {
   id: uuid('id').primaryKey().defaultRandom(),
   organizationId: text("organization_id").notNull().references(() => organizations.id),
+  environmentId: uuid('environment_id').notNull().references(() => environments.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 

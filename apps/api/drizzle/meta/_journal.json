@@ -22,6 +22,13 @@
       "when": 1768383970170,
       "tag": "0002_cool_ultragirl",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1768384784618,
+      "tag": "0003_rich_mockingbird",
+      "breakpoints": true
     }
   ]
 }
