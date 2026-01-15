@@ -32,6 +32,7 @@ import { getListParams, toQueryParams } from "../lib/listParams";
 import { parseSSE } from "../lib/parseSSE";
 import { useSessionContext } from "../lib/SessionContext";
 import { getAuthHeaders } from "../lib/apiFetch";
+import { getApiUrl } from "agentview/urls";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     const response = await apiFetch<SessionWithCollaboration>(`/api/sessions/${params.id}`);
@@ -140,7 +141,7 @@ function SessionPage() {
         (async () => {
 
             try {
-                const url = new URL(`/api/sessions/${session.id}/watch`, import.meta.env.VITE_AGENTVIEW_API_URL).toString();
+                const url = new URL(`/api/sessions/${session.id}/watch`, getApiUrl()).toString();
 
                 const response = await fetch(url, {
                     credentials: 'include', // ensure cookies are sent
