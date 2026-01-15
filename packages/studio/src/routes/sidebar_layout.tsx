@@ -44,6 +44,7 @@ import { getCurrentAgent } from "../lib/currentAgent";
 import { getEnvironment, requireEnvironment, updateRemoteConfig } from "../lib/environment";
 import { SessionContext } from "../lib/SessionContext";
 import { getEnv } from "../getEnv";
+import { getWebAppUrl } from "agentview/urls";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await authClient.getSession()
@@ -426,13 +427,13 @@ function Component() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent side="top" className="min-w-[200px]">
                     <DropdownMenuItem asChild>
-                      <Link to={import.meta.env.VITE_AGENTVIEW_WEBAPP_URL + "/orgs/" + organization.id + "/profile"} target="_blank">
+                      <Link to={getWebAppUrl() + "/orgs/" + organization.id + "/profile"} target="_blank">
                         <UserIcon className="h-4 w-4" />
                         <span>Profile</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to={import.meta.env.VITE_AGENTVIEW_WEBAPP_URL + "/orgs/" + organization.id + "/details"} target="_blank">
+                      <Link to={getWebAppUrl() + "/orgs/" + organization.id + "/details"} target="_blank">
                         <Building2Icon className="h-4 w-4" />
                         <span>Organization</span>
                       </Link>

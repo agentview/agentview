@@ -2,6 +2,7 @@ import { createAuthClient } from "better-auth/react"
 import { adminClient, apiKeyClient, organizationClient } from "better-auth/client/plugins"
 import { config } from "../config"
 import { data, redirect } from "react-router"
+import { getApiUrl } from "agentview/urls"
 
 export function createBetterAuthClient({ baseURL }: { baseURL: string }) {
     return createAuthClient({
@@ -22,7 +23,7 @@ export function createBetterAuthClient({ baseURL }: { baseURL: string }) {
     })
 }
 
-export const authClient = createBetterAuthClient({ baseURL: new URL('/api/auth', import.meta.env.VITE_AGENTVIEW_API_URL).toString() })
+export const authClient = createBetterAuthClient({ baseURL: new URL('/api/auth', getApiUrl()).toString() })
 
 
 export async function getOrganization() {

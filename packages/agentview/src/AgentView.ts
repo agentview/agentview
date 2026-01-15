@@ -19,14 +19,7 @@ import { type AgentViewErrorBody, AgentViewError } from './AgentViewError.js'
 import { serializeConfig } from './configUtils.js'
 import { enhanceSession } from './sessionUtils.js'
 import type { InternalConfig } from './configTypes.js'
-
-function getApiUrl() {
-  const apiUrl = process.env.VITE_AGENTVIEW_API_URL;
-  if (!apiUrl) {
-    throw new Error("AgentView: Missing apiBaseUrl.")
-  }
-  return apiUrl;
-}
+import { getApiUrl } from './urls.js'
 
 export interface AgentViewOptions {
   apiKey?: string

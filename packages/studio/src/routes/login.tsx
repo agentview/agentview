@@ -2,7 +2,7 @@ import { redirect, type LoaderFunctionArgs, type RouteObject } from "react-route
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { authClient } from "../lib/auth-client";
-import { getWebAppUrl } from "../getWebAppUrl";
+import { getWebAppUrl } from "agentview/urls";
 
 function getRedirectUrl(stringUrl: string) {
   const url = new URL(stringUrl);
