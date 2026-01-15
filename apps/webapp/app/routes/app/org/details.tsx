@@ -121,15 +121,15 @@ export default function OrgDetails() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="org-slug">Slug</Label>
+            <Label htmlFor="org-id">Organization ID</Label>
             <Input
-              id="org-slug"
-              defaultValue={organization.slug}
+              id="org-id"
+              defaultValue={organization.id}
               disabled
               readOnly
             />
             <p className="text-sm text-muted-foreground">
-              The organization slug cannot be changed.
+              The organization ID cannot be changed.
             </p>
           </div>
 

@@ -49,7 +49,7 @@ async function buildTemplate() {
   const repoRoot = path.resolve(packageDir, '..', '..');
 
   const exampleSrc = path.join(repoRoot, 'apps', 'examples', 'typescript-basic');
-  const dockerComposeYmlSrc = path.join(repoRoot, 'docker-compose.dist.yml');
+  // const dockerComposeYmlSrc = path.join(repoRoot, 'docker-compose.dist.yml');
   const distDir = path.join(packageDir, 'dist/');
   const templateDir = path.join(packageDir, 'dist/template');
 
@@ -67,19 +67,19 @@ async function buildTemplate() {
   });
 
   // copy docker-compose.dist.yml
-  const dockerComposeYmlPath = path.join(templateDir, 'docker-compose.yml');
-  await cp(dockerComposeYmlSrc, dockerComposeYmlPath);
+  // const dockerComposeYmlPath = path.join(templateDir, 'docker-compose.yml');
+  // await cp(dockerComposeYmlSrc, dockerComposeYmlPath);
 
-  // replace ${AGENTVIEW_API_IMAGE} with process.env.AGENTVIEW_API_IMAGE
-  if (!process.env.AGENTVIEW_API_IMAGE) {
-    throw new Error('AGENTVIEW_API_IMAGE is not set');
-  }
-  const dockerComposeContent = await readFile(dockerComposeYmlPath, 'utf8');
-  const updatedDockerComposeContent = dockerComposeContent.replace(
-    /\$\{AGENTVIEW_API_IMAGE\}/g,
-    process.env.AGENTVIEW_API_IMAGE
-  );
-  await writeFile(dockerComposeYmlPath, updatedDockerComposeContent, 'utf8');
+  // // replace ${AGENTVIEW_API_IMAGE} with process.env.AGENTVIEW_API_IMAGE
+  // if (!process.env.AGENTVIEW_API_IMAGE) {
+  //   throw new Error('AGENTVIEW_API_IMAGE is not set');
+  // }
+  // const dockerComposeContent = await readFile(dockerComposeYmlPath, 'utf8');
+  // const updatedDockerComposeContent = dockerComposeContent.replace(
+  //   /\$\{AGENTVIEW_API_IMAGE\}/g,
+  //   process.env.AGENTVIEW_API_IMAGE
+  // );
+  // await writeFile(dockerComposeYmlPath, updatedDockerComposeContent, 'utf8');
 
   // get current version
   const repoPkgJsonPath = path.join(repoRoot, 'package.json');
