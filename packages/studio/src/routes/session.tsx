@@ -135,7 +135,6 @@ function SessionPage() {
     }
 
     useEffect(() => {
-
         const abortController = new AbortController();
 
         (async () => {
