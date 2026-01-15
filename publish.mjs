@@ -112,14 +112,14 @@ async function publishPackages(version) {
   // Commit and tag
   await gitCommitAndTag(version);
 
-  // Build API docker image
-  const repository = "rudzienki/agentview-api";
-  const versionTag = `${repository}:${version}`
-  const localTag = `${repository}:local`
+  // // Build API docker image
+  // const repository = "rudzienki/agentview-api";
+  // const versionTag = `${repository}:${version}`
+  // const localTag = `${repository}:local`
 
-  run(`docker build -t ${versionTag} -t ${localTag} -f apps/api/Dockerfile .`);
+  // run(`docker build -t ${versionTag} -t ${localTag} -f apps/api/Dockerfile .`);
 
-  process.env.AGENTVIEW_API_IMAGE = preid === "local" ? localTag : versionTag;
+  // process.env.AGENTVIEW_API_IMAGE = preid === "local" ? localTag : versionTag;
 
   // Build packages (should be after AGENTVIEW_API_IMAGE is set, it's used in create-agentview)
   buildPackages();
@@ -127,10 +127,10 @@ async function publishPackages(version) {
   // Publish npm packages
   await publishPackages(version);
 
-  // Publish docker image (longest so goes last)
-  if (preid !== "local") {
-    run(`docker push ${process.env.AGENTVIEW_API_IMAGE}`);
-  }
+  // // Publish docker image (longest so goes last)
+  // if (preid !== "local") {
+  //   run(`docker push ${process.env.AGENTVIEW_API_IMAGE}`);
+  // }
 
-  console.log(`\nPublished v${version}`);
+  // console.log(`\nPublished v${version}`);
 })();

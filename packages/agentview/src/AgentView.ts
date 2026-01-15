@@ -15,12 +15,18 @@ import {
   type PublicSessionsGetQueryParams,
 } from './apiTypes.js'
 
-import { type AgentViewErrorBody, type AgentViewErrorDetails, AgentViewError } from './AgentViewError.js'
+import { type AgentViewErrorBody, AgentViewError } from './AgentViewError.js'
 import { serializeConfig } from './configUtils.js'
-
-
 import { enhanceSession } from './sessionUtils.js'
 import type { InternalConfig } from './configTypes.js'
+
+function getApiUrl() {
+  const apiUrl = process.env.VITE_AGENTVIEW_API_URL;
+  if (!apiUrl) {
+    throw new Error("AgentView: Missing apiBaseUrl.")
+  }
+  return apiUrl;
+}
 
 export interface AgentViewOptions {
   apiKey?: string
@@ -32,19 +38,11 @@ export const configDefaults: {
   __internal?: InternalConfig
 } = { __internal: undefined }
 
-
 export class AgentView {
-  private apiBaseUrl: string
   private apiKey: string
   private userToken?: string
 
   constructor(options?: AgentViewOptions) {
-    if (!process.env.VITE_AGENTVIEW_API_URL) {
-      throw new Error("AgentView: Missing apiBaseUrl.")
-    }
-
-    this.apiBaseUrl = process.env.VITE_AGENTVIEW_API_URL; //options.apiBaseUrl.replace(/\/$/, '') // remove trailing slash
-
     const apiKey = options?.apiKey ?? process.env.AGENTVIEW_API_KEY
     if (!apiKey) {
       throw new Error("AgentView: Missing API Key. Set it either via apiKey property of AgentView constructor or via AGENTVIEW_API_KEY environment variable.")
@@ -69,7 +67,7 @@ export class AgentView {
 
     headers['Authorization'] = `Bearer ${this.apiKey}`
 
-    const response = await fetch(`${this.apiBaseUrl}${path}`, {
+    const response = await fetch(`${getApiUrl()}${path}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
@@ -206,15 +204,9 @@ export interface PublicAgentViewOptions {
 }
 
 export class PublicAgentView {
-  private apiBaseUrl: string
   private userToken: string
 
   constructor(options: PublicAgentViewOptions) {
-    if (!process.env.VITE_AGENTVIEW_API_URL) {
-      throw new Error("AgentView: Missing apiBaseUrl.")
-    }
-    
-    this.apiBaseUrl = process.env.VITE_AGENTVIEW_API_URL;
     this.userToken = options.userToken
   }
 
@@ -229,7 +221,7 @@ export class PublicAgentView {
 
     headers['X-User-Token'] = this.userToken;
 
-    const response = await fetch(`${this.apiBaseUrl}${path}`, {
+    const response = await fetch(`${getApiUrl()}${path}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
