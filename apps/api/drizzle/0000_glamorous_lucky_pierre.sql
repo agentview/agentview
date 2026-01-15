@@ -29,17 +29,6 @@ CREATE TABLE "comment_messages" (
 );
 --> statement-breakpoint
 ALTER TABLE "comment_messages" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
-CREATE TABLE "configs" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"organization_id" text NOT NULL,
-	"user_id" text,
-	"value" jsonb NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"created_by" text NOT NULL,
-	CONSTRAINT "configs_org_user_unique" UNIQUE NULLS NOT DISTINCT("organization_id","user_id")
-);
---> statement-breakpoint
-ALTER TABLE "configs" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "emails" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"organization_id" text NOT NULL,
@@ -66,10 +55,21 @@ CREATE TABLE "end_users" (
 	"created_by" text,
 	"space" varchar(24) NOT NULL,
 	"token" text NOT NULL,
-	CONSTRAINT "end_users_token_unique" UNIQUE("token")
+	CONSTRAINT "end_users_token_unique" UNIQUE("token"),
+	CONSTRAINT "end_users_created_by_space_check" CHECK ((space = 'production' AND created_by IS NULL) OR (space != 'production' AND created_by IS NOT NULL))
 );
 --> statement-breakpoint
 ALTER TABLE "end_users" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+CREATE TABLE "environments" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" text NOT NULL,
+	"user_id" text,
+	"value" jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "environments_org_user_unique" UNIQUE NULLS NOT DISTINCT("organization_id","user_id")
+);
+--> statement-breakpoint
+ALTER TABLE "environments" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "events" (
 	"id" bigserial PRIMARY KEY NOT NULL,
 	"organization_id" text NOT NULL,
@@ -175,6 +175,7 @@ ALTER TABLE "versions" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "webhook_jobs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"organization_id" text NOT NULL,
+	"environment_id" uuid NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"event_type" varchar(255) NOT NULL,
@@ -298,13 +299,12 @@ ALTER TABLE "comment_messages" ADD CONSTRAINT "comment_messages_organization_id_
 ALTER TABLE "comment_messages" ADD CONSTRAINT "comment_messages_session_item_id_session_items_id_fk" FOREIGN KEY ("session_item_id") REFERENCES "public"."session_items"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "comment_messages" ADD CONSTRAINT "comment_messages_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "comment_messages" ADD CONSTRAINT "comment_messages_deleted_by_users_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "configs" ADD CONSTRAINT "configs_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "configs" ADD CONSTRAINT "configs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "configs" ADD CONSTRAINT "configs_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "emails" ADD CONSTRAINT "emails_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "emails" ADD CONSTRAINT "emails_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "end_users" ADD CONSTRAINT "end_users_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "end_users" ADD CONSTRAINT "end_users_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "environments" ADD CONSTRAINT "environments_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "environments" ADD CONSTRAINT "environments_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "events" ADD CONSTRAINT "events_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "events" ADD CONSTRAINT "events_author_id_users_id_fk" FOREIGN KEY ("author_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "inbox_items" ADD CONSTRAINT "inbox_items_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -331,6 +331,7 @@ ALTER TABLE "starred_sessions" ADD CONSTRAINT "starred_sessions_user_id_users_id
 ALTER TABLE "starred_sessions" ADD CONSTRAINT "starred_sessions_session_id_sessions_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."sessions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "versions" ADD CONSTRAINT "versions_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "webhook_jobs" ADD CONSTRAINT "webhook_jobs_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "webhook_jobs" ADD CONSTRAINT "webhook_jobs_environment_id_environments_id_fk" FOREIGN KEY ("environment_id") REFERENCES "public"."environments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "webhook_jobs" ADD CONSTRAINT "webhook_jobs_session_id_sessions_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."sessions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "apikeys" ADD CONSTRAINT "apikeys_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -339,7 +340,7 @@ ALTER TABLE "invitations" ADD CONSTRAINT "invitations_organization_id_organizati
 ALTER TABLE "invitations" ADD CONSTRAINT "invitations_inviter_id_users_id_fk" FOREIGN KEY ("inviter_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "members" ADD CONSTRAINT "members_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "members" ADD CONSTRAINT "members_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "end_user_external_id_space_org_unique" ON "end_users" USING btree ("external_id","space","organization_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "end_user_external_id_org_unique" ON "end_users" USING btree ("external_id","organization_id");--> statement-breakpoint
 CREATE INDEX "runs_expires_at_status_idx" ON "runs" USING btree ("expires_at","status");--> statement-breakpoint
 CREATE UNIQUE INDEX "sessions_handle_org_unique" ON "sessions" USING btree ("handle_number","handle_suffix","organization_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "version_org_unique" ON "versions" USING btree ("version","organization_id");--> statement-breakpoint
@@ -351,9 +352,9 @@ CREATE INDEX "verifications_identifier_idx" ON "verifications" USING btree ("ide
 CREATE POLICY "comment_mentions_tenant_isolation" ON "comment_mentions" AS PERMISSIVE FOR ALL TO public USING (organization_id = current_setting('app.organization_id', true)) WITH CHECK (organization_id = current_setting('app.organization_id', true));--> statement-breakpoint
 CREATE POLICY "comment_message_edits_tenant_isolation" ON "comment_message_edits" AS PERMISSIVE FOR ALL TO public USING (organization_id = current_setting('app.organization_id', true)) WITH CHECK (organization_id = current_setting('app.organization_id', true));--> statement-breakpoint
 CREATE POLICY "comment_messages_tenant_isolation" ON "comment_messages" AS PERMISSIVE FOR ALL TO public USING (organization_id = current_setting('app.organization_id', true)) WITH CHECK (organization_id = current_setting('app.organization_id', true));--> statement-breakpoint
-CREATE POLICY "configs_tenant_isolation" ON "configs" AS PERMISSIVE FOR ALL TO public USING (organization_id = current_setting('app.organization_id', true)) WITH CHECK (organization_id = current_setting('app.organization_id', true));--> statement-breakpoint
 CREATE POLICY "emails_tenant_isolation" ON "emails" AS PERMISSIVE FOR ALL TO public USING (organization_id = current_setting('app.organization_id', true)) WITH CHECK (organization_id = current_setting('app.organization_id', true));--> statement-breakpoint
 CREATE POLICY "end_users_tenant_isolation" ON "end_users" AS PERMISSIVE FOR ALL TO public USING (organization_id = current_setting('app.organization_id', true)) WITH CHECK (organization_id = current_setting('app.organization_id', true));--> statement-breakpoint
+CREATE POLICY "environments_tenant_isolation" ON "environments" AS PERMISSIVE FOR ALL TO public USING (organization_id = current_setting('app.organization_id', true)) WITH CHECK (organization_id = current_setting('app.organization_id', true));--> statement-breakpoint
 CREATE POLICY "events_tenant_isolation" ON "events" AS PERMISSIVE FOR ALL TO public USING (organization_id = current_setting('app.organization_id', true)) WITH CHECK (organization_id = current_setting('app.organization_id', true));--> statement-breakpoint
 CREATE POLICY "inbox_items_tenant_isolation" ON "inbox_items" AS PERMISSIVE FOR ALL TO public USING (organization_id = current_setting('app.organization_id', true)) WITH CHECK (organization_id = current_setting('app.organization_id', true));--> statement-breakpoint
 CREATE POLICY "runs_tenant_isolation" ON "runs" AS PERMISSIVE FOR ALL TO public USING (organization_id = current_setting('app.organization_id', true)) WITH CHECK (organization_id = current_setting('app.organization_id', true));--> statement-breakpoint

@@ -6,8 +6,6 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
 import { OpenAI } from 'openai';
-import { zodTextFormat } from "openai/helpers/zod";
-import { z } from 'zod';
 import { weatherAgent } from './src/weatherAgent';
 
 

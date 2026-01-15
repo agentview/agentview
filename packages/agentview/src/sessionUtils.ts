@@ -18,14 +18,13 @@ export function getAllSessionItems<SessionT extends Session>(session: SessionT, 
 }
 
 export function getVersions(session: Session | SessionWithCollaboration) {
-  const seen = new Set<string>();
-  return session.runs
-    .map((run) => run.version)
-    .filter((version) => {
-      if (!version) return false;
-      seen.add(version);
-      return true;
-    });
+  const versions: string[] = [];
+  for (const run of session.runs) {
+    if (run.version && !versions.includes(run.version)) {
+      versions.push(run.version);
+    }
+  }
+  return versions;
 }
 
 function enhanceRun(run: Run) {

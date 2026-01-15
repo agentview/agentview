@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1768243707888,
-      "tag": "0000_ancient_namorita",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1768328090357,
-      "tag": "0001_loose_firebrand",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1768383970170,
-      "tag": "0002_cool_ultragirl",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1768384784618,
-      "tag": "0003_rich_mockingbird",
+      "when": 1768471455257,
+      "tag": "0000_glamorous_lucky_pierre",
       "breakpoints": true
     }
   ]
