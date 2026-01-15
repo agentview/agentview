@@ -28,6 +28,8 @@ services:
         generateValue: true
       - key: POSTGRES_APP_USER
         value: "agentview"
+    domains:
+      - api.agentview.app
 
   # Background Worker
   - type: worker
