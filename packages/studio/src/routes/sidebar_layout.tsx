@@ -33,25 +33,24 @@ import {
 // Removed Framework Mode type import
 import { spaceAllowedValues, type Space } from "agentview/apiTypes";
 import type { AgentCustomRoute } from "agentview/types";
+import { getWebAppUrl } from "agentview/urls";
 import { matchPath } from "react-router";
 import { UserAvatar } from "../components/internal/UserAvatar";
 import { Button } from "../components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { config } from "../config";
+import { getEnv } from "../getEnv";
 import { apiFetch } from "../lib/apiFetch";
 import { authClient, getMember, getOrganization } from "../lib/auth-client";
 import { getCurrentAgent } from "../lib/currentAgent";
-import { getEnvironment, requireEnvironment, updateRemoteConfig } from "../lib/environment";
+import { updateRemoteConfig } from "../lib/environment";
 import { SessionContext } from "../lib/SessionContext";
-import { getEnv } from "../getEnv";
-import { getWebAppUrl } from "agentview/urls";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await authClient.getSession()
 
   const url = new URL(request.url);
   const relativeUrl = url.pathname + url.search + url.hash;
-
 
   if (!session.data) {
     if (relativeUrl !== '/') {
@@ -65,96 +64,44 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const agent = getCurrentAgent(request);
   const env = getEnv();
 
-  // For now for prod too. It's not secure though.
   if (env === "dev" || env === "prod") {
-    try {
-      await updateRemoteConfig(config); // update schema on every page load
-    } catch (error) {
+    updateRemoteConfig(config).catch(error => { // can easily run in background
       console.warn("Error while updating remote config", error);
-    }
+    });
   }
 
-  // Organisation
-  // let organization: Organization;
-  // try {
-  //   organization = await getOrganization();
-  // } catch(error) {
-  //   if ((error as any).code === "USER_IS_NOT_A_MEMBER_OF_THE_ORGANIZATION") {
-  //     return redirect("/logout");
-  //   }
-  //   throw error;
-  // }
-  const organization = await getOrganization();
-  await authClient.organization.setActive({ organizationId: config.organizationId });
+  const organization = await getOrganization()
+  const member = await getMember(organization, session.data.user.id);
+  
 
-  // const organization = await authClient.organization.getFullOrganization();
-
-  // const orgListResponse = await authClient.organization.list();
-
-  // if (orgListResponse.error) {
-  //   throw new Error(orgListResponse.error.message);
-  // }
-
-  // const orgs = orgListResponse.data;
-
-  // if (orgs.length === 0) {
-  //   return redirect('/create-organization');
-  // }
-  // if (orgs.length > 1) {
-  //   throw new Error('Multiple organizations not supported yet');
-  // }
-
-  // const organization = await getActiveOrganization(orgs[0].slug);
-
-  // const organization : Organization = orgs[0];
-
-  // const membersResponse = await apiFetch<Member[]>('/api/members');
-
-  // if (!membersResponse.ok) {
-  //   throw data(membersResponse.error, { status: membersResponse.status });
-  // }
-
-  const locale = request.headers.get('accept-language')?.split(',')[0] || 'en-US';
-
-  // Fetch session stats for each session type and list combination
+  // Fetch session stats for each session type and list combination (in parallel)
   const listStats: { [sessionType: string]: { [list: string]: { unseenCount: number, hasMentions: boolean } } } = {};
 
   if (config.agents) {
-    for (const agentConfig of config.agents) {
-      listStats[agentConfig.name] = {};
+    const statsPromises = config.agents.flatMap(agentConfig =>
+      spaceAllowedValues.map(space =>
+        apiFetch<{ unseenCount: number; hasMentions: boolean }>(
+          `/api/sessions/stats?agent=${agentConfig.name}&space=${space}`
+        ).then(response => {
+          if (!response.ok) {
+            throw data(response.error, { status: response.status });
+          }
+          return { agent: agentConfig.name, space, data: response.data };
+        })
+      )
+    );
 
-      for (const space of spaceAllowedValues) {
-        const statsUrl = `/api/sessions/stats?agent=${agentConfig.name}&space=${space}`;
-        const statsResponse = await apiFetch<{ unseenCount: number, hasMentions: boolean }>(statsUrl);
+    const statsResults = await Promise.all(statsPromises);
 
-        if (!statsResponse.ok) {
-          throw data(statsResponse.error, { status: statsResponse.status });
-        }
-
-        listStats[agentConfig.name][space] = statsResponse.data;
+    for (const result of statsResults) {
+      if (!listStats[result.agent]) {
+        listStats[result.agent] = {};
       }
+      listStats[result.agent][result.space] = result.data;
     }
   }
 
-  const member = await getMember(organization, session.data.user.id);
-
-
-
-  // console.log('activeMember', activeMember);
-
-
-  // if (!session.data.me.role) {
-  //   throw data({ message: "User not found" }, { status: 404 });
-  // }
-
-  // const member: Member = {
-  //   id: session.data.user.id,
-  //   email: session.data.user.email,
-  //   name: session.data.user.name,
-  //   role: session.data.me.role,
-  //   image: session.data.user.image ?? null,
-  //   createdAt: session.data.user.createdAt.toISOString(),
-  // }
+  const locale = request.headers.get('accept-language')?.split(',')[0] || 'en-US';
 
   return {
     me: {

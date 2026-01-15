@@ -28,12 +28,15 @@ async function loader({ request }: LoaderFunctionArgs) {
     return redirect(url.toString());
   }
 
-  const sessionsResponse = await apiFetch<SessionsPaginatedResponse>(`/api/sessions?${toQueryParams(listParams)}`);
+  // Fetch sessions and stats in parallel
+  const [sessionsResponse, statsResponse] = await Promise.all([
+    apiFetch<SessionsPaginatedResponse>(`/api/sessions?${toQueryParams(listParams)}`),
+    apiFetch<any>(`/api/sessions/stats?${toQueryParams(listParams)}&granular=true`)
+  ]);
+
   if (!sessionsResponse.ok) {
     throw data(sessionsResponse.error, { status: sessionsResponse.status });
   }
-
-  const statsResponse = await apiFetch<any>(`/api/sessions/stats?${toQueryParams(listParams)}&granular=true`);
   if (!statsResponse.ok) {
     throw data(statsResponse.error, { status: statsResponse.status });
   }

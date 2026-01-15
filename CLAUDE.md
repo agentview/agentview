@@ -11,7 +11,7 @@ To learn about project read docs. You can find them in `apps/docs`. `apps/docs/d
 AgentView has a backend API server. You can find the code in `apps/api`. Infra for local development is defined in `docker-compose.yml` in a root directory.
 
 To run infra, just run `docker compose up`.
-To run API server just run `pnpm run api:dev` (under the hood it run both http server and workers).
+To run API server just run `pnpm run dev:api` (under the hood it run both http server and workers, you can check out scripts in `package.json` to learn more).
 Server will be running on port defined by env: `AGENTVIEW_API_PORT`.
 
 All the environment variables are defined in root `.env`, packages and apps use this file (with exception for `apps/examples/*`).
