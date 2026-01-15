@@ -3,6 +3,7 @@ import { adminClient, apiKeyClient, organizationClient } from "better-auth/clien
 import { config } from "../config"
 import { data, redirect } from "react-router"
 import { getApiUrl } from "agentview/urls"
+import { swr } from "./swr-cache"
 
 export function createBetterAuthClient({ baseURL }: { baseURL: string }) {
     return createAuthClient({
@@ -58,6 +59,33 @@ export async function getSession() {
     return response.data;
 }
 
+export type Session = NonNullable<Awaited<ReturnType<typeof getSession>>>;
 export type Member = Awaited<ReturnType<typeof getMember>>;
-export type User = NonNullable<Awaited<ReturnType<typeof getSession>>>["user"]
+export type User = Session["user"];
 export type Organization = Awaited<ReturnType<typeof getOrganization>>;
+
+// Cached versions with stale-while-revalidate
+export async function getSessionCached() {
+    return swr('session', async () => {
+        const response = await authClient.getSession();
+        if (response.error) {
+            throw response.error;
+        }
+        return response.data;
+    });
+}
+
+export async function getOrganizationCached() {
+    return swr('organization', async () => {
+        const response = await authClient.organization.getFullOrganization({
+            query: { organizationId: config.organizationId }
+        });
+        if (response.error) {
+            if (response.error.code === "USER_IS_NOT_A_MEMBER_OF_THE_ORGANIZATION") {
+                throw new Error("You don't have access to this organization.");
+            }
+            throw response.error;
+        }
+        return response.data;
+    });
+}

@@ -1,7 +1,8 @@
 import { redirect, type RouteObject } from "react-router";
+import { invalidateCache } from "../lib/swr-cache";
 
 async function loader() {
-  console.log('LOGOUT!!!!!');
+  invalidateCache();
   localStorage.removeItem("agentview_token");
   return redirect('/');
 }

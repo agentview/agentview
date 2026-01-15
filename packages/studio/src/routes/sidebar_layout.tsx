@@ -6,9 +6,11 @@ import {
   redirect,
   useLoaderData,
   useLocation,
+  useRevalidator,
   type LoaderFunctionArgs,
   type RouteObject
 } from "react-router";
+import { useEffect } from "react";
 
 import { ArrowLeft, Building2Icon, ChevronDown, ChevronUp, Database, LogOut, MessageCircle, PlusIcon, UserIcon, WrenchIcon } from "lucide-react";
 import { NotificationBadge } from "../components/internal/NotificationBadge";
@@ -41,18 +43,20 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { config } from "../config";
 import { getEnv } from "../getEnv";
 import { apiFetch } from "../lib/apiFetch";
-import { authClient, getMember, getOrganization } from "../lib/auth-client";
+import { getSessionCached, getOrganizationCached, type User, type Member, type Organization } from "../lib/auth-client";
 import { getCurrentAgent } from "../lib/currentAgent";
 import { updateRemoteConfig } from "../lib/environment";
 import { SessionContext } from "../lib/SessionContext";
+import { setRevalidateCallback } from "../lib/swr-cache";
+
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const session = await authClient.getSession()
+  const session = await getSessionCached();
 
   const url = new URL(request.url);
   const relativeUrl = url.pathname + url.search + url.hash;
 
-  if (!session.data) {
+  if (!session) {
     if (relativeUrl !== '/') {
       return redirect('/login?redirect=' + encodeURIComponent(relativeUrl));
     }
@@ -70,9 +74,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
   }
 
-  const organization = await getOrganization()
-  const member = await getMember(organization, session.data.user.id);
-  
+  const organization = await getOrganizationCached();
+  const member = organization.members.find(m => m.userId === session.user.id);
+
+  if (!member) {
+    throw new Error("Member not found");
+  }
+
 
   // Fetch session stats for each session type and list combination (in parallel)
   const listStats: { [sessionType: string]: { [list: string]: { unseenCount: number, hasMentions: boolean } } } = {};
@@ -105,7 +113,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   return {
     me: {
-      ...session.data.user,
+      ...session.user,
       role: member.role
     },
     locale,
@@ -117,8 +125,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 function Component() {
   const { me, organization, locale, listStats, agent } = useLoaderData<typeof loader>()
-
+  const revalidator = useRevalidator();
   const location = useLocation();
+
+  // Wire up SWR cache to trigger React Router revalidation on data change
+  useEffect(() => {
+    setRevalidateCallback(() => revalidator.revalidate());
+    return () => setRevalidateCallback(null);
+  }, [revalidator]);
 
   // Helper function to get unseen count for a specific session type and list name
   const getUnseenCount = (sessionType: string, space: Space) => {
