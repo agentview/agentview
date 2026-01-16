@@ -1,7 +1,7 @@
 import { AlertCircleIcon } from "lucide-react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useFetcher, useRevalidator } from "react-router";
-import type { SessionItem, CommentMessage, Session, Score, SessionWithCollaboration, SessionItemWithCollaboration } from "agentview/apiTypes";
+import type { SessionItem, CommentMessage, Session, Score, SessionsStats, SessionWithCollaboration, SessionItemWithCollaboration } from "agentview/apiTypes";
 import { Button } from "../ui/button";
 import { useFetcherSuccess } from "../../hooks/useFetcherSuccess";
 import { timeAgoShort } from "../../lib/timeAgo";
@@ -31,6 +31,7 @@ export type CommentsThreadRawProps = {
 export type CommentsThreadProps = CommentsThreadRawProps & {
     selected: boolean,
     onSelect: (item: any) => void,
+    allStats?: SessionsStats,
 }
 
 export type CommentSessionFloatingButtonProps = CommentsThreadProps & {
@@ -227,7 +228,7 @@ export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ sess
     );
 });
 
-export function CommentsThread({ session, item, itemConfig, selected = false, onSelect }: CommentsThreadProps) {
+export function CommentsThread({ session, item, itemConfig, selected = false, onSelect, allStats }: CommentsThreadProps) {
     const commentThreadRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const revalidator = useRevalidator();
@@ -241,6 +242,10 @@ export function CommentsThread({ session, item, itemConfig, selected = false, on
     useEffect(() => {
         const element = containerRef.current;
         if (!element) return;
+
+        const itemStats = allStats?.sessions?.[session.id]?.items?.[item.id];
+        // Skip if stats available and no unreads
+        if (allStats && !itemStats?.unseenEvents?.length) return;
 
         const observer = new IntersectionObserver(
             (entries) => {

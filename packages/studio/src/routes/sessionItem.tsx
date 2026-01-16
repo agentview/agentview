@@ -1,14 +1,14 @@
 import { data, useLoaderData, useOutletContext, useParams, useRevalidator } from "react-router";
 import type { RouteObject } from "react-router";
 import { Header, HeaderTitle } from "../components/header";
-import type { Session, SessionWithCollaboration } from "agentview/apiTypes";
+import type { Session, SessionsStats, SessionWithCollaboration } from "agentview/apiTypes";
 import { getAllSessionItems } from "agentview/sessionUtils";
 import { CommentsThreadRaw } from "../components/internal/comments";
 import { agentview } from "../lib/agentview";
 import { useEffect } from "react";
 
 function Component() {
-    const { session } = useOutletContext<{ session: SessionWithCollaboration }>();
+    const { session, allStats } = useOutletContext<{ session: SessionWithCollaboration, allStats?: SessionsStats }>();
     const params = useParams();
     const revalidator = useRevalidator();
 
@@ -20,6 +20,10 @@ function Component() {
     }
 
     useEffect(() => {
+        const itemStats = allStats?.sessions?.[session.id]?.items?.[item.id];
+        // Skip if stats available and no unreads
+        if (allStats && !itemStats?.unseenEvents?.length) return;
+
         agentview.markItemSeen(session.id, item.id)
             .then(() => revalidator.revalidate())
             .catch((error) => console.error(error))

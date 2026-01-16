@@ -77,7 +77,7 @@ function Component() {
 
     </div>
 
-    <Outlet />
+    <Outlet context={{ allStats }} />
   </div>
 }
 

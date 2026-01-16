@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { type RunWithCollaboration, type Session, type SessionItemWithCollaboration, type SessionWithCollaboration } from "agentview/apiTypes";
+import { type RunWithCollaboration, type Session, type SessionItemWithCollaboration, type SessionsStats, type SessionWithCollaboration } from "agentview/apiTypes";
 import { findItemConfigById, findMatchingRunConfigs, requireAgentConfig } from "agentview/configUtils";
 import { enhanceSession, getActiveRuns, getAllSessionItems, getLastRun, getVersions } from "agentview/sessionUtils";
 import type { AgentConfig, ScoreConfig, SessionItemConfig, SessionItemDisplayComponentProps } from "agentview/types";
@@ -7,7 +7,7 @@ import { AlertCircleIcon, ChevronDown, CircleGauge, InfoIcon, MessageCirclePlus,
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { LoaderFunctionArgs, RouteObject } from "react-router";
-import { data, Link, Outlet, useFetcher, useLoaderData, useNavigate, useRevalidator } from "react-router";
+import { data, Link, Outlet, useFetcher, useLoaderData, useNavigate, useOutletContext, useRevalidator } from "react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 import { DisplayProperties } from "../components/DisplayProperties";
@@ -82,6 +82,7 @@ function SessionPage() {
     const revalidator = useRevalidator();
     const navigate = useNavigate();
     const { me } = useSessionContext();
+    const { allStats } = useOutletContext<{ allStats?: SessionsStats }>() ?? {};
 
     const [session, setSession] = useState<SessionWithCollaboration>(loaderData.session)
 
@@ -207,6 +208,10 @@ function SessionPage() {
     }, [])
 
     useEffect(() => {
+        const sessionStats = allStats?.sessions?.[session.id];
+        // Skip if stats available and no unreads
+        if (allStats && !sessionStats?.unseenEvents?.length) return;
+
         agentview.markSessionSeen(session.id)
             .then(() => revalidator.revalidate())
             .catch((error) => console.error(error))
@@ -372,6 +377,7 @@ function SessionPage() {
                                             isSmallSize={styles.isSmallSize}
                                             isLastRunItem={isLastRunItem}
                                             isOutput={itemConfigMatch?.type === "output"}
+                                            allStats={allStats}
                                         />
 
                                         {isLastRunItem && run.status === "in_progress" && <div className="text-muted-foreground mt-5">
@@ -388,6 +394,7 @@ function SessionPage() {
                                         session={session}
                                         selected={isSelected}
                                         onSelect={(a) => { setselectedItemId(a?.id) }}
+                                        allStats={allStats}
                                     /> : undefined
                             }
                         })
@@ -409,7 +416,7 @@ function SessionPage() {
 
         </div>
 
-        <Outlet context={{ session }} />
+        <Outlet context={{ session, allStats }} />
     </>
 }
 
@@ -608,6 +615,7 @@ type MessageFooterProps = {
     isSmallSize: boolean,
     isLastRunItem: boolean,
     isOutput: boolean,
+    allStats?: SessionsStats,
 }
 
 
@@ -625,7 +633,7 @@ type MessageFooterProps = {
 
 
 function MessageFooter(props: MessageFooterProps) {
-    const { session, run, listParams, item, itemConfig, onSelect, isSelected, isSmallSize, isLastRunItem, isOutput } = props;
+    const { session, run, listParams, item, itemConfig, onSelect, isSelected, isSmallSize, isLastRunItem, isOutput, allStats } = props;
     const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
 
     const allScoreConfigs = itemConfig?.scores ?? [];
@@ -705,6 +713,7 @@ function MessageFooter(props: MessageFooterProps) {
                 small={true}
                 singleLineMessageHeader={true}
                 onSelect={onSelect}
+                allStats={allStats}
             />
         </div>}
 
