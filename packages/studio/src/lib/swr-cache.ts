@@ -104,6 +104,7 @@ export async function swr<T>(
     // Expired: fall through to blocking fetch
   }
 
+  console.log('[cache] cache miss: ' + key);
   // No cache or expired - fetch and store (blocking)
   const data = await fetcher();
   cache.set(canonicalKey, { data, timestamp: now, revalidating: false });
@@ -112,6 +113,7 @@ export async function swr<T>(
 
 export function invalidateCache(key?: string) {
   if (key) {
+    console.log('[cache] invalidating key: ' + key);
     const canonicalKey = resolveKey(key);
     cache.delete(canonicalKey);
 
