@@ -12,7 +12,7 @@ services:
     runtime: docker
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
-    dockerCommand: pnpm run http:start
+    dockerCommand: pnpm run http
     region: virginia
     plan: starter
     healthCheckPath: /api/health
@@ -37,7 +37,7 @@ services:
     runtime: docker
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
-    dockerCommand: pnpm run worker:start
+    dockerCommand: pnpm run worker
     region: virginia
     plan: starter
     envVars:
