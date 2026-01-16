@@ -66,7 +66,7 @@ export type Organization = Awaited<ReturnType<typeof getOrganization>>;
 
 // Cached versions with stale-while-revalidate
 export async function getSessionCached() {
-    return swr('session', async () => {
+    return swr('auth:session', async () => {
         const response = await authClient.getSession();
         if (response.error) {
             throw response.error;
@@ -76,7 +76,7 @@ export async function getSessionCached() {
 }
 
 export async function getOrganizationCached() {
-    return swr('organization', async () => {
+    return swr('auth:organization', async () => {
         const response = await authClient.organization.getFullOrganization({
             query: { organizationId: config.organizationId }
         });

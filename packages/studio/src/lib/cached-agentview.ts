@@ -1,6 +1,6 @@
-import { AgentView, type RunUpdate } from 'agentview'
-import { swr, invalidateCache, invalidateByPrefix, subscribeToChanges } from './swr-cache'
+import { AgentView } from 'agentview'
 import { getAuthHeaders } from './agentview'
+import { addKeyAlias, invalidateByPrefix, invalidateCache, swr } from './swr-cache'
 
 // Cache key helpers
 const keys = {
@@ -18,7 +18,18 @@ export class CachedAgentView extends AgentView {
   // === CACHED READS ===
 
   override async getSession(...args: Parameters<AgentView['getSession']>) {
-    return swr(keys.session(args[0].id), () => super.getSession(...args))
+    const requestedId = args[0].id
+    const session = await swr(keys.session(requestedId), () => super.getSession(...args))
+
+    // Add aliases so both id and handle resolve to the cached entry
+    if (session.id !== requestedId) {
+      addKeyAlias(keys.session(requestedId), keys.session(session.id))
+    }
+    if (session.handle !== requestedId) {
+      addKeyAlias(keys.session(requestedId), keys.session(session.handle))
+    }
+
+    return session
   }
 
   override async getSessions(...args: Parameters<AgentView['getSessions']>) {

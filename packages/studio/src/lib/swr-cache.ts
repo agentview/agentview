@@ -7,9 +7,18 @@ type CacheEntry<T> = {
 type ChangeListener = (key: string, oldData: unknown, newData: unknown) => void;
 
 const cache = new Map<string, CacheEntry<any>>();
+const keyAliases = new Map<string, string>(); // alias → original
 const FRESH_TIME = 30_000; // 30 seconds - data is fresh, no background check
 const STALE_TIME = 10 * 60_000; // 10 minutes - serve stale + background fetch, after this refetch blocking
 const changeListeners = new Set<ChangeListener>();
+
+function resolveKey(key: string): string {
+  return keyAliases.get(key) ?? key;
+}
+
+export function addKeyAlias(originalKey: string, aliasKey: string) {
+  keyAliases.set(aliasKey, originalKey);
+}
 
 let revalidateCallback: (() => void) | null = null;
 
@@ -34,7 +43,8 @@ export async function swr<T>(
   key: string,
   fetcher: () => Promise<T>
 ): Promise<T> {
-  const entry = cache.get(key);
+  const canonicalKey = resolveKey(key);
+  const entry = cache.get(canonicalKey);
   const now = Date.now();
 
   // If we have cached data
@@ -55,10 +65,10 @@ export async function swr<T>(
       fetcher().then(newData => {
         const oldData = entry.data;
         const changed = JSON.stringify(newData) !== JSON.stringify(oldData);
-        cache.set(key, { data: newData, timestamp: Date.now(), revalidating: false });
+        cache.set(canonicalKey, { data: newData, timestamp: Date.now(), revalidating: false });
         if (changed) {
           for (const listener of changeListeners) {
-            listener(key, oldData, newData);
+            listener(canonicalKey, oldData, newData);
           }
           if (revalidateCallback) {
             revalidateCallback();
@@ -80,14 +90,16 @@ export async function swr<T>(
 
   // No cache or expired - fetch and store (blocking)
   const data = await fetcher();
-  cache.set(key, { data, timestamp: now, revalidating: false });
+  cache.set(canonicalKey, { data, timestamp: now, revalidating: false });
   return data;
 }
 
 export function invalidateCache(key?: string) {
   if (key) {
-    cache.delete(key);
+    const canonicalKey = resolveKey(key);
+    cache.delete(canonicalKey);
   } else {
     cache.clear();
+    keyAliases.clear();
   }
 }
