@@ -7,6 +7,11 @@ type CacheEntry<T> = {
 type ChangeListener = (key: string, oldData: unknown, newData: unknown) => void;
 
 const cache = new Map<string, CacheEntry<any>>();
+
+if (typeof window !== 'undefined') {
+  (window as any).cache = cache;
+}
+
 const keyAliases = new Map<string, string>(); // alias → canonical
 const keyDependents = new Map<string, Set<string>>(); // dependency → set of keys that depend on it
 const FRESH_TIME = 30_000; // 30 seconds - data is fresh, no background check
