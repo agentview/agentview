@@ -27,24 +27,27 @@ import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popove
 import { config } from "../config";
 import { useFetcherSuccess } from "../hooks/useFetcherSuccess";
 import { useRerender } from "../hooks/useRerender";
-import { apiFetch } from "../lib/apiFetch";
+import { agentview, AgentViewError, getAuthHeaders } from "../lib/agentview";
 import { getListParams, toQueryParams } from "../lib/listParams";
 import { parseSSE } from "../lib/parseSSE";
 import { useSessionContext } from "../lib/SessionContext";
-import { getAuthHeaders } from "../lib/apiFetch";
 import { getApiUrl } from "agentview/urls";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
-    const response = await apiFetch<SessionWithCollaboration>(`/api/sessions/${params.id}`);
+    try {
+        // Force cast to SessionWithCollaboration - the backend returns this type for this endpoint
+        const session = await agentview.getSession({ id: params.id! }) as unknown as SessionWithCollaboration;
 
-    if (!response.ok) {
-        throw data(response.error, { status: response.status })
+        return {
+            session,
+            listParams: getListParams(request)
+        };
+    } catch (error) {
+        if (error instanceof AgentViewError) {
+            throw data({ message: error.message, ...error.details }, { status: error.statusCode });
+        }
+        throw error;
     }
-
-    return {
-        session: response.data,
-        listParams: getListParams(request)
-    };
 }
 
 function Component() {
@@ -204,16 +207,9 @@ function SessionPage() {
     }, [])
 
     useEffect(() => {
-        apiFetch(`/api/sessions/${session.id}/seen`, {
-            method: 'POST',
-        }).then((data) => {
-            if (data.ok) {
-                revalidator.revalidate();
-            }
-            else {
-                console.error(data.error)
-            }
-        })
+        agentview.markSessionSeen(session.id)
+            .then(() => revalidator.revalidate())
+            .catch((error) => console.error(error))
     }, [])
 
     const bodyRef = useRef<HTMLDivElement>(null);
@@ -558,12 +554,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
 
     const cancel = async () => {
         if (lastRun?.status === 'in_progress') {
-            await apiFetch(`/api/runs/${lastRun.id}`, {
-                method: 'PATCH',
-                body: {
-                    status: 'cancelled'
-                }
-            });
+            await agentview.updateRun({ id: lastRun.id, status: 'cancelled' });
 
             // must go *after* request above to prevent race
             abortController?.abort();

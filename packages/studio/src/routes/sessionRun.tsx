@@ -3,7 +3,6 @@ import type { LoaderFunctionArgs, RouteObject } from "react-router";
 import { Header, HeaderTitle } from "../components/header";
 import type { Session } from "agentview/apiTypes";
 import { getAllSessionItems } from "agentview/sessionUtils";
-import { apiFetch } from "../lib/apiFetch";
 import { useEffect } from "react";
 import { Button } from "../components/ui/button";
 import { getListParams, toQueryParams } from "../lib/listParams";
@@ -14,7 +13,6 @@ import { requireRunConfig, requireAgentConfig } from "agentview/configUtils";
 import { config } from "../config";
 import { DisplayProperties } from "../components/DisplayProperties";
 import type { ActionResponse } from "../lib/errors";
-import { debugRun } from "../lib/debugRun";
 
 function loader({ request, params }: LoaderFunctionArgs) {
     const listParams = getListParams(request);

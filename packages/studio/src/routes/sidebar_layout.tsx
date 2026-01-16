@@ -42,10 +42,9 @@ import { Button } from "../components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { config } from "../config";
 import { getEnv } from "../getEnv";
-import { apiFetch } from "../lib/apiFetch";
+import { agentview } from "../lib/agentview";
 import { getSessionCached, getOrganizationCached, type User, type Member, type Organization } from "../lib/auth-client";
 import { getCurrentAgent } from "../lib/currentAgent";
-import { updateRemoteConfig } from "../lib/environment";
 import { SessionContext } from "../lib/SessionContext";
 import { setRevalidateCallback } from "../lib/swr-cache";
 
@@ -69,7 +68,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const env = getEnv();
 
   if (env === "dev" || env === "prod") {
-    updateRemoteConfig(config).catch(error => { // can easily run in background
+    agentview.updateEnvironment({ config }).catch(error => { // can easily run in background
       console.warn("Error while updating remote config", error);
     });
   }
@@ -88,14 +87,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
   if (config.agents) {
     const statsPromises = config.agents.flatMap(agentConfig =>
       spaceAllowedValues.map(space =>
-        apiFetch<{ unseenCount: number; hasMentions: boolean }>(
-          `/api/sessions/stats?agent=${agentConfig.name}&space=${space}`
-        ).then(response => {
-          if (!response.ok) {
-            throw data(response.error, { status: response.status });
-          }
-          return { agent: agentConfig.name, space, data: response.data };
-        })
+        agentview.getSessionsStats({ agent: agentConfig.name, space })
+          .then(stats => ({ agent: agentConfig.name, space, data: stats }))
       )
     );
 

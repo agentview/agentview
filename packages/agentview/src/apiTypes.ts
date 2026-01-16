@@ -74,6 +74,15 @@ export const ScoreSchema = z.object({
 
 export type Score = z.infer<typeof ScoreSchema>
 
+export const ScoreCreateSchema = ScoreSchema.pick({
+  name: true,
+  value: true,
+})
+
+export type ScoreCreate = z.infer<typeof ScoreCreateSchema>
+
+
+
 export const CommentMessageSchema = z.object({
   id: z.string(),
   userId: z.string(),
@@ -86,6 +95,14 @@ export const CommentMessageSchema = z.object({
 })
 
 export type CommentMessage = z.infer<typeof CommentMessageSchema>
+
+export const CommentMessageCreateSchema = z.object({
+  content: z.string()
+})
+
+export type CommentMessageCreate = z.infer<typeof CommentMessageCreateSchema>
+
+
 
 export const SessionItemSchema = z.object({
   id: z.string(),
@@ -197,13 +214,6 @@ export const SessionUpdateSchema = z.object({
 
 export type SessionUpdate = z.infer<typeof SessionUpdateSchema>
 
-export const ScoreCreateSchema = ScoreSchema.pick({
-  sessionItemId: true,
-  name: true,
-  value: true,
-  commentId: true,
-})
-
 export const PublicSessionsGetQueryParamsSchema = z.object({
   agent: z.string().optional(),
   page: z.union([z.number(), z.string()]).optional(),
@@ -284,3 +294,24 @@ export const RunBodySchema = z.object({
 })
 
 export type RunBody = z.infer<typeof RunBodySchema>
+
+// Sessions stats query params
+export const SessionsStatsQueryParamsSchema = SessionsGetQueryParamsSchema.extend({
+  granular: z.boolean().optional(),
+})
+
+export type SessionsStatsQueryParams = z.infer<typeof SessionsStatsQueryParamsSchema>
+
+// Sessions stats response
+export type SessionsStats = {
+  unseenCount: number
+  hasMentions: boolean
+  sessions?: Record<string, { unseenEvents: any[], items: Record<string, { unseenEvents: any[] }> }>
+  items?: Record<string, any>
+}
+
+// Run details response
+export type RunDetails = {
+  request?: any
+  response?: any
+}

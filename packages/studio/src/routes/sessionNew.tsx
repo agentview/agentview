@@ -1,13 +1,11 @@
 import { redirect, Form, useActionData, useFetcher, data, useLoaderData } from "react-router";
 import type { ActionFunctionArgs, LoaderFunctionArgs, RouteObject } from "react-router";
 import { Header, HeaderTitle } from "../components/header";
-import { apiFetch } from "../lib/apiFetch";
+import { agentview, AgentViewError } from "../lib/agentview";
 import { getListParams, toQueryParams } from "../lib/listParams";
 import { type ActionResponse } from "../lib/errors";
 import { config } from "../config";
 import { requireAgentConfig } from "agentview/configUtils";
-import { AVFormError } from "../components/internal/form";
-import { z } from "zod";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { AlertCircleIcon } from "lucide-react";
 
@@ -39,32 +37,21 @@ async function action({ request, params }: ActionFunctionArgs): Promise<ActionRe
     return redirect(`/sessions/new?${toQueryParams(listParams)}`, { status: 303 });
   }
 
-  const userResponse = await apiFetch('/api/users', {
-    method: 'POST',
-    body: {
-      space: "playground",
-    }
-  });
-
-  if (!userResponse.ok) {
-    throw data(userResponse.error, { status: userResponse.status });
-  }
-  
-  const sessionResponse = await apiFetch('/api/sessions', {
-    method: 'POST',
-    body: {
+  try {
+    const user = await agentview.createUser({ space: "playground" });
+    const session = await agentview.createSession({
       agent: agentConfig.name,
-      userId: userResponse.data.id,
+      userId: user.id,
       metadata: payload?.metadata
+    });
+
+    return redirect(`/sessions/${session.handle}?${toQueryParams(listParams)}`);
+  } catch (error) {
+    if (error instanceof AgentViewError) {
+      return { ok: false, error: { message: error.message, statusCode: error.statusCode, ...error.details } };
     }
-  });
-
-  if (!sessionResponse.ok) {
-    console.log(sessionResponse);
-    return { ok: false, error: sessionResponse.error };
+    throw error;
   }
-
-  return redirect(`/sessions/${sessionResponse.data.handle}?${toQueryParams(listParams)}`);
 }
 
 function Component() {

@@ -4,7 +4,7 @@ import { Header, HeaderTitle } from "../components/header";
 import type { Session, SessionWithCollaboration } from "agentview/apiTypes";
 import { getAllSessionItems } from "agentview/sessionUtils";
 import { CommentsThreadRaw } from "../components/internal/comments";
-import { apiFetch } from "../lib/apiFetch";
+import { agentview } from "../lib/agentview";
 import { useEffect } from "react";
 
 function Component() {
@@ -20,16 +20,9 @@ function Component() {
     }
 
     useEffect(() => {
-        apiFetch(`/api/sessions/${session.id}/items/${item.id}/seen`, {
-            method: 'POST',
-        }).then((data) => {
-            if (data.ok) {
-                revalidator.revalidate();
-            }
-            else {
-                console.error(data.error)
-            }
-        })
+        agentview.markItemSeen(session.id, item.id)
+            .then(() => revalidator.revalidate())
+            .catch((error) => console.error(error))
     }, [item.id]) // make sure /seen is called when switching sessions
 
     return <div className="flex-1  flex flex-col">

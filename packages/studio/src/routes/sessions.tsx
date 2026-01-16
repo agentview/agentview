@@ -5,8 +5,8 @@ import { Button } from "../components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon, MessageCircle, PlusIcon, UserIcon } from "lucide-react";
 import { Header, HeaderTitle } from "../components/header";
 import { getListParams, getListParamsAndCheckForRedirect, toQueryParams } from "../lib/listParams";
-import { apiFetch } from "../lib/apiFetch";
-import type { Pagination, SessionBase, SessionsPaginatedResponse } from "agentview/apiTypes";
+import { agentview, AgentViewError } from "../lib/agentview";
+import type { Pagination, SessionBase, SessionsPaginatedResponse, Space } from "agentview/apiTypes";
 import { timeAgoShort } from "../lib/timeAgo";
 import { useSessionContext } from "../lib/SessionContext";
 import { NotificationBadge, NotificationDot } from "../components/internal/NotificationBadge";
@@ -28,24 +28,33 @@ async function loader({ request }: LoaderFunctionArgs) {
     return redirect(url.toString());
   }
 
-  // Fetch sessions and stats in parallel
-  const [sessionsResponse, statsResponse] = await Promise.all([
-    apiFetch<SessionsPaginatedResponse>(`/api/sessions?${toQueryParams(listParams)}`),
-    apiFetch<any>(`/api/sessions/stats?${toQueryParams(listParams)}&granular=true`)
-  ]);
+  try {
+    // Fetch sessions and stats in parallel
+    const [sessionsResult, allStats] = await Promise.all([
+      agentview.getSessions({
+        agent: listParams.agent,
+        space: listParams.space as Space,
+        page: listParams.page,
+      }),
+      agentview.getSessionsStats({
+        agent: listParams.agent,
+        space: listParams.space as Space,
+        page: listParams.page,
+        granular: true,
+      })
+    ]);
 
-  if (!sessionsResponse.ok) {
-    throw data(sessionsResponse.error, { status: sessionsResponse.status });
-  }
-  if (!statsResponse.ok) {
-    throw data(statsResponse.error, { status: statsResponse.status });
-  }
-
-  return {
-    sessions: sessionsResponse.data.sessions,
-    pagination: sessionsResponse.data.pagination,
-    allStats: statsResponse.data,
-    listParams
+    return {
+      sessions: sessionsResult.sessions,
+      pagination: sessionsResult.pagination,
+      allStats,
+      listParams
+    }
+  } catch (error) {
+    if (error instanceof AgentViewError) {
+      throw data({ message: error.message, ...error.details }, { status: error.statusCode });
+    }
+    throw error;
   }
 }
 

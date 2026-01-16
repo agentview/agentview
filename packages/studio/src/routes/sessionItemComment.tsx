@@ -1,37 +1,19 @@
-import { apiFetch } from "../lib/apiFetch";
+import { agentview, withErrorHandling } from "../lib/agentview";
 import { type ActionResponse } from "../lib/errors";
 import type { ActionFunctionArgs, RouteObject } from "react-router";
 
 async function action({ request, params }: ActionFunctionArgs): Promise<ActionResponse> {
     if (request.method === 'DELETE') {
-        
-        const response = await apiFetch(`/api/sessions/${params.id}/items/${params.itemId}/comments/${params.commentId}`, {
-            method: 'DELETE'
-        });
-
-        if (!response.ok) {
-            return { ok: false, error: response.error };
-        }
-
-        return { ok: true, data: {} }
-
+        return await withErrorHandling(() =>
+            agentview.deleteItemComment(params.id!, params.itemId!, params.commentId!)
+        );
     }
     else if (request.method === 'PUT') {
-        const { comment, scores } = await request.json();
+        const { comment } = await request.json();
 
-        const response = await apiFetch(`/api/sessions/${params.id}/items/${params.itemId}/comments/${params.commentId}`, {
-            method: 'PUT',
-            body: {
-                comment,
-                scores
-            }
-        });
-
-        if (!response.ok) {
-            return { ok: false, error: response.error };
-        }
-
-        return { ok: true, data: {} }
+        return await withErrorHandling(() =>
+            agentview.updateItemComment(params.id!, params.itemId!, params.commentId!, { content: comment })
+        );
     }
 
     throw new Error('Method not allowed');

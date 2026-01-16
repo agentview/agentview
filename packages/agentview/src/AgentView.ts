@@ -13,6 +13,12 @@ import {
   type SessionsGetQueryParams,
   type SessionsPaginatedResponse,
   type PublicSessionsGetQueryParams,
+  type CommentMessage,
+  type SessionsStatsQueryParams,
+  type SessionsStats,
+  type RunDetails,
+  type CommentMessageCreate,
+  type ScoreCreate,
 } from './apiTypes.js'
 
 import { type AgentViewErrorBody, AgentViewError } from './AgentViewError.js'
@@ -24,7 +30,7 @@ import { getApiUrl } from './urls.js'
 export interface AgentViewOptions {
   apiKey?: string
   userToken?: string
-  space?: Space
+  headers?: HeadersInit | (() => HeadersInit)
 }
 
 export const configDefaults: {
@@ -32,16 +38,23 @@ export const configDefaults: {
 } = { __internal: undefined }
 
 export class AgentView {
-  private apiKey: string
+  private apiKey?: string
   private userToken?: string
+  private customHeaders?: HeadersInit | (() => HeadersInit)
+  private credentials?: RequestCredentials
 
   constructor(options?: AgentViewOptions) {
-    const apiKey = options?.apiKey ?? process.env.AGENTVIEW_API_KEY
-    if (!apiKey) {
-      throw new Error("AgentView: Missing API Key. Set it either via apiKey property of AgentView constructor or via AGENTVIEW_API_KEY environment variable.")
+    // If custom headers are provided (browser mode), don't require apiKey
+    if (options?.headers) {
+      this.customHeaders = options.headers
+    } else {
+      const apiKey = options?.apiKey ?? process.env.AGENTVIEW_API_KEY
+      if (!apiKey) {
+        throw new Error("AgentView: Missing API Key. Set it either via apiKey property of AgentView constructor or via AGENTVIEW_API_KEY environment variable.")
+      }
+      this.apiKey = apiKey
     }
 
-    this.apiKey = apiKey
     this.userToken = options?.userToken
   }
 
@@ -50,15 +63,21 @@ export class AgentView {
     path: string,
     body?: any
   ): Promise<T> {
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     }
 
-    if (this.userToken) {
-      headers['X-User-Token'] = this.userToken;
+    // If custom headers are provided (browser mode), use them
+    if (this.customHeaders) {
+      const customHeaders = typeof this.customHeaders === 'function' ? this.customHeaders() : this.customHeaders
+      Object.assign(headers, customHeaders)
+    } else {
+      // Server mode: use apiKey and optionally userToken
+      if (this.userToken) {
+        headers['X-User-Token'] = this.userToken
+      }
+      headers['Authorization'] = `Bearer ${this.apiKey}`
     }
-
-    headers['Authorization'] = `Bearer ${this.apiKey}`
 
     const response = await fetch(`${getApiUrl()}${path}`, {
       method,
@@ -183,7 +202,52 @@ export class AgentView {
     return new AgentView({
       apiKey: this.apiKey,
       userToken,
+      headers: this.customHeaders,
+      credentials: this.credentials,
     })
+  }
+
+  async markSessionSeen(sessionId: string): Promise<void> {
+    return await this.request<void>('POST', `/api/sessions/${sessionId}/seen`, undefined)
+  }
+
+  async getSessionsStats(options?: SessionsStatsQueryParams): Promise<SessionsStats> {
+    let path = `/api/sessions/stats`
+    const params = new URLSearchParams()
+
+    if (options?.agent) params.append('agent', options.agent)
+    if (options?.space) params.append('space', options.space)
+    if (options?.page) params.append('page', options.page.toString())
+    if (options?.limit) params.append('limit', options.limit.toString())
+    if (options?.userId) params.append('userId', options.userId)
+    if (options?.granular) params.append('granular', 'true')
+
+    const queryString = params.toString()
+    if (queryString) {
+      path += `?${queryString}`
+    }
+
+    return await this.request<SessionsStats>('GET', path, undefined)
+  }
+
+  async updateItemScores(sessionId: string, itemId: string, scores: ScoreCreate[]): Promise<void> {
+    return await this.request<void>('PATCH', `/api/sessions/${sessionId}/items/${itemId}/scores`, scores)
+  }
+
+  async createItemComment(sessionId: string, itemId: string, options: CommentMessageCreate): Promise<CommentMessage> {
+    return await this.request<CommentMessage>('POST', `/api/sessions/${sessionId}/items/${itemId}/comments`, options)
+  }
+
+  async updateItemComment(sessionId: string, itemId: string, commentId: string, options: CommentMessageCreate): Promise<void> {
+    return await this.request<void>('PUT', `/api/sessions/${sessionId}/items/${itemId}/comments/${commentId}`, options)
+  }
+
+  async deleteItemComment(sessionId: string, itemId: string, commentId: string): Promise<void> {
+    return await this.request<void>('DELETE', `/api/sessions/${sessionId}/items/${itemId}/comments/${commentId}`, undefined)
+  }
+
+  async markItemSeen(sessionId: string, itemId: string): Promise<void> {
+    return await this.request<void>('POST', `/api/sessions/${sessionId}/items/${itemId}/seen`, undefined)
   }
 }
 

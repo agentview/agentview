@@ -37,7 +37,9 @@ import {
   type SessionItemWithCollaboration,
   type SessionsGetQueryParams,
   type User,
-  type Space
+  type Space,
+  CommentMessageCreateSchema,
+  ScoreCreateSchema
 } from 'agentview/apiTypes';
 import { type BaseAgentViewConfig, type BaseRunConfig, type Metadata } from 'agentview/configTypes';
 import { BaseConfigSchema, BaseConfigSchemaToZod, findItemConfig, findItemConfigById, requireRunConfig } from 'agentview/configUtils';
@@ -2571,9 +2573,7 @@ const commentsPOSTRoute = createRoute({
       sessionId: z.string(),
       itemId: z.string(),
     }),
-    body: body(z.object({
-      comment: z.string().optional()
-    }))
+    body: body(CommentMessageCreateSchema)
   },
   responses: {
     201: response_data(z.object({})),
@@ -2595,7 +2595,7 @@ app.openapi(commentsPOSTRoute, async (c) => {
     const session = await requireSession(tx, sessionId)
     const item = await requireSessionItem(session, itemId);
 
-    await createComment(tx, session, item, userPrincipal.session.user, body.comment ?? null, userPrincipal.organizationId);
+    await createComment(tx, session, item, userPrincipal.session.user, body.content ?? null, userPrincipal.organizationId);
 
     return c.json({}, 201);
   })
@@ -2648,9 +2648,7 @@ const commentsPUTRoute = createRoute({
       itemId: z.string(),
       commentId: z.string(),
     }),
-    body: body(z.object({
-      comment: z.string().optional()
-    }))
+    body: body(CommentMessageCreateSchema)
   },
   responses: {
     200: response_data(z.object({})),
@@ -2674,7 +2672,7 @@ app.openapi(commentsPUTRoute, async (c) => {
     const commentMessage = await requireCommentMessageFromUser(item, commentId, userPrincipal.session.user);
 
     try {
-      await updateComment(tx, session, item, commentMessage, body.comment ?? null, userPrincipal.organizationId);
+      await updateComment(tx, session, item, commentMessage, body.content, userPrincipal.organizationId);
     } catch (error) {
       return c.json({ message: `Invalid mention format: ${(error as Error).message}` }, 422);
     }
@@ -2696,10 +2694,7 @@ const scoresPATCHRoute = createRoute({
       sessionId: z.string(),
       itemId: z.string(),
     }),
-    body: body(z.array(z.object({
-      name: z.string(),
-      value: z.any()
-    })))
+    body: body(z.array(ScoreCreateSchema))
   },
   responses: {
     200: response_data(z.object({})),

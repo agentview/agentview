@@ -9,7 +9,7 @@ import { AVFormField } from "./form";
 import { Alert, AlertDescription } from "../ui/alert";
 import { TextEditor, textToElements } from "./TextEditor";
 import { useSessionContext } from "../../lib/SessionContext";
-import { apiFetch } from "../../lib/apiFetch";
+import { agentview } from "../../lib/agentview";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -246,16 +246,9 @@ export function CommentsThread({ session, item, itemConfig, selected = false, on
             (entries) => {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
-                        apiFetch(`/api/sessions/${session.id}/items/${item.id}/seen`, {
-                            method: 'POST',
-                        }).then((data) => {
-                            if (!data.ok) {
-                                console.error(data.error)
-                            }
-                            else {
-                                revalidator.revalidate();
-                            }
-                        })
+                        agentview.markItemSeen(session.id, item.id)
+                            .then(() => revalidator.revalidate())
+                            .catch((error) => console.error(error))
                         observer.disconnect();
                     }
                 });
