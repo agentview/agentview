@@ -162,7 +162,7 @@ export class AgentView {
     return await this.request<User>('POST', `/api/users`, options ?? {})
   }
 
-  async getUser(options?: { id: string } | { token: string } | { externalId: string, space?: Space } | undefined): Promise<User> {
+  async getUser(options?: { id: string } | { token: string } | { externalId: string } | undefined): Promise<User> {
     if (!options) {
       return await this.request<User>('GET', `/api/users/me`)
     }

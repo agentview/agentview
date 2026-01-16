@@ -1,6 +1,7 @@
-import { AgentView, AgentViewError } from 'agentview'
+import { AgentViewError } from 'agentview'
 import { config } from '../config'
 import { getEnv } from '../getEnv'
+import { CachedAgentView } from './cached-agentview'
 
 export function getAuthHeaders(): HeadersInit {
   return {
@@ -10,14 +11,7 @@ export function getAuthHeaders(): HeadersInit {
   }
 }
 
-export function getAgentView(): AgentView {
-  return new AgentView({
-    headers: getAuthHeaders,
-  })
-}
-
-// Convenience singleton for use in loaders/actions
-export const agentview = getAgentView()
+export const agentview = new CachedAgentView()
 
 // Re-export AgentViewError for error handling
 export { AgentViewError }

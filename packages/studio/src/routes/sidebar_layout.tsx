@@ -124,7 +124,14 @@ function Component() {
   // Wire up SWR cache to trigger React Router revalidation on data change
   useEffect(() => {
     setRevalidateCallback(() => revalidator.revalidate());
-    return () => setRevalidateCallback(null);
+    // Also subscribe to cached SDK changes
+    // const unsubscribe = agentview.subscribe(() => {
+    //   revalidator.revalidate();
+    // });
+    return () => {
+      setRevalidateCallback(null);
+      // unsubscribe();
+    };
   }, [revalidator]);
 
   // Helper function to get unseen count for a specific session type and list name
