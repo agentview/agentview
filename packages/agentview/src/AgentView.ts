@@ -85,6 +85,15 @@ export class AgentView {
       body: body ? JSON.stringify(body) : undefined,
     })
 
+    // artificial delay
+    if (typeof import.meta !== 'undefined') {
+       // @ts-ignore
+      const artificialDelayMs = import.meta.env.VITE_AGENTVIEW_ARTIFICIAL_DELAY_MS;
+      if (artificialDelayMs) {
+        await new Promise(resolve => setTimeout(resolve, parseInt(artificialDelayMs)))
+      }
+    }
+
     if (!response.ok) {
       const errorBody: AgentViewErrorBody = await response.json()
       const { message, ...details } = errorBody;
@@ -203,7 +212,6 @@ export class AgentView {
       apiKey: this.apiKey,
       userToken,
       headers: this.customHeaders,
-      credentials: this.credentials,
     })
   }
 

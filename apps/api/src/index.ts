@@ -112,15 +112,6 @@ app.use('*', cors({
   credentials: true,
 }))
 
-// Artificial delay middleware (for testing/debugging)
-const artificialDelayMs = parseInt(process.env.AGENTVIEW_ARTIFICIAL_DELAY_MS ?? '0', 10);
-if (artificialDelayMs > 0) {
-  app.use('*', async (c, next) => {
-    await new Promise(resolve => setTimeout(resolve, artificialDelayMs));
-    await next();
-  });
-}
-
 /* --------- AUTH --------- */
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => {
