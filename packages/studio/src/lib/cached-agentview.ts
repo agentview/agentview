@@ -1,12 +1,13 @@
 import { AgentView } from 'agentview'
 import { getAuthHeaders } from './agentview'
-import { addKeyAlias, invalidateByPrefix, invalidateCache, swr } from './swr-cache'
+import { addCacheDependency, addKeyAlias, invalidateByPrefix, invalidateCache, swr } from './swr-cache'
 
 // Cache key helpers
 const keys = {
   session: (id: string) => `session:${id}`,
   sessions: (params: string) => `sessions:${params}`,
   sessionsStats: (params: string) => `sessions-stats:${params}`,
+  user: (id: string) => `user:${id}`,
   environment: () => `environment`,
 }
 
@@ -19,15 +20,19 @@ export class CachedAgentView extends AgentView {
 
   override async getSession(...args: Parameters<AgentView['getSession']>) {
     const requestedId = args[0].id
-    const session = await swr(keys.session(requestedId), () => super.getSession(...args))
+    const cacheKey = keys.session(requestedId)
+    const session = await swr(cacheKey, () => super.getSession(...args))
 
     // Add aliases so both id and handle resolve to the cached entry
     if (session.id !== requestedId) {
-      addKeyAlias(keys.session(requestedId), keys.session(session.id))
+      addKeyAlias(cacheKey, keys.session(session.id))
     }
     if (session.handle !== requestedId) {
-      addKeyAlias(keys.session(requestedId), keys.session(session.handle))
+      addKeyAlias(cacheKey, keys.session(session.handle))
     }
+
+    // Session depends on its embedded user - invalidating user invalidates session
+    addCacheDependency(cacheKey, keys.user(session.userId))
 
     return session
   }
@@ -84,7 +89,6 @@ export class CachedAgentView extends AgentView {
   }
 
   override async createItemComment(...args: Parameters<AgentView['createItemComment']>) {
-    console.log('create item comment!');
     const result = await super.createItemComment(...args)
     invalidateCache(keys.session(args[0]))
     return result
@@ -108,4 +112,13 @@ export class CachedAgentView extends AgentView {
     return result
   }
 
+  override async updateUser(...args: Parameters<AgentView['updateUser']>) {
+    const result = await super.updateUser(...args)
+    invalidateCache(keys.user(args[0].id))
+
+    // '.user' is part of session in the list
+    invalidateByPrefix('sessions')
+    invalidateByPrefix('sessions-stats')
+    return result
+  }
 }

@@ -7,7 +7,8 @@ type CacheEntry<T> = {
 type ChangeListener = (key: string, oldData: unknown, newData: unknown) => void;
 
 const cache = new Map<string, CacheEntry<any>>();
-const keyAliases = new Map<string, string>(); // alias → original
+const keyAliases = new Map<string, string>(); // alias → canonical
+const keyDependents = new Map<string, Set<string>>(); // dependency → set of keys that depend on it
 const FRESH_TIME = 30_000; // 30 seconds - data is fresh, no background check
 const STALE_TIME = 10 * 60_000; // 10 minutes - serve stale + background fetch, after this refetch blocking
 const changeListeners = new Set<ChangeListener>();
@@ -16,8 +17,18 @@ function resolveKey(key: string): string {
   return keyAliases.get(key) ?? key;
 }
 
-export function addKeyAlias(originalKey: string, aliasKey: string) {
-  keyAliases.set(aliasKey, originalKey);
+export function addKeyAlias(canonicalKey: string, aliasKey: string) {
+  keyAliases.set(aliasKey, canonicalKey);
+}
+
+// Register that `key` depends on `dependencyKey` - when dependencyKey is invalidated, key is too
+export function addCacheDependency(key: string, dependencyKey: string) {
+  const canonicalKey = resolveKey(key);
+  const canonicalDep = resolveKey(dependencyKey);
+  if (!keyDependents.has(canonicalDep)) {
+    keyDependents.set(canonicalDep, new Set());
+  }
+  keyDependents.get(canonicalDep)!.add(canonicalKey);
 }
 
 let revalidateCallback: (() => void) | null = null;
@@ -32,10 +43,10 @@ export function subscribeToChanges(cb: ChangeListener): () => void {
 }
 
 export function invalidateByPrefix(prefix: string) {
-  for (const key of cache.keys()) {
-    if (key.startsWith(prefix)) {
-      cache.delete(key);
-    }
+  // Collect keys first to avoid mutating while iterating
+  const keysToInvalidate = [...cache.keys()].filter(key => key.startsWith(prefix));
+  for (const key of keysToInvalidate) {
+    invalidateCache(key);
   }
 }
 
@@ -98,8 +109,25 @@ export function invalidateCache(key?: string) {
   if (key) {
     const canonicalKey = resolveKey(key);
     cache.delete(canonicalKey);
+
+    // Clean up aliases pointing to this key
+    for (const [alias, target] of keyAliases) {
+      if (target === canonicalKey) {
+        keyAliases.delete(alias);
+      }
+    }
+
+    // Recursively invalidate any keys that depend on this one
+    const dependents = keyDependents.get(canonicalKey);
+    if (dependents) {
+      keyDependents.delete(canonicalKey); // Delete first to avoid infinite loops
+      for (const depKey of dependents) {
+        invalidateCache(depKey);
+      }
+    }
   } else {
     cache.clear();
     keyAliases.clear();
+    keyDependents.clear();
   }
 }
