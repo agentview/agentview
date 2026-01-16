@@ -209,12 +209,12 @@ function SessionPage() {
 
     useEffect(() => {
         const sessionStats = allStats?.sessions?.[session.id];
-        // Skip if stats available and no unreads
-        if (allStats && !sessionStats?.unseenEvents?.length) return;
+        if (sessionStats && sessionStats.unseenEvents.length > 0) {
+            agentview.markSessionSeen(session.id) // only mark as seen if there are unseen events (do not overload backend and clean cache unnecessarily)
+                .then(() => revalidator.revalidate())
+                .catch((error) => console.error(error))
+        };
 
-        agentview.markSessionSeen(session.id)
-            .then(() => revalidator.revalidate())
-            .catch((error) => console.error(error))
     }, [])
 
     const bodyRef = useRef<HTMLDivElement>(null);
@@ -342,7 +342,7 @@ function SessionPage() {
                                 }
                                 else {
                                     const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultStepComponent;
-                                    content = <Component item={item.content} sessionItem={item} run={run} session={session} />    
+                                    content = <Component item={item.content} sessionItem={item} run={run} session={session} />
                                 }
 
                             }
@@ -539,7 +539,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
             }
 
             await response.text(); // this is important. It waits until the full stream finished. Only after that we can call "finally" and reset abort controller.
-            
+
             return response;
 
         } catch (error: any) {
@@ -679,17 +679,17 @@ function MessageFooter(props: MessageFooterProps) {
                         </Link>
                     </Button> } */}
 
-                    { remainingScores.length > 0 && <ScoreDialog
+                    {remainingScores.length > 0 && <ScoreDialog
                         session={session}
                         item={item}
                         open={scoreDialogOpen}
                         onOpenChange={setScoreDialogOpen}
                         scoreConfigs={remainingScores}
-                    /> }
+                    />}
 
-                    { run.status !== "in_progress" && isLastRunItem && <Button variant="ghost" size="sm" asChild>
+                    {run.status !== "in_progress" && isLastRunItem && <Button variant="ghost" size="sm" asChild>
                         <Link to={`/sessions/${session.handle}/runs/${run.id}?${toQueryParams(listParams)}`}><InfoIcon className="size-4" />Run</Link>
-                    </Button> }
+                    </Button>}
 
 
                     {/* {hasErrors && <Button variant="ghost" size="sm" onClick={() => { debugRun(run) }}>

@@ -1,5 +1,6 @@
-import { useLoaderData, Outlet, Link, Form, data, NavLink, redirect } from "react-router";
+import { useLoaderData, Outlet, Link, Form, data, NavLink, redirect, Await } from "react-router";
 import type { LoaderFunctionArgs, RouteObject } from "react-router";
+import { Suspense } from "react";
 
 import { Button } from "../components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon, MessageCircle, PlusIcon, UserIcon } from "lucide-react";
@@ -29,27 +30,27 @@ async function loader({ request }: LoaderFunctionArgs) {
   }
 
   try {
-    // Fetch sessions and stats in parallel
-    const [sessionsResult, allStats] = await Promise.all([
-      agentview.getSessions({
-        agent: listParams.agent,
-        space: listParams.space as Space,
-        page: listParams.page,
-      }),
-      agentview.getSessionsStats({
-        agent: listParams.agent,
-        space: listParams.space as Space,
-        page: listParams.page,
-        granular: true,
-      })
-    ]);
+    // Fetch sessions immediately (blocking)
+    const sessionsResult = await agentview.getSessions({
+      agent: listParams.agent,
+      space: listParams.space as Space,
+      page: listParams.page,
+    });
+
+    // Stats fetched lazily - don't await, let it load in background
+    const statsPromise = agentview.getSessionsStats({
+      agent: listParams.agent,
+      space: listParams.space as Space,
+      page: listParams.page,
+      granular: true,
+    });
 
     return {
       sessions: sessionsResult.sessions,
       pagination: sessionsResult.pagination,
-      allStats,
+      allStats: statsPromise,
       listParams
-    }
+    };
   } catch (error) {
     if (error instanceof AgentViewError) {
       throw data({ message: error.message, ...error.details }, { status: error.statusCode });
@@ -70,15 +71,28 @@ function Component() {
       </Header>
 
       <div className="flex-1 overflow-y-auto pb-12">
-        {sessions.length > 0 && sessions.map(session => <SessionCard session={session} listParams={listParams} sessionStats={allStats.sessions![session.id]} />)}
+        <Suspense fallback={<SessionList sessions={sessions} listParams={listParams} allStats={undefined} />}>
+          <Await resolve={allStats}>
+            {(resolvedStats) => <SessionList sessions={sessions} listParams={listParams} allStats={resolvedStats} />}
+          </Await>
+        </Suspense>
         {sessions.length === 0 && <div className="px-3 py-4 text-muted-foreground">No sessions available.</div>}
         {sessions.length > 0 && <PaginationControls pagination={pagination} listParams={listParams} />}
       </div>
 
     </div>
 
-    <Outlet context={{ allStats }} />
+    <Suspense fallback={<Outlet context={{ allStats: undefined }} />}>
+      <Await resolve={allStats}>
+        {(resolvedStats) => <Outlet context={{ allStats: resolvedStats }} />}
+      </Await>
+    </Suspense>
   </div>
+}
+
+function SessionList({ sessions, listParams, allStats }: { sessions: SessionBase[], listParams: ReturnType<typeof getListParams>, allStats: any }) {
+  if (sessions.length === 0) return null;
+  return <>{sessions.map(session => <SessionCard key={session.id} session={session} listParams={listParams} sessionStats={allStats?.sessions?.[session.id]} />)}</>;
 }
 
 function PaginationControls({ pagination, listParams }: { pagination: Pagination, listParams: ReturnType<typeof getListParams> }) {
@@ -115,16 +129,16 @@ function PaginationControls({ pagination, listParams }: { pagination: Pagination
 
 
 
-export function SessionCard({ session, listParams, sessionStats }: { session: SessionBase, listParams: ReturnType<typeof getListParams>, sessionStats: any }) {
+export function SessionCard({ session, listParams, sessionStats }: { session: SessionBase, listParams: ReturnType<typeof getListParams>, sessionStats: any | undefined }) {
   const { organization: { members }, me } = useSessionContext();
   const date = session.createdAt;
 
-  const unseenEvents = sessionStats.unseenEvents;
+  const unseenEvents = sessionStats?.unseenEvents ?? [];
   const hasSessionUnreads = unseenEvents.length > 0;
 
   const allItemEvents: any[] = [];
 
-  for (const itemStats of Object.values(sessionStats.items) as any[]) {
+  for (const itemStats of Object.values(sessionStats?.items ?? {}) as any[]) {
     allItemEvents.push(...itemStats.unseenEvents);
   }
 

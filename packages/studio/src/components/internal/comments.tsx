@@ -244,26 +244,27 @@ export function CommentsThread({ session, item, itemConfig, selected = false, on
         if (!element) return;
 
         const itemStats = allStats?.sessions?.[session.id]?.items?.[item.id];
-        // Skip if stats available and no unreads
-        if (allStats && !itemStats?.unseenEvents?.length) return;
+        
+        if (itemStats && itemStats.unseenEvents.length > 0) {
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    entries.forEach((entry) => {
+                        if (entry.isIntersecting) {
+                            agentview.markItemSeen(session.id, item.id)
+                                .then(() => revalidator.revalidate())
+                                .catch((error) => console.error(error))
+                            observer.disconnect();
+                        }
+                    });
+                },
+                { threshold: 0.1 }
+            );
+    
+            observer.observe(element);
+    
+            return () => observer.disconnect();
+        }
 
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        agentview.markItemSeen(session.id, item.id)
-                            .then(() => revalidator.revalidate())
-                            .catch((error) => console.error(error))
-                        observer.disconnect();
-                    }
-                });
-            },
-            { threshold: 0.1 }
-        );
-
-        observer.observe(element);
-
-        return () => observer.disconnect();
     }, [])
 
     useEffect(() => {
