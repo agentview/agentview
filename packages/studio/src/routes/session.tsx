@@ -64,84 +64,149 @@ function getLastActivityAt(session: SessionWithCollaboration): Date {
     return lastUpdatedAt;
 }
 
+
+/**
+ * Rationale behind this hook:
+ * - it allows for "normal non-streaming" mode, you just fetch session in loader and it just passes through to session. Updates in input result in output.
+ * - if session is "in_progress" it automatically starts watching for changes and updates the session in real time, keeps local state for that
+ * - after streaming is finsihed (last state is *not* in_progress) there might be a conflict between local and external state. We resolve it by comparing last activity at and taking the most recent. Resetting local state to external state if it's more recent.
+ * - 'wait' is a special flag that tells hook to hang connection until a new stream happens
+ */
 function useSession(
     externalSession: SessionWithCollaboration,
-    options?: { poll?: boolean }
+    options?: { wait?: boolean }
 ): SessionWithCollaboration {
-    const { poll = false } = options ?? {};
+    const { wait = false } = options ?? {};
+
     const [localSession, setLocalSession] = useState<SessionWithCollaboration | undefined>(undefined);
     const [isWatching, setIsWatching] = useState(false);
-    const [pollTick, setPollTick] = useState(0);
-
-    console.log('poll', poll, 'tick', pollTick)
 
     const activeSession = localSession ?? externalSession; // localSession overrides externalSession EVEN IF isWatching is false! This is by design.
     const lastRun = getLastRun(activeSession);
 
-    // Polling timer - increments pollTick every 1s when poll=true and not watching
+    const abortControllerRef = useRef<AbortController | undefined>(undefined); // this is also a lock, if defined -> watch is in progrss
+
     useEffect(() => {
-        if (!poll || isWatching) return;
-
-        const intervalId = setInterval(() => {
-            setPollTick(t => t + 1);
-        }, 1000);
-
-        return () => clearInterval(intervalId);
-    }, [poll, isWatching]);
-
-    /**
-     * HOW ABOUT WE JUST RUN IT ALWAYS??????
-     * - normally we just run it on "in_progress" turn on
-     * - if polling -> this behaviour is discarded actually. Poll will handle this.
-     */
-    useEffect(() => {
-        console.log('try run stream');
-
-        if (lastRun?.status !== "in_progress") {
-            return;
-        }
-
-        setIsWatching(true);
-        console.log('running!!!');
-        const abortController = new AbortController();
-
-        (async () => {
-            try {
-                for await (const { session, event } of agentview.watchSession({
-                    id: externalSession.id,
-                    signal: abortController.signal
-                })) {
-                    setLocalSession(session as SessionWithCollaboration);
-                }
-
-                // Stream ended - keep localSession, but stop watching
-                // Next external change will take over
-                setIsWatching(false);
-            } catch (err: any) {
-                if (err?.name === 'AbortError') return;
-                setIsWatching(false);
-            }
-        })();
-
         return () => {
-            abortController.abort()
-        };
-    }, [lastRun?.status === "in_progress", pollTick]);
+            abortControllerRef.current?.abort(); // abort watch if exists on unmount
+        }
+    }, [])
 
     useEffect(() => {
-        if (isWatching || !localSession) {
+        if (isWatching) {
             return;
         }
 
-        const localSessionLastActivityAt = getLastActivityAt(localSession);
-        const externalSessionLastActivityAt = getLastActivityAt(externalSession);
-        if (localSessionLastActivityAt <= externalSessionLastActivityAt) {
-            setLocalSession(undefined);
-        }
+        if (lastRun?.status === "in_progress" || wait) {
+            console.log('[hook] watching session, wait: ', wait, 'status: ', lastRun?.status);
 
-    }, [isWatching, externalSession])
+            setIsWatching(true);
+            abortControllerRef.current = new AbortController();
+
+            (async () => {
+                try {
+                    console.log('[hook] agentview.watchSession started')
+                    for await (const { session, event } of agentview.watchSession({
+                        id: externalSession.id,
+                        signal: abortControllerRef.current!.signal,
+                        wait
+                    })) {
+                        setLocalSession(session as SessionWithCollaboration);
+                    }
+                    console.log('[hook] agentview.watchSession done')
+
+                    setIsWatching(false);
+                } catch (err: any) {
+                    if (err?.name === 'AbortError') {
+                        console.log('[hook] stream aborted');
+                        return;
+                    };
+                    setIsWatching(false);
+                }
+            })();
+        }
+        else {
+            if (localSession) { // if not watching 
+                const localSessionLastActivityAt = getLastActivityAt(localSession);
+                const externalSessionLastActivityAt = getLastActivityAt(externalSession);
+                if (localSessionLastActivityAt <= externalSessionLastActivityAt) {
+                    setLocalSession(undefined);
+                }
+            }
+        }
+    })
 
     return activeSession;
+
+    // // console.log('poll', poll, 'tick', pollTick)
+
+    // const activeSession = localSession ?? externalSession; // localSession overrides externalSession EVEN IF isWatching is false! This is by design.
+    // const lastRun = getLastRun(activeSession);
+
+    // // Polling timer - increments pollTick every 1s when poll=true and not watching
+    // useEffect(() => {
+    //     if (!poll || isWatching) return;
+
+    //     const intervalId = setInterval(() => {
+    //         setPollTick(t => t + 1);
+    //     }, 1000);
+
+    //     return () => clearInterval(intervalId);
+    // }, [poll, isWatching]);
+
+    // /**
+    //  * HOW ABOUT WE JUST RUN IT ALWAYS??????
+    //  * - normally we just run it on "in_progress" turn on
+    //  * - if polling -> this behaviour is discarded actually. Poll will handle this.
+    //  */
+    // useEffect(() => {
+    //     console.log('try run stream');
+
+    //     if (lastRun?.status !== "in_progress") {
+    //         return;
+    //     }
+
+    //     setIsWatching(true);
+    //     console.log('running!!!');
+    //     const abortController = new AbortController();
+
+    //     (async () => {
+    //         try {
+    //             for await (const { session, event } of agentview.watchSession({
+    //                 id: externalSession.id,
+    //                 signal: abortController.signal
+    //             })) {
+    //                 setLocalSession(session as SessionWithCollaboration);
+    //             }
+
+    //             // Stream ended - keep localSession, but stop watching
+    //             // Next external change will take over
+    //             setIsWatching(false);
+    //         } catch (err: any) {
+    //             if (err?.name === 'AbortError') return;
+    //             setIsWatching(false);
+    //         }
+    //     })();
+
+    //     return () => {
+    //         abortController.abort()
+    //     };
+    // }, [lastRun?.status === "in_progress", pollTick]);
+
+    // useEffect(() => {
+    //     if (isWatching || !localSession) {
+    //         return;
+    //     }
+
+    //     const localSessionLastActivityAt = getLastActivityAt(localSession);
+    //     const externalSessionLastActivityAt = getLastActivityAt(externalSession);
+    //     if (localSessionLastActivityAt <= externalSessionLastActivityAt) {
+    //         setLocalSession(undefined);
+    //     }
+
+    // }, [isWatching, externalSession])
+
+    // return activeSession;
 }
 
 function Component() {
@@ -179,7 +244,7 @@ function SessionPage() {
     const { allStats } = useOutletContext<{ allStats?: SessionsStats }>() ?? {};
 
     const [expectingRun, setExpectingRun] = useState(false);
-    const session = useSession(loaderData.session, { poll: expectingRun });
+    const session = useSession(loaderData.session, { wait: true });
 
     const listParams = loaderData.listParams;
     const activeItems = getAllSessionItems(session, { activeOnly: true })

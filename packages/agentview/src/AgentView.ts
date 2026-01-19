@@ -262,14 +262,16 @@ export class AgentView {
     return await this.request<void>('POST', `/api/sessions/${sessionId}/items/${itemId}/seen`, undefined)
   }
 
-  async *watchSession(options: { id: string, signal?: AbortSignal }): AsyncGenerator<{
+  async *watchSession(options: { id: string, signal?: AbortSignal, wait?: boolean }): AsyncGenerator<{
     event: WatchSessionEvent;
     session: Session;
   }> {
-    const response = await fetch(`${getApiUrl()}/api/sessions/${options.id}/watch`, {
+    const queryParams = options.wait ? '?wait=true' : ''
+    
+    const response = await fetch(`${getApiUrl()}/api/sessions/${options.id}/watch${queryParams}`, {
       method: 'GET',
       headers: this.getHeaders(),
-      signal: options.signal,
+      signal: options.signal
     })
 
     if (!response.ok) {

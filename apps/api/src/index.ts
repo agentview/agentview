@@ -1608,13 +1608,31 @@ app.openapi(sessionsPOSTRoute, async (c) => {
 
 
 // watches session and its last run changes
-async function* watchSession(organizationId: string, initSession: Session) {
+async function* watchSession(organizationId: string, initSession: Session, wait: boolean, randomId: string) {
+
+  console.log(`[watch ${randomId}] wait: `, wait);
+
+  // if wait is true, we wait for the session to be in progress
+  if (wait) {
+    while(true) {
+      if (getLastRun(initSession)?.status === 'in_progress') {
+        break;
+      }
+
+      console.log(`[watch ${randomId}] waiting for session to be in progress...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      initSession = await withOrg(organizationId, async (tx) => requireSession(tx, initSession.id))
+    }
+  }
+
+  console.log(`[watch ${randomId}] session is in progress, streaming...`);
+
+  let prevLastRun = getLastRun(initSession);
+
   yield {
     event: 'session.snapshot',
     data: initSession
   }
-
-  let prevLastRun = getLastRun(initSession);
 
   // we do not stream session when run is *not* in progress
   if (prevLastRun?.status !== 'in_progress') {
@@ -1680,6 +1698,10 @@ async function* watchSession(organizationId: string, initSession: Session) {
       };
     }
 
+    if (lastRun.status !== 'in_progress') {
+      break;
+    }
+
     prevLastRun = lastRun;
 
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1692,6 +1714,9 @@ const sessionWatchRoute = createRoute({
   request: {
     params: z.object({
       session_id: z.string(),
+    }),
+    query: z.object({
+       wait: z.string().optional()
     }),
   },
   responses: {
@@ -1713,11 +1738,15 @@ app.openapi(sessionWatchRoute, async (c) => {
   const principal = await authn(c.req.raw.headers);
 
   const { session_id } = c.req.param()
+  const { wait = "false" } = c.req.valid("query");
+
   const session = await withOrg(principal.organizationId, async (tx) => requireSession(tx, session_id))
 
   authorize(principal, { action: "end-user:read", user: session.user });
 
-  const generator = watchSession(principal.organizationId, session);
+  const randomId = Math.random().toString(36).substring(2, 8);
+  console.log(`[watch ${randomId}] starting request`)
+  const generator = watchSession(principal.organizationId, session, wait === "true", randomId);
 
   let running = true;
 
@@ -1725,14 +1754,15 @@ app.openapi(sessionWatchRoute, async (c) => {
   c.env.incoming.on('aborted', () => {
     if (!running) return;
     running = false;
+    console.log(`[watch ${randomId}] generator.return()`)
     generator.return();
-    // console.log(`[session ${session.handle} watch] aborted`)
   });
 
   // @ts-ignore
   c.env.incoming.on('close', () => {
     if (!running) return;
     running = false;
+    console.log(`[watch ${randomId}] generator.return()`)
     generator.return();
     // console.log(`[session ${session.handle} watch] closed`)
   });
