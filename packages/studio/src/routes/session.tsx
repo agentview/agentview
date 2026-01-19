@@ -64,19 +64,45 @@ function getLastActivityAt(session: SessionWithCollaboration): Date {
     return lastUpdatedAt;
 }
 
-function useSession(externalSession: SessionWithCollaboration): SessionWithCollaboration {
+function useSession(
+    externalSession: SessionWithCollaboration,
+    options?: { poll?: boolean }
+): SessionWithCollaboration {
+    const { poll = false } = options ?? {};
     const [localSession, setLocalSession] = useState<SessionWithCollaboration | undefined>(undefined);
     const [isWatching, setIsWatching] = useState(false);
+    const [pollTick, setPollTick] = useState(0);
+
+    console.log('poll', poll, 'tick', pollTick)
 
     const activeSession = localSession ?? externalSession; // localSession overrides externalSession EVEN IF isWatching is false! This is by design.
     const lastRun = getLastRun(activeSession);
 
+    // Polling timer - increments pollTick every 1s when poll=true and not watching
     useEffect(() => {
+        if (!poll || isWatching) return;
+
+        const intervalId = setInterval(() => {
+            setPollTick(t => t + 1);
+        }, 1000);
+
+        return () => clearInterval(intervalId);
+    }, [poll, isWatching]);
+
+    /**
+     * HOW ABOUT WE JUST RUN IT ALWAYS??????
+     * - normally we just run it on "in_progress" turn on
+     * - if polling -> this behaviour is discarded actually. Poll will handle this.
+     */
+    useEffect(() => {
+        console.log('try run stream');
+
         if (lastRun?.status !== "in_progress") {
             return;
         }
 
         setIsWatching(true);
+        console.log('running!!!');
         const abortController = new AbortController();
 
         (async () => {
@@ -97,10 +123,10 @@ function useSession(externalSession: SessionWithCollaboration): SessionWithColla
             }
         })();
 
-        return () => { 
+        return () => {
             abortController.abort()
         };
-    }, [lastRun?.status === "in_progress"]);
+    }, [lastRun?.status === "in_progress", pollTick]);
 
     useEffect(() => {
         if (isWatching || !localSession) {
@@ -152,7 +178,8 @@ function SessionPage() {
     const { me } = useSessionContext();
     const { allStats } = useOutletContext<{ allStats?: SessionsStats }>() ?? {};
 
-    const session = useSession(loaderData.session);
+    const [expectingRun, setExpectingRun] = useState(false);
+    const session = useSession(loaderData.session, { poll: expectingRun });
 
     const listParams = loaderData.listParams;
     const activeItems = getAllSessionItems(session, { activeOnly: true })
@@ -395,7 +422,7 @@ function SessionPage() {
             </div>
 
 
-            {session.user.createdBy === me.id && <InputForm session={session} agentConfig={agentConfig} styles={styles} />}
+            {session.user.createdBy === me.id && <InputForm session={session} agentConfig={agentConfig} styles={styles} onRunningStateChange={setExpectingRun} />}
 
         </div>
 
@@ -494,7 +521,7 @@ function ShareForm({ session }: { session: Session }) {
 //     />
 // }
 
-function InputForm({ session, agentConfig, styles }: { session: Session, agentConfig: AgentConfig, styles: Record<string, number> }) {
+function InputForm({ session, agentConfig, styles, onRunningStateChange }: { session: Session, agentConfig: AgentConfig, styles: Record<string, number>, onRunningStateChange?: (isRunning: boolean) => void }) {
     const lastRun = getLastRun(session)
 
     const [abortController, setAbortController] = useState<AbortController | undefined>(undefined)
@@ -502,6 +529,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
     const submit = async (url: string, body: Record<string, any>, init?: RequestInit) => {
         const abortController = new AbortController();
         setAbortController(abortController);
+        onRunningStateChange?.(true);
 
         const fetchOptions: RequestInit = {
             method: 'POST',
@@ -539,6 +567,7 @@ function InputForm({ session, agentConfig, styles }: { session: Session, agentCo
 
         } finally {
             setAbortController(undefined);
+            onRunningStateChange?.(false);
         }
     }
 
