@@ -19,7 +19,7 @@ import {
   type RunDetails,
   type CommentMessageCreate,
   type ScoreCreate,
-  type WatchSessionEvent,
+  type SessionStreamEvent,
 } from './apiTypes.js'
 
 import { type AgentViewErrorBody, AgentViewError } from './AgentViewError.js'
@@ -91,7 +91,7 @@ export class AgentView {
 
     // artificial delay
     if (typeof import.meta !== 'undefined') {
-       // @ts-ignore
+      // @ts-ignore
       const artificialDelayMs = import.meta.env?.VITE_AGENTVIEW_ARTIFICIAL_DELAY_MS;
       if (artificialDelayMs) {
         await new Promise(resolve => setTimeout(resolve, parseInt(artificialDelayMs)))
@@ -262,12 +262,12 @@ export class AgentView {
     return await this.request<void>('POST', `/api/sessions/${sessionId}/items/${itemId}/seen`, undefined)
   }
 
-  async *watchSession(options: { id: string, signal?: AbortSignal, wait?: boolean }): AsyncGenerator<{
-    event: WatchSessionEvent;
+  async *getSessionStream(options: { id: string, signal?: AbortSignal, wait?: boolean }): Promise<AsyncGenerator<{
+    event: SessionStreamEvent;
     session: Session;
-  }> {
+  }> | null> {
     const queryParams = options.wait ? '?wait=true' : ''
-    
+
     const response = await fetch(`${getApiUrl()}/api/sessions/${options.id}/watch${queryParams}`, {
       method: 'GET',
       headers: this.getHeaders(),
@@ -281,45 +281,50 @@ export class AgentView {
       throw new AgentViewError(message ?? "Unknown error", response.status, details)
     }
 
+    if (response.status === 204) {
+      return null;
+    }
+
     let session: Session | undefined
 
-    for await (const rawEvent of parseSSE(response)) {
-      const event: WatchSessionEvent = {
-        type: rawEvent.event,
-        data: rawEvent.data
-      }
-
-      if (rawEvent.event === 'session.snapshot') {
-        session = rawEvent.data
-      } else if (rawEvent.event === 'run.updated' && session) {
-        session = {
-          ...session,
-          runs: session.runs.map(run => {
-            if (run.id === rawEvent.data.id) {
-              return {
-                ...run,
-                ...rawEvent.data,
-                sessionItems: [
-                  ...run.sessionItems,
-                  ...(rawEvent.data.sessionItems ?? [])
-                ]
-              }
-            }
-            return run
-          })
+    return async function* () { // return async generator function to avoid promise return type  
+      for await (const rawEvent of parseSSE(response)) {
+        const event: SessionStreamEvent = {
+          type: rawEvent.event,
+          data: rawEvent.data
         }
-      }
 
-      if (session) {
-        yield {
-          event,
-          session: enhanceSession(session)
+        if (rawEvent.event === 'session.snapshot') {
+          session = rawEvent.data
+        } else if (rawEvent.event === 'run.updated' && session) {
+          session = {
+            ...session,
+            runs: session.runs.map(run => {
+              if (run.id === rawEvent.data.id) {
+                return {
+                  ...run,
+                  ...rawEvent.data,
+                  sessionItems: [
+                    ...run.sessionItems,
+                    ...(rawEvent.data.sessionItems ?? [])
+                  ]
+                }
+              }
+              return run
+            })
+          }
+        }
+
+        if (session) {
+          yield {
+            event,
+            session: enhanceSession(session)
+          }
         }
       }
     }
   }
 }
-
 
 
 

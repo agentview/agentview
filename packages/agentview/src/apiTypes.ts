@@ -318,7 +318,7 @@ export type RunDetails = {
 }
 
 // Watch session event
-export type WatchSessionEvent = {
+export type SessionStreamEvent = {
   type: string
   data: any
 }

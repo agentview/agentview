@@ -1608,13 +1608,18 @@ app.openapi(sessionsPOSTRoute, async (c) => {
 
 
 // watches session and its last run changes
-async function* watchSession(organizationId: string, initSession: Session, wait: boolean, randomId: string) {
+async function* watchSession(organizationId: string, initSession: Session, wait: boolean, randomId: string, signal: AbortSignal) {
 
   console.log(`[watch ${randomId}] wait: `, wait);
 
   // if wait is true, we wait for the session to be in progress
   if (wait) {
     while(true) {
+      if (signal.aborted) {
+        console.log(`[watch ${randomId}] signal aborted`);
+        return;
+      }
+
       if (getLastRun(initSession)?.status === 'in_progress') {
         break;
       }
@@ -1640,6 +1645,11 @@ async function* watchSession(organizationId: string, initSession: Session, wait:
   }
 
   while (true) {
+    if (signal.aborted) {
+      console.log(`[watch ${randomId}] signal aborted`);
+      return;
+    }
+
     const session = await withOrg(organizationId, async (tx) => requireSession(tx, initSession.id))
     const lastRun = getLastRun(session)
 
@@ -1653,6 +1663,7 @@ async function* watchSession(organizationId: string, initSession: Session, wait:
     if (hasNewRun) {
 
       throw new Error('unreachable - new run created while old one was being streamed');
+
 
       // // if previous last run existed and it's not in session.runs now it means it is both failed & not active -> therefore archived. 
       // if (prevLastRun && !session.runs.find(r => r.id === prevLastRun?.id)) {
@@ -1708,9 +1719,9 @@ async function* watchSession(organizationId: string, initSession: Session, wait:
   }
 }
 
-const sessionWatchRoute = createRoute({
+const sessionStreamRoute = createRoute({
   method: 'get',
-  path: '/api/sessions/{session_id}/watch',
+  path: '/api/sessions/{session_id}/stream',
   request: {
     params: z.object({
       session_id: z.string(),
@@ -1728,51 +1739,46 @@ const sessionWatchRoute = createRoute({
       },
       description: "Streams items from the run",
     },
+    204: response_no_content(),
     400: response_error(),
     404: response_error()
   },
 });
 
 
-app.openapi(sessionWatchRoute, async (c) => {
+app.openapi(sessionStreamRoute, async (c) => {
   const principal = await authn(c.req.raw.headers);
 
   const { session_id } = c.req.param()
-  const { wait = "false" } = c.req.valid("query");
+  const query = c.req.valid("query");
+  const wait = query.wait === "true";
 
   const session = await withOrg(principal.organizationId, async (tx) => requireSession(tx, session_id))
 
   authorize(principal, { action: "end-user:read", user: session.user });
 
+  // if session is not in progress and no wait -> 204
+  if (getLastRun(session)?.status !== 'in_progress' && !wait) {
+    return c.body(null, 204);
+  }
+
+  const abortController = new AbortController();
+  const abortSignal = abortController.signal;
+
   const randomId = Math.random().toString(36).substring(2, 8);
   console.log(`[watch ${randomId}] starting request`)
-  const generator = watchSession(principal.organizationId, session, wait === "true", randomId);
-
-  let running = true;
+  const generator = watchSession(principal.organizationId, session, wait, randomId, abortSignal);
 
   // @ts-ignore
-  c.env.incoming.on('aborted', () => {
-    if (!running) return;
-    running = false;
-    console.log(`[watch ${randomId}] generator.return()`)
-    generator.return();
+  c.env.incoming.on('close', () => { // we do not need 'abort', it's deprecated. We might call .abort() multiple times, nothing will happen.
+    console.log(`[watch ${randomId}] close event`)
+    abortController.abort();
   });
-
-  // @ts-ignore
-  c.env.incoming.on('close', () => {
-    if (!running) return;
-    running = false;
-    console.log(`[watch ${randomId}] generator.return()`)
-    generator.return();
-    // console.log(`[session ${session.handle} watch] closed`)
-  });
-
-  // console.log(`[session ${session.handle} watch] start`)
 
   // TODO: heartbeat
   return streamSSE(c, async (stream) => {
     for await (const event of generator) {
-      if (!running) return;
+      if (abortSignal.aborted) return;
 
       // console.log(`[session ${session.handle} watch] event: ${event.event}`);
       await stream.writeSSE({
