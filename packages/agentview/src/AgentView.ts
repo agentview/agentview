@@ -262,13 +262,13 @@ export class AgentView {
     return await this.request<void>('POST', `/api/sessions/${sessionId}/items/${itemId}/seen`, undefined)
   }
 
-  async *getSessionStream(options: { id: string, signal?: AbortSignal, wait?: boolean }): Promise<AsyncGenerator<{
+  async getSessionStream(options: { id: string, signal?: AbortSignal, wait?: boolean }): Promise<AsyncGenerator<{
     event: SessionStreamEvent;
     session: Session;
   }> | null> {
     const queryParams = options.wait ? '?wait=true' : ''
 
-    const response = await fetch(`${getApiUrl()}/api/sessions/${options.id}/watch${queryParams}`, {
+    const response = await fetch(`${getApiUrl()}/api/sessions/${options.id}/stream${queryParams}`, {
       method: 'GET',
       headers: this.getHeaders(),
       signal: options.signal
@@ -287,7 +287,7 @@ export class AgentView {
 
     let session: Session | undefined
 
-    return async function* () { // return async generator function to avoid promise return type  
+    return (async function* () {
       for await (const rawEvent of parseSSE(response)) {
         const event: SessionStreamEvent = {
           type: rawEvent.event,
@@ -322,7 +322,7 @@ export class AgentView {
           }
         }
       }
-    }
+    })();
   }
 }
 

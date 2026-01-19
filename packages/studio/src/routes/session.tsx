@@ -79,12 +79,12 @@ function useSession(
     const { wait = false } = options ?? {};
 
     const [localSession, setLocalSession] = useState<SessionWithCollaboration | undefined>(undefined);
-    const [isWatching, setIsWatching] = useState(false);
 
     const activeSession = localSession ?? externalSession; // localSession overrides externalSession EVEN IF isWatching is false! This is by design.
     const lastRun = getLastRun(activeSession);
 
     const abortControllerRef = useRef<AbortController | undefined>(undefined); // this is also a lock, if defined -> watch is in progrss
+    const isStreaming = abortControllerRef.current !== undefined;
 
     useEffect(() => {
         return () => {
@@ -93,35 +93,41 @@ function useSession(
     }, [])
 
     useEffect(() => {
-        if (isWatching) {
+        if (isStreaming) {
             return;
         }
 
         if (lastRun?.status === "in_progress" || wait) {
             console.log('[hook] watching session, wait: ', wait, 'status: ', lastRun?.status);
 
-            setIsWatching(true);
             abortControllerRef.current = new AbortController();
 
             (async () => {
                 try {
                     console.log('[hook] agentview.watchSession started')
-                    for await (const { session, event } of agentview.watchSession({
+                    const stream = await agentview.getSessionStream({
                         id: externalSession.id,
                         signal: abortControllerRef.current!.signal,
                         wait
-                    })) {
+                    });
+
+                    if (!stream) {
+                        abortControllerRef.current = undefined;
+                        return;
+                    }
+
+                    for await (const { session, event } of stream) {
                         setLocalSession(session as SessionWithCollaboration);
                     }
                     console.log('[hook] agentview.watchSession done')
 
-                    setIsWatching(false);
                 } catch (err: any) {
                     if (err?.name === 'AbortError') {
                         console.log('[hook] stream aborted');
                         return;
                     };
-                    setIsWatching(false);
+                } finally {
+                    abortControllerRef.current = undefined;
                 }
             })();
         }
@@ -137,76 +143,6 @@ function useSession(
     })
 
     return activeSession;
-
-    // // console.log('poll', poll, 'tick', pollTick)
-
-    // const activeSession = localSession ?? externalSession; // localSession overrides externalSession EVEN IF isWatching is false! This is by design.
-    // const lastRun = getLastRun(activeSession);
-
-    // // Polling timer - increments pollTick every 1s when poll=true and not watching
-    // useEffect(() => {
-    //     if (!poll || isWatching) return;
-
-    //     const intervalId = setInterval(() => {
-    //         setPollTick(t => t + 1);
-    //     }, 1000);
-
-    //     return () => clearInterval(intervalId);
-    // }, [poll, isWatching]);
-
-    // /**
-    //  * HOW ABOUT WE JUST RUN IT ALWAYS??????
-    //  * - normally we just run it on "in_progress" turn on
-    //  * - if polling -> this behaviour is discarded actually. Poll will handle this.
-    //  */
-    // useEffect(() => {
-    //     console.log('try run stream');
-
-    //     if (lastRun?.status !== "in_progress") {
-    //         return;
-    //     }
-
-    //     setIsWatching(true);
-    //     console.log('running!!!');
-    //     const abortController = new AbortController();
-
-    //     (async () => {
-    //         try {
-    //             for await (const { session, event } of agentview.watchSession({
-    //                 id: externalSession.id,
-    //                 signal: abortController.signal
-    //             })) {
-    //                 setLocalSession(session as SessionWithCollaboration);
-    //             }
-
-    //             // Stream ended - keep localSession, but stop watching
-    //             // Next external change will take over
-    //             setIsWatching(false);
-    //         } catch (err: any) {
-    //             if (err?.name === 'AbortError') return;
-    //             setIsWatching(false);
-    //         }
-    //     })();
-
-    //     return () => {
-    //         abortController.abort()
-    //     };
-    // }, [lastRun?.status === "in_progress", pollTick]);
-
-    // useEffect(() => {
-    //     if (isWatching || !localSession) {
-    //         return;
-    //     }
-
-    //     const localSessionLastActivityAt = getLastActivityAt(localSession);
-    //     const externalSessionLastActivityAt = getLastActivityAt(externalSession);
-    //     if (localSessionLastActivityAt <= externalSessionLastActivityAt) {
-    //         setLocalSession(undefined);
-    //     }
-
-    // }, [isWatching, externalSession])
-
-    // return activeSession;
 }
 
 function Component() {
@@ -244,7 +180,7 @@ function SessionPage() {
     const { allStats } = useOutletContext<{ allStats?: SessionsStats }>() ?? {};
 
     const [expectingRun, setExpectingRun] = useState(false);
-    const session = useSession(loaderData.session, { wait: true });
+    const session = useSession(loaderData.session, { wait: expectingRun });
 
     const listParams = loaderData.listParams;
     const activeItems = getAllSessionItems(session, { activeOnly: true })
