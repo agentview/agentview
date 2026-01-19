@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { AgentView, PublicAgentView, configDefaults } from 'agentview'
-import type { User, Run, Session } from 'agentview';
+import type { User, Run, Session, WatchSessionEvent } from 'agentview';
 import { z } from 'zod';
 import { seedUsers } from './seedUsers';
 import { createTestAuthClient } from './authClient';
@@ -1956,6 +1956,152 @@ describe('API', () => {
   //     expect(updatedSession.summary).toBeNull();
   //   }, 15000);
   // });
+
+  describe("watchSession", () => {
+    test("yields session.snapshot for completed session then ends", async () => {
+      await updateConfig();
+      const session = await createSession();
+
+      // Create and complete a run
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [baseInput, baseOutput],
+        version: "1.0.0",
+        status: "completed"
+      });
+
+      // Watch the session - should get snapshot and complete immediately
+      const events: Array<{ event: WatchSessionEvent; session: Session }> = [];
+      for await (const e of av.watchSession({ id: session.id })) {
+        events.push(e);
+      }
+
+      // Should get exactly 1 event
+      expect(events.length).toBe(1);
+
+      // Check event shape
+      const event = events[0].event;
+      expect(event.type).toBe("session.snapshot");
+      expect(event.data).toBeDefined();
+      expect(event.data.id).toBe(session.id);
+      expect(event.data.runs).toBeDefined();
+      expect(event.data.runs.length).toBe(1);
+      expect(event.data.runs[0].id).toBe(run.id);
+
+      // Check session state
+      expect(events[0].session.id).toBe(session.id);
+      expect(events[0].session.runs.length).toBe(1);
+      expect(events[0].session.runs[0].status).toBe("completed");
+    });
+
+    test("streams run.updated events as items are added", async () => {
+      await updateConfig();
+      const session = await createSession();
+
+      // Create run with input (in_progress)
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [baseInput],
+        version: "1.0.0"
+      });
+      expect(run.status).toBe("in_progress");
+
+      // Collect events in background
+      const events: Array<{ event: WatchSessionEvent; session: Session }> = [];
+      const abortController = new AbortController();
+
+      const watchPromise = (async () => {
+        for await (const e of av.watchSession({ id: session.id, signal: abortController.signal })) {
+          events.push(e);
+          // Stop after we get the completed status
+          if (e.session.runs[0]?.status === "completed") {
+            break;
+          }
+        }
+      })();
+
+      // Give watch a moment to start
+      await new Promise(r => setTimeout(r, 500));
+
+      // Add step and output, then complete
+      await av.updateRun({
+        id: run.id,
+        items: [baseStep],
+      });
+
+      await new Promise(r => setTimeout(r, 1500)); // Wait for polling interval
+
+      await av.updateRun({
+        id: run.id,
+        items: [baseOutput],
+        status: "completed"
+      });
+
+      // Wait for watch to complete
+      await watchPromise;
+
+      // Should get at least 2 events: snapshot + at least one run.updated
+      expect(events.length).toBeGreaterThanOrEqual(2);
+
+      // First event should be session.snapshot
+      expect(events[0].event.type).toBe("session.snapshot");
+      expect(events[0].event.data.id).toBe(session.id);
+      expect(events[0].event.data.runs[0].sessionItems.length).toBe(1); // just input
+
+      // Subsequent events should be run.updated
+      const updateEvents = events.slice(1);
+      for (const e of updateEvents) {
+        expect(e.event.type).toBe("run.updated");
+        expect(e.event.data.id).toBe(run.id);
+      }
+
+      // Final session state should have all items
+      const finalSession = events[events.length - 1].session;
+      expect(finalSession.runs[0].status).toBe("completed");
+      expect(finalSession.runs[0].sessionItems.length).toBe(3); // input, step, output
+    }, 15000);
+
+    test("can be aborted via AbortSignal", async () => {
+      await updateConfig();
+      const session = await createSession();
+
+      // Create run (in_progress)
+      await av.createRun({
+        sessionId: session.id,
+        items: [baseInput],
+        version: "1.0.0"
+      });
+
+      const abortController = new AbortController();
+      const events: Array<{ event: WatchSessionEvent; session: Session }> = [];
+
+      const watchPromise = (async () => {
+        try {
+          for await (const e of av.watchSession({ id: session.id, signal: abortController.signal })) {
+            events.push(e);
+            // Abort after first event
+            if (events.length === 1) {
+              abortController.abort();
+            }
+          }
+        } catch (err: any) {
+          if (err?.name === 'AbortError') {
+            return 'aborted';
+          }
+          throw err;
+        }
+        return 'completed';
+      })();
+
+      const result = await watchPromise;
+
+      // Should have gotten exactly 1 event (snapshot) before abort
+      expect(events.length).toBe(1);
+      expect(events[0].event.type).toBe("session.snapshot");
+      expect(events[0].event.data).toBeDefined();
+      expect(result).toBe('aborted');
+    }, 10000);
+  });
 });
 
 

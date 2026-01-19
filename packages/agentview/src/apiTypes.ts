@@ -315,3 +315,9 @@ export type RunDetails = {
   request?: any
   response?: any
 }
+
+// Watch session event
+export type WatchSessionEvent = {
+  type: string
+  data: any
+}

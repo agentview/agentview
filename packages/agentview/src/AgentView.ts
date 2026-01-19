@@ -19,6 +19,7 @@ import {
   type RunDetails,
   type CommentMessageCreate,
   type ScoreCreate,
+  type WatchSessionEvent,
 } from './apiTypes.js'
 
 import { type AgentViewErrorBody, AgentViewError } from './AgentViewError.js'
@@ -26,6 +27,7 @@ import { serializeConfig } from './configUtils.js'
 import { enhanceSession } from './sessionUtils.js'
 import type { InternalConfig } from './configTypes.js'
 import { getApiUrl } from './urls.js'
+import { parseSSE } from './parseSSE.js'
 
 export interface AgentViewOptions {
   apiKey?: string
@@ -58,30 +60,32 @@ export class AgentView {
     this.userToken = options?.userToken
   }
 
-  private async request<T>(
-    method: string,
-    path: string,
-    body?: any
-  ): Promise<T> {
+  private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     }
 
-    // If custom headers are provided (browser mode), use them
     if (this.customHeaders) {
       const customHeaders = typeof this.customHeaders === 'function' ? this.customHeaders() : this.customHeaders
       Object.assign(headers, customHeaders)
     } else {
-      // Server mode: use apiKey and optionally userToken
       if (this.userToken) {
         headers['X-User-Token'] = this.userToken
       }
       headers['Authorization'] = `Bearer ${this.apiKey}`
     }
 
+    return headers
+  }
+
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: any
+  ): Promise<T> {
     const response = await fetch(`${getApiUrl()}${path}`, {
       method,
-      headers,
+      headers: this.getHeaders(),
       body: body ? JSON.stringify(body) : undefined,
     })
 
@@ -256,6 +260,60 @@ export class AgentView {
 
   async markItemSeen(sessionId: string, itemId: string): Promise<void> {
     return await this.request<void>('POST', `/api/sessions/${sessionId}/items/${itemId}/seen`, undefined)
+  }
+
+  async *watchSession(options: { id: string, signal?: AbortSignal }): AsyncGenerator<{
+    event: WatchSessionEvent;
+    session: Session;
+  }> {
+    const response = await fetch(`${getApiUrl()}/api/sessions/${options.id}/watch`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+      signal: options.signal,
+    })
+
+    if (!response.ok) {
+      const errorBody: AgentViewErrorBody = await response.json()
+      const { message, ...details } = errorBody
+      throw new AgentViewError(message ?? "Unknown error", response.status, details)
+    }
+
+    let session: Session | undefined
+
+    for await (const rawEvent of parseSSE(response)) {
+      const event: WatchSessionEvent = {
+        type: rawEvent.event,
+        data: rawEvent.data
+      }
+
+      if (rawEvent.event === 'session.snapshot') {
+        session = rawEvent.data
+      } else if (rawEvent.event === 'run.updated' && session) {
+        session = {
+          ...session,
+          runs: session.runs.map(run => {
+            if (run.id === rawEvent.data.id) {
+              return {
+                ...run,
+                ...rawEvent.data,
+                sessionItems: [
+                  ...run.sessionItems,
+                  ...(rawEvent.data.sessionItems ?? [])
+                ]
+              }
+            }
+            return run
+          })
+        }
+      }
+
+      if (session) {
+        yield {
+          event,
+          session: enhanceSession(session)
+        }
+      }
+    }
   }
 }
 
