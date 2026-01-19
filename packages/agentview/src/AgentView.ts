@@ -324,6 +324,3 @@ export class PublicAgentView {
     return await this.request<SessionsPaginatedResponse>('GET', path)
   }
 }
-
-type WithOptional<T, K extends keyof T> =
-  Omit<T, K> & Partial<Pick<T, K>>;

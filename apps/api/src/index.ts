@@ -1616,63 +1616,71 @@ async function* watchSession(organizationId: string, initSession: Session) {
 
   let prevLastRun = getLastRun(initSession);
 
+  // we do not stream session when run is *not* in progress
+  if (prevLastRun?.status !== 'in_progress') {
+    return;
+  }
+
   while (true) {
     const session = await withOrg(organizationId, async (tx) => requireSession(tx, initSession.id))
     const lastRun = getLastRun(session)
 
-    if (lastRun) {
-      const hasNewRun = prevLastRun?.id !== lastRun.id;
-
-      // current run changed
-      if (hasNewRun) {
-
-        // if previous last run existed and it's not in session.runs now it means it is both failed & not active -> therefore archived. 
-        if (prevLastRun && !session.runs.find(r => r.id === prevLastRun?.id)) {
-          yield {
-            event: 'run.archived',
-            data: {
-              id: prevLastRun.id,
-            },
-          }
-        }
-
-        yield {
-          event: 'run.created',
-          data: lastRun,
-        }
-
-        prevLastRun = lastRun;
-      }
-      else {
-        const changedFields: Partial<typeof lastRun> = {};
-
-        const newItems = lastRun.sessionItems.filter(i => !prevLastRun?.sessionItems.find(i2 => i2.id === i.id))
-
-        if (newItems.length > 0) {
-          changedFields.sessionItems = newItems;
-        }
-
-        const runFieldsToCompare = ['id', 'status', 'finishedAt', 'failReason', 'metadata'] as const;
-
-        for (const field of runFieldsToCompare) {
-          if (JSON.stringify(prevLastRun![field] ?? null) !== JSON.stringify(lastRun[field] ?? null)) {
-            changedFields[field] = lastRun[field];
-          }
-        }
-
-        if (Object.keys(changedFields).length > 0) {
-          yield {
-            event: 'run.updated',
-            data: {
-              id: lastRun.id,
-              ...changedFields,
-            },
-          };
-        }
-      }
-
-      prevLastRun = lastRun;
+    if (!lastRun) {
+      throw new Error('unreachable');
     }
+
+    const hasNewRun = prevLastRun?.id !== lastRun.id;
+
+    // current run changed
+    if (hasNewRun) {
+
+      throw new Error('unreachable - new run created while old one was being streamed');
+
+      // // if previous last run existed and it's not in session.runs now it means it is both failed & not active -> therefore archived. 
+      // if (prevLastRun && !session.runs.find(r => r.id === prevLastRun?.id)) {
+      //   yield {
+      //     event: 'run.archived',
+      //     data: {
+      //       id: prevLastRun.id,
+      //     },
+      //   }
+      // }
+
+      // yield {
+      //   event: 'run.created',
+      //   data: lastRun,
+      // }
+
+      // prevLastRun = lastRun;
+    }
+    
+    const changedFields: Partial<typeof lastRun> = {};
+
+    const newItems = lastRun.sessionItems.filter(i => !prevLastRun?.sessionItems.find(i2 => i2.id === i.id))
+
+    if (newItems.length > 0) {
+      changedFields.sessionItems = newItems;
+    }
+
+    const runFieldsToCompare = ['id', 'status', 'finishedAt', 'failReason', 'metadata'] as const;
+
+    for (const field of runFieldsToCompare) {
+      if (JSON.stringify(prevLastRun![field] ?? null) !== JSON.stringify(lastRun[field] ?? null)) {
+        changedFields[field] = lastRun[field];
+      }
+    }
+
+    if (Object.keys(changedFields).length > 0) {
+      yield {
+        event: 'run.updated',
+        data: {
+          id: lastRun.id,
+          ...changedFields,
+        },
+      };
+    }
+
+    prevLastRun = lastRun;
 
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
@@ -1743,86 +1751,6 @@ app.openapi(sessionWatchRoute, async (c) => {
       });
     }
   });
-
-  // return streamSSE(c, async (stream) => {
-  //   let running = true;
-  //   stream.onAbort(() => {
-  //     running = false;
-  //   });
-
-  //   // let's start with sending full run snapshot
-  //   await stream.writeSSE({
-  //     data: JSON.stringify(lastRun ?? null),
-  //     event: 'run.snapshot',
-  //   });
-
-  //   // close stream for runs that are not in_progress
-  //   if (lastRun?.status !== 'in_progress') {
-  //     return;
-  //   }
-
-  //   let previousRun = lastRun;
-
-  //   /**
-  //    * POLLING HERE
-  //    * Soon we'll need to create a proper messaging, when some LLM API will be streaming characters then even NOTIFY/LISTEN won't make it performance-wise.
-  //    */
-  //   while (running) {
-  //     const session = await requireSession(session_id)
-  //     const lastRun = getLastRun(session)
-
-  //     if (!lastRun) {
-  //       throw new Error('unreachable');
-  //     }
-
-  //     // check for new items
-  //     const items = lastRun.items
-  //     const freshItems = items.filter(i => !previousRun.items.find(i2 => i2.id === i.id))
-
-  //     for (const item of freshItems) {
-  //       await stream.writeSSE({
-  //         data: JSON.stringify(item),
-  //         event: 'item.created',
-  //       });
-  //     }
-
-  //     previousRun = {
-  //       ...previousRun,
-  //       items: [...previousRun.items, ...freshItems],
-  //     }
-
-  //     // check for state change
-  //     const runFieldsToCompare = ['id', 'createdAt', 'finishedAt', 'sessionId', 'versionId', 'status', 'failReason', 'version', 'metadata'] as const;
-  //     const changedFields: Partial<typeof lastRun> = {};
-
-  //     for (const field of runFieldsToCompare) {
-  //       if (JSON.stringify(previousRun[field]) !== JSON.stringify(lastRun[field])) {
-  //         changedFields[field] = lastRun[field];
-  //       }
-  //     }
-
-  //     if (Object.keys(changedFields).length > 0) {
-  //       await stream.writeSSE({
-  //         data: JSON.stringify(changedFields),
-  //         event: 'run.state',
-  //       });
-
-  //       // Update previousRun with the new values (excluding sessionItems)
-  //       previousRun = {
-  //         ...previousRun,
-  //         ...changedFields,
-  //       };
-  //     }
-
-  //     // End if run is no longer in_progress
-  //     if (lastRun?.status !== 'in_progress') {
-  //       break;
-  //     }
-
-  //     // Wait 1s before next poll
-  //     await new Promise(resolve => setTimeout(resolve, 1000));
-  //   }
-  // });
 });
 
 
