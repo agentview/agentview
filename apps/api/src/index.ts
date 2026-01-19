@@ -12,7 +12,7 @@ import { and, countDistinct, desc, DrizzleQueryError, eq, inArray, isNull, sql, 
 import { auth } from './auth';
 import { db__dangerous } from './db';
 import { extractMentions } from './extractMentions';
-import { body, response_data, response_error } from './hono_utils';
+import { body, response_data, response_error, response_no_content } from './hono_utils';
 import { isUUID } from './isUUID';
 import { commentMentions, commentMessageEdits, commentMessages, environments, endUsers, events, inboxItems, runs, scores, sessionItems, sessions, starredSessions, versions, webhookJobs } from './schemas/schema';
 import { withOrg } from './withOrg';
@@ -1653,7 +1653,7 @@ async function* watchSession(organizationId: string, initSession: Session) {
 
       // prevLastRun = lastRun;
     }
-    
+
     const changedFields: Partial<typeof lastRun> = {};
 
     const newItems = lastRun.sessionItems.filter(i => !prevLastRun?.sessionItems.find(i2 => i2.id === i.id))
@@ -2218,7 +2218,8 @@ app.openapi(runPATCHRoute, async (c) => {
       metadata,
       failReason,
       finishedAt,
-      expiresAt
+      expiresAt,
+      updatedAt: new Date().toISOString(),
     }).where(eq(runs.id, run.id));
 
     if (body.state !== undefined) {

@@ -27,11 +27,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popove
 import { config } from "../config";
 import { useFetcherSuccess } from "../hooks/useFetcherSuccess";
 import { useRerender } from "../hooks/useRerender";
-import { agentview, AgentViewError, getAuthHeaders } from "../lib/agentview";
+import { agentview, AgentViewError } from "../lib/agentview";
 import { getListParams, toQueryParams } from "../lib/listParams";
-import { parseSSE } from "../lib/parseSSE";
 import { useSessionContext } from "../lib/SessionContext";
-import { getApiUrl } from "agentview/urls";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     try {
@@ -48,6 +46,76 @@ async function loader({ request, params }: LoaderFunctionArgs) {
         }
         throw error;
     }
+}
+
+
+
+function getLastActivityAt(session: SessionWithCollaboration): Date {
+    let lastUpdatedAt = new Date(session.updatedAt);
+
+    const lastRun = getLastRun(session);
+    if (lastRun) {
+        const lastRunUpdatedAt = new Date(lastRun.updatedAt);
+        if (lastRunUpdatedAt > lastUpdatedAt) {
+            lastUpdatedAt = lastRunUpdatedAt;
+        }
+    }
+
+    return lastUpdatedAt;
+}
+
+function useSession(externalSession: SessionWithCollaboration): SessionWithCollaboration {
+    const [localSession, setLocalSession] = useState<SessionWithCollaboration | undefined>(undefined);
+    const [isWatching, setIsWatching] = useState(false);
+
+    const activeSession = localSession ?? externalSession; // localSession overrides externalSession EVEN IF isWatching is false! This is by design.
+    const lastRun = getLastRun(activeSession);
+
+    useEffect(() => {
+        if (lastRun?.status !== "in_progress") {
+            return;
+        }
+
+        setIsWatching(true);
+        const abortController = new AbortController();
+
+        (async () => {
+            try {
+                for await (const { session, event } of agentview.watchSession({
+                    id: externalSession.id,
+                    signal: abortController.signal
+                })) {
+                    setLocalSession(session as SessionWithCollaboration);
+                }
+
+                // Stream ended - keep localSession, but stop watching
+                // Next external change will take over
+                setIsWatching(false);
+            } catch (err: any) {
+                if (err?.name === 'AbortError') return;
+                setIsWatching(false);
+            }
+        })();
+
+        return () => { 
+            abortController.abort()
+        };
+    }, [lastRun?.status === "in_progress"]);
+
+    useEffect(() => {
+        if (isWatching || !localSession) {
+            return;
+        }
+
+        const localSessionLastActivityAt = getLastActivityAt(localSession);
+        const externalSessionLastActivityAt = getLastActivityAt(externalSession);
+        if (localSessionLastActivityAt <= externalSessionLastActivityAt) {
+            setLocalSession(undefined);
+        }
+
+    }, [isWatching, externalSession])
+
+    return activeSession;
 }
 
 function Component() {
@@ -84,23 +152,7 @@ function SessionPage() {
     const { me } = useSessionContext();
     const { allStats } = useOutletContext<{ allStats?: SessionsStats }>() ?? {};
 
-    const [session, setSession] = useState<SessionWithCollaboration>(loaderData.session)
-
-    useEffect(() => {
-        setSession(loaderData.session);
-    }, [loaderData.session]);
-
-    // Session with applied local watched run
-    // const session = {
-    //     ...loaderData.session,
-    //     runs: loaderData.session.runs.map(run => {
-    //         if (run.id === watchedRun?.id) {
-    //             return watchedRun
-    //         }
-    //         return run;
-    //     })
-    // } as SessionWithCollaboration
-    // console.log('session: ', session);
+    const session = useSession(loaderData.session);
 
     const listParams = loaderData.listParams;
     const activeItems = getAllSessionItems(session, { activeOnly: true })
@@ -137,75 +189,6 @@ function SessionPage() {
         navigate(`?${currentSearchParams.toString()}`, { replace: true });
 
     }
-
-    useEffect(() => {
-        const abortController = new AbortController();
-
-        (async () => {
-
-            try {
-                const url = new URL(`/api/sessions/${session.id}/watch`, getApiUrl()).toString();
-
-                const response = await fetch(url, {
-                    credentials: 'include', // ensure cookies are sent
-                    signal: abortController.signal,
-                    headers: getAuthHeaders()
-                });
-
-                for await (const event of parseSSE(response)) {
-                    setSession((prevSession) => {
-                        if (event.event === 'session.snapshot') {
-                            return event.data;
-                        }
-                        else if (event.event === 'run.created') {
-                            // if run already exists, don't add it again
-                            if (prevSession.runs.find(run => run.id === event.data.id)) {
-                                return prevSession;
-                            }
-
-                            return {
-                                ...prevSession,
-                                runs: [...prevSession.runs, event.data]
-                            }
-                        }
-                        else if (event.event === 'run.archived') {
-                            return {
-                                ...prevSession,
-                                runs: prevSession.runs.filter(run => run.id !== event.data.id)
-                            }
-                        }
-                        else if (event.event === 'run.updated') {
-                            return {
-                                ...prevSession,
-                                runs: prevSession.runs.map(run => {
-                                    if (run.id === event.data.id) {
-                                        return { ...run, ...event.data, sessionItems: [...run.sessionItems, ...event.data.sessionItems ?? []] }
-                                    }
-                                    return run;
-                                })
-                            }
-                        }
-                        else {
-                            console.warn('Unknown event type', event.event)
-                            return prevSession
-                        }
-                    })
-                }
-            } catch (err: any) {
-                if (err?.name === 'AbortError') {
-                    console.log('stream aborted');
-                    return;
-                }
-
-                throw err;
-            }
-        })()
-
-        return () => {
-            abortController.abort();
-        }
-
-    }, [])
 
     useEffect(() => {
         const sessionStats = allStats?.sessions?.[session.id];

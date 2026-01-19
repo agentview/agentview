@@ -41,6 +41,6 @@ export function enhanceSession(session: Session) {
     ...session,
     runs: session.runs.map(enhanceRun),
     lastRun: lastRun ? enhanceRun(lastRun) : undefined,
-    items: getAllSessionItems(session).map((item) => item.content),
+    items: getAllSessionItems(session).map((item) => item.content)
   }
 }

@@ -92,7 +92,7 @@ export class AgentView {
     // artificial delay
     if (typeof import.meta !== 'undefined') {
        // @ts-ignore
-      const artificialDelayMs = import.meta.env.VITE_AGENTVIEW_ARTIFICIAL_DELAY_MS;
+      const artificialDelayMs = import.meta.env?.VITE_AGENTVIEW_ARTIFICIAL_DELAY_MS;
       if (artificialDelayMs) {
         await new Promise(resolve => setTimeout(resolve, parseInt(artificialDelayMs)))
       }
@@ -275,6 +275,7 @@ export class AgentView {
     if (!response.ok) {
       const errorBody: AgentViewErrorBody = await response.json()
       const { message, ...details } = errorBody
+      console.log("Error watching session", message, details);
       throw new AgentViewError(message ?? "Unknown error", response.status, details)
     }
 

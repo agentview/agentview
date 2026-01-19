@@ -128,6 +128,7 @@ export type SessionItemWithCollaboration = z.infer<typeof SessionItemWithCollabo
 export const RunSchema = z.object({
   id: z.string(),
   createdAt: z.iso.date(),
+  updatedAt: z.iso.date(),
   finishedAt: z.iso.date().nullable(),
   status: z.string(),
   failReason: z.any().nullable(),

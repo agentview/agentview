@@ -33,6 +33,7 @@ export async function fetchSession(tx: Transaction, session_id: string): Promise
           id: true,
           createdAt: true,
           finishedAt: true,
+          updatedAt: true,
           status: true,
           failReason: true,
           metadata: true,
