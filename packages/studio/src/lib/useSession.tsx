@@ -1,4 +1,4 @@
-import type { SessionWithCollaboration } from "agentview/apiTypes";
+import type { SessionWithCollaboration } from "../SessionWithCollaboration";
 import { getLastRun } from "agentview/sessionUtils";
 import { useEffect, useRef, useState } from "react";
 import { agentview } from "./agentview";

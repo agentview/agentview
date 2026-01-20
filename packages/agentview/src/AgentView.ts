@@ -116,12 +116,12 @@ export class AgentView {
     return enhanceSession(await this.request<Session>('GET', `/api/sessions/${options.id}`, undefined))
   }
 
-  async getSessionComments(sessionId: string) {
-    return await this.request<CommentMessage[]>('GET', `/api/sessions/${sessionId}/comments`, undefined)
+  async getSessionComments(options: { id: string }) {
+    return await this.request<CommentMessage[]>('GET', `/api/sessions/${options.id}/comments`, undefined)
   }
 
-  async getSessionScores(sessionId: string) {
-    return await this.request<Score[]>('GET', `/api/sessions/${sessionId}/scores`, undefined)
+  async getSessionScores(options: { id: string }) {
+    return await this.request<Score[]>('GET', `/api/sessions/${options.id}/scores`, undefined)
   }
 
   async getSessions(options?: SessionsGetQueryParams) {

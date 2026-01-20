@@ -1,7 +1,8 @@
 import { data, useLoaderData, useOutletContext, useParams, useRevalidator } from "react-router";
 import type { RouteObject } from "react-router";
 import { Header, HeaderTitle } from "../components/header";
-import type { Session, SessionsStats, SessionWithCollaboration } from "agentview/apiTypes";
+import type { Session, SessionsStats } from "agentview/apiTypes";
+import type { SessionWithCollaboration } from "../SessionWithCollaboration";
 import { getAllSessionItems } from "agentview/sessionUtils";
 import { CommentsThreadRaw } from "../components/internal/comments";
 import { agentview } from "../lib/agentview";

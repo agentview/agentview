@@ -1,4 +1,4 @@
-import { type Run, type Session, type SessionWithCollaboration } from "./apiTypes.js"
+import { type Run, type Session } from "./apiTypes.js"
 
 export function getLastRun<SessionT extends Session>(session: SessionT): SessionT["runs"][number] | undefined {
   return session.runs.length > 0 ? session.runs[session.runs.length - 1] : undefined
@@ -17,7 +17,7 @@ export function getAllSessionItems<SessionT extends Session>(session: SessionT, 
   return items
 }
 
-export function getVersions(session: Session | SessionWithCollaboration) {
+export function getVersions(session: Session) {
   const versions: string[] = [];
   for (const run of session.runs) {
     if (run.version && !versions.includes(run.version)) {

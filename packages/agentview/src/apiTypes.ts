@@ -117,13 +117,7 @@ export const SessionItemSchema = z.object({
   sessionId: z.string(), // potential bloat
 })
 
-export const SessionItemWithCollaborationSchema = SessionItemSchema.extend({
-  commentMessages: z.array(CommentMessageSchema),
-  scores: z.array(ScoreSchema),
-})
-
 export type SessionItem = z.infer<typeof SessionItemSchema>
-export type SessionItemWithCollaboration = z.infer<typeof SessionItemWithCollaborationSchema>
 
 
 export const RunSchema = z.object({
@@ -165,12 +159,6 @@ export type RunUpdate = z.infer<typeof RunUpdateSchema>
 
 export type Run = z.infer<typeof RunSchema>
 
-export const RunWithCollaborationSchema = RunSchema.extend({
-  sessionItems: z.array(SessionItemWithCollaborationSchema),
-})
-
-export type RunWithCollaboration = z.infer<typeof RunWithCollaborationSchema>
-
 export const SessionBaseSchema = z.object({
   id: z.string(),
   agent: z.string(),
@@ -191,12 +179,7 @@ export const SessionSchema = SessionBaseSchema.extend({
   runs: z.array(RunSchema),
 })
 
-export const SessionWithCollaborationSchema = SessionBaseSchema.extend({
-  runs: z.array(RunWithCollaborationSchema),
-})
-
 export type Session = z.infer<typeof SessionSchema>
-export type SessionWithCollaboration = z.infer<typeof SessionWithCollaborationSchema>
 
 
 export const SessionCreateSchema = z.object({

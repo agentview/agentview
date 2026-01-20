@@ -1,8 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { type RunWithCollaboration, type Session, type SessionItemWithCollaboration, type SessionsStats, type SessionWithCollaboration } from "agentview/apiTypes";
+import { type Session, type SessionsStats } from "agentview/apiTypes";
 import { findItemConfigById, findMatchingRunConfigs, requireAgentConfig } from "agentview/configUtils";
 import { enhanceSession, getActiveRuns, getAllSessionItems, getLastRun, getVersions } from "agentview/sessionUtils";
 import type { AgentConfig, ScoreConfig, SessionItemConfig, SessionItemDisplayComponentProps } from "agentview/types";
+import { makeSessionWithCollaboration, type RunWithCollaboration, type SessionItemWithCollaboration, type SessionWithCollaboration } from "../SessionWithCollaboration";
 import { AlertCircleIcon, ChevronDown, CircleGauge, InfoIcon, MessageCirclePlus, UsersIcon } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -35,11 +36,16 @@ import { useSession } from "../lib/useSession";
 
 async function loader({ request, params }: LoaderFunctionArgs) {
     try {
-        // Force cast to SessionWithCollaboration - the backend returns this type for this endpoint
-        const session = await agentview.getSession({ id: params.id! }) as unknown as SessionWithCollaboration;
+        const [session, comments, scores] = await Promise.all([
+            agentview.getSession({ id: params.id! }),
+            agentview.getSessionComments({ id: params.id! }),
+            agentview.getSessionScores({ id: params.id! }),
+        ]);
+
+        const sessionWithCollaboration = makeSessionWithCollaboration(session, comments, scores);
 
         return {
-            session,
+            session: sessionWithCollaboration,
             listParams: getListParams(request)
         };
     } catch (error) {
@@ -204,7 +210,7 @@ function SessionPage() {
                             const isLastRunItem = index === run.sessionItems.length - 1;
                             const isInputItem = index === 0;
 
-                            const hasComments = item.commentMessages.filter((m: any) => !m.deletedAt).length > 0
+                            const hasComments = item.commentMessages.filter((c) => !c.deletedAt).length > 0
                             const isSelected = selectedItemId === item.id;
 
                             let content: React.ReactNode = null;

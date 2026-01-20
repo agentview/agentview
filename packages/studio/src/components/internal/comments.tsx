@@ -1,7 +1,8 @@
 import { AlertCircleIcon } from "lucide-react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useFetcher, useRevalidator } from "react-router";
-import type { SessionItem, CommentMessage, Session, Score, SessionsStats, SessionWithCollaboration, SessionItemWithCollaboration } from "agentview/apiTypes";
+import type { SessionItem, CommentMessage, Session, Score, SessionsStats } from "agentview/apiTypes";
+import type { SessionWithCollaboration, SessionItemWithCollaboration } from "../../SessionWithCollaboration";
 import { Button } from "../ui/button";
 import { useFetcherSuccess } from "../../hooks/useFetcherSuccess";
 import { timeAgoShort } from "../../lib/timeAgo";
