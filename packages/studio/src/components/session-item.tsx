@@ -41,7 +41,7 @@ export function ItemCard({
     variant,
     size,
     collapsible = false,
-    defaultOpen = true,
+    defaultOpen = false,
     className,
     children,
     ...props
@@ -55,7 +55,7 @@ export function ItemCard({
     );
 
     if (collapsible) {
-        return <Collapsible defaultOpen={defaultOpen}>{content}</Collapsible>;
+        return <Collapsible defaultOpen={defaultOpen} className="group">{content}</Collapsible>;
     }
 
     return content;
@@ -70,7 +70,10 @@ export function ItemCardTitle({ className, children, ...props }: React.Component
         <div
             className={cn(
                 "text-muted-foreground font-normal flex items-center",
-                size === "sm" ? "gap-1 mb-1" : "gap-1.5 mb-0.5",
+                size === "sm" ? "gap-1" : "gap-1.5",
+                collapsible
+                    ? (size === "sm" ? "group-data-[state=open]:mb-1" : "group-data-[state=open]:mb-0.5")
+                    : (size === "sm" ? "mb-1" : "mb-0.5"),
                 "[&_svg]:pointer-events-none [&_svg]:shrink-0",
                 size === "sm" ? "[&_svg:not([class*='size-'])]:size-3" : "[&_svg:not([class*='size-'])]:size-4",
                 collapsible && "cursor-pointer select-none",
@@ -90,7 +93,7 @@ export function ItemCardTitle({ className, children, ...props }: React.Component
     );
 
     if (collapsible) {
-        return <CollapsibleTrigger asChild className="group">{content}</CollapsibleTrigger>;
+        return <CollapsibleTrigger asChild>{content}</CollapsibleTrigger>;
     }
 
     return content;
