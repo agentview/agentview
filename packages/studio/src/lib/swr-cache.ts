@@ -4,8 +4,6 @@ type CacheEntry<T> = {
   revalidating: boolean;
 };
 
-type ChangeListener = (key: string, oldData: unknown, newData: unknown) => void;
-
 const cache = new Map<string, CacheEntry<any>>();
 
 if (typeof window !== 'undefined') {
@@ -16,7 +14,6 @@ const keyAliases = new Map<string, string>(); // alias → canonical
 const keyDependents = new Map<string, Set<string>>(); // dependency → set of keys that depend on it
 const FRESH_TIME = 30_000; // 30 seconds - data is fresh, no background check
 const STALE_TIME = 10 * 60_000; // 10 minutes - serve stale + background fetch, after this refetch blocking
-const changeListeners = new Set<ChangeListener>();
 
 function resolveKey(key: string): string {
   return keyAliases.get(key) ?? key;
@@ -40,11 +37,6 @@ let revalidateCallback: (() => void) | null = null;
 
 export function setRevalidateCallback(cb: (() => void) | null) {
   revalidateCallback = cb;
-}
-
-export function subscribeToChanges(cb: ChangeListener): () => void {
-  changeListeners.add(cb);
-  return () => changeListeners.delete(cb);
 }
 
 export function invalidateByPrefix(prefix: string) {
@@ -83,9 +75,6 @@ export async function swr<T>(
         const changed = JSON.stringify(newData) !== JSON.stringify(oldData);
         cache.set(canonicalKey, { data: newData, timestamp: Date.now(), revalidating: false });
         if (changed) {
-          for (const listener of changeListeners) {
-            listener(canonicalKey, oldData, newData);
-          }
           if (revalidateCallback) {
             revalidateCallback();
           }
