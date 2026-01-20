@@ -138,3 +138,8 @@ export function invalidateCache(key?: string) {
     keyDependents.clear();
   }
 }
+
+// export function updateCache(key: string, data: any) {)
+//   const canonicalKey = resolveKey(key);
+//   cache.set(canonicalKey, { data, timestamp: Date.now(), revalidating: false });
+// }
