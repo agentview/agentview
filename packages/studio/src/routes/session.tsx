@@ -606,12 +606,6 @@ function MessageFooter(props: MessageFooterProps) {
                         />
                     ))}
 
-                    {/* { isOutput && <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/sessions/${session.handle}?${toQueryParams({ ...listParams, itemId: item.id })}`}>
-                            <MessageCirclePlus />Comment
-                        </Link>
-                    </Button> } */}
-
                     {remainingScores.length > 0 && <ScoreDialog
                         scores={scores}
                         session={session}
@@ -622,20 +616,11 @@ function MessageFooter(props: MessageFooterProps) {
                     />}
 
                     {run.status !== "in_progress" && isLastRunItem && <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/sessions/${session.handle}/runs/${run.id}?${toQueryParams(listParams)}`}><InfoIcon className="size-4" />Run</Link>
+                        <Link to={`/sessions/${session.id}/runs/${run.id}?${toQueryParams(listParams)}`}><InfoIcon className="size-4" />Run</Link>
                     </Button>}
 
-
-                    {/* {hasErrors && <Button variant="ghost" size="sm" onClick={() => { debugRun(run) }}>
-                        <SquareTerminal />Debug
-                    </Button>} */}
                 </div>
 
-                {/* { isLastRunItem && <div className="flex flex-row  items-center text-sm -mr-2">
-                    <Button variant="ghost" size="sm" className="text-muted-foreground" asChild>
-                        <Link to={`/sessions/${session.handle}/runs/${run.id}?${toQueryParams(listParams)}`}><WrenchIcon className="size-4" />Run</Link>
-                    </Button>
-                </div> } */}
             </div>
         </div>
 

@@ -45,7 +45,7 @@ async function action({ request, params }: ActionFunctionArgs): Promise<ActionRe
       metadata: payload?.metadata
     });
 
-    return redirect(`/sessions/${session.handle}?${toQueryParams(listParams)}`);
+    return redirect(`/sessions/${session.id}?${toQueryParams(listParams)}`);
   } catch (error) {
     if (error instanceof AgentViewError) {
       return { ok: false, error: { message: error.message, statusCode: error.statusCode, ...error.details } };

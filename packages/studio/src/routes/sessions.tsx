@@ -151,7 +151,7 @@ export function SessionCard({ session, listParams, sessionStats }: { session: Se
   const author = members.find((member) => member.userId === session.user.createdBy);
 
   return <div key={session.id}>
-    <NavLink to={`/sessions/${session.handle}?${toQueryParams(listParams)}`}>
+    <NavLink to={`/sessions/${session.id}?${toQueryParams(listParams)}`}>
       {({ isActive }) => (
         <div className={`p-3 border-b hover:bg-gray-50 transition-colors duration-50 ${isActive ? 'bg-gray-100' : ''}`}>
           <div className="flex flex-col gap-1">
