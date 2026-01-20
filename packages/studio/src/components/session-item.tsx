@@ -1,12 +1,10 @@
-import React from "react";
-import type { AgentInputComponentProps, FormComponentProps, SessionItemDisplayComponentProps } from "agentview/types";
-import { marked } from "marked";
-import { cn } from "../lib/utils";
-import { useState } from "react";
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "./ui/input-group";
-import { ArrowUpIcon, PauseIcon } from "lucide-react";
-import { z } from "zod";
 import { cva, type VariantProps } from "class-variance-authority";
+import { ArrowUpIcon, ChevronDownIcon, PauseIcon } from "lucide-react";
+import { marked } from "marked";
+import React, { useState } from "react";
+import { cn } from "../lib/utils";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "./ui/input-group";
 
 
 const itemCardVariants = cva(
@@ -37,48 +35,80 @@ type ItemCardVariant = VariantProps<typeof itemCardVariants>["variant"];
 type ItemCardSize = VariantProps<typeof itemCardVariants>["size"];
 
 
-const ItemCardContext = React.createContext<{ variant: ItemCardVariant, size: ItemCardSize } | undefined>(undefined);
+const ItemCardContext = React.createContext<{ variant: ItemCardVariant, size: ItemCardSize, collapsible: boolean } | undefined>(undefined);
 
 export function ItemCard({
     variant,
     size,
+    collapsible = false,
+    defaultOpen = true,
     className,
     children,
     ...props
-}: VariantProps<typeof itemCardVariants> & React.ComponentProps<"div">) {
-    return (
-        <ItemCardContext.Provider value={{ variant, size }}>
+}: VariantProps<typeof itemCardVariants> & React.ComponentProps<"div"> & { collapsible?: boolean, defaultOpen?: boolean }) {
+    const content = (
+        <ItemCardContext.Provider value={{ variant, size, collapsible }}>
             <div className={cn(itemCardVariants({ variant, size }), className)} {...props}>
                 {children}
             </div>
         </ItemCardContext.Provider>
     );
+
+    if (collapsible) {
+        return <Collapsible defaultOpen={defaultOpen}>{content}</Collapsible>;
+    }
+
+    return content;
 }
 
 export function ItemCardTitle({ className, children, ...props }: React.ComponentProps<"div">) {
     const context = React.useContext(ItemCardContext);
     const size = context?.size ?? "default";
+    const collapsible = context?.collapsible ?? false;
 
-    return (
+    const content = (
         <div
             className={cn(
                 "text-muted-foreground font-normal flex items-center",
                 size === "sm" ? "gap-1 mb-1" : "gap-1.5 mb-0.5",
                 "[&_svg]:pointer-events-none [&_svg]:shrink-0",
                 size === "sm" ? "[&_svg:not([class*='size-'])]:size-3" : "[&_svg:not([class*='size-'])]:size-4",
+                collapsible && "cursor-pointer select-none",
                 className
             )}
             {...props}
         >
             {children}
+            {collapsible && (
+                <ChevronDownIcon className={cn(
+                    "ml-auto transition-transform duration-200",
+                    size === "sm" ? "size-3" : "size-4",
+                    "group-data-[state=open]:rotate-[-180deg]"
+                )} />
+            )}
         </div>
     );
+
+    if (collapsible) {
+        return <CollapsibleTrigger asChild className="group">{content}</CollapsibleTrigger>;
+    }
+
+    return content;
 }
 
 export function ItemCardContent({ className, children, ...props }: React.ComponentProps<"div"> & { children: React.ReactNode }) {
-    return <div className={cn("", className)} {...props}>
+    const context = React.useContext(ItemCardContext);
+    const collapsible = context?.collapsible ?? false;
+
+    const content = <div className={cn("", className)} {...props}>
         {children}
-    </div>
+    </div>;
+
+    if (collapsible) {
+        return <CollapsibleContent>{content}</CollapsibleContent>;
+    }
+
+    return content;
 }
 
 export function ItemCardMarkdown({ text, className, ...props }: { text: string, className?: string } & React.ComponentProps<"div">) {
@@ -139,58 +169,6 @@ export function StepItem({ children, className, size = "sm", ...props }: { child
     </ItemCard>
 }
 
-
-
-// export function BaseItem({ variant = "default", value, title }: { variant?: "default" | "outline" | "muted", value: string | any, title?: string }) {
-//     const content = typeof value === "string" ?
-//         <Markdown text={value} /> :
-//         <pre className="text-xs overflow-x-scroll bg-gray-50 p-3 rounded-md">{JSON.stringify(value, null, 2)}</pre>;
-
-//     return <div className={variant === "outline" ? "border px-3 py-2 rounded-lg bg-white" : ""}>
-//         {title && (
-//             <div className="text-sm text-black mb-1 font-medium">
-//                 {title}
-//             </div>
-//         )}
-
-//         {content}
-//     </div>
-// }
-
-// export function TestItem({ value, title }: { value: string | any, title?: string }) {
-//     const content = typeof value === "string" ?
-//         <Markdown text={value} /> :
-//         <pre className="text-xs overflow-x-scroll bg-gray-50 p-3 rounded-md">{JSON.stringify(value, null, 2)}</pre>;
-
-//     return <div className={"px-3 py-2 rounded-lg bg-gray-50"}>
-//         {title && (
-//             <div className="text-sm text-black mb-1 font-medium">
-//                 {title}
-//             </div>
-//         )}
-
-//         <div className="text-sm">
-//             {content}
-//         </div>
-//     </div>
-// }
-
-// export function UserMessage({ value }: { value: string }) {
-//     return <BaseItem value={value} variant="outline" />
-// }
-
-// export function AssistantMessage({ value }: { value: string }) {
-//     return <BaseItem value={value} variant="default" />
-// }
-
-// export function StepItem({ value }: SessionItemDisplayComponentProps<any>) {
-//     // const title = role ? `${type} · ${role}` : type
-//     return <BaseItem value={value} variant="muted" />
-// }
-
-// export function UserMessageOutline() {
-
-// }
 
 export function UserMessageInput(props: { isRunning: boolean, onCancel: () => void, onSubmit: (value: string) => void, placeholder?: string }) {
     const [value, setValue] = useState<string>("");

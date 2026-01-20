@@ -174,6 +174,44 @@ function Component() {
           </ItemCard>
         </ComponentWrapper>
 
+        <h2 className="text-lg font-medium mb-6">Collapsible</h2>
+
+        <ComponentWrapper title="Collapsible + outline (default open)">
+          <ItemCard variant="outline" collapsible>
+            <ItemCardTitle><BrainIcon /> Thought for 3 seconds</ItemCardTitle>
+            <ItemCardContent>
+              <ItemCardMarkdown text={markdownExample} />
+            </ItemCardContent>
+          </ItemCard>
+        </ComponentWrapper>
+
+        <ComponentWrapper title="Collapsible + outline (default closed)">
+          <ItemCard variant="outline" collapsible defaultOpen={false}>
+            <ItemCardTitle><BrainIcon /> Thought for 3 seconds</ItemCardTitle>
+            <ItemCardContent>
+              <ItemCardMarkdown text={markdownExample} />
+            </ItemCardContent>
+          </ItemCard>
+        </ComponentWrapper>
+
+        <ComponentWrapper title="Collapsible + fill + small">
+          <ItemCard variant="fill" size="sm" collapsible>
+            <ItemCardTitle><Wrench /> Tool call</ItemCardTitle>
+            <ItemCardContent>
+              <ItemCardJSON value={jsonExample} />
+            </ItemCardContent>
+          </ItemCard>
+        </ComponentWrapper>
+
+        <ComponentWrapper title="Collapsible + default variant">
+          <ItemCard collapsible defaultOpen={false}>
+            <ItemCardTitle><BrainIcon /> Click to expand</ItemCardTitle>
+            <ItemCardContent>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </ItemCardContent>
+          </ItemCard>
+        </ComponentWrapper>
+
         <h2 className="text-lg font-medium mb-6">Pill Selects</h2>
 
         <ComponentWrapper title="PillSelect">
