@@ -84,7 +84,6 @@ function useSession(
     const lastRun = getLastRun(activeSession);
 
     const abortControllerRef = useRef<AbortController | undefined>(undefined); // this is also a lock, if defined -> watch is in progrss
-    const isStreaming = abortControllerRef.current !== undefined;
 
     useEffect(() => {
         return () => {
@@ -93,37 +92,29 @@ function useSession(
     }, [])
 
     useEffect(() => {
-        if (isStreaming) {
+        if (abortControllerRef.current !== undefined) { // is streaming?
             return;
         }
 
         if (lastRun?.status === "in_progress" || wait) {
-            console.log('[hook] watching session, wait: ', wait, 'status: ', lastRun?.status);
-
             abortControllerRef.current = new AbortController();
 
             (async () => {
                 try {
-                    console.log('[hook] agentview.watchSession started')
                     const stream = await agentview.getSessionStream({
                         id: externalSession.id,
                         signal: abortControllerRef.current!.signal,
                         wait
                     });
 
-                    if (!stream) {
-                        abortControllerRef.current = undefined;
-                        return;
+                    if (stream) {
+                        for await (const { session, event } of stream) {
+                            setLocalSession(session as SessionWithCollaboration);
+                        }
                     }
-
-                    for await (const { session, event } of stream) {
-                        setLocalSession(session as SessionWithCollaboration);
-                    }
-                    console.log('[hook] agentview.watchSession done')
 
                 } catch (err: any) {
                     if (err?.name === 'AbortError') {
-                        console.log('[hook] stream aborted');
                         return;
                     };
                 } finally {

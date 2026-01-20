@@ -1661,7 +1661,7 @@ async function* watchSession(organizationId: string, initSession: Session, wait:
     if (!lastRunStatus) {
       throw new Error('unreachable');
     }
-    
+
     if (prevLastRun.updatedAt === lastRunStatus.updatedAt) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       continue;
@@ -1709,7 +1709,7 @@ async function* watchSession(organizationId: string, initSession: Session, wait:
       changedFields.sessionItems = newItems;
     }
 
-    const runFieldsToCompare = ['id', 'status', 'finishedAt', 'failReason', 'metadata'] as const;
+    const runFieldsToCompare = ['id', 'status', 'finishedAt', 'failReason', 'metadata', 'updatedAt'] as const;
 
     for (const field of runFieldsToCompare) {
       if (JSON.stringify(prevLastRun![field] ?? null) !== JSON.stringify(lastRun[field] ?? null)) {
