@@ -251,12 +251,14 @@ export type TextEditorProps = {
 export function TextEditor({ placeholder = 'Add a comment...', mentionItems = [], value = '', className, onFocus, onChange }: TextEditorProps) {
   const [mentionListProps, setMentionListProps] = useState<SuggestionProps<MentionNodeAttrs, any> | null>(null)
   const mentionListRef = useRef<HTMLDivElement>(null)
-  
+  const isInternalUpdate = useRef(false)
+
   const editor = useEditor({
     content: textToJson(value, mentionItems),
     immediatelyRender: true,
 
     onUpdate: ({ editor }) => {
+      isInternalUpdate.current = true
       const newValue = editor.getText({ blockSeparator: "\n" })
       onChange?.(newValue === "" ? undefined : newValue)
     },
@@ -336,6 +338,10 @@ export function TextEditor({ placeholder = 'Add a comment...', mentionItems = []
   })
 
   useEffect(() => {
+    if (isInternalUpdate.current) {
+      isInternalUpdate.current = false
+      return
+    }
     editor?.commands.setContent(textToJson(value, mentionItems))
   }, [value])
 
