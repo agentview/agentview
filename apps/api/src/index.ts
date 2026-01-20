@@ -52,7 +52,7 @@ import { isInboxItemUnread } from './inboxItems';
 import { initDb } from './initDb';
 import { requireValidInvitation } from './invitations';
 import { members, organizations, users } from './schemas/auth-schema';
-import { fetchSession } from './sessions';
+import { fetchLastRunStatus, fetchSession } from './sessions';
 import type { Transaction } from './types';
 import { updateInboxes } from './updateInboxes';
 import { findUser } from './users';
@@ -1612,7 +1612,7 @@ async function* watchSession(organizationId: string, initSession: Session, wait:
 
   console.log(`[watch ${randomId}] wait: `, wait);
 
-  // if wait is true, we wait for the session to be in progress
+  // if wait is true, we wait for the session to be in progress using lightweight polling
   if (wait) {
     while(true) {
       if (signal.aborted) {
@@ -1620,19 +1620,24 @@ async function* watchSession(organizationId: string, initSession: Session, wait:
         return;
       }
 
-      if (getLastRun(initSession)?.status === 'in_progress') {
+      // Use lightweight polling to check status without fetching full session
+      const lastRunStatus = await withOrg(organizationId, async (tx) => fetchLastRunStatus(tx, initSession.id));
+
+      if (lastRunStatus?.status === 'in_progress') {
+        // Only fetch full session once we know it's in progress
+        initSession = await withOrg(organizationId, async (tx) => requireSession(tx, initSession.id));
         break;
       }
 
       console.log(`[watch ${randomId}] waiting for session to be in progress...`);
       await new Promise(resolve => setTimeout(resolve, 1000));
-      initSession = await withOrg(organizationId, async (tx) => requireSession(tx, initSession.id))
     }
   }
 
   console.log(`[watch ${randomId}] session is in progress, streaming...`);
 
   let prevLastRun = getLastRun(initSession);
+  let prevUpdatedAt = prevLastRun?.updatedAt;
 
   yield {
     event: 'session.snapshot',
@@ -1650,8 +1655,21 @@ async function* watchSession(organizationId: string, initSession: Session, wait:
       return;
     }
 
-    const session = await withOrg(organizationId, async (tx) => requireSession(tx, initSession.id))
-    const lastRun = getLastRun(session)
+    // Use lightweight polling to check if updatedAt has changed
+    const lastRunStatus = await withOrg(organizationId, async (tx) => fetchLastRunStatus(tx, initSession.id));
+
+    if (!lastRunStatus) {
+      throw new Error('unreachable');
+    }
+    
+    if (prevLastRun.updatedAt === lastRunStatus.updatedAt) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      continue;
+    }
+
+    // Changes detected - fetch full session to get details
+    const session = await withOrg(organizationId, async (tx) => requireSession(tx, initSession.id));
+    const lastRun = getLastRun(session);
 
     if (!lastRun) {
       throw new Error('unreachable');
@@ -1665,7 +1683,7 @@ async function* watchSession(organizationId: string, initSession: Session, wait:
       throw new Error('unreachable - new run created while old one was being streamed');
 
 
-      // // if previous last run existed and it's not in session.runs now it means it is both failed & not active -> therefore archived. 
+      // // if previous last run existed and it's not in session.runs now it means it is both failed & not active -> therefore archived.
       // if (prevLastRun && !session.runs.find(r => r.id === prevLastRun?.id)) {
       //   yield {
       //     event: 'run.archived',
@@ -1714,6 +1732,7 @@ async function* watchSession(organizationId: string, initSession: Session, wait:
     }
 
     prevLastRun = lastRun;
+    prevUpdatedAt = lastRun.updatedAt;
 
     await new Promise(resolve => setTimeout(resolve, 1000));
   }

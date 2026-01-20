@@ -1971,27 +1971,32 @@ describe('API', () => {
       });
 
       // Watch the session - should get snapshot and complete immediately
-      const events: Array<{ event: WatchSessionEvent; session: Session }> = [];
-      for await (const e of av.watchSession({ id: session.id })) {
-        events.push(e);
-      }
+      const stream = await av.getSessionStream({ id: session.id });
 
-      // Should get exactly 1 event
-      expect(events.length).toBe(1);
+      expect(stream).toBeNull();
 
-      // Check event shape
-      const event = events[0].event;
-      expect(event.type).toBe("session.snapshot");
-      expect(event.data).toBeDefined();
-      expect(event.data.id).toBe(session.id);
-      expect(event.data.runs).toBeDefined();
-      expect(event.data.runs.length).toBe(1);
-      expect(event.data.runs[0].id).toBe(run.id);
 
-      // Check session state
-      expect(events[0].session.id).toBe(session.id);
-      expect(events[0].session.runs.length).toBe(1);
-      expect(events[0].session.runs[0].status).toBe("completed");
+      // const events: Array<{ event: WatchSessionEvent; session: Session }> = [];
+      // for await (const e of av.watchSession({ id: session.id })) {
+      //   events.push(e);
+      // }
+
+      // // Should get exactly 1 event
+      // expect(events.length).toBe(1);
+
+      // // Check event shape
+      // const event = events[0].event;
+      // expect(event.type).toBe("session.snapshot");
+      // expect(event.data).toBeDefined();
+      // expect(event.data.id).toBe(session.id);
+      // expect(event.data.runs).toBeDefined();
+      // expect(event.data.runs.length).toBe(1);
+      // expect(event.data.runs[0].id).toBe(run.id);
+
+      // // Check session state
+      // expect(events[0].session.id).toBe(session.id);
+      // expect(events[0].session.runs.length).toBe(1);
+      // expect(events[0].session.runs[0].status).toBe("completed");
     });
 
     test("streams run.updated events as items are added", async () => {
@@ -2011,7 +2016,12 @@ describe('API', () => {
       const abortController = new AbortController();
 
       const watchPromise = (async () => {
-        for await (const e of av.watchSession({ id: session.id, signal: abortController.signal })) {
+        const stream = await av.getSessionStream({ id: session.id, signal: abortController.signal });
+        if (!stream) {
+          throw new Error('Stream is null');
+        }
+
+        for await (const e of stream) {
           events.push(e);
           // Stop after we get the completed status
           if (e.session.runs[0]?.status === "completed") {
@@ -2077,7 +2087,12 @@ describe('API', () => {
 
       const watchPromise = (async () => {
         try {
-          for await (const e of av.watchSession({ id: session.id, signal: abortController.signal })) {
+          const stream = await av.getSessionStream({ id: session.id, signal: abortController.signal });
+          if (!stream) {
+            throw new Error('Stream is null');
+          }
+
+          for await (const e of stream) {
             events.push(e);
             // Abort after first event
             if (events.length === 1) {

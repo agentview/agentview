@@ -1,8 +1,35 @@
-import { and, eq } from "drizzle-orm";
-import { sessionItems, sessions } from "./schemas/schema"
+import { and, desc, eq } from "drizzle-orm";
+import { runs, sessionItems, sessions } from "./schemas/schema"
 import type { Transaction } from "./types";
 import { isUUID } from "./isUUID";
 import type { SessionWithCollaboration } from "agentview/apiTypes";
+
+export type LastRunStatus = {
+  id: string;
+  status: string;
+  updatedAt: string;
+};
+
+/**
+ * Lightweight function to fetch only the last run's status and updatedAt.
+ * Used for efficient polling in watchSession to detect changes without
+ * fetching the full session with all relations.
+ */
+export async function fetchLastRunStatus(
+  tx: Transaction,
+  sessionId: string
+): Promise<LastRunStatus | null> {
+  const run = await tx.query.runs.findFirst({
+    columns: {
+      id: true,
+      status: true,
+      updatedAt: true,
+    },
+    where: eq(runs.sessionId, sessionId),
+    orderBy: (runs, { desc }) => [desc(runs.createdAt)],
+  });
+  return run ?? null;
+}
 
 
 export async function fetchSession(tx: Transaction, session_id: string): Promise<SessionWithCollaboration | undefined> {

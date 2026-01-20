@@ -106,6 +106,7 @@ export const runs = pgTable("runs", {
   metadata: jsonb("metadata")
 }, (table) => [
   index('runs_expires_at_status_idx').on(table.expiresAt, table.status),
+  index('runs_session_id_created_at_idx').on(table.sessionId, table.createdAt),
   createTenantPolicy('runs'),
 ]);
 

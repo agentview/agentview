@@ -15,6 +15,13 @@
       "when": 1768823249792,
       "tag": "0001_minor_quicksilver",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768897031352,
+      "tag": "0002_exotic_shiva",
+      "breakpoints": true
     }
   ]
 }
