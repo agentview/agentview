@@ -2,7 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { runs, sessionItems, sessions } from "./schemas/schema"
 import type { Transaction } from "./types";
 import { isUUID } from "./isUUID";
-import type { SessionWithCollaboration } from "agentview/apiTypes";
+import type { Session } from "agentview/apiTypes";
 
 export type LastRunStatus = {
   id: string;
@@ -32,7 +32,7 @@ export async function fetchLastRunStatus(
 }
 
 
-export async function fetchSession(tx: Transaction, session_id: string): Promise<SessionWithCollaboration | undefined> {
+export async function fetchSession(tx: Transaction, session_id: string): Promise<Session | undefined> {
   let where : ReturnType<typeof eq> | undefined;
 
   if (isUUID(session_id)) { // id
@@ -73,21 +73,12 @@ export async function fetchSession(tx: Transaction, session_id: string): Promise
           sessionItems: {
             orderBy: (sessionItem, { asc }) => [asc(sessionItem.sortOrder)],
             where: (sessionItem, { eq }) => eq(sessionItem.isState, false),
-            with: {
-              commentMessages: {
-                orderBy: (commentMessages, { asc }) => [asc(commentMessages.createdAt)],
-                with: {
-                  score: true
-                }
-              },
-              scores: true
-            }
           }
         }
       }
     }
   });
-  
+
   if (!row) {
     return undefined;
   }
@@ -110,7 +101,7 @@ export async function fetchSession(tx: Transaction, session_id: string): Promise
     })),
     summary: row.summary,
     state
-  } as SessionWithCollaboration;
+  } as Session;
 }
 
 async function fetchSessionState(tx: Transaction, session_id: string) {

@@ -14,6 +14,7 @@ import {
   type SessionsPaginatedResponse,
   type PublicSessionsGetQueryParams,
   type CommentMessage,
+  type Score,
   type SessionsStatsQueryParams,
   type SessionsStats,
   type RunDetails,
@@ -113,6 +114,14 @@ export class AgentView {
 
   async getSession(options: { id: string }) {
     return enhanceSession(await this.request<Session>('GET', `/api/sessions/${options.id}`, undefined))
+  }
+
+  async getSessionComments(sessionId: string) {
+    return await this.request<CommentMessage[]>('GET', `/api/sessions/${sessionId}/comments`, undefined)
+  }
+
+  async getSessionScores(sessionId: string) {
+    return await this.request<Score[]>('GET', `/api/sessions/${sessionId}/scores`, undefined)
   }
 
   async getSessions(options?: SessionsGetQueryParams) {

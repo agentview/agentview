@@ -976,6 +976,73 @@ describe('API', () => {
         }))
       })
     })
+
+    describe("comments and scores endpoints", () => {
+      let testSession: Session
+      let testRun: Run
+      const commentsAgentName = 'agent-for-testing-comments';
+
+      beforeAll(async () => {
+        await av.updateEnvironment({
+          config: {
+            agents: [{
+              name: commentsAgentName,
+              runs: [{
+                input: { schema: z.looseObject({ type: z.literal("input") }) },
+                output: { schema: z.looseObject({ type: z.literal("output") }) },
+              }]
+            }]
+          }
+        })
+        testSession = await av.createSession({ agent: commentsAgentName, userId: initUser1.id })
+        testRun = await av.createRun({
+          sessionId: testSession.id,
+          version: '1.0.0',
+          items: [
+            { type: 'input' },
+            { type: 'output' }
+          ],
+          status: 'completed'
+        })
+        // Refresh session to get items
+        testSession = await av.getSession({ id: testSession.id })
+      })
+
+      test("getSessionComments returns empty array for session without comments", async () => {
+        const comments = await av.getSessionComments(testSession.id)
+        expect(comments).toEqual([])
+      })
+
+      test("getSessionScores returns empty array for session without scores", async () => {
+        const scores = await av.getSessionScores(testSession.id)
+        expect(scores).toEqual([])
+      })
+
+      test("getSessionComments returns 404 for non-existent session", async () => {
+        await expect(av.getSessionComments('00000000-0000-0000-0000-000000000000')).rejects.toThrowError(expect.objectContaining({
+          statusCode: 404,
+          message: expect.any(String),
+        }))
+      })
+
+      test("getSessionScores returns 404 for non-existent session", async () => {
+        await expect(av.getSessionScores('00000000-0000-0000-0000-000000000000')).rejects.toThrowError(expect.objectContaining({
+          statusCode: 404,
+          message: expect.any(String),
+        }))
+      })
+
+      test("getSession does not include commentMessages or scores on session items", async () => {
+        const session = await av.getSession({ id: testSession.id })
+        // After the refactor, session items should not have commentMessages or scores
+        for (const run of session.runs) {
+          for (const item of run.sessionItems) {
+            expect((item as any).commentMessages).toBeUndefined()
+            expect((item as any).scores).toBeUndefined()
+          }
+        }
+      })
+    })
   })
 
 

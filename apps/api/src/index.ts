@@ -30,11 +30,11 @@ import {
   SessionsGetQueryParamsSchema,
   SessionsPaginatedResponseSchema,
   SessionUpdateSchema,
-  SessionWithCollaborationSchema,
+  CommentMessageSchema,
+  ScoreSchema,
   UserCreateSchema,
   UserSchema,
   type Session, type SessionItem,
-  type SessionItemWithCollaboration,
   type SessionsGetQueryParams,
   type User,
   type Space,
@@ -513,12 +513,12 @@ async function requireRun(tx: Transaction, runId: string) {
   return run
 }
 
-async function requireSessionItem(session: Awaited<ReturnType<typeof requireSession>>, itemId: string): Promise<SessionItemWithCollaboration> {
+async function requireSessionItem(session: Awaited<ReturnType<typeof requireSession>>, itemId: string): Promise<SessionItem> {
   const item = getAllSessionItems(session).find((a) => a.id === itemId)
   if (!item) {
     throw new HTTPException(404, { message: "Session item not found" });
   }
-  return item as SessionItemWithCollaboration
+  return item as SessionItem
 }
 
 
@@ -530,8 +530,15 @@ async function requireUser(tx: Transaction, arg: Parameters<typeof findUser>[1])
   return user
 }
 
-async function requireCommentMessageFromUser(item: SessionItemWithCollaboration, commentId: string, user: BetterAuthUser) {
-  const comment = item.commentMessages?.find((m) => m.id === commentId && m.deletedAt === null)
+async function requireCommentMessageFromUser(tx: Transaction, itemId: string, commentId: string, user: BetterAuthUser) {
+  const comment = await tx.query.commentMessages.findFirst({
+    where: and(
+      eq(commentMessages.id, commentId),
+      eq(commentMessages.sessionItemId, itemId),
+      isNull(commentMessages.deletedAt)
+    )
+  });
+
   if (!comment) {
     throw new HTTPException(404, { message: "Comment not found" });
   }
@@ -1318,7 +1325,7 @@ const sessionGETRoute = createRoute({
     }),
   },
   responses: {
-    200: response_data(SessionWithCollaborationSchema),
+    200: response_data(SessionSchema),
     404: response_error()
   },
 })
@@ -1334,6 +1341,71 @@ app.openapi(sessionGETRoute, async (c) => {
   })
 })
 
+const sessionCommentsGETRoute = createRoute({
+  method: 'get',
+  path: '/api/sessions/{session_id}/comments',
+  request: {
+    params: z.object({
+      session_id: z.string(),
+    }),
+  },
+  responses: {
+    200: response_data(z.array(CommentMessageSchema)),
+    404: response_error()
+  },
+})
+
+app.openapi(sessionCommentsGETRoute, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+  const { session_id } = c.req.param()
+
+  return withOrg(principal.organizationId, async (tx) => {
+    const session = await requireSession(tx, session_id);
+    await authorize(principal, { action: "end-user:read", user: session.user });
+
+    const comments = await tx.query.commentMessages.findMany({
+      where: eq(commentMessages.sessionItemId, sql`ANY(SELECT id FROM session_items WHERE session_id = ${session.id})`),
+      orderBy: (comment, { asc }) => [asc(comment.createdAt)],
+      with: {
+        score: true
+      }
+    });
+
+    return c.json(comments, 200);
+  })
+})
+
+const sessionScoresGETRoute = createRoute({
+  method: 'get',
+  path: '/api/sessions/{session_id}/scores',
+  request: {
+    params: z.object({
+      session_id: z.string(),
+    }),
+  },
+  responses: {
+    200: response_data(z.array(ScoreSchema)),
+    404: response_error()
+  },
+})
+
+app.openapi(sessionScoresGETRoute, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+  const { session_id } = c.req.param()
+
+  return withOrg(principal.organizationId, async (tx) => {
+    const session = await requireSession(tx, session_id);
+    await authorize(principal, { action: "end-user:read", user: session.user });
+
+    const sessionScores = await tx.query.scores.findMany({
+      where: eq(scores.sessionItemId, sql`ANY(SELECT id FROM session_items WHERE session_id = ${session.id})`),
+      orderBy: (score, { asc }) => [asc(score.createdAt)],
+    });
+
+    return c.json(sessionScores, 200);
+  })
+})
+
 const sessionPATCHRoute = createRoute({
   method: 'patch',
   path: '/api/sessions/{session_id}',
@@ -1344,7 +1416,7 @@ const sessionPATCHRoute = createRoute({
     body: body(SessionUpdateSchema),
   },
   responses: {
-    200: response_data(SessionWithCollaborationSchema),
+    200: response_data(SessionSchema),
     401: response_error(),
     404: response_error(),
     422: response_error(),
@@ -1511,17 +1583,7 @@ app.openapi(publicSessionGETRoute, async (c) => {
     const session = await requireSession(tx, session_id);
     authorize(principal, { action: "end-user:read", user: session.user });
 
-    const sessionWithoutCollaboration = {
-      ...session,
-      runs: session.runs.map((run) => ({
-        ...run,
-        items: run.sessionItems.map(({ commentMessages, scores, ...item }) => ({
-          ...item
-        })),
-      }))
-    }
-
-    return c.json(sessionWithoutCollaboration, 200);
+    return c.json(session, 200);
   })
 })
 
@@ -2605,7 +2667,7 @@ app.openapi(commentsDELETERoute, async (c) => {
   return withOrg(principal.organizationId, async (tx) => {
     const session = await requireSession(tx, sessionId)
     const item = await requireSessionItem(session, itemId);
-    const commentMessage = await requireCommentMessageFromUser(item, commentId, userPrincipal.session.user);
+    const commentMessage = await requireCommentMessageFromUser(tx, itemId, commentId, userPrincipal.session.user);
 
     await deleteComment(tx, session, item, commentMessage.id, userPrincipal.session.user, userPrincipal.organizationId);
     return c.json({}, 200);
@@ -2644,7 +2706,7 @@ app.openapi(commentsPUTRoute, async (c) => {
   return withOrg(principal.organizationId, async (tx) => {
     const session = await requireSession(tx, sessionId)
     const item = await requireSessionItem(session, itemId)
-    const commentMessage = await requireCommentMessageFromUser(item, commentId, userPrincipal.session.user);
+    const commentMessage = await requireCommentMessageFromUser(tx, itemId, commentId, userPrincipal.session.user);
 
     try {
       await updateComment(tx, session, item, commentMessage, body.content, userPrincipal.organizationId);

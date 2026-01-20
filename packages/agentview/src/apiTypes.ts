@@ -85,6 +85,7 @@ export type ScoreCreate = z.infer<typeof ScoreCreateSchema>
 
 export const CommentMessageSchema = z.object({
   id: z.string(),
+  sessionItemId: z.string(),
   userId: z.string(),
   content: z.string().nullable(),
   createdAt: z.iso.date(),
