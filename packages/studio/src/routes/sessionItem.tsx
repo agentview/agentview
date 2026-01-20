@@ -2,7 +2,6 @@ import { data, useLoaderData, useOutletContext, useParams, useRevalidator } from
 import type { RouteObject } from "react-router";
 import { Header, HeaderTitle } from "../components/header";
 import type { Session, SessionsStats } from "agentview/apiTypes";
-import type { SessionWithCollaboration } from "../SessionWithCollaboration";
 import { getAllSessionItems } from "agentview/sessionUtils";
 import { CommentsThreadRaw } from "../components/internal/comments";
 import { agentview } from "../lib/agentview";
@@ -10,7 +9,7 @@ import { useEffect } from "react";
 
 function Component() {
     return null;
-    // const { session, allStats } = useOutletContext<{ session: SessionWithCollaboration, allStats?: SessionsStats }>();
+    // const { session, allStats } = useOutletContext<{ session: Session, allStats?: SessionsStats }>();
     // const params = useParams();
     // const revalidator = useRevalidator();
 

@@ -1,17 +1,17 @@
-import type { SessionWithCollaboration } from "../SessionWithCollaboration";
 import { getLastRun } from "agentview/sessionUtils";
 import { useEffect, useRef, useState } from "react";
 import { agentview } from "./agentview";
 import { invalidateCache } from "./swr-cache";
+import type { Session } from "agentview/apiTypes";
 
 
 export function useSession(
-    externalSession: SessionWithCollaboration,
+    externalSession: Session,
     options?: { wait?: boolean }
-): SessionWithCollaboration {
+): Session {
     const { wait = false } = options ?? {};
 
-    const [localSession, setLocalSession] = useState<SessionWithCollaboration | undefined>(undefined);
+    const [localSession, setLocalSession] = useState<Session | undefined>(undefined);
 
     const activeSession = localSession ?? externalSession; // localSession overrides externalSession EVEN IF isWatching is false! This is by design.
     const lastRun = getLastRun(activeSession);
@@ -42,7 +42,7 @@ export function useSession(
 
                     if (stream) {
                         for await (const { session, event } of stream) {
-                            setLocalSession(session as SessionWithCollaboration);
+                            setLocalSession(session as Session);
                             invalidateCache(`session:${session.id}`) // this could be direct *update* of cache.
                         }
                     }
@@ -71,7 +71,7 @@ export function useSession(
 }
 
 
-function getLastActivityAt(session: SessionWithCollaboration): Date {
+function getLastActivityAt(session: Session): Date {
     let lastUpdatedAt = new Date(session.updatedAt);
 
     const lastRun = getLastRun(session);

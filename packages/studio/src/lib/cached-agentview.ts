@@ -5,6 +5,7 @@ import { addCacheDependency, addKeyAlias, invalidateByPrefix, invalidateCache, s
 // Cache key helpers
 const keys = {
   session: (id: string) => `session:${id}`,
+  sessionCollaboration: (id: string) => `session-collaboration:${id}`,
   sessions: (params: string) => `sessions:${params}`,
   sessionsStats: (params: string) => `sessions-stats:${params}`,
   user: (id: string) => `user:${id}`,
@@ -82,27 +83,31 @@ export class CachedAgentView extends AgentView {
     return result
   }
 
+  // override async getSessionComments(...args: Parameters<AgentView['getSessionComments']>) {
+  //   return swr(keys.sessionCollaboration(options.id), () => super.getSessionComments(options))
+  // }
+
   override async updateItemScores(...args: Parameters<AgentView['updateItemScores']>) {
     const result = await super.updateItemScores(...args)
-    invalidateCache(keys.session(args[0]))
+    invalidateCache(keys.sessionCollaboration(args[0]))
     return result
   }
 
   override async createItemComment(...args: Parameters<AgentView['createItemComment']>) {
     const result = await super.createItemComment(...args)
-    invalidateCache(keys.session(args[0]))
+    invalidateCache(keys.sessionCollaboration(args[0]))
     return result
   }
 
   override async updateItemComment(...args: Parameters<AgentView['updateItemComment']>) {
     const result = await super.updateItemComment(...args)
-    invalidateCache(keys.session(args[0]))
+    invalidateCache(keys.sessionCollaboration(args[0]))
     return result
   }
 
   override async deleteItemComment(...args: Parameters<AgentView['deleteItemComment']>) {
     const result = await super.deleteItemComment(...args)
-    invalidateCache(keys.session(args[0]))
+    invalidateCache(keys.sessionCollaboration(args[0]))
     return result
   }
 

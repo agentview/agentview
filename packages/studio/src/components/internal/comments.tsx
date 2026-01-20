@@ -2,7 +2,6 @@ import { AlertCircleIcon } from "lucide-react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useFetcher, useRevalidator } from "react-router";
 import type { SessionItem, CommentMessage, Session, Score, SessionsStats } from "agentview/apiTypes";
-import type { SessionWithCollaboration, SessionItemWithCollaboration } from "../../SessionWithCollaboration";
 import { Button } from "../ui/button";
 import { useFetcherSuccess } from "../../hooks/useFetcherSuccess";
 import { timeAgoShort } from "../../lib/timeAgo";
@@ -21,8 +20,10 @@ import { UserAvatar } from "./UserAvatar";
 import { type Member } from "../../lib/auth-client";
 
 export type CommentsThreadRawProps = {
-    session: SessionWithCollaboration,
-    item: SessionItemWithCollaboration,
+    session: Session,
+    item: SessionItem,
+    comments: CommentMessage[],
+    scores: Score[],
     itemConfig?: SessionItemConfig,
     collapsed?: boolean,
     singleLineMessageHeader?: boolean,
@@ -36,8 +37,8 @@ export type CommentsThreadProps = CommentsThreadRawProps & {
 }
 
 export type CommentSessionFloatingButtonProps = CommentsThreadProps & {
-    session: SessionWithCollaboration,
-    item: SessionItemWithCollaboration,
+    session: Session,
+    item: SessionItem,
     onSelect: (item: any) => void,
 }
 
@@ -92,13 +93,13 @@ function getStackedCommentMessages(messages: CommentMessage[]): StackedCommentMe
     return result;
 }
 
-export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ session, item, itemConfig, collapsed = false, singleLineMessageHeader = false, small = false }, ref) => {
+export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ session, item, itemConfig, collapsed = false, singleLineMessageHeader = false, small = false, comments, scores }, ref) => {
     const { organization: { members }, me } = useSessionContext();
     const fetcher = useFetcher();
 
-    const visibleMessages = item.commentMessages.filter((m: any) => !m.deletedAt) ?? []
+    // const visibleMessages = item.commentMessages.filter((m: any) => !m.deletedAt) ?? []
 
-    const stackedMessages = getStackedCommentMessages(visibleMessages);
+    const stackedMessages = getStackedCommentMessages(comments);
     const hasZeroVisisbleComments = stackedMessages.length === 0
 
     const [comment, setComment] = useState("");
@@ -229,7 +230,7 @@ export const CommentsThreadRaw = forwardRef<any, CommentsThreadRawProps>(({ sess
     );
 });
 
-export function CommentsThread({ session, item, itemConfig, selected = false, onSelect, allStats }: CommentsThreadProps) {
+export function CommentsThread({ session, item, itemConfig, selected = false, onSelect, allStats, comments, scores }: CommentsThreadProps) {
     const commentThreadRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const revalidator = useRevalidator();
@@ -295,6 +296,8 @@ export function CommentsThread({ session, item, itemConfig, selected = false, on
             }
         }}>
             <CommentsThreadRaw
+                comments={comments}
+                scores={scores}
                 session={session}
                 item={item}
                 itemConfig={itemConfig}

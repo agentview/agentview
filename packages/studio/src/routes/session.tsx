@@ -1,9 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { type Session, type SessionsStats } from "agentview/apiTypes";
+import { type CommentMessage, type Run, type Score, type Session, type SessionItem, type SessionsStats } from "agentview/apiTypes";
 import { findItemConfigById, findMatchingRunConfigs, requireAgentConfig } from "agentview/configUtils";
 import { enhanceSession, getActiveRuns, getAllSessionItems, getLastRun, getVersions } from "agentview/sessionUtils";
 import type { AgentConfig, ScoreConfig, SessionItemConfig, SessionItemDisplayComponentProps } from "agentview/types";
-import { makeSessionWithCollaboration, type RunWithCollaboration, type SessionItemWithCollaboration, type SessionWithCollaboration } from "../SessionWithCollaboration";
 import { AlertCircleIcon, ChevronDown, CircleGauge, InfoIcon, MessageCirclePlus, UsersIcon } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -42,10 +41,10 @@ async function loader({ request, params }: LoaderFunctionArgs) {
             agentview.getSessionScores({ id: params.id! }),
         ]);
 
-        const sessionWithCollaboration = makeSessionWithCollaboration(session, comments, scores);
-
         return {
-            session: sessionWithCollaboration,
+            session,
+            comments,
+            scores,
             listParams: getListParams(request)
         };
     } catch (error) {
@@ -210,7 +209,10 @@ function SessionPage() {
                             const isLastRunItem = index === run.sessionItems.length - 1;
                             const isInputItem = index === 0;
 
-                            const hasComments = item.commentMessages.filter((c) => !c.deletedAt).length > 0
+                            const comments = loaderData.comments.filter((c) => c.sessionItemId === item.id).filter((c) => !c.deletedAt);
+                            const scores = loaderData.scores.filter((s) => s.sessionItemId === item.id).filter((s) => !s.deletedAt);
+
+                            const hasComments = comments.length > 0
                             const isSelected = selectedItemId === item.id;
 
                             let content: React.ReactNode = null;
@@ -289,6 +291,8 @@ function SessionPage() {
                                         </div>
 
                                         <MessageFooter
+                                            comments={comments}
+                                            scores={scores}
                                             session={session}
                                             run={run}
                                             listParams={listParams}
@@ -317,6 +321,8 @@ function SessionPage() {
                                         selected={isSelected}
                                         onSelect={(a) => { setselectedItemId(a?.id) }}
                                         allStats={allStats}
+                                        comments={comments}
+                                        scores={scores}
                                     /> : undefined
                             }
                         })
@@ -529,10 +535,12 @@ export const sessionRoute: RouteObject = {
 }
 
 type MessageFooterProps = {
-    session: SessionWithCollaboration,
-    run: RunWithCollaboration,
+    session: Session,
+    comments: CommentMessage[],
+    scores: Score[],
+    run: Run,
     listParams: ReturnType<typeof getListParams>,
-    item: SessionItemWithCollaboration,
+    item: SessionItem,
     itemConfig?: SessionItemConfig,
     onSelect: () => void,
     isSelected: boolean,
@@ -557,7 +565,7 @@ type MessageFooterProps = {
 
 
 function MessageFooter(props: MessageFooterProps) {
-    const { session, run, listParams, item, itemConfig, onSelect, isSelected, isSmallSize, isLastRunItem, isOutput, allStats } = props;
+    const { session, run, listParams, item, comments, scores, itemConfig, onSelect, isSelected, isSmallSize, isLastRunItem, isOutput, allStats } = props;
     const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
 
     const allScoreConfigs = itemConfig?.scores ?? [];
@@ -590,6 +598,7 @@ function MessageFooter(props: MessageFooterProps) {
 
                     {actionBarScores.map((scoreConfig) => (
                         <ActionBarScoreForm
+                            scores={scores}
                             key={scoreConfig.name}
                             session={session}
                             item={item}
@@ -604,6 +613,7 @@ function MessageFooter(props: MessageFooterProps) {
                     </Button> } */}
 
                     {remainingScores.length > 0 && <ScoreDialog
+                        scores={scores}
                         session={session}
                         item={item}
                         open={scoreDialogOpen}
@@ -631,6 +641,8 @@ function MessageFooter(props: MessageFooterProps) {
 
         {isSmallSize && <div className={`relative mt-4 mb-2`}>
             <CommentsThread
+                comments={comments}
+                scores={scores}
                 item={item}
                 session={session}
                 selected={isSelected}
@@ -645,11 +657,9 @@ function MessageFooter(props: MessageFooterProps) {
 }
 
 
-function ScoreDialog({ session, item, open, onOpenChange, scoreConfigs }: { session: SessionWithCollaboration, item: SessionItemWithCollaboration, open: boolean, onOpenChange: (open: boolean) => void, scoreConfigs: ScoreConfig[] }) {
+function ScoreDialog({ session, item, open, onOpenChange, scoreConfigs, scores }: { session: Session, item: SessionItem, open: boolean, onOpenChange: (open: boolean) => void, scoreConfigs: ScoreConfig[], scores: Score[] }) {
     const { me } = useSessionContext();
     const fetcher = useFetcher();
-
-    // const allScoreConfigs = itemConfig?.scores ?? [];
 
     const schema = z.object(
         Object.fromEntries(
@@ -661,7 +671,7 @@ function ScoreDialog({ session, item, open, onOpenChange, scoreConfigs }: { sess
     )
 
     const defaultValues: Record<string, any> = {};
-    for (const score of item.scores ?? []) {
+    for (const score of scores ?? []) {
         if (score.deletedAt || score.createdBy !== me.id) {
             continue;
         }
@@ -752,13 +762,13 @@ function ScoreDialog({ session, item, open, onOpenChange, scoreConfigs }: { sess
 }
 
 
-function ActionBarScoreForm({ session, item, scoreConfig }: { session: SessionWithCollaboration, item: SessionItemWithCollaboration, scoreConfig: ScoreConfig }) {
+function ActionBarScoreForm({ session, item, scoreConfig, scores }: { session: Session, item: SessionItem, scoreConfig: ScoreConfig, scores: Score[] }) {
     const { me } = useSessionContext();
     const fetcher = useFetcher();
     const revalidator = useRevalidator();
 
     // Get the current score value for this user
-    const score = item.scores?.find(
+    const score = scores.find(
         score => score.name === scoreConfig.name &&
             score.createdBy === me.id &&
             !score.deletedAt
