@@ -4,8 +4,13 @@ import { Button } from "./ui/button";
 import { type Option, optionValueToString } from "./Option";
 
 // fixme: totally not accessible
-export const ToggleGroupControl = <T extends string | number | boolean = string>(props: ControlComponentProps<T> & { options: Option<T>[], hideOptionsOnSelect?: boolean, showLabels?: "always" | "on-select" | "never" }) => {
-    const { value, onChange, options, hideOptionsOnSelect, showLabels = "always" } = props;
+export const ToggleGroupControl = <T extends string | number | boolean = string>(props: ControlComponentProps<T> & { options: Option<T>[], hideOptionsOnSelect?: boolean, showLabels?: "always" | "on-select" | "never", optimistic?: boolean }) => {
+    const { onChange, options, hideOptionsOnSelect, showLabels = "always", optimistic = false } = props;
+    const [value, setValue] = useState(props.value);
+
+    useEffect(() => {
+        setValue(value);
+    }, [value]);
 
     return <div className="flex flex-row">
         {options.map((option) => {
@@ -25,11 +30,11 @@ export const ToggleGroupControl = <T extends string | number | boolean = string>
             }
 
             const onClick = () => {
-                if (isSelected) {
-                    onChange(null);
-                } else {
-                    onChange(option.value);
+                const newValue = isSelected ? null : option.value;
+                if (optimistic) {
+                    setValue(newValue);
                 }
+                onChange(newValue);
             }
 
             const stringValue = optionValueToString(option.value);
