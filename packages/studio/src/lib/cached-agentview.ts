@@ -125,10 +125,10 @@ export class CachedAgentView extends AgentView {
 
   override async updateUser(...args: Parameters<AgentView['updateUser']>) {
     const result = await super.updateUser(...args)
-    invalidateCache(keys.user(args[0].id))
 
-    // '.user' is part of session in the list
-    invalidateByPrefix('sessions')
+    // .user is part of session list and also single session object. That's why we literally nuke cache here. Good for now.
+    invalidateByPrefix('session');
+    invalidateByPrefix('sessions');
     invalidateByPrefix('sessions-stats')
     return result
   }
