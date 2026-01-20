@@ -44,7 +44,7 @@ export function WeatherItem({ item, resultItem }: SessionItemDisplayComponentPro
 }
 
 function WeatherItemWrapper({ children, location }: { children: React.ReactNode, location: string }) {
-  return <ItemCard size="sm" variant="fill">
+  return <ItemCard size="sm" variant="outline">
     <ItemCardTitle><Wrench /> Weather Check: <span className="font-medium">{location}</span></ItemCardTitle>
     { children }
   </ItemCard>

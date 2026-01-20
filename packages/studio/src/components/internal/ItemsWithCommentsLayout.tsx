@@ -149,7 +149,7 @@ export function ItemsWithCommentsLayout({ items, selectedItemId, commentsContain
 
     return (
         <div className="relative pt-6">
-            <div className="flex-1 flex flex-col gap-6">
+            <div className="flex-1 flex flex-col gap-4">
                 {items.map((item) => (
                     <div
                         key={item.id}

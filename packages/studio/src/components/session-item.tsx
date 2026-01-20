@@ -19,7 +19,7 @@ const itemCardVariants = cva(
                 outline:
                     "px-3 py-2 rounded-lg border",
                 fill:
-                    "px-3 py-2 rounded-lg bg-gray-50",
+                    "px-3 py-2 rounded-lg bg-gray-100",
             },
             size: {
                 default: "text-md",
@@ -122,7 +122,7 @@ export function ItemCardAutoContent({ children }: { children: React.ReactNode })
 }
 
 export function UserMessage({ children, className, size, ...props }: { children: React.ReactNode, className?: string, size?: ItemCardSize } & React.ComponentProps<"div">) {
-    return <ItemCard variant="outline" className={className} size={size} {...props}>
+    return <ItemCard variant="fill" className={className} size={size} {...props}>
         <ItemCardAutoContent>{children}</ItemCardAutoContent>
     </ItemCard>
 }
@@ -134,7 +134,7 @@ export function AssistantMessage({ children, className, size, ...props }: { chil
 }
 
 export function StepItem({ children, className, size = "sm", ...props }: { children: React.ReactNode, className?: string, size?: ItemCardSize } & React.ComponentProps<"div">) {
-    return <ItemCard variant="fill" className={className} size={size} {...props}>
+    return <ItemCard variant="outline" className={className} size={size} {...props}>
         <ItemCardAutoContent>{children}</ItemCardAutoContent>
     </ItemCard>
 }

@@ -83,15 +83,16 @@ export default defineConfig({
                 })),
               }),
               displayComponent: ({ item }) => {
+                console.log('thinking item', item);
                 return (
-                  <ItemCard size="sm" variant="fill">
+                  <ItemCard size="sm" variant="outline">
                     <ItemCardTitle><Brain /> Thinking</ItemCardTitle>
-                    <ItemCardMarkdown text={item.content?.map((s: any) => s?.text ?? "").join("\n\n") ?? "Hidden reasoning summary."} />
+                    {/* <ItemCardMarkdown text={item.content?.map((s: any) => s?.text ?? "").join("\n\n") ?? "Hidden reasoning summary."} /> */}
                   </ItemCard>
                 );
               }
             },
-            {
+            { 
               schema: z.looseObject({
                 type: z.literal("function_call"),
                 name: z.literal("weather_tool"),

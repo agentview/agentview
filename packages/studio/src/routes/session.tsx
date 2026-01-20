@@ -306,10 +306,9 @@ function SessionPage() {
                                             allStats={allStats}
                                         />
 
-                                        {isLastRunItem && run.status === "in_progress" && <div className="text-muted-foreground mt-5">
+                                        {isLastRunItem && run.status === "in_progress" && <div className="text-muted-foreground mt-6">
                                             <Loader />
                                         </div>}
-
 
                                     </div>
                                 </div>,
@@ -573,58 +572,69 @@ function MessageFooter(props: MessageFooterProps) {
     const actionBarScores = allScoreConfigs.filter(scoreConfig => scoreConfig.actionBarComponent);
     const remainingScores = allScoreConfigs.filter(scoreConfig => !scoreConfig.actionBarComponent);
 
-    // const hasLike = isOutput ? (itemConfig?.like ?? true) : (itemConfig?.like ?? false);
-    // if (hasLike) {
-    //     actionBarScores.unshift(like());
-    // }
-
     if (actionBarScores.length === 0 && remainingScores.length === 0 && !isSmallSize && !isLastRunItem) {
         return null;
     }
 
 
-    return <div className="mt-3 mb-8">
-        {isLastRunItem && run.status === "failed" && <div className="text-md mt-6 mb-3 text-red-500">
-            <span className="">{run.failReason?.message ?? "Failed for unknown reason"} </span>
-        </div>}
+    let blocks : React.ReactNode[] = [];
+    
+    // Error
+    if (isLastRunItem && (run.status === "failed" || run.status === "cancelled")) {
+        const errorMessage = run.status === "failed" ?
+            (run.failReason?.message ?? "Failed for unknown reason") :
+            "Cancelled by user";
 
-        {isLastRunItem && run.status === "cancelled" && <div className="text-md mt-6 mb-3 text-red-500">
-            <span>Cancelled by user</span>
-        </div>}
+        blocks.push(<div className="text-md mt-6 mb-3 text-red-500">
+            <span className="">{errorMessage}</span>
+        </div>);
+    }
 
-        <div>
+    // Toolbar
+    const toolbarBlocks: React.ReactNode[] = [];
+
+    if (actionBarScores.length > 0) {
+        toolbarBlocks.push(...actionBarScores.map((scoreConfig) => (
+            <ActionBarScoreForm
+                scores={scores}
+                key={scoreConfig.name}
+                session={session}
+                item={item}
+                scoreConfig={scoreConfig}
+            />
+        )));
+    }
+
+    if (remainingScores.length > 0) {
+        toolbarBlocks.push(<ScoreDialog
+            scores={scores}
+            session={session}
+            item={item}
+            open={scoreDialogOpen}
+            onOpenChange={setScoreDialogOpen}
+            scoreConfigs={remainingScores}
+        />);
+    }
+
+    if (run.status !== "in_progress" && isLastRunItem) {
+        toolbarBlocks.push(<Button variant="ghost" size="sm" asChild>
+            <Link to={`/sessions/${session.id}/runs/${run.id}?${toQueryParams(listParams)}`}><InfoIcon className="size-4" />Run</Link>
+        </Button>);
+    }
+
+    if (toolbarBlocks.length > 0) {
+        blocks.push(<div>
             <div className="text-xs flex justify-between gap-2 items-start">
                 <div className="flex flex-row flex-wrap gap-1 items-center -ml-2">
-
-                    {actionBarScores.map((scoreConfig) => (
-                        <ActionBarScoreForm
-                            scores={scores}
-                            key={scoreConfig.name}
-                            session={session}
-                            item={item}
-                            scoreConfig={scoreConfig}
-                        />
-                    ))}
-
-                    {remainingScores.length > 0 && <ScoreDialog
-                        scores={scores}
-                        session={session}
-                        item={item}
-                        open={scoreDialogOpen}
-                        onOpenChange={setScoreDialogOpen}
-                        scoreConfigs={remainingScores}
-                    />}
-
-                    {run.status !== "in_progress" && isLastRunItem && <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/sessions/${session.id}/runs/${run.id}?${toQueryParams(listParams)}`}><InfoIcon className="size-4" />Run</Link>
-                    </Button>}
-
+                    {toolbarBlocks}
                 </div>
-
             </div>
-        </div>
+        </div>)
+    }
 
-        {isSmallSize && <div className={`relative mt-4 mb-2`}>
+    // comments
+    if (isSmallSize) {
+        blocks.push(<div className={`relative mt-4 mb-2`}>
             <CommentsThread
                 comments={comments}
                 scores={scores}
@@ -636,9 +646,16 @@ function MessageFooter(props: MessageFooterProps) {
                 onSelect={onSelect}
                 allStats={allStats}
             />
-        </div>}
+        </div>)
+    }
 
-    </div>
+    if (blocks.length > 0) {
+        return <div className="mt-3 mb-8">
+            {blocks}
+        </div>
+    }
+
+    return null;
 }
 
 
