@@ -57,29 +57,7 @@ async function loader({ request, params }: LoaderFunctionArgs) {
 
 function Component() {
     const loaderData = useLoaderData<typeof loader>();
-    return <SessionPage key={loaderData.session.id} />
-}
-
-function DefaultInputComponent({ item }: SessionItemDisplayComponentProps) {
-    return <UserMessage>{item}</UserMessage>
-}
-
-function DefaultAssistantComponent({ item }: SessionItemDisplayComponentProps) {
-    return <AssistantMessage>{item}</AssistantMessage>
-}
-
-function DefaultStepComponent({ item }: SessionItemDisplayComponentProps) {
-    return <StepItem>{item}</StepItem>
-}
-
-function DefaultToolComponent({ item, resultItem }: SessionItemDisplayComponentProps) {
-    const result = {
-        call: item,
-        result: resultItem
-    }
-
-    // @ts-ignore
-    return <StepItem>{result}</StepItem>
+    return <SessionPage key={loaderData.session.id} />;
 }
 
 function SessionPage() {
@@ -407,36 +385,27 @@ function ShareForm({ session }: { session: Session }) {
     </fetcher.Form>
 }
 
-// const inputComponent = ({ session, userToken }) => {
-//     const abortController = useRef(null)
+function DefaultInputComponent({ item }: SessionItemDisplayComponentProps) {
+    return <UserMessage>{item}</UserMessage>
+}
 
-//     return <UserMessageInput
-//         onSubmit={(value) => {
-//             abortController.current = new AbortController();
+function DefaultAssistantComponent({ item }: SessionItemDisplayComponentProps) {
+    return <AssistantMessage>{item}</AssistantMessage>
+}
 
-//             fetch("https://localhost:3000/chat", {
-//                 headers: {
-//                     'Content-Type': 'application/json',
-//                 },
-//                 method: 'POST',
-//                 body: JSON.stringify({
-//                     input: { content: value },
-//                     sessionId: session.id
-//                     userToken
-//                 }),
-//                 signal: abortController.current.signal
-//             }).catch(() => {
+function DefaultStepComponent({ item }: SessionItemDisplayComponentProps) {
+    return <StepItem>{item}</StepItem>
+}
 
-//             }).finally(() => {
-//                 abortController.current = null;
-//             })
-//         }} 
-//         onCancel={() => {
-//             abortController.abort();  
-//         }}
-//         isLoading={abortController.current || session.lastRun?.status === "in_progress"}
-//     />
-// }
+function DefaultToolComponent({ item, resultItem }: SessionItemDisplayComponentProps) {
+    const result = {
+        call: item,
+        result: resultItem
+    }
+
+    // @ts-ignore
+    return <StepItem>{result}</StepItem>
+}
 
 function InputForm({ session, agentConfig, styles, onRunningStateChange }: { session: Session, agentConfig: AgentConfig, styles: Record<string, number>, onRunningStateChange?: (isRunning: boolean) => void }) {
     const lastRun = getLastRun(session)

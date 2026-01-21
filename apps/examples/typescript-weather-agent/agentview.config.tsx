@@ -83,7 +83,6 @@ export default defineConfig({
                 })),
               }),
               displayComponent: ({ item }) => {
-                console.log('thinking item', item);
                 return (
                   <ItemCard size="sm" variant="outline" collapsible>
                     <ItemCardTitle><Brain /> Thinking</ItemCardTitle>
