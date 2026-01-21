@@ -1,8 +1,13 @@
 import { agentview, withErrorHandling } from "../lib/agentview";
 import { type ActionResponse } from "../lib/errors";
 import type { ActionFunctionArgs, RouteObject } from "react-router";
+import { actionContext } from "../actionContext";
 
-async function action({ request, params }: ActionFunctionArgs): Promise<ActionResponse> {
+
+async function action({ request, params, context}: ActionFunctionArgs): Promise<ActionResponse> {
+    console.log('[action] set action context')
+    context.set(actionContext, { isAction: true });
+
     const { comment } = await request.json();
 
     if (!comment) {

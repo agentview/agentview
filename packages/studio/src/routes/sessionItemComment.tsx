@@ -1,8 +1,9 @@
 import { agentview, withErrorHandling } from "../lib/agentview";
 import { type ActionResponse } from "../lib/errors";
 import type { ActionFunctionArgs, RouteObject } from "react-router";
+import { actionContext } from "../actionContext";
 
-async function action({ request, params }: ActionFunctionArgs): Promise<ActionResponse> {
+async function action({ request, params, context }: ActionFunctionArgs): Promise<ActionResponse> {
     if (request.method === 'DELETE') {
         return await withErrorHandling(() =>
             agentview.deleteItemComment(params.id!, params.itemId!, params.commentId!)

@@ -10,33 +10,43 @@ if (typeof window !== 'undefined') {
   (window as any).cache = cache;
 }
 
-const keyAliases = new Map<string, string>(); // alias → canonical
-const keyDependents = new Map<string, Set<string>>(); // dependency → set of keys that depend on it
+// const keyAliases = new Map<string, string>(); // alias → canonical
+// const keyDependents = new Map<string, Set<string>>(); // dependency → set of keys that depend on it
 const FRESH_TIME = 30_000; // 30 seconds - data is fresh, no background check
 const STALE_TIME = 10 * 60_000; // 10 minutes - serve stale + background fetch, after this refetch blocking
 
-function resolveKey(key: string): string {
-  return keyAliases.get(key) ?? key;
-}
+// function resolveKey(key: string): string {
+//   return keyAliases.get(key) ?? key;
+// }
 
-export function addKeyAlias(canonicalKey: string, aliasKey: string) {
-  keyAliases.set(aliasKey, canonicalKey);
-}
+// export function addKeyAlias(canonicalKey: string, aliasKey: string) {
+//   keyAliases.set(aliasKey, canonicalKey);
+// }
 
-// Register that `key` depends on `dependencyKey` - when dependencyKey is invalidated, key is too
-export function addCacheDependency(key: string, dependencyKey: string) {
-  const canonicalKey = resolveKey(key);
-  const canonicalDep = resolveKey(dependencyKey);
-  if (!keyDependents.has(canonicalDep)) {
-    keyDependents.set(canonicalDep, new Set());
-  }
-  keyDependents.get(canonicalDep)!.add(canonicalKey);
-}
+// // Register that `key` depends on `dependencyKey` - when dependencyKey is invalidated, key is too
+// export function addCacheDependency(key: string, dependencyKey: string) {
+//   const canonicalKey = resolveKey(key);
+//   const canonicalDep = resolveKey(dependencyKey);
+//   if (!keyDependents.has(canonicalDep)) {
+//     keyDependents.set(canonicalDep, new Set());
+//   }
+//   keyDependents.get(canonicalDep)!.add(canonicalKey);
+// }
 
 let revalidateCallback: (() => void) | null = null;
 
 export function setRevalidateCallback(cb: (() => void) | null) {
   revalidateCallback = cb;
+}
+
+export function revalidate() {
+  if (revalidateCallback) {
+    revalidateCallback();
+  }
+}
+
+export function hasRevalidateCallback() {
+  return revalidateCallback !== null;
 }
 
 export function invalidateByPrefix(prefix: string) {
@@ -51,8 +61,7 @@ export async function swr<T>(
   key: string,
   fetcher: () => Promise<T>
 ): Promise<T> {
-  const canonicalKey = resolveKey(key);
-  const entry = cache.get(canonicalKey);
+  const entry = cache.get(key);
   const now = Date.now();
 
   // If we have cached data
@@ -73,11 +82,9 @@ export async function swr<T>(
       fetcher().then(newData => {
         const oldData = entry.data;
         const changed = JSON.stringify(newData) !== JSON.stringify(oldData);
-        cache.set(canonicalKey, { data: newData, timestamp: Date.now(), revalidating: false });
+        cache.set(key, { data: newData, timestamp: Date.now(), revalidating: false });
         if (changed) {
-          if (revalidateCallback) {
-            revalidateCallback();
-          }
+          revalidate();
         }
       }).catch(() => {
         entry.revalidating = false;
@@ -96,36 +103,22 @@ export async function swr<T>(
   console.log('[cache] cache miss: ' + key);
   // No cache or expired - fetch and store (blocking)
   const data = await fetcher();
-  cache.set(canonicalKey, { data, timestamp: now, revalidating: false });
+  cache.set(key, { data, timestamp: now, revalidating: false });
   return data;
 }
 
 export function invalidateCache(key?: string) {
   if (key) {
     console.log('[cache] invalidating key: ' + key);
-    const canonicalKey = resolveKey(key);
-    cache.delete(canonicalKey);
-
-    // Clean up aliases pointing to this key
-    for (const [alias, target] of keyAliases) {
-      if (target === canonicalKey) {
-        keyAliases.delete(alias);
-      }
-    }
-
-    // Recursively invalidate any keys that depend on this one
-    const dependents = keyDependents.get(canonicalKey);
-    if (dependents) {
-      keyDependents.delete(canonicalKey); // Delete first to avoid infinite loops
-      for (const depKey of dependents) {
-        invalidateCache(depKey);
-      }
-    }
+    cache.delete(key);
   } else {
     cache.clear();
-    keyAliases.clear();
-    keyDependents.clear();
   }
+}
+
+export function getCachedValue<T>(key: string): T | undefined {
+  const entry = cache.get(key);
+  return entry?.data;
 }
 
 // export function updateCache(key: string, data: any) {)

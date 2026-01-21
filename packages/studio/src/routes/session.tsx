@@ -4,10 +4,10 @@ import { findItemConfigById, findMatchingRunConfigs, requireAgentConfig } from "
 import { enhanceSession, getActiveRuns, getAllSessionItems, getLastRun, getVersions } from "agentview/sessionUtils";
 import type { AgentConfig, ScoreConfig, SessionItemConfig, SessionItemDisplayComponentProps } from "agentview/types";
 import { AlertCircleIcon, ChevronDown, CircleGauge, InfoIcon, MessageCirclePlus, UsersIcon } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useOptimistic, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { LoaderFunctionArgs, RouteObject } from "react-router";
-import { data, Link, Outlet, useFetcher, useLoaderData, useNavigate, useOutletContext, useRevalidator } from "react-router";
+import { Await, data, Link, Outlet, useFetcher, useLoaderData, useNavigate, useOutletContext, useRevalidator } from "react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 import { DisplayProperties } from "../components/DisplayProperties";
@@ -31,21 +31,52 @@ import { agentview, AgentViewError } from "../lib/agentview";
 import { getListParams, toQueryParams } from "../lib/listParams";
 import { useSessionContext } from "../lib/SessionContext";
 import { useSession } from "../lib/useSession";
+import React from "react";
+import { actionContext } from "../actionContext";
+import { getCachedValue, hasRevalidateCallback, revalidate } from "../lib/swr-cache";
+import { cacheKeys } from "../lib/cached-agentview";
 
+// let hydratedSessionId : undefined | string = undefined;
 
-async function loader({ request, params }: LoaderFunctionArgs) {
+async function loader({ request, params, context }: LoaderFunctionArgs) {
+    const sessionId = params.id!;
+    // console.log('[loader] sessionId: ', sessionId, ' hydratedSessionId: ', hydratedSessionId);
+
+    console.log('[loader] action context: ', context.get(actionContext));
+    console.log('request', request.method)
+
     try {
-        const [session, comments, scores] = await Promise.all([
+        const cachedSession = getCachedValue<Session>(cacheKeys.session(sessionId));
+        const cachedComments = getCachedValue<CommentMessage[]>(cacheKeys.sessionComments(sessionId));
+        const cachedScores = getCachedValue<Score[]>(cacheKeys.sessionScores(sessionId));
+
+        const areAllCached = cachedSession !== undefined && cachedComments !== undefined && cachedScores !== undefined;
+
+        const promise = Promise.all([
             agentview.getSession({ id: params.id! }),
             agentview.getSessionComments({ id: params.id! }),
             agentview.getSessionScores({ id: params.id! }),
-        ]);
+        ])
+
+        let stuff : Awaited<typeof promise> | undefined = undefined;
+
+        const isFirstLoad = !window.location.pathname.includes(`/sessions/${sessionId}`);
+
+        if (areAllCached || !hasRevalidateCallback() || !isFirstLoad) {
+            stuff = await promise;
+        }
+        else {
+            // keep stuff undefined
+            promise.then(() => {
+                console.log('revalidate!');
+                revalidate();
+            });
+        }
 
         return {
-            session,
-            comments,
-            scores,
-            listParams: getListParams(request)
+            stuff,
+            listParams: getListParams(request),
+            sessionId
         };
     } catch (error) {
         if (error instanceof AgentViewError) {
@@ -55,12 +86,102 @@ async function loader({ request, params }: LoaderFunctionArgs) {
     }
 }
 
-function Component() {
-    const loaderData = useLoaderData<typeof loader>();
-    return <SessionPage key={loaderData.session.id} />;
+// function useDeferredValue<T>(promise: Promise<T>) {
+//     const [state, setState] = useState<{ pending: boolean, data: T | undefined, error: Error | undefined }>({ pending: true, data: undefined, error: undefined });
+  
+//     useEffect(() => {
+//         setState({ pending: true, data: undefined, error: undefined })
+//       let active = true;
+//       promise
+//         .then((data) => {
+//             console.log('then', data);
+//             if (active) {
+//                 setState({ pending: false, data, error: undefined })
+//             }
+//         })
+//         .catch((error) => {
+//             console.log('catch', error);
+//             if (active) {
+//                 setState({ pending: false, data: undefined, error })
+//             }
+//         });
+
+//       return () => { active = false; };
+
+//     }, [promise]);
+  
+//     return state;
+//   }
+
+function LoaderComponent() {
+    // console.log('[LoaderComponent]');
+    return <div>Loading...</div>
 }
 
-function SessionPage() {
+function Component() {
+    // console.log('[Component]');
+    const { stuff } = useLoaderData<typeof loader>();
+
+    if (!stuff) {
+        return <LoaderComponent />
+    }
+
+    return <SessionPage session={stuff[0]} comments={stuff[1]} scores={stuff[2]} />
+
+    // return <SessionPage session={loaderData.stuff[0]} comments={loaderData.stuff[1]} scores={loaderData.stuff[2]} />
+
+    // return <React.Suspense fallback={<LoaderComponent />}>
+    //     <Await resolve={stuff}>
+    //         {([session, comments, scores]) => <SessionPage session={session} comments={comments} scores={scores} />}
+    //     </Await>
+    // </React.Suspense>
+}
+
+// function Component() {
+//     // console.log('[Component]');
+//     const { completeStuff, stuff, sessionId } = useLoaderData<typeof loader>();
+
+//     const deferredStuff = useDeferredValue(stuff);
+
+//     console.log('complete stuff', completeStuff);
+//     console.log('deferred stuff', deferredStuff);
+
+//     // useEffect(() => {
+//     //     hydratedSessionId = sessionId;
+//     //     console.log('[Component] setting hydratedSessionId: ', hydratedSessionId);
+//     //     return () => {
+//     //         hydratedSessionId = undefined;
+//     //         console.log('[Component] unsetting hydratedSessionId');
+//     //     }
+//     // }, [sessionId]);
+
+//     if (completeStuff) {
+//         return <SessionPage session={completeStuff[0]} comments={completeStuff[1]} scores={completeStuff[2]} />
+//     }
+
+//     if (deferredStuff.pending) {
+//         return <LoaderComponent />
+//     }
+//     else if (deferredStuff.error) {
+//         return <div>Error: {deferredStuff.error.message}</div>
+//     }
+//     else if (deferredStuff.data) {
+//         return <SessionPage session={deferredStuff.data[0]} comments={deferredStuff.data[1]} scores={deferredStuff.data[2]} />
+//     }
+
+//     throw new Error('Unreachable');
+
+//     // return <SessionPage session={loaderData.stuff[0]} comments={loaderData.stuff[1]} scores={loaderData.stuff[2]} />
+
+//     // return <React.Suspense fallback={<LoaderComponent />}>
+//     //     <Await resolve={stuff}>
+//     //         {([session, comments, scores]) => <SessionPage session={session} comments={comments} scores={scores} />}
+//     //     </Await>
+//     // </React.Suspense>
+// }
+
+function SessionPage(props: { session: Session, comments: CommentMessage[], scores: Score[]}) {
+    // console.log('[SessionPage]');
     const loaderData = useLoaderData<typeof loader>();
     const revalidator = useRevalidator();
     const navigate = useNavigate();
@@ -68,7 +189,7 @@ function SessionPage() {
     const { allStats } = useOutletContext<{ allStats?: SessionsStats }>() ?? {};
 
     const [expectingRun, setExpectingRun] = useState(false);
-    const session = useSession(loaderData.session, { wait: expectingRun });
+    const session = useSession(props.session, { wait: expectingRun });
 
     const listParams = loaderData.listParams;
     const activeItems = getAllSessionItems(session, { activeOnly: true })
@@ -187,8 +308,8 @@ function SessionPage() {
                             const isLastRunItem = index === run.sessionItems.length - 1;
                             const isInputItem = index === 0;
 
-                            const comments = loaderData.comments.filter((c) => c.sessionItemId === item.id).filter((c) => !c.deletedAt);
-                            const scores = loaderData.scores.filter((s) => s.sessionItemId === item.id).filter((s) => !s.deletedAt);
+                            const comments = props.comments.filter((c) => c.sessionItemId === item.id).filter((c) => !c.deletedAt);
+                            const scores = props.scores.filter((s) => s.sessionItemId === item.id).filter((s) => !s.deletedAt);
 
                             const hasComments = comments.length > 0
                             const isSelected = selectedItemId === item.id;
@@ -546,8 +667,8 @@ function MessageFooter(props: MessageFooterProps) {
     }
 
 
-    let blocks : React.ReactNode[] = [];
-    
+    let blocks: React.ReactNode[] = [];
+
     // Error
     if (isLastRunItem && (run.status === "failed" || run.status === "cancelled")) {
         const errorMessage = run.status === "failed" ?

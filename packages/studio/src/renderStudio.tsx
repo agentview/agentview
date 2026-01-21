@@ -13,6 +13,6 @@ export async function renderStudio(rootElement: HTMLElement | null, config: Agen
 
   import("./routes").then(({ routes }) => {
     const root = createRoot(rootElement);
-    root.render(<RouterProvider router={createBrowserRouter(routes(config.customRoutes))} />)
+    root.render(<RouterProvider router={createBrowserRouter(routes(config.customRoutes))} unstable_useTransitions={true} />)
   })
 }

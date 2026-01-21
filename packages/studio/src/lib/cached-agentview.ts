@@ -1,9 +1,9 @@
 import { AgentView } from 'agentview'
 import { getAuthHeaders } from './agentview'
-import { addCacheDependency, addKeyAlias, invalidateByPrefix, invalidateCache, swr } from './swr-cache'
+import { invalidateByPrefix, invalidateCache, swr } from './swr-cache'
 
 // Cache key helpers
-const keys = {
+export const cacheKeys = {
   session: (id: string) => `session:${id}`,
   sessionScores: (id: string) => `session-scores:${id}`,
   sessionComments: (id: string) => `session-comments:${id}`,
@@ -21,25 +21,21 @@ export class CachedAgentView extends AgentView {
   // === CACHED READS ===
 
   override async getSession(...args: Parameters<AgentView['getSession']>) {
-    const requestedId = args[0].id
-    const cacheKey = keys.session(requestedId)
-    const session = await swr(cacheKey, () => super.getSession(...args))
-
-    return session
+    return await swr(cacheKeys.session(args[0].id), () => super.getSession(...args))
   }
 
   override async getSessions(...args: Parameters<AgentView['getSessions']>) {
     const paramKey = JSON.stringify(args[0] ?? {})
-    return swr(keys.sessions(paramKey), () => super.getSessions(...args))
+    return swr(cacheKeys.sessions(paramKey), () => super.getSessions(...args))
   }
 
   override async getSessionsStats(...args: Parameters<AgentView['getSessionsStats']>) {
     const paramKey = JSON.stringify(args[0] ?? {})
-    return swr(keys.sessionsStats(paramKey), () => super.getSessionsStats(...args))
+    return swr(cacheKeys.sessionsStats(paramKey), () => super.getSessionsStats(...args))
   }
 
   override async getEnvironment(...args: Parameters<AgentView['getEnvironment']>) {
-    return swr(keys.environment(), () => super.getEnvironment(...args))
+    return swr(cacheKeys.environment(), () => super.getEnvironment(...args))
   }
 
   // === MUTATIONS (invalidate cache) ===
@@ -53,7 +49,7 @@ export class CachedAgentView extends AgentView {
 
   override async updateSession(...args: Parameters<AgentView['updateSession']>) {
     const result = await super.updateSession(...args)
-    invalidateCache(keys.session(args[0].id))
+    invalidateCache(cacheKeys.session(args[0].id))
     invalidateByPrefix('sessions')
     invalidateByPrefix('sessions-stats')
     return result
@@ -61,7 +57,7 @@ export class CachedAgentView extends AgentView {
 
   override async createRun(...args: Parameters<AgentView['createRun']>) {
     const result = await super.createRun(...args)
-    invalidateCache(keys.session(args[0].sessionId))
+    invalidateCache(cacheKeys.session(args[0].sessionId))
     return result
   }
 
@@ -69,23 +65,23 @@ export class CachedAgentView extends AgentView {
   override async updateRun(options_: Parameters<AgentView['updateRun']>[0] & { sessionId: string }) {
     const { sessionId, ...options } = options_;
     const result = await super.updateRun(options)
-    invalidateCache(keys.session(sessionId))
+    invalidateCache(cacheKeys.session(sessionId))
     return result
   }
 
   override async getSessionComments(...args: Parameters<AgentView['getSessionComments']>) {
-    return swr(keys.sessionComments(args[0].id), () => super.getSessionComments(...args))
+    return swr(cacheKeys.sessionComments(args[0].id), () => super.getSessionComments(...args))
   }
 
   override async getSessionScores(...args: Parameters<AgentView['getSessionScores']>) {
-    return swr(keys.sessionScores(args[0].id), () => super.getSessionScores(...args))
+    return swr(cacheKeys.sessionScores(args[0].id), () => super.getSessionScores(...args))
   }
 
   override async updateItemScores(...args: Parameters<AgentView['updateItemScores']>) {
     const result = await super.updateItemScores(...args)
 
-    invalidateCache(keys.sessionScores(args[0]))
-    invalidateCache(keys.sessionComments(args[0]))
+    invalidateCache(cacheKeys.sessionScores(args[0]))
+    invalidateCache(cacheKeys.sessionComments(args[0]))
 
     return result
   }
@@ -93,8 +89,8 @@ export class CachedAgentView extends AgentView {
   override async createItemComment(...args: Parameters<AgentView['createItemComment']>) {
     const result = await super.createItemComment(...args)
     
-    invalidateCache(keys.sessionScores(args[0]))
-    invalidateCache(keys.sessionComments(args[0]))
+    invalidateCache(cacheKeys.sessionScores(args[0]))
+    invalidateCache(cacheKeys.sessionComments(args[0]))
 
     return result
   }
@@ -102,8 +98,8 @@ export class CachedAgentView extends AgentView {
   override async updateItemComment(...args: Parameters<AgentView['updateItemComment']>) {
     const result = await super.updateItemComment(...args)
     
-    invalidateCache(keys.sessionScores(args[0]))
-    invalidateCache(keys.sessionComments(args[0]))
+    invalidateCache(cacheKeys.sessionScores(args[0]))
+    invalidateCache(cacheKeys.sessionComments(args[0]))
 
     return result
   }
@@ -111,15 +107,15 @@ export class CachedAgentView extends AgentView {
   override async deleteItemComment(...args: Parameters<AgentView['deleteItemComment']>) {
     const result = await super.deleteItemComment(...args)
     
-    invalidateCache(keys.sessionScores(args[0]))
-    invalidateCache(keys.sessionComments(args[0]))
+    invalidateCache(cacheKeys.sessionScores(args[0]))
+    invalidateCache(cacheKeys.sessionComments(args[0]))
 
     return result
   }
 
   override async updateEnvironment(...args: Parameters<AgentView['updateEnvironment']>) {
     const result = await super.updateEnvironment(...args)
-    invalidateCache(keys.environment())
+    invalidateCache(cacheKeys.environment())
     return result
   }
 

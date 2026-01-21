@@ -3,7 +3,7 @@ import type { LoaderFunctionArgs, RouteObject } from "react-router";
 import { Suspense } from "react";
 
 import { Button } from "../components/ui/button";
-import { ChevronLeftIcon, ChevronRightIcon, MessageCircle, PlusIcon, UserIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, Loader2, MessageCircle, PlusIcon, UserIcon } from "lucide-react";
 import { Header, HeaderTitle } from "../components/header";
 import { getListParams, getListParamsAndCheckForRedirect, toQueryParams } from "../lib/listParams";
 import { agentview, AgentViewError } from "../lib/agentview";
@@ -152,7 +152,7 @@ export function SessionCard({ session, listParams, sessionStats }: { session: Se
 
   return <div key={session.id}>
     <NavLink to={`/sessions/${session.id}?${toQueryParams(listParams)}`}>
-      {({ isActive }) => (
+      {({ isActive, isPending }) => (
         <div className={`p-3 border-b hover:bg-gray-50 transition-colors duration-50 ${isActive ? 'bg-gray-100' : ''}`}>
           <div className="flex flex-col gap-1">
 
@@ -165,6 +165,8 @@ export function SessionCard({ session, listParams, sessionStats }: { session: Se
                 <div className={`text-sm ${hasUnreads ? 'font-semibold' : 'font-normal'}`}>
                   Session {session.handle}
                 </div>
+
+                {/* {isPending && <Loader2 className="size-3 animate-spin text-gray-500" />} */}
 
               </div>
 

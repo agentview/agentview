@@ -123,7 +123,10 @@ function Component() {
 
   // Wire up SWR cache to trigger React Router revalidation on data change
   useEffect(() => {
-    setRevalidateCallback(() => revalidator.revalidate());
+    setRevalidateCallback(() => {
+      console.log('revalidate from sidebar layout');
+      revalidator.revalidate()
+    });
     // Also subscribe to cached SDK changes
     // const unsubscribe = agentview.subscribe(() => {
     //   revalidator.revalidate();
