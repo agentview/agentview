@@ -33,9 +33,19 @@ export class CachedAgentView extends AgentView {
     return swr(cacheKeys.sessions(paramKey), () => super.getSessions(...args))
   }
 
+  getSessionsSync(...args: Parameters<AgentView['getSessions']>) {
+    const paramKey = JSON.stringify(args[0] ?? {})
+    return swrSync(cacheKeys.sessions(paramKey), () => super.getSessions(...args))
+  }
+
   override async getSessionsStats(...args: Parameters<AgentView['getSessionsStats']>) {
     const paramKey = JSON.stringify(args[0] ?? {})
     return swr(cacheKeys.sessionsStats(paramKey), () => super.getSessionsStats(...args))
+  }
+
+  getSessionsStatsSync(...args: Parameters<AgentView['getSessionsStats']>) {
+    const paramKey = JSON.stringify(args[0] ?? {})
+    return swrSync(cacheKeys.sessionsStats(paramKey), () => super.getSessionsStats(...args))
   }
 
   override async getEnvironment(...args: Parameters<AgentView['getEnvironment']>) {

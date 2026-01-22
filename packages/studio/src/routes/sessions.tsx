@@ -1,6 +1,6 @@
 import { useLoaderData, Outlet, Link, Form, data, NavLink, redirect, Await } from "react-router";
 import type { LoaderFunctionArgs, RouteObject } from "react-router";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 
 import { Button } from "../components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon, Loader2, MessageCircle, PlusIcon, UserIcon } from "lucide-react";
@@ -30,25 +30,34 @@ async function loader({ request }: LoaderFunctionArgs) {
   }
 
   try {
-    // Fetch sessions immediately (blocking)
-    const sessionsResult = await agentview.getSessions({
-      agent: listParams.agent,
-      space: listParams.space as Space,
-      page: listParams.page,
-    });
+    const shouldLoadImmediately = !window.location.pathname.startsWith('/sessions');
 
-    // Stats fetched lazily - don't await, let it load in background
-    const statsPromise = agentview.getSessionsStats({
+    // Sessions: sync on first load, async on revalidation
+    const sessionsResult = shouldLoadImmediately
+      ? agentview.getSessionsSync({
+          agent: listParams.agent,
+          space: listParams.space as Space,
+          page: listParams.page,
+        })
+      : await agentview.getSessions({
+          agent: listParams.agent,
+          space: listParams.space as Space,
+          page: listParams.page,
+        });
+
+    // Stats: always sync, never blocking
+    const allStats = agentview.getSessionsStatsSync({
       agent: listParams.agent,
       space: listParams.space as Space,
       page: listParams.page,
       granular: true,
     });
 
+
     return {
-      sessions: sessionsResult.sessions,
-      pagination: sessionsResult.pagination,
-      allStats: statsPromise,
+      sessions: sessionsResult?.sessions,
+      pagination: sessionsResult?.pagination,
+      allStats,
       listParams
     };
   } catch (error) {
@@ -71,13 +80,19 @@ function Component() {
       </Header>
 
       <div className="flex-1 overflow-y-auto pb-12">
-        <Suspense fallback={<SessionList sessions={sessions} listParams={listParams} allStats={undefined} />}>
+
+        {!sessions && <div className="px-3 py-4 text-muted-foreground">Loading...</div>}
+
+        {sessions && sessions.length === 0 && <div className="px-3 py-4 text-muted-foreground">No sessions available.</div>}
+        {sessions && sessions.length > 0 && <SessionList sessions={sessions} listParams={listParams} allStats={allStats} /> }
+
+        {/* <Suspense fallback={<SessionList sessions={sessions} listParams={listParams} allStats={undefined} />}>
           <Await resolve={allStats}>
             {(resolvedStats) => <SessionList sessions={sessions} listParams={listParams} allStats={resolvedStats} />}
           </Await>
         </Suspense>
         {sessions.length === 0 && <div className="px-3 py-4 text-muted-foreground">No sessions available.</div>}
-        {sessions.length > 0 && <PaginationControls pagination={pagination} listParams={listParams} />}
+        {sessions.length > 0 && <PaginationControls pagination={pagination} listParams={listParams} />} */}
       </div>
 
     </div>
