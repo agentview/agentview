@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { type RouteObject } from "react-router";
-import { ItemCard, ItemCardContent, ItemCardTitle, ItemCardJSON, ItemCardMarkdown } from "../components/session-item";
+import { ItemCard, ItemCardContent, ItemCardTitle, ItemCardJSON, ItemCardMarkdown, Message, Markdown, JSONView, Step, StepTitle, StepContent } from "../components/session-item";
 import { BrainIcon, Wrench, CircleIcon, SquareIcon, TriangleIcon, HexagonIcon, StarIcon } from "lucide-react";
 import { PillSelect } from "../components/PillSelect";
 import { PillMultiSelect } from "../components/PillMultiSelect";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../components/ui/collapsible";
 
 const markdownExample = `
 ### This is a subtitle
@@ -51,17 +52,109 @@ function Component() {
 
         <h1 className="text-2xl font-medium mb-6">AgentView UI Components</h1>
 
-        <h2 className="text-lg font-medium mb-6">Session Items</h2>
+        <h2 className="text-lg font-medium mb-6">Message</h2>
 
-        <ComponentWrapper title="ItemCard / Default">
-          <ItemCard>
-            <ItemCardContent>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-            </ItemCardContent>
-          </ItemCard>
+        <ComponentWrapper title="variant: default">
+          <Message>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          </Message>
         </ComponentWrapper>
 
-        <ComponentWrapper title="ItemCard / Default + markdown">
+        <ComponentWrapper title="variant: fill">
+          <Message variant="fill">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          </Message>
+        </ComponentWrapper>
+
+
+        <ComponentWrapper title="markdown + variant: default">
+          <Message>
+            <Markdown text={markdownExample} />
+          </Message>
+        </ComponentWrapper>
+
+
+        <ComponentWrapper title="markdown + variant: fill">
+          <Message variant="fill">
+            <Markdown text={markdownExample} />
+          </Message>
+        </ComponentWrapper>
+
+        <ComponentWrapper title="json + variant: default">
+          <Message>
+            <JSONView value={jsonExample} />
+          </Message>
+        </ComponentWrapper>
+
+        <ComponentWrapper title="json + variant: fill">
+          <Message variant="fill">
+            <JSONView value={jsonExample} />
+          </Message>
+        </ComponentWrapper>
+
+        <h2 className="text-lg font-medium mb-6">Step</h2>
+
+        <ComponentWrapper title="title + content">
+          <Step>
+            <StepTitle><BrainIcon /> Thought for 3 seconds</StepTitle>
+            <StepContent>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </StepContent>
+          </Step>
+        </ComponentWrapper>
+
+        <ComponentWrapper title="just title">
+          <Step>
+            <StepTitle><BrainIcon /> Thought for 3 seconds</StepTitle>
+          </Step>
+        </ComponentWrapper>
+
+        <ComponentWrapper title="just content">
+          <Step>
+            <StepContent>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </StepContent>
+          </Step>
+        </ComponentWrapper>
+
+        <ComponentWrapper title="markdown">
+          <Step>
+            <StepTitle><BrainIcon /> Thought for 3 seconds</StepTitle>
+            <StepContent>
+              <Markdown text={markdownExample} />
+            </StepContent>
+          </Step>
+        </ComponentWrapper>
+
+        <ComponentWrapper title="json">
+          <Step>
+            <StepTitle><BrainIcon /> Thought for 3 seconds</StepTitle>
+            <StepContent>
+              <JSONView value={jsonExample} />
+            </StepContent>
+          </Step>
+        </ComponentWrapper>
+
+        <ComponentWrapper title="collapsible">
+          <Collapsible>
+            <Step>
+              <CollapsibleTrigger asChild>
+                <StepTitle><BrainIcon /> Thought for 3 seconds</StepTitle>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <StepContent>
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                </StepContent>
+              </CollapsibleContent>
+            </Step>
+
+          </Collapsible>
+
+      </ComponentWrapper>
+
+
+
+      {/* <ComponentWrapper title="ItemCard / Default + markdown">
           <ItemCard>
             <ItemCardContent>
               <ItemCardMarkdown text={markdownExample} />
@@ -256,31 +349,31 @@ function Component() {
               Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
             </ItemCardContent>
           </ItemCard>
-        </ComponentWrapper>
+        </ComponentWrapper> */}
 
-        <h2 className="text-lg font-medium mb-6">Pill Selects</h2>
+      <h2 className="text-lg font-medium mb-6">Pill Selects</h2>
 
-        <ComponentWrapper title="PillSelect">
-          <PillSelect
-            value={selectValue}
-            onChange={setSelectValue}
-            options={shapeOptions}
-            placeholder="Select a shape..."
-            className="w-full"
-          />
-        </ComponentWrapper>
+      <ComponentWrapper title="PillSelect">
+        <PillSelect
+          value={selectValue}
+          onChange={setSelectValue}
+          options={shapeOptions}
+          placeholder="Select a shape..."
+          className="w-full"
+        />
+      </ComponentWrapper>
 
-        <ComponentWrapper title="PillMultiSelect">
-          <PillMultiSelect
-            value={multiSelectValue}
-            onChange={(value) => setMultiSelectValue(value ?? [])}
-            options={shapeOptions}
-            placeholder="Select shapes..."
-            className="w-full"
-          />
-        </ComponentWrapper>
-      </div>
-    </div>
+      <ComponentWrapper title="PillMultiSelect">
+        <PillMultiSelect
+          value={multiSelectValue}
+          onChange={(value) => setMultiSelectValue(value ?? [])}
+          options={shapeOptions}
+          placeholder="Select shapes..."
+          className="w-full"
+        />
+      </ComponentWrapper>
+    </div >
+    </div >
   );
 }
 

@@ -6,6 +6,185 @@ import { cn } from "../lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "./ui/input-group";
 
+/**
+ * Message
+ */
+const messageVariants = cva(
+    "",
+    {
+        variants: {
+            variant: {
+                default:
+                    "",
+                fill:
+                    "px-3 py-2 rounded-lg bg-gray-100",
+            }
+        },
+        defaultVariants: {
+            variant: "default"
+        },
+    }
+)
+
+type MessageVariant = VariantProps<typeof messageVariants>["variant"];
+const MessageContext = React.createContext<{ variant: MessageVariant } | undefined>(undefined);
+
+export function Message({
+    variant,
+    className,
+    children,
+    ...props
+}: VariantProps<typeof messageVariants> & React.ComponentProps<"div"> & { collapsible?: boolean, defaultOpen?: boolean }) {
+    return <MessageContext.Provider value={{ variant }}>
+        <div className={cn(messageVariants({ variant }), className)} {...props}>
+            {children}
+        </div>
+    </MessageContext.Provider>
+}
+
+/**
+ * Step
+ */
+const StepContext = React.createContext<{} | undefined>(undefined);
+
+export function Step({ className, children, ...props }: React.ComponentProps<"div">) {
+    return <StepContext.Provider value={{}}>
+        <div className={cn("px-3 py-2 rounded-lg border", className)} {...props}>
+            {children}
+        </div>
+    </StepContext.Provider>
+}
+
+export function StepTitle({ className, children, ...props }: React.ComponentProps<"div">) {
+    // const stepContext = React.useContext(StepContext);
+    
+    const collapsible = false;
+
+    const content = (
+        <div
+            className={cn(
+                "text-muted-foreground text-sm font-normal flex items-center",
+                "gap-1",
+                collapsible
+                    ? "group-data-[state=open]:mb-1"
+                    : "mb-1",
+                "[&_svg]:pointer-events-none [&_svg]:shrink-0",
+                "[&_svg:not([class*='size-'])]:size-3",
+                collapsible && "cursor-pointer select-none",
+                className
+            )}
+            {...props}
+        >
+            {children}
+            {collapsible && (
+                <ChevronDownIcon className={cn(
+                    "ml-auto transition-transform duration-200 size-3",
+                    "group-data-[state=open]:rotate-[-180deg]"
+                )} />
+            )}
+        </div>
+    );
+
+    if (collapsible) {
+        return <CollapsibleTrigger asChild>{content}</CollapsibleTrigger>;
+    }
+
+    return content;
+}
+
+export function StepContent({ className, children, ...props }: React.ComponentProps<"div"> & { children: React.ReactNode }) {
+    const collapsible = false;
+
+    const content = <div className={cn("text-sm", className)} {...props}>
+        {children}
+    </div>;
+
+    if (collapsible) {
+        return <CollapsibleContent>{content}</CollapsibleContent>;
+    }
+
+    return content;
+}
+
+
+
+/**
+ * Markdown
+ */
+const markdownVariants = cva(
+    "",
+    {
+        variants: {
+            size: {
+                default: "text-md",
+                sm: "text-sm"
+            }
+        },
+        defaultVariants: {
+            size: "default"
+        },
+    }
+)
+
+// this is general purpose component, can live indepently, only if it's inside Step or Message, defaults change.
+export function Markdown({ className, text, ...props }: VariantProps<typeof markdownVariants> & React.ComponentProps<"div"> & { text: string }) {
+    const messageContext = React.useContext(MessageContext);
+    const stepContext = React.useContext(StepContext);
+    const defaultSize = messageContext ? "default" : (stepContext ? "sm" : "default");
+
+    const size = props.size ?? defaultSize;
+
+    return <div
+        className={
+            cn("prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-foreground", markdownVariants({ size }), className)}
+        {...props}
+        dangerouslySetInnerHTML={{ __html: marked.parse(text, { async: false }) }}
+    ></div>
+}
+
+/**
+ * JSONView
+ */
+const jsonViewVariants = cva(
+    "",
+    {
+        variants: {
+            variant: {
+                default:
+                    "p-3 rounded-md bg-gray-50",
+                ghost:
+                    "",
+            }
+        },
+        defaultVariants: {
+            variant: "default"
+        },
+    }
+)
+
+// this is general purpose component, can live indepently, only if it's inside Step or Message, defaults change.
+export function JSONView({ value, className, ...props }: VariantProps<typeof jsonViewVariants> & React.ComponentProps<"pre"> & { value: any }) {
+    const messageContext = React.useContext(MessageContext);
+    const defaultVariant = messageContext ? (messageContext.variant === "fill" ? "ghost" : "default") : undefined;
+    const variant = props.variant ?? defaultVariant;
+
+    return <pre className={cn(
+        "overflow-x-scroll text-sm",
+        jsonViewVariants({ variant }),
+        className)}
+        {...props}
+    >
+        {JSON.stringify(value, null, 2)}
+    </pre>
+}
+
+
+
+
+
+
+
+
 
 const itemCardVariants = cva(
     "",
@@ -160,9 +339,9 @@ export function ItemCardAutoContent({ children }: { children: React.ReactNode })
     const isSthElse = !isText && !isPlainObject;
 
     return <ItemCardContent>
-        { isPlainObject && <ItemCardJSON value={children} /> }
-        { isText && <ItemCardMarkdown text={children} /> }
-        { isSthElse && children }
+        {isPlainObject && <ItemCardJSON value={children} />}
+        {isText && <ItemCardMarkdown text={children} />}
+        {isSthElse && children}
     </ItemCardContent>
 }
 
