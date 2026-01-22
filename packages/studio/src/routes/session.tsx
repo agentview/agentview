@@ -17,6 +17,7 @@ import { ErrorBoundary } from "../components/internal/ErrorBoundary";
 import { AVFormField } from "../components/internal/form";
 import { ItemsWithCommentsLayout } from "../components/internal/ItemsWithCommentsLayout";
 import { Loader } from "../components/internal/Loader";
+import { Skeleton } from "../components/ui/skeleton";
 import { Pill } from "../components/Pill";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "../components/PropertyList";
 import { AssistantMessage, StepItem, UserMessage } from "../components/session-item";
@@ -114,9 +115,12 @@ function SessionPageSkeleton({ sessionBase }: { sessionBase: SessionBase }) {
     const agentConfig = requireAgentConfig(config, sessionBase.agent);
     return (
         <SessionShell sessionBase={sessionBase} agentConfig={agentConfig}>
-            {/* <div className="pt-6 px-6">
+
+            <div className="p-6 text-muted-foreground">
                 <Loader />
-            </div> */}
+
+            </div>
+           
         </SessionShell>
     );
 }
