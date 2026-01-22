@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { type CommentMessage, type Run, type Score, type Session, type SessionItem, type SessionsStats } from "agentview/apiTypes";
+import { type CommentMessage, type Run, type Score, type Session, type SessionBase, type SessionItem, type SessionsStats } from "agentview/apiTypes";
 import { findItemConfigById, findMatchingRunConfigs, requireAgentConfig } from "agentview/configUtils";
 import { enhanceSession, getActiveRuns, getAllSessionItems, getLastRun, getVersions } from "agentview/sessionUtils";
 import type { AgentConfig, ScoreConfig, SessionItemConfig, SessionItemDisplayComponentProps } from "agentview/types";
@@ -32,49 +32,21 @@ import { getListParams, toQueryParams } from "../lib/listParams";
 import { useSessionContext } from "../lib/SessionContext";
 import { useSession } from "../lib/useSession";
 import React from "react";
-import { actionContext } from "../actionContext";
-import { getCachedValue, hasRevalidateCallback, revalidate } from "../lib/swr-cache";
-import { cacheKeys } from "../lib/cached-agentview";
-
-// let hydratedSessionId : undefined | string = undefined;
 
 async function loader({ request, params, context }: LoaderFunctionArgs) {
     const sessionId = params.id!;
-    // console.log('[loader] sessionId: ', sessionId, ' hydratedSessionId: ', hydratedSessionId);
-
-    console.log('[loader] action context: ', context.get(actionContext));
-    console.log('request', request.method)
 
     try {
-        const cachedSession = getCachedValue<Session>(cacheKeys.session(sessionId));
-        const cachedComments = getCachedValue<CommentMessage[]>(cacheKeys.sessionComments(sessionId));
-        const cachedScores = getCachedValue<Score[]>(cacheKeys.sessionScores(sessionId));
+        const shouldLoadImmediately = !window.location.pathname.includes(`/sessions/${sessionId}`);
 
-        const areAllCached = cachedSession !== undefined && cachedComments !== undefined && cachedScores !== undefined;
-
-        const promise = Promise.all([
-            agentview.getSession({ id: params.id! }),
-            agentview.getSessionComments({ id: params.id! }),
-            agentview.getSessionScores({ id: params.id! }),
-        ])
-
-        let stuff : Awaited<typeof promise> | undefined = undefined;
-
-        const isFirstLoad = !window.location.pathname.includes(`/sessions/${sessionId}`);
-
-        if (areAllCached || !hasRevalidateCallback() || !isFirstLoad) {
-            stuff = await promise;
-        }
-        else {
-            // keep stuff undefined
-            promise.then(() => {
-                console.log('revalidate!');
-                revalidate();
-            });
-        }
+        const [session, comments, scores] = shouldLoadImmediately ? 
+            [agentview.getSessionSync({ id: sessionId }), agentview.getSessionCommentsSync({ id: sessionId }), agentview.getSessionScoresSync({ id: sessionId })] : 
+            await Promise.all([agentview.getSession({ id: sessionId }), agentview.getSessionComments({ id: sessionId }), agentview.getSessionScores({ id: sessionId })] as const);
 
         return {
-            stuff,
+            session,
+            comments,
+            scores,
             listParams: getListParams(request),
             sessionId
         };
@@ -86,107 +58,29 @@ async function loader({ request, params, context }: LoaderFunctionArgs) {
     }
 }
 
-// function useDeferredValue<T>(promise: Promise<T>) {
-//     const [state, setState] = useState<{ pending: boolean, data: T | undefined, error: Error | undefined }>({ pending: true, data: undefined, error: undefined });
-  
-//     useEffect(() => {
-//         setState({ pending: true, data: undefined, error: undefined })
-//       let active = true;
-//       promise
-//         .then((data) => {
-//             console.log('then', data);
-//             if (active) {
-//                 setState({ pending: false, data, error: undefined })
-//             }
-//         })
-//         .catch((error) => {
-//             console.log('catch', error);
-//             if (active) {
-//                 setState({ pending: false, data: undefined, error })
-//             }
-//         });
-
-//       return () => { active = false; };
-
-//     }, [promise]);
-  
-//     return state;
-//   }
-
 function LoaderComponent() {
-    // console.log('[LoaderComponent]');
     return <div>Loading...</div>
 }
 
 function Component() {
-    // console.log('[Component]');
-    const { stuff } = useLoaderData<typeof loader>();
+    const { session, comments, scores } = useLoaderData<typeof loader>();
 
-    if (!stuff) {
+    if (!session || !comments || !scores) {
         return <LoaderComponent />
     }
 
-    return <SessionPage session={stuff[0]} comments={stuff[1]} scores={stuff[2]} />
-
-    // return <SessionPage session={loaderData.stuff[0]} comments={loaderData.stuff[1]} scores={loaderData.stuff[2]} />
-
-    // return <React.Suspense fallback={<LoaderComponent />}>
-    //     <Await resolve={stuff}>
-    //         {([session, comments, scores]) => <SessionPage session={session} comments={comments} scores={scores} />}
-    //     </Await>
-    // </React.Suspense>
+    return <SessionPage session={session} comments={comments} scores={scores} />
 }
 
-// function Component() {
-//     // console.log('[Component]');
-//     const { completeStuff, stuff, sessionId } = useLoaderData<typeof loader>();
-
-//     const deferredStuff = useDeferredValue(stuff);
-
-//     console.log('complete stuff', completeStuff);
-//     console.log('deferred stuff', deferredStuff);
-
-//     // useEffect(() => {
-//     //     hydratedSessionId = sessionId;
-//     //     console.log('[Component] setting hydratedSessionId: ', hydratedSessionId);
-//     //     return () => {
-//     //         hydratedSessionId = undefined;
-//     //         console.log('[Component] unsetting hydratedSessionId');
-//     //     }
-//     // }, [sessionId]);
-
-//     if (completeStuff) {
-//         return <SessionPage session={completeStuff[0]} comments={completeStuff[1]} scores={completeStuff[2]} />
-//     }
-
-//     if (deferredStuff.pending) {
-//         return <LoaderComponent />
-//     }
-//     else if (deferredStuff.error) {
-//         return <div>Error: {deferredStuff.error.message}</div>
-//     }
-//     else if (deferredStuff.data) {
-//         return <SessionPage session={deferredStuff.data[0]} comments={deferredStuff.data[1]} scores={deferredStuff.data[2]} />
-//     }
-
-//     throw new Error('Unreachable');
-
-//     // return <SessionPage session={loaderData.stuff[0]} comments={loaderData.stuff[1]} scores={loaderData.stuff[2]} />
-
-//     // return <React.Suspense fallback={<LoaderComponent />}>
-//     //     <Await resolve={stuff}>
-//     //         {([session, comments, scores]) => <SessionPage session={session} comments={comments} scores={scores} />}
-//     //     </Await>
-//     // </React.Suspense>
-// }
-
-function SessionPage(props: { session: Session, comments: CommentMessage[], scores: Score[]}) {
+function SessionPage(props: { session: Session, comments: CommentMessage[], scores: Score[] }) {
     // console.log('[SessionPage]');
     const loaderData = useLoaderData<typeof loader>();
     const revalidator = useRevalidator();
     const navigate = useNavigate();
     const { me } = useSessionContext();
-    const { allStats } = useOutletContext<{ allStats?: SessionsStats }>() ?? {};
+    const { allStats, sessions } = useOutletContext<{ allStats?: SessionsStats, sessions?: Session[] }>() ?? {};
+
+    const sessionBase = sessions?.find((s) => s.id === props.session.id);
 
     const [expectingRun, setExpectingRun] = useState(false);
     const session = useSession(props.session, { wait: expectingRun });
@@ -447,23 +341,23 @@ function SessionPage(props: { session: Session, comments: CommentMessage[], scor
 }
 
 
-function SessionDetails({ session, agentConfig }: { session: Session, agentConfig: AgentConfig }) {
-    const versions = getVersions(session);
+function SessionDetails({ sessionBase, agentConfig }: { sessionBase: SessionBase, agentConfig: AgentConfig }) {
+    const versions : string[] = []//getVersions(sessionBase);
     const { organization: { members } } = useSessionContext();
 
-    const simulatedBy = members.find((member) => member.userId === session.user.createdBy);
+    const simulatedBy = members.find((member) => member.userId === sessionBase.user.createdBy);
 
     return (
         <div className="w-full">
             <PropertyList>
                 <PropertyListItem>
                     <PropertyListTitle>Agent</PropertyListTitle>
-                    <PropertyListTextValue>{session.agent}</PropertyListTextValue>
+                    <PropertyListTextValue>{sessionBase.agent}</PropertyListTextValue>
                 </PropertyListItem>
                 <PropertyListItem>
                     <PropertyListTitle>Created</PropertyListTitle>
                     <PropertyListTextValue>
-                        {new Date(session.createdAt).toLocaleDateString('en-US', {
+                        {new Date(sessionBase.createdAt).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -490,7 +384,7 @@ function SessionDetails({ session, agentConfig }: { session: Session, agentConfi
                     </PropertyListTextValue>
                 </PropertyListItem>
 
-                {agentConfig.displayProperties && <DisplayProperties displayProperties={agentConfig.displayProperties} inputArgs={{ session }} />}
+                {agentConfig.displayProperties && <DisplayProperties displayProperties={agentConfig.displayProperties} inputArgs={{ session: sessionBase }} />}
             </PropertyList>
         </div>
     );

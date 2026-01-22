@@ -1,6 +1,6 @@
-import { AgentView } from 'agentview'
+import { AgentView, type Session } from 'agentview'
 import { getAuthHeaders } from './agentview'
-import { invalidateByPrefix, invalidateCache, swr } from './swr-cache'
+import { invalidateByPrefix, invalidateCache, swr, getCachedValue, revalidate, swrSync } from './swr-cache'
 
 // Cache key helpers
 export const cacheKeys = {
@@ -22,6 +22,10 @@ export class CachedAgentView extends AgentView {
 
   override async getSession(...args: Parameters<AgentView['getSession']>) {
     return await swr(cacheKeys.session(args[0].id), () => super.getSession(...args))
+  }
+
+  getSessionSync(...args: Parameters<AgentView['getSession']>) {
+    return swrSync(cacheKeys.session(args[0].id), () => super.getSession(...args))
   }
 
   override async getSessions(...args: Parameters<AgentView['getSessions']>) {
@@ -73,8 +77,16 @@ export class CachedAgentView extends AgentView {
     return swr(cacheKeys.sessionComments(args[0].id), () => super.getSessionComments(...args))
   }
 
+  getSessionCommentsSync(...args: Parameters<AgentView['getSessionComments']>) {
+    return swrSync(cacheKeys.sessionComments(args[0].id), () => super.getSessionComments(...args))
+  }
+
   override async getSessionScores(...args: Parameters<AgentView['getSessionScores']>) {
     return swr(cacheKeys.sessionScores(args[0].id), () => super.getSessionScores(...args))
+  }
+
+  getSessionScoresSync(...args: Parameters<AgentView['getSessionScores']>) {
+    return swrSync(cacheKeys.sessionScores(args[0].id), () => super.getSessionScores(...args))
   }
 
   override async updateItemScores(...args: Parameters<AgentView['updateItemScores']>) {

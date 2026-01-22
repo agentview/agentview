@@ -15,6 +15,15 @@ if (typeof window !== 'undefined') {
 const FRESH_TIME = 30_000; // 30 seconds - data is fresh, no background check
 const STALE_TIME = 10 * 60_000; // 10 minutes - serve stale + background fetch, after this refetch blocking
 
+type CacheState = 'fresh' | 'stale' | 'expired';
+
+function getCacheState(entry: CacheEntry<any>): CacheState {
+  const age = Date.now() - entry.timestamp;
+  if (age <= FRESH_TIME) return 'fresh';
+  if (age <= STALE_TIME) return 'stale';
+  return 'expired';
+}
+
 // function resolveKey(key: string): string {
 //   return keyAliases.get(key) ?? key;
 // }
@@ -35,13 +44,39 @@ const STALE_TIME = 10 * 60_000; // 10 minutes - serve stale + background fetch, 
 
 let revalidateCallback: (() => void) | null = null;
 
+function triggerBackgroundFetch<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+  existingEntry: CacheEntry<T> | undefined
+): void {
+  if (existingEntry) {
+    existingEntry.revalidating = true;
+  }
+
+  fetcher().then(newData => {
+    const oldData = existingEntry?.data;
+    const changed = !existingEntry || JSON.stringify(newData) !== JSON.stringify(oldData);
+    cache.set(key, { data: newData, timestamp: Date.now(), revalidating: false });
+    if (changed) {
+      revalidate();
+    }
+  }).catch(() => {
+    if (existingEntry) {
+      existingEntry.revalidating = false;
+    }
+  });
+}
+
 export function setRevalidateCallback(cb: (() => void) | null) {
   revalidateCallback = cb;
 }
 
 export function revalidate() {
   if (revalidateCallback) {
+    console.log('[cache] REVALIDATE, ok');
     revalidateCallback();
+  } else {
+    console.log('[cache] REVALIDATE, no revalidate callback');
   }
 }
 
@@ -62,38 +97,18 @@ export async function swr<T>(
   fetcher: () => Promise<T>
 ): Promise<T> {
   const entry = cache.get(key);
-  const now = Date.now();
 
-  // If we have cached data
   if (entry) {
-    const age = now - entry.timestamp;
-    const isFresh = age <= FRESH_TIME;
-    const isStale = age > FRESH_TIME && age <= STALE_TIME;
-    const isExpired = age > STALE_TIME;
+    const state = getCacheState(entry);
 
-    // Fresh: return immediately, no background fetch
-    if (isFresh) {
+    if (state === 'fresh') {
       return entry.data;
     }
 
-    // Stale: return immediately, background fetch
-    if (isStale && !entry.revalidating) {
-      entry.revalidating = true;
-      fetcher().then(newData => {
-        const oldData = entry.data;
-        const changed = JSON.stringify(newData) !== JSON.stringify(oldData);
-        cache.set(key, { data: newData, timestamp: Date.now(), revalidating: false });
-        if (changed) {
-          revalidate();
-        }
-      }).catch(() => {
-        entry.revalidating = false;
-      });
-      return entry.data;
-    }
-
-    // Still stale but already revalidating - return cached
-    if (isStale && entry.revalidating) {
+    if (state === 'stale') {
+      if (!entry.revalidating) {
+        triggerBackgroundFetch(key, fetcher, entry);
+      }
       return entry.data;
     }
 
@@ -101,10 +116,29 @@ export async function swr<T>(
   }
 
   console.log('[cache] cache miss: ' + key);
-  // No cache or expired - fetch and store (blocking)
   const data = await fetcher();
-  cache.set(key, { data, timestamp: now, revalidating: false });
+  cache.set(key, { data, timestamp: Date.now(), revalidating: false });
   return data;
+}
+
+export function swrSync<T>(
+  key: string,
+  fetcher: () => Promise<T>
+): T | null {
+  const entry = cache.get(key);
+
+  if (!entry) {
+    triggerBackgroundFetch(key, fetcher, undefined);
+    return null;
+  }
+
+  const state = getCacheState(entry);
+
+  if (state !== 'fresh' && !entry.revalidating) {
+    triggerBackgroundFetch(key, fetcher, entry);
+  }
+
+  return entry.data;
 }
 
 export function invalidateCache(key?: string) {
