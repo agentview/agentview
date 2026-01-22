@@ -1,4 +1,5 @@
-import { ItemCard, ItemCardMarkdown, ItemCardTitle } from "@agentview/studio";
+// import { ItemCard, ItemCardMarkdown, ItemCardTitle } from "@agentview/studio";
+import { Step, StepContent, StepTitle } from "@agentview/studio";
 import type { SessionItemDisplayComponentProps } from "agentview";
 import { Wrench } from "lucide-react";
 
@@ -44,8 +45,10 @@ export function WeatherItem({ item, resultItem }: SessionItemDisplayComponentPro
 }
 
 function WeatherItemWrapper({ children, location }: { children: React.ReactNode, location: string }) {
-  return <ItemCard size="sm" variant="outline">
-    <ItemCardTitle><Wrench /> Weather Check: <span className="font-medium">{location}</span></ItemCardTitle>
-    { children }
-  </ItemCard>
+  return <Step>
+    <StepTitle><Wrench /> Weather Check: <span className="font-medium">{location}</span></StepTitle>
+    <StepContent className="text-foreground">
+      {children}
+    </StepContent>
+  </Step>
 }

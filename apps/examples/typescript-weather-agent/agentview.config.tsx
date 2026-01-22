@@ -1,4 +1,4 @@
-import { AssistantMessage, Colors, ItemCard, ItemCardContent, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput, multiSelect, select } from "@agentview/studio";
+import { AssistantMessage, Colors, UserMessage, UserMessageInput, Step, StepContent, StepTitle, multiSelect, select } from "@agentview/studio";
 import { Button } from "@agentview/studio/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@agentview/studio/components/ui/select";
 import { defineConfig } from "agentview";
@@ -82,16 +82,23 @@ export default defineConfig({
                   text: z.string(),
                 })),
               }),
-              displayComponent: ({ item }) => {
-                return (
-                  <ItemCard size="sm" variant="outline" collapsible>
-                    <ItemCardTitle><Brain /> Thinking</ItemCardTitle>
-                    <ItemCardContent>
-                      <ItemCardMarkdown text={item.content?.map((s: any) => s?.text ?? "").join("\n\n") ?? "Hidden reasoning summary."} />
-                    </ItemCardContent>
-                  </ItemCard>
-                );
-              }
+              displayComponent: ({ item }) => <Step collapsible>  
+                <StepTitle><Brain /> Thinking</StepTitle>
+                <StepContent>
+                  {item.content?.map((s: any) => s?.text ?? "").join("\n\n") ?? "Hidden reasoning summary."}
+                </StepContent>
+              </Step>
+              // displayComponent: ({ item }) => {
+
+              //   return (<div>dupa</div>)
+              //   //   <ItemCard size="sm" variant="outline" collapsible>
+              //   //     <ItemCardTitle><Brain /> Thinking</ItemCardTitle>
+              //   //     <ItemCardContent>
+              //   //       <ItemCardMarkdown text={item.content?.map((s: any) => s?.text ?? "").join("\n\n") ?? "Hidden reasoning summary."} />
+              //   //     </ItemCardContent>
+              //   //   </ItemCard>
+              //   // );
+              // }
             },
             { 
               schema: z.looseObject({

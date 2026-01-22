@@ -20,7 +20,7 @@ import { Loader } from "../components/internal/Loader";
 import { Skeleton } from "../components/ui/skeleton";
 import { Pill } from "../components/Pill";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "../components/PropertyList";
-import { AssistantMessage, StepItem, UserMessage } from "../components/session-item";
+import { AssistantMessage, Step, StepContent, StepTitle, UserMessage } from "../components/session-item";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { Form as HookForm } from "../components/ui/form";
@@ -449,7 +449,11 @@ function DefaultAssistantComponent({ item }: SessionItemDisplayComponentProps) {
 }
 
 function DefaultStepComponent({ item }: SessionItemDisplayComponentProps) {
-    return <StepItem>{item}</StepItem>
+    return <Step>
+        <StepContent>
+            {item}
+        </StepContent>
+    </Step>
 }
 
 function DefaultToolComponent({ item, resultItem }: SessionItemDisplayComponentProps) {

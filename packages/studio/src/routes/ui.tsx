@@ -1,10 +1,9 @@
+import { BrainIcon, CircleIcon, HexagonIcon, SquareIcon, StarIcon, TriangleIcon } from "lucide-react";
 import { useState } from "react";
 import { type RouteObject } from "react-router";
-import { ItemCard, ItemCardContent, ItemCardTitle, ItemCardJSON, ItemCardMarkdown, Message, Markdown, JSONView, Step, StepTitle, StepContent } from "../components/session-item";
-import { BrainIcon, Wrench, CircleIcon, SquareIcon, TriangleIcon, HexagonIcon, StarIcon } from "lucide-react";
-import { PillSelect } from "../components/PillSelect";
 import { PillMultiSelect } from "../components/PillMultiSelect";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../components/ui/collapsible";
+import { PillSelect } from "../components/PillSelect";
+import { JSONView, Markdown, Message, Step, StepContent, StepTitle } from "../components/session-item";
 
 const markdownExample = `
 ### This is a subtitle
@@ -23,7 +22,7 @@ const miniMarkdownExample = `
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 `;
 
-const jsonExample = {
+const jsonExample : any = {
   name: "John Doe",
   age: 30,
   email: "john.doe@example.com",
@@ -69,26 +68,26 @@ function Component() {
 
         <ComponentWrapper title="markdown + variant: default">
           <Message>
-            <Markdown text={markdownExample} />
+            {markdownExample}
           </Message>
         </ComponentWrapper>
 
 
         <ComponentWrapper title="markdown + variant: fill">
           <Message variant="fill">
-            <Markdown text={markdownExample} />
+            {markdownExample}
           </Message>
         </ComponentWrapper>
 
         <ComponentWrapper title="json + variant: default">
           <Message>
-            <JSONView value={jsonExample} />
+            {jsonExample}
           </Message>
         </ComponentWrapper>
 
         <ComponentWrapper title="json + variant: fill">
           <Message variant="fill">
-            <JSONView value={jsonExample} />
+            { jsonExample }
           </Message>
         </ComponentWrapper>
 
@@ -121,7 +120,7 @@ function Component() {
           <Step>
             <StepTitle><BrainIcon /> Thought for 3 seconds</StepTitle>
             <StepContent>
-              <Markdown text={markdownExample} />
+              {markdownExample}
             </StepContent>
           </Step>
         </ComponentWrapper>
@@ -130,7 +129,7 @@ function Component() {
           <Step>
             <StepTitle><BrainIcon /> Thought for 3 seconds</StepTitle>
             <StepContent>
-              <JSONView value={jsonExample} />
+              {jsonExample}
             </StepContent>
           </Step>
         </ComponentWrapper>

@@ -34,10 +34,10 @@ export function Message({
     className,
     children,
     ...props
-}: VariantProps<typeof messageVariants> & React.ComponentProps<"div"> & { collapsible?: boolean, defaultOpen?: boolean }) {
+}: VariantProps<typeof messageVariants> & React.ComponentProps<"div">) {
     return <MessageContext.Provider value={{ variant }}>
         <div className={cn(messageVariants({ variant }), className)} {...props}>
-            {children}
+            <AutoContent>{children}</AutoContent>
         </div>
     </MessageContext.Provider>
 }
@@ -50,14 +50,18 @@ const StepContext = React.createContext<{ collapsible: boolean } | undefined>(un
 export function Step({ className, children, collapsible = false, ...props }: React.ComponentProps<"div"> & { collapsible?: boolean }) {
     const content = (
         <StepContext.Provider value={{ collapsible }}>
-            <div className={cn("px-3 py-2 rounded-lg border space-y-1", className)} {...props}>
+            <div className={cn(
+                      "px-3 py-2 rounded-lg border",
+                      "space-y-1 group-data-[state=closed]:space-y-0",
+                      className
+            )} {...props}>
                 {children}
             </div>
         </StepContext.Provider>
     );
 
     if (collapsible) {
-        return <Collapsible asChild className="group">{content}</Collapsible>;
+        return <Collapsible className="group">{content}</Collapsible>;
     }
 
     return content;
@@ -99,8 +103,8 @@ export function StepContent({ className, children, ...props }: React.ComponentPr
     const stepContext = React.useContext(StepContext);
     const collapsible = stepContext?.collapsible ?? false;
 
-    const content = <div className={cn("text-sm", className)} {...props}>
-        {children}
+    const content = <div className={cn("text-sm text-muted-foreground", className)} {...props}>
+        <AutoContent>{children}</AutoContent>
     </div>;
 
     if (collapsible) {
@@ -140,7 +144,7 @@ export function Markdown({ className, text, ...props }: VariantProps<typeof mark
 
     return <div
         className={
-            cn("prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-foreground", markdownVariants({ size }), className)}
+            cn("prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-[inherit]", markdownVariants({ size }), className)}
         {...props}
         dangerouslySetInnerHTML={{ __html: marked.parse(text, { async: false }) }}
     ></div>
@@ -190,112 +194,123 @@ export function JSONView({ value, className, ...props }: VariantProps<typeof jso
 
 
 
-const itemCardVariants = cva(
-    "",
-    {
-        variants: {
-            variant: {
-                default:
-                    "",
-                outline:
-                    "px-3 py-2 rounded-lg border",
-                fill:
-                    "px-3 py-2 rounded-lg bg-gray-100",
-            },
-            size: {
-                default: "text-md",
-                sm: "text-sm"
-            },
-        },
-        defaultVariants: {
-            variant: "default",
-            size: "default",
-        },
-    }
-)
+// const itemCardVariants = cva(
+//     "",
+//     {
+//         variants: {
+//             variant: {
+//                 default:
+//                     "",
+//                 outline:
+//                     "px-3 py-2 rounded-lg border",
+//                 fill:
+//                     "px-3 py-2 rounded-lg bg-gray-100",
+//             },
+//             size: {
+//                 default: "text-md",
+//                 sm: "text-sm"
+//             },
+//         },
+//         defaultVariants: {
+//             variant: "default",
+//             size: "default",
+//         },
+//     }
+// )
 
-type ItemCardVariant = VariantProps<typeof itemCardVariants>["variant"];
-type ItemCardSize = VariantProps<typeof itemCardVariants>["size"];
+// type ItemCardVariant = VariantProps<typeof itemCardVariants>["variant"];
+// type ItemCardSize = VariantProps<typeof itemCardVariants>["size"];
 
 
-const ItemCardContext = React.createContext<{ variant: ItemCardVariant, size: ItemCardSize, collapsible: boolean } | undefined>(undefined);
+// const ItemCardContext = React.createContext<{ variant: ItemCardVariant, size: ItemCardSize, collapsible: boolean } | undefined>(undefined);
 
-export function ItemCard({
-    variant,
-    size,
-    collapsible = false,
-    defaultOpen = false,
-    className,
-    children,
-    ...props
-}: VariantProps<typeof itemCardVariants> & React.ComponentProps<"div"> & { collapsible?: boolean, defaultOpen?: boolean }) {
-    const content = (
-        <ItemCardContext.Provider value={{ variant, size, collapsible }}>
-            <div className={cn(itemCardVariants({ variant, size }), className)} {...props}>
-                {children}
-            </div>
-        </ItemCardContext.Provider>
-    );
+// export function ItemCard({
+//     variant,
+//     size,
+//     collapsible = false,
+//     defaultOpen = false,
+//     className,
+//     children,
+//     ...props
+// }: VariantProps<typeof itemCardVariants> & React.ComponentProps<"div"> & { collapsible?: boolean, defaultOpen?: boolean }) {
+//     const content = (
+//         <ItemCardContext.Provider value={{ variant, size, collapsible }}>
+//             <div className={cn(itemCardVariants({ variant, size }), className)} {...props}>
+//                 {children}
+//             </div>
+//         </ItemCardContext.Provider>
+//     );
 
-    if (collapsible) {
-        return <Collapsible defaultOpen={defaultOpen} className="group">{content}</Collapsible>;
-    }
+//     if (collapsible) {
+//         return <Collapsible defaultOpen={defaultOpen} className="group">{content}</Collapsible>;
+//     }
 
-    return content;
-}
+//     return content;
+// }
 
-export function ItemCardTitle({ className, children, ...props }: React.ComponentProps<"div">) {
-    const context = React.useContext(ItemCardContext);
-    const size = context?.size ?? "default";
-    const collapsible = context?.collapsible ?? false;
+// export function ItemCardTitle({ className, children, ...props }: React.ComponentProps<"div">) {
+//     const context = React.useContext(ItemCardContext);
+//     const size = context?.size ?? "default";
+//     const collapsible = context?.collapsible ?? false;
 
-    const content = (
-        <div
-            className={cn(
-                "text-muted-foreground font-normal flex items-center",
-                size === "sm" ? "gap-1" : "gap-1.5",
-                collapsible
-                    ? (size === "sm" ? "group-data-[state=open]:mb-1" : "group-data-[state=open]:mb-0.5")
-                    : (size === "sm" ? "mb-1" : "mb-0.5"),
-                "[&_svg]:pointer-events-none [&_svg]:shrink-0",
-                size === "sm" ? "[&_svg:not([class*='size-'])]:size-3" : "[&_svg:not([class*='size-'])]:size-4",
-                collapsible && "cursor-pointer select-none",
-                className
-            )}
-            {...props}
-        >
-            {children}
-            {collapsible && (
-                <ChevronDownIcon className={cn(
-                    "ml-auto transition-transform duration-200",
-                    size === "sm" ? "size-3" : "size-4",
-                    "group-data-[state=open]:rotate-[-180deg]"
-                )} />
-            )}
-        </div>
-    );
+//     const content = (
+//         <div
+//             className={cn(
+//                 "text-muted-foreground font-normal flex items-center",
+//                 size === "sm" ? "gap-1" : "gap-1.5",
+//                 collapsible
+//                     ? (size === "sm" ? "group-data-[state=open]:mb-1" : "group-data-[state=open]:mb-0.5")
+//                     : (size === "sm" ? "mb-1" : "mb-0.5"),
+//                 "[&_svg]:pointer-events-none [&_svg]:shrink-0",
+//                 size === "sm" ? "[&_svg:not([class*='size-'])]:size-3" : "[&_svg:not([class*='size-'])]:size-4",
+//                 collapsible && "cursor-pointer select-none",
+//                 className
+//             )}
+//             {...props}
+//         >
+//             {children}
+//             {collapsible && (
+//                 <ChevronDownIcon className={cn(
+//                     "ml-auto transition-transform duration-200",
+//                     size === "sm" ? "size-3" : "size-4",
+//                     "group-data-[state=open]:rotate-[-180deg]"
+//                 )} />
+//             )}
+//         </div>
+//     );
 
-    if (collapsible) {
-        return <CollapsibleTrigger asChild>{content}</CollapsibleTrigger>;
-    }
+//     if (collapsible) {
+//         return <CollapsibleTrigger asChild>{content}</CollapsibleTrigger>;
+//     }
 
-    return content;
-}
+//     return content;
+// }
 
-export function ItemCardContent({ className, children, ...props }: React.ComponentProps<"div"> & { children: React.ReactNode }) {
-    const context = React.useContext(ItemCardContext);
-    const collapsible = context?.collapsible ?? false;
+// export function ItemCardContent({ className, children, ...props }: React.ComponentProps<"div"> & { children: React.ReactNode }) {
+//     const context = React.useContext(ItemCardContext);
+//     const collapsible = context?.collapsible ?? false;
 
-    const content = <div className={cn("", className)} {...props}>
-        {children}
-    </div>;
+//     const content = <div className={cn("", className)} {...props}>
+//         {children}
+//     </div>;
 
-    if (collapsible) {
-        return <CollapsibleContent>{content}</CollapsibleContent>;
-    }
+//     if (collapsible) {
+//         return <CollapsibleContent>{content}</CollapsibleContent>;
+//     }
 
-    return content;
-}
+//     return content;
+// }
+
+// // export function ItemCardMarkdown({ text, className, ...props }: { text: string, className?: string } & React.ComponentProps<"div">) {
+// //     const context = React.useContext(ItemCardContext);
+// //     const size = context?.size ?? "default";
+
+// //     return <div
+// //         className={cn("prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-foreground", size === "sm" ? "text-sm" : "text-md", className)}
+// //         {...props}
+// //         dangerouslySetInnerHTML={{ __html: marked.parse(text, { async: false }) }}
+// //     ></div>
+// // }
 
 // export function ItemCardMarkdown({ text, className, ...props }: { text: string, className?: string } & React.ComponentProps<"div">) {
 //     const context = React.useContext(ItemCardContext);
@@ -303,69 +318,66 @@ export function ItemCardContent({ className, children, ...props }: React.Compone
 
 //     return <div
 //         className={cn("prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-foreground", size === "sm" ? "text-sm" : "text-md", className)}
+
 //         {...props}
 //         dangerouslySetInnerHTML={{ __html: marked.parse(text, { async: false }) }}
 //     ></div>
 // }
 
-export function ItemCardMarkdown({ text, className, ...props }: { text: string, className?: string } & React.ComponentProps<"div">) {
-    const context = React.useContext(ItemCardContext);
-    const size = context?.size ?? "default";
+// export function ItemCardJSON({ value, className, ...props }: { value: any, className?: string } & React.ComponentProps<"pre">) {
+//     const context = React.useContext(ItemCardContext);
+//     const variant = context?.variant ?? "default";
+//     const size = context?.size ?? "default";
 
-    return <div
-        className={cn("prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-foreground", size === "sm" ? "text-sm" : "text-md", className)}
-
-        {...props}
-        dangerouslySetInnerHTML={{ __html: marked.parse(text, { async: false }) }}
-    ></div>
-}
-
-export function ItemCardJSON({ value, className, ...props }: { value: any, className?: string } & React.ComponentProps<"pre">) {
-    const context = React.useContext(ItemCardContext);
-    const variant = context?.variant ?? "default";
-    const size = context?.size ?? "default";
-
-    return <pre className={cn(
-        "overflow-x-scroll bg-gray-50 m-0",
-        variant === "fill" ? "" : "p-3 rounded-md",
-        size === "sm" ? "text-xs" : "text-sm",
-        className)}
-        {...props}
-    >
-        {JSON.stringify(value, null, 2)}
-    </pre>
-}
+//     return <pre className={cn(
+//         "overflow-x-scroll bg-gray-50 m-0",
+//         variant === "fill" ? "" : "p-3 rounded-md",
+//         size === "sm" ? "text-xs" : "text-sm",
+//         className)}
+//         {...props}
+//     >
+//         {JSON.stringify(value, null, 2)}
+//     </pre>
+// }
 
 
-export function ItemCardAutoContent({ children }: { children: React.ReactNode }) {
+export function AutoContent({ children }: { children: React.ReactNode }) {
     const isText = typeof children === "string";
     const isPlainObject = typeof children === "object" && children !== null && !Array.isArray(children) && !React.isValidElement(children);
-    const isSthElse = !isText && !isPlainObject;
 
-    return <ItemCardContent>
-        {isPlainObject && <ItemCardJSON value={children} />}
-        {isText && <ItemCardMarkdown text={children} />}
-        {isSthElse && children}
-    </ItemCardContent>
+    if (isPlainObject) {
+        return <JSONView value={children} />;
+    }
+    if (isText) {
+        return <Markdown text={children} />;
+    }
+
+    return children;
 }
 
-export function UserMessage({ children, className, size, ...props }: { children: React.ReactNode, className?: string, size?: ItemCardSize } & React.ComponentProps<"div">) {
-    return <ItemCard variant="fill" className={className} size={size} {...props}>
-        <ItemCardAutoContent>{children}</ItemCardAutoContent>
-    </ItemCard>
+export function UserMessage({ children, className, ...props }: { children: React.ReactNode, className?: string } & React.ComponentProps<"div">) {
+    return <Message variant="fill" className={className} {...props}>
+        <AutoContent>{children}</AutoContent>
+    </Message>
 }
 
-export function AssistantMessage({ children, className, size, ...props }: { children: React.ReactNode, className?: string, size?: ItemCardSize } & React.ComponentProps<"div">) {
-    return <ItemCard variant="default" className={className} size={size} {...props}>
-        <ItemCardAutoContent>{children}</ItemCardAutoContent>
-    </ItemCard>
+export function AssistantMessage({ children, className, ...props }: { children: React.ReactNode, className?: string } & React.ComponentProps<"div">) {
+    return <Message variant="default" className={className} {...props}>
+        <AutoContent>{children}</AutoContent>
+    </Message>
 }
 
-export function StepItem({ children, className, size = "sm", ...props }: { children: React.ReactNode, className?: string, size?: ItemCardSize } & React.ComponentProps<"div">) {
-    return <ItemCard variant="outline" className={className} size={size} {...props}>
-        <ItemCardAutoContent>{children}</ItemCardAutoContent>
-    </ItemCard>
-}
+// export function AssistantMessage({ children, className, size, ...props }: { children: React.ReactNode, className?: string, size?: ItemCardSize } & React.ComponentProps<"div">) {
+//     return <ItemCard variant="default" className={className} size={size} {...props}>
+//         <ItemCardAutoContent>{children}</ItemCardAutoContent>
+//     </ItemCard>
+// }
+
+// export function StepItem({ children, className, size = "sm", ...props }: { children: React.ReactNode, className?: string, size?: ItemCardSize } & React.ComponentProps<"div">) {
+//     return <ItemCard variant="outline" className={className} size={size} {...props}>
+//         <ItemCardAutoContent>{children}</ItemCardAutoContent>
+//     </ItemCard>
+// }
 
 
 export function UserMessageInput(props: { isRunning: boolean, onCancel: () => void, onSubmit: (value: string) => void, placeholder?: string }) {
