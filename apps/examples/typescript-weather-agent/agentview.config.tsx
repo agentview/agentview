@@ -88,17 +88,6 @@ export default defineConfig({
                   {item.content?.map((s: any) => s?.text ?? "").join("\n\n") ?? "Hidden reasoning summary."}
                 </StepContent>
               </Step>
-              // displayComponent: ({ item }) => {
-
-              //   return (<div>dupa</div>)
-              //   //   <ItemCard size="sm" variant="outline" collapsible>
-              //   //     <ItemCardTitle><Brain /> Thinking</ItemCardTitle>
-              //   //     <ItemCardContent>
-              //   //       <ItemCardMarkdown text={item.content?.map((s: any) => s?.text ?? "").join("\n\n") ?? "Hidden reasoning summary."} />
-              //   //     </ItemCardContent>
-              //   //   </ItemCard>
-              //   // );
-              // }
             },
             { 
               schema: z.looseObject({

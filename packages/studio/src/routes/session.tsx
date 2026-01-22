@@ -383,8 +383,6 @@ function SessionPage(props: { session: Session, comments: CommentMessage[], scor
 function SessionDetails({ sessionBase, agentConfig }: { sessionBase: SessionBase, agentConfig: AgentConfig }) {
     const { organization: { members } } = useSessionContext();
     const versions = sessionBase.versions;
-    console.log('session base', sessionBase);
-
     const simulatedBy = members.find((member) => member.userId === sessionBase.user.createdBy);
 
     return (
