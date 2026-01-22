@@ -47,7 +47,7 @@ export function WeatherItem({ item, resultItem }: SessionItemDisplayComponentPro
 function WeatherItemWrapper({ children, location }: { children: React.ReactNode, location: string }) {
   return <Step>
     <StepTitle><Wrench /> Weather Check: <span className="font-medium">{location}</span></StepTitle>
-    <StepContent className="text-foreground">
+    <StepContent className="text-gray-700">
       {children}
     </StepContent>
   </Step>
