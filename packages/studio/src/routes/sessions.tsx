@@ -12,6 +12,7 @@ import { timeAgoShort } from "../lib/timeAgo";
 import { useSessionContext } from "../lib/SessionContext";
 import { NotificationBadge, NotificationDot } from "../components/internal/NotificationBadge";
 import { UserAvatar } from "../components/internal/UserAvatar";
+import { LoadingIndicator } from "../components/internal/LoadingIndicator";
 
 async function loader({ request }: LoaderFunctionArgs) {
   const { listParams, needsRedirect } = getListParamsAndCheckForRedirect(request);
@@ -86,7 +87,7 @@ function Component() {
 
       <div className="flex-1 overflow-y-auto pb-12">
 
-        {!sessions && <div className="px-3 py-4 text-muted-foreground">Loading...</div>}
+        {!sessions && <div className="px-3 py-4 text-muted-foreground"><LoadingIndicator /></div>}
 
         {sessions && sessions.length === 0 && <div className="px-3 py-4 text-muted-foreground">No sessions available.</div>}
         {sessions && sessions.length > 0 && <SessionList sessions={sessions} listParams={listParams} allStats={allStats} /> }

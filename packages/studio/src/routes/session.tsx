@@ -33,6 +33,7 @@ import { getListParams, toQueryParams } from "../lib/listParams";
 import { useSessionContext } from "../lib/SessionContext";
 import { useSession } from "../lib/useSession";
 import React from "react";
+import { LoadingIndicator } from "../components/internal/LoadingIndicator";
 
 async function loader({ request, params, context }: LoaderFunctionArgs) {
     const sessionId = params.id!;
@@ -66,7 +67,7 @@ function Component() {
 
     // Stage 1: No data at all - show loader
     if (!sessionBase && !session) {
-        return <div className="pt-6">Loading...</div>;
+        return <div className="pt-6"><LoadingIndicator /></div>;
     }
 
     // Stage 2: Have sessionBase but not full data - show header only
@@ -116,9 +117,8 @@ function SessionPageSkeleton({ sessionBase }: { sessionBase: SessionBase }) {
     return (
         <SessionShell sessionBase={sessionBase} agentConfig={agentConfig}>
 
-            <div className="p-6 text-muted-foreground">
-                <Loader />
-
+            <div className="p-6">
+                <LoadingIndicator />
             </div>
            
         </SessionShell>
