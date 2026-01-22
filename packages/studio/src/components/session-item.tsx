@@ -45,29 +45,32 @@ export function Message({
 /**
  * Step
  */
-const StepContext = React.createContext<{} | undefined>(undefined);
+const StepContext = React.createContext<{ collapsible: boolean } | undefined>(undefined);
 
-export function Step({ className, children, ...props }: React.ComponentProps<"div">) {
-    return <StepContext.Provider value={{}}>
-        <div className={cn("px-3 py-2 rounded-lg border", className)} {...props}>
-            {children}
-        </div>
-    </StepContext.Provider>
+export function Step({ className, children, collapsible = false, ...props }: React.ComponentProps<"div"> & { collapsible?: boolean }) {
+    const content = (
+        <StepContext.Provider value={{ collapsible }}>
+            <div className={cn("px-3 py-2 rounded-lg border space-y-1", className)} {...props}>
+                {children}
+            </div>
+        </StepContext.Provider>
+    );
+
+    if (collapsible) {
+        return <Collapsible asChild className="group">{content}</Collapsible>;
+    }
+
+    return content;
 }
 
 export function StepTitle({ className, children, ...props }: React.ComponentProps<"div">) {
-    // const stepContext = React.useContext(StepContext);
-    
-    const collapsible = false;
+    const stepContext = React.useContext(StepContext);
+    const collapsible = stepContext?.collapsible ?? false;
 
     const content = (
         <div
             className={cn(
-                "text-muted-foreground text-sm font-normal flex items-center",
-                "gap-1",
-                collapsible
-                    ? "group-data-[state=open]:mb-1"
-                    : "mb-1",
+                "text-muted-foreground text-sm font-normal flex items-center gap-1",
                 "[&_svg]:pointer-events-none [&_svg]:shrink-0",
                 "[&_svg:not([class*='size-'])]:size-3",
                 collapsible && "cursor-pointer select-none",
@@ -93,7 +96,8 @@ export function StepTitle({ className, children, ...props }: React.ComponentProp
 }
 
 export function StepContent({ className, children, ...props }: React.ComponentProps<"div"> & { children: React.ReactNode }) {
-    const collapsible = false;
+    const stepContext = React.useContext(StepContext);
+    const collapsible = stepContext?.collapsible ?? false;
 
     const content = <div className={cn("text-sm", className)} {...props}>
         {children}

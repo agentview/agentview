@@ -136,6 +136,15 @@ function Component() {
         </ComponentWrapper>
 
         <ComponentWrapper title="collapsible">
+          <Step collapsible>
+            <StepTitle><BrainIcon /> Thought for 3 seconds</StepTitle>
+            <StepContent>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </StepContent>
+          </Step>
+        </ComponentWrapper>
+
+        {/* <ComponentWrapper title="collapsible">
           <Collapsible>
             <Step>
               <CollapsibleTrigger asChild>
@@ -150,7 +159,7 @@ function Component() {
 
           </Collapsible>
 
-      </ComponentWrapper>
+      </ComponentWrapper> */}
 
 
 
