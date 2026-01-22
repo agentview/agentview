@@ -58,18 +58,67 @@ async function loader({ request, params, context }: LoaderFunctionArgs) {
     }
 }
 
-function LoaderComponent() {
-    return <div>Loading...</div>
-}
-
 function Component() {
-    const { session, comments, scores } = useLoaderData<typeof loader>();
+    const { session, comments, scores, sessionId } = useLoaderData<typeof loader>();
+    const { sessions } = useOutletContext<{ sessions?: SessionBase[] }>() ?? {};
+    const sessionBase = sessions?.find((s) => s.id === sessionId);
 
-    if (!session || !comments || !scores) {
-        return <LoaderComponent />
+    // Stage 1: No data at all - show loader
+    if (!sessionBase && !session) {
+        return <div className="pt-6">Loading...</div>;
     }
 
-    return <SessionPage session={session} comments={comments} scores={scores} />
+    // Stage 2: Have sessionBase but not full data - show header only
+    if (!session || !comments || !scores) {
+        return <SessionPageSkeleton sessionBase={sessionBase!} />;
+    }
+
+    // Stage 3: Full data available
+    return <SessionPage session={session} comments={comments} scores={scores} />;
+}
+
+function SessionShell({
+    sessionBase,
+    agentConfig,
+    headerExtra,
+    children,
+    footer,
+    outletContext
+}: {
+    sessionBase: SessionBase,
+    agentConfig: AgentConfig,
+    headerExtra?: React.ReactNode,
+    children: React.ReactNode,
+    footer?: React.ReactNode,
+    outletContext?: any
+}) {
+    return <>
+        <div className="flex-grow-1 border-r flex flex-col">
+            <Header className="py-1">
+                <HeaderTitle title={`Session ${sessionBase.handle}`} />
+                {headerExtra}
+            </Header>
+            <div className="flex-1 overflow-y-auto">
+                <div className="p-6 border-b">
+                    <SessionDetails sessionBase={sessionBase} agentConfig={agentConfig} />
+                </div>
+                {children}
+            </div>
+            {footer}
+        </div>
+        <Outlet context={outletContext} />
+    </>;
+}
+
+function SessionPageSkeleton({ sessionBase }: { sessionBase: SessionBase }) {
+    const agentConfig = requireAgentConfig(config, sessionBase.agent);
+    return (
+        <SessionShell sessionBase={sessionBase} agentConfig={agentConfig}>
+            {/* <div className="pt-6 px-6">
+                <Loader />
+            </div> */}
+        </SessionShell>
+    );
 }
 
 function SessionPage(props: { session: Session, comments: CommentMessage[], scores: Score[] }) {
@@ -78,7 +127,7 @@ function SessionPage(props: { session: Session, comments: CommentMessage[], scor
     const revalidator = useRevalidator();
     const navigate = useNavigate();
     const { me } = useSessionContext();
-    const { allStats, sessions } = useOutletContext<{ allStats?: SessionsStats, sessions?: Session[] }>() ?? {};
+    const { allStats, sessions } = useOutletContext<{ allStats?: SessionsStats, sessions?: SessionBase[] }>() ?? {};
 
     const sessionBase = sessions?.find((s) => s.id === props.session.id);
 
@@ -184,160 +233,147 @@ function SessionPage(props: { session: Session, comments: CommentMessage[], scor
         };
     }, [])
 
-    return <>
-        <div className="flex-grow-1 border-r  flex flex-col">
-            <Header className="py-1">
-                <HeaderTitle title={`Session ${session.handle}`} />
-                {session.user.createdBy === me.id && <ShareForm session={session} />}
-            </Header>
-            <div className="flex-1 overflow-y-auto">
+    return (
+        <SessionShell
+            sessionBase={session}
+            agentConfig={agentConfig}
+            headerExtra={session.user.createdBy === me.id && <ShareForm session={session} />}
+            footer={session.user.createdBy === me.id && <InputForm session={session} agentConfig={agentConfig} styles={styles} onRunningStateChange={setExpectingRun} />}
+            outletContext={{ session, allStats }}
+        >
+            <div ref={bodyRef}>
+                <ItemsWithCommentsLayout items={getActiveRuns(session).map((run) => {
+                    return run.sessionItems.map((item, index) => {
+                        const isLastRunItem = index === run.sessionItems.length - 1;
+                        const isInputItem = index === 0;
 
-                <div className="p-6 border-b">
-                    <SessionDetails session={session} agentConfig={agentConfig} />
-                </div>
+                        const comments = props.comments.filter((c) => c.sessionItemId === item.id).filter((c) => !c.deletedAt);
+                        const scores = props.scores.filter((s) => s.sessionItemId === item.id).filter((s) => !s.deletedAt);
 
-                <div ref={bodyRef}>
-                    <ItemsWithCommentsLayout items={getActiveRuns(session).map((run) => {
-                        return run.sessionItems.map((item, index) => {
-                            const isLastRunItem = index === run.sessionItems.length - 1;
-                            const isInputItem = index === 0;
+                        const hasComments = comments.length > 0
+                        const isSelected = selectedItemId === item.id;
 
-                            const comments = props.comments.filter((c) => c.sessionItemId === item.id).filter((c) => !c.deletedAt);
-                            const scores = props.scores.filter((s) => s.sessionItemId === item.id).filter((s) => !s.deletedAt);
+                        let content: React.ReactNode = null;
 
-                            const hasComments = comments.length > 0
-                            const isSelected = selectedItemId === item.id;
+                        const runConfigMatches = findMatchingRunConfigs(agentConfig, run.sessionItems[0].content);
+                        const itemConfigMatch = runConfigMatches.length === 1 ? findItemConfigById(runConfigMatches[0], run.sessionItems, item.id) : undefined;
 
-                            let content: React.ReactNode = null;
+                        if (itemConfigMatch?.itemConfig?.displayComponent === null) {
+                            return null;
+                        }
 
-                            const runConfigMatches = findMatchingRunConfigs(agentConfig, run.sessionItems[0].content);
-                            const itemConfigMatch = runConfigMatches.length === 1 ? findItemConfigById(runConfigMatches[0], run.sessionItems, item.id) : undefined;
-
-                            if (itemConfigMatch?.itemConfig?.displayComponent === null) {
+                        if (isInputItem) {
+                            const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultInputComponent;
+                            if (!Component) {
                                 return null;
                             }
+                            content = <div className="pl-[10%] relative">
+                                <Component item={item.content} sessionItem={item} run={run} session={session} />
+                            </div>
+                        }
+                        else if (itemConfigMatch?.type === "output") {
+                            const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultAssistantComponent;
+                            content = <Component item={item.content} sessionItem={item} run={run} session={session} />
+                        }
+                        else {
+                            if (itemConfigMatch?.tool) {
+                                let callContent: any = undefined;
+                                let resultContent: any = undefined;
+                                let Component: React.ComponentType<SessionItemDisplayComponentProps>;
 
-                            if (isInputItem) {
-                                const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultInputComponent;
-                                if (!Component) {
-                                    return null;
-                                }
-                                content = <div className="pl-[10%] relative">
-                                    <Component item={item.content} sessionItem={item} run={run} session={session} />
-                                </div>
-                            }
-                            else if (itemConfigMatch?.type === "output") {
-                                const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultAssistantComponent;
-                                content = <Component item={item.content} sessionItem={item} run={run} session={session} />
-                            }
-                            else {
-                                if (itemConfigMatch?.tool) {
-                                    let callContent: any = undefined;
-                                    let resultContent: any = undefined;
-                                    let Component: React.ComponentType<SessionItemDisplayComponentProps>;
-
-                                    if (itemConfigMatch?.tool.type === "call") {
-                                        if (itemConfigMatch?.tool?.hasResult) {
-                                            return null;
-                                        }
-                                        else {
-                                            callContent = itemConfigMatch.content;
-                                            Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultToolComponent;
-                                        }
-                                    }
-                                    else if (itemConfigMatch?.tool.type === "result") {
-                                        resultContent = itemConfigMatch.content;
-                                        callContent = itemConfigMatch.tool.call.content;
-                                        Component = itemConfigMatch?.tool.call.itemConfig?.displayComponent ?? DefaultToolComponent;
+                                if (itemConfigMatch?.tool.type === "call") {
+                                    if (itemConfigMatch?.tool?.hasResult) {
+                                        return null;
                                     }
                                     else {
-                                        throw new Error(`Unreachable`);
+                                        callContent = itemConfigMatch.content;
+                                        Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultToolComponent;
                                     }
-
-                                    // const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultToolComponent;
-                                    content = <Component item={callContent} resultItem={resultContent} sessionItem={item} run={run} session={session} />
+                                }
+                                else if (itemConfigMatch?.tool.type === "result") {
+                                    resultContent = itemConfigMatch.content;
+                                    callContent = itemConfigMatch.tool.call.content;
+                                    Component = itemConfigMatch?.tool.call.itemConfig?.displayComponent ?? DefaultToolComponent;
                                 }
                                 else {
-                                    const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultStepComponent;
-                                    content = <Component item={item.content} sessionItem={item} run={run} session={session} />
+                                    throw new Error(`Unreachable`);
                                 }
 
+                                // const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultToolComponent;
+                                content = <Component item={callContent} resultItem={resultContent} sessionItem={item} run={run} session={session} />
+                            }
+                            else {
+                                const Component = itemConfigMatch?.itemConfig?.displayComponent ?? DefaultStepComponent;
+                                content = <Component item={item.content} sessionItem={item} run={run} session={session} />
                             }
 
-                            return {
-                                id: item.id,
-                                itemComponent: <div
-                                    className={`relative group`}
-                                >
-                                    {!styles.isSmallSize && <div className={`absolute text-muted-foreground text-xs font-medium flex flex-row gap-1 z-10`} style={{ left: `${styles.padding + styles.textWidth + styles.commentButtonPadding}px` }}>
-                                        {!isSelected && <Button className="group-hover:visible invisible" variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}>
-                                            <MessageCirclePlus className="size-3" />
-                                        </Button>}
-                                    </div>}
+                        }
 
-                                    <div className={`relative`} style={{ marginLeft: `${styles.padding}px`, width: `${styles.textWidth}px` }}>
+                        return {
+                            id: item.id,
+                            itemComponent: <div
+                                className={`relative group`}
+                            >
+                                {!styles.isSmallSize && <div className={`absolute text-muted-foreground text-xs font-medium flex flex-row gap-1 z-10`} style={{ left: `${styles.padding + styles.textWidth + styles.commentButtonPadding}px` }}>
+                                    {!isSelected && <Button className="group-hover:visible invisible" variant="outline" size="icon_xs" onClick={() => { setselectedItemId(item.id) }}>
+                                        <MessageCirclePlus className="size-3" />
+                                    </Button>}
+                                </div>}
 
-                                        <div data-item /*onClick={() => { setselectedItemId(item.id) }}*/ >
-                                            <ErrorBoundary>
-                                                {content}
-                                            </ErrorBoundary>
-                                        </div>
+                                <div className={`relative`} style={{ marginLeft: `${styles.padding}px`, width: `${styles.textWidth}px` }}>
 
-                                        <MessageFooter
-                                            comments={comments}
-                                            scores={scores}
-                                            session={session}
-                                            run={run}
-                                            listParams={listParams}
-                                            item={item}
-                                            itemConfig={itemConfigMatch?.itemConfig}
-                                            onSelect={() => { setselectedItemId(item.id) }}
-                                            isSelected={isSelected}
-                                            isSmallSize={styles.isSmallSize}
-                                            isLastRunItem={isLastRunItem}
-                                            isOutput={itemConfigMatch?.type === "output"}
-                                            allStats={allStats}
-                                        />
-
-                                        {isLastRunItem && run.status === "in_progress" && <div className="text-muted-foreground mt-6">
-                                            <Loader />
-                                        </div>}
-
+                                    <div data-item /*onClick={() => { setselectedItemId(item.id) }}*/ >
+                                        <ErrorBoundary>
+                                            {content}
+                                        </ErrorBoundary>
                                     </div>
-                                </div>,
-                                commentsComponent: !styles.isSmallSize && (hasComments || (isSelected)) ?
-                                    <CommentsThread
-                                        item={item}
-                                        itemConfig={itemConfigMatch?.itemConfig}
-                                        session={session}
-                                        selected={isSelected}
-                                        onSelect={(a) => { setselectedItemId(a?.id) }}
-                                        allStats={allStats}
+
+                                    <MessageFooter
                                         comments={comments}
                                         scores={scores}
-                                    /> : undefined
-                            }
-                        })
-                    }).flat().filter((item) => item !== undefined && item !== null)} selectedItemId={selectedItemId}
-                        commentsContainer={{
-                            style: {
-                                width: `${styles.commentsWidth}px`,
-                                left: `${styles.padding + styles.textWidth + styles.commentButtonWidth + styles.commentButtonPadding * 2}px`
-                            }
-                        }}
-                    />
+                                        session={session}
+                                        run={run}
+                                        listParams={listParams}
+                                        item={item}
+                                        itemConfig={itemConfigMatch?.itemConfig}
+                                        onSelect={() => { setselectedItemId(item.id) }}
+                                        isSelected={isSelected}
+                                        isSmallSize={styles.isSmallSize}
+                                        isLastRunItem={isLastRunItem}
+                                        isOutput={itemConfigMatch?.type === "output"}
+                                        allStats={allStats}
+                                    />
 
-                </div>
+                                    {isLastRunItem && run.status === "in_progress" && <div className="text-muted-foreground mt-6">
+                                        <Loader />
+                                    </div>}
 
+                                </div>
+                            </div>,
+                            commentsComponent: !styles.isSmallSize && (hasComments || (isSelected)) ?
+                                <CommentsThread
+                                    item={item}
+                                    itemConfig={itemConfigMatch?.itemConfig}
+                                    session={session}
+                                    selected={isSelected}
+                                    onSelect={(a) => { setselectedItemId(a?.id) }}
+                                    allStats={allStats}
+                                    comments={comments}
+                                    scores={scores}
+                                /> : undefined
+                        }
+                    })
+                }).flat().filter((item) => item !== undefined && item !== null)} selectedItemId={selectedItemId}
+                    commentsContainer={{
+                        style: {
+                            width: `${styles.commentsWidth}px`,
+                            left: `${styles.padding + styles.textWidth + styles.commentButtonWidth + styles.commentButtonPadding * 2}px`
+                        }
+                    }}
+                />
             </div>
-
-
-            {session.user.createdBy === me.id && <InputForm session={session} agentConfig={agentConfig} styles={styles} onRunningStateChange={setExpectingRun} />}
-
-        </div>
-
-        <Outlet context={{ session, allStats }} />
-    </>
+        </SessionShell>
+    );
 }
 
 
