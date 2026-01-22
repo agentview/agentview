@@ -1,0 +1,1 @@
+ALTER TABLE "sessions" ADD COLUMN "versions" jsonb DEFAULT '[]'::jsonb;

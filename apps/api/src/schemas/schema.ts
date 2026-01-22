@@ -85,6 +85,7 @@ export const sessions = pgTable("sessions", {
   userId: uuid("end_user_id").notNull().references(() => endUsers.id, { onDelete: 'cascade' }),
   agent: varchar("agent", { length: 255 }).notNull(),
   summary: text("summary"),
+  versions: jsonb("versions").$type<string[]>().default([]),
 }, (table) => [
   uniqueIndex('sessions_handle_org_unique').on(table.handleNumber, table.handleSuffix, table.organizationId),
   createTenantPolicy('sessions'),

@@ -1103,6 +1103,7 @@ function mapSessionRow(row: { sessions: typeof sessions.$inferSelect; end_users:
     user: row.end_users!,
     space: row.end_users!.space,
     userId: row.end_users!.id,
+    versions: row.sessions.versions ?? []
   };
 }
 
@@ -2201,6 +2202,15 @@ app.openapi(runsPOSTRoute, async (c) => {
         runId: insertedRun.id,
         isState: true,
       })
+    }
+
+    // Update session's versions array if this version is new
+    const existingVersions: string[] = (session.versions as string[]) ?? [];
+    if (!existingVersions.includes(version)) {
+      await tx.update(sessions).set({
+        versions: [...existingVersions, version],
+        updatedAt: new Date().toISOString(),
+      }).where(eq(sessions.id, body.sessionId));
     }
 
     // Queue webhook job on first run (for summary generation and/or webhook delivery)

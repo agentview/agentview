@@ -100,7 +100,8 @@ export async function fetchSession(tx: Transaction, session_id: string): Promise
       version: run.version?.version,
     })),
     summary: row.summary,
-    state
+    state,
+    versions: row.versions ?? []
   } as Session;
 }
 

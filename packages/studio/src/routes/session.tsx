@@ -114,6 +114,7 @@ function SessionShell({
 
 function SessionPageSkeleton({ sessionBase }: { sessionBase: SessionBase }) {
     const agentConfig = requireAgentConfig(config, sessionBase.agent);
+
     return (
         <SessionShell sessionBase={sessionBase} agentConfig={agentConfig}>
 
@@ -131,9 +132,7 @@ function SessionPage(props: { session: Session, comments: CommentMessage[], scor
     const revalidator = useRevalidator();
     const navigate = useNavigate();
     const { me } = useSessionContext();
-    const { allStats, sessions } = useOutletContext<{ allStats?: SessionsStats, sessions?: SessionBase[] }>() ?? {};
-
-    const sessionBase = sessions?.find((s) => s.id === props.session.id);
+    const { allStats } = useOutletContext<{ allStats?: SessionsStats, sessions?: SessionBase[] }>() ?? {};
 
     const [expectingRun, setExpectingRun] = useState(false);
     const session = useSession(props.session, { wait: expectingRun });
@@ -382,8 +381,9 @@ function SessionPage(props: { session: Session, comments: CommentMessage[], scor
 
 
 function SessionDetails({ sessionBase, agentConfig }: { sessionBase: SessionBase, agentConfig: AgentConfig }) {
-    const versions : string[] = []//getVersions(sessionBase);
     const { organization: { members } } = useSessionContext();
+    const versions = sessionBase.versions;
+    console.log('session base', sessionBase);
 
     const simulatedBy = members.find((member) => member.userId === sessionBase.user.createdBy);
 

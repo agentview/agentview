@@ -171,6 +171,7 @@ export const SessionBaseSchema = z.object({
   space: SpaceSchema, // this is actually user.space, but allows to "think user-less"
   state: z.any().nullable().optional(),
   summary: z.string().nullable(),
+  versions: z.array(z.string()),
 })
 
 export type SessionBase = z.infer<typeof SessionBaseSchema>
