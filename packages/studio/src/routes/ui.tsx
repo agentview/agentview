@@ -54,123 +54,169 @@ function Component() {
         <h2 className="text-lg font-medium mb-6">Session Items</h2>
 
         <ComponentWrapper title="ItemCard / Default">
-          <ItemCard>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</ItemCard>
+          <ItemCard>
+            <ItemCardContent>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </ItemCardContent>
+          </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="ItemCard / Default + markdown">
           <ItemCard>
-            <ItemCardMarkdown text={markdownExample} />
+            <ItemCardContent>
+              <ItemCardMarkdown text={markdownExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="ItemCard / Default + markdown + small">
           <ItemCard size="sm">
-            <ItemCardMarkdown text={markdownExample} />
+            <ItemCardContent>
+              <ItemCardMarkdown text={markdownExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="ItemCard / Outline">
-          <ItemCard variant="outline">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</ItemCard>
+          <ItemCard variant="outline">
+            <ItemCardContent>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </ItemCardContent>
+          </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="ItemCard / Outline + markdown"   >
           <ItemCard variant="outline">
-            <ItemCardMarkdown text={markdownExample} />
+            <ItemCardContent>
+              <ItemCardMarkdown text={markdownExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="ItemCard / Fill">
-          <ItemCard variant="fill">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</ItemCard>
+          <ItemCard variant="fill">
+            <ItemCardContent>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </ItemCardContent>
+          </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="ItemCard / Fill + markdown">
           <ItemCard variant="fill">
-            <ItemCardMarkdown text={markdownExample} />
+            <ItemCardContent>
+              <ItemCardMarkdown text={markdownExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="With Title">
           <ItemCard variant="fill">
             <ItemCardTitle><BrainIcon /> Thought for 3 seconds</ItemCardTitle>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            <ItemCardContent>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="With Title + small">
           <ItemCard size="sm">
             <ItemCardTitle><BrainIcon /> Thought for 3 seconds</ItemCardTitle>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            <ItemCardContent>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="With Title + markdown">
           <ItemCard variant="fill">
             <ItemCardTitle><BrainIcon /> Thought for 3 seconds</ItemCardTitle>
-            <ItemCardMarkdown text={miniMarkdownExample} />
+            <ItemCardContent>
+              <ItemCardMarkdown text={miniMarkdownExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="With Title + small + markdown">
           <ItemCard size="sm">
             <ItemCardTitle><BrainIcon /> Thought for 3 seconds</ItemCardTitle>
-            <ItemCardMarkdown text={miniMarkdownExample} />
+            <ItemCardContent>
+              <ItemCardMarkdown text={miniMarkdownExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="JSON">
           <ItemCard>
-            <ItemCardJSON value={jsonExample} />
+            <ItemCardContent>
+              <ItemCardJSON value={jsonExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="JSON + outline">
           <ItemCard variant="outline">
-            <ItemCardJSON value={jsonExample} />
+            <ItemCardContent>
+              <ItemCardJSON value={jsonExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="JSON + fill">
           <ItemCard variant="fill">
-            <ItemCardJSON value={jsonExample} />
+            <ItemCardContent>
+              <ItemCardJSON value={jsonExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="JSON + small">
           <ItemCard size="sm">
-            <ItemCardJSON value={jsonExample} />
+            <ItemCardContent>
+              <ItemCardJSON value={jsonExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="JSON + small + outline">
           <ItemCard size="sm" variant="outline">
-            <ItemCardJSON value={jsonExample} />
+            <ItemCardContent>
+              <ItemCardJSON value={jsonExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
         
         <ComponentWrapper title="JSON + small + fill">
           <ItemCard size="sm" variant="fill">
+            <ItemCardContent>
               <ItemCardJSON value={jsonExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
         
         <ComponentWrapper title="JSON + title + small">
           <ItemCard size="sm">
             <ItemCardTitle><Wrench /> Tool call</ItemCardTitle>
-            <ItemCardJSON value={jsonExample} />
+            <ItemCardContent>
+              <ItemCardJSON value={jsonExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="JSON + title + small + outline">
           <ItemCard size="sm" variant="outline">
             <ItemCardTitle><Wrench /> Tool call</ItemCardTitle>
-            <ItemCardJSON value={jsonExample} />
+            <ItemCardContent>
+              <ItemCardJSON value={jsonExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 
         <ComponentWrapper title="JSON + title + fill">
           <ItemCard size="default" variant="fill">
             <ItemCardTitle><Wrench /> Tool call</ItemCardTitle>
-            <ItemCardJSON value={jsonExample} />
+            <ItemCardContent>
+              <ItemCardJSON value={jsonExample} />
+            </ItemCardContent>
           </ItemCard>
         </ComponentWrapper>
 

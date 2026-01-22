@@ -114,12 +114,24 @@ export function ItemCardContent({ className, children, ...props }: React.Compone
     return content;
 }
 
+// export function ItemCardMarkdown({ text, className, ...props }: { text: string, className?: string } & React.ComponentProps<"div">) {
+//     const context = React.useContext(ItemCardContext);
+//     const size = context?.size ?? "default";
+
+//     return <div
+//         className={cn("prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-foreground", size === "sm" ? "text-sm" : "text-md", className)}
+//         {...props}
+//         dangerouslySetInnerHTML={{ __html: marked.parse(text, { async: false }) }}
+//     ></div>
+// }
+
 export function ItemCardMarkdown({ text, className, ...props }: { text: string, className?: string } & React.ComponentProps<"div">) {
     const context = React.useContext(ItemCardContext);
     const size = context?.size ?? "default";
 
     return <div
         className={cn("prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-foreground", size === "sm" ? "text-sm" : "text-md", className)}
+
         {...props}
         dangerouslySetInnerHTML={{ __html: marked.parse(text, { async: false }) }}
     ></div>
