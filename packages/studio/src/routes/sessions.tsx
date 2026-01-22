@@ -97,11 +97,7 @@ function Component() {
 
     </div>
 
-    <Suspense fallback={<Outlet context={{ allStats: undefined, sessions }} />}>
-      <Await resolve={allStats}>
-        {(resolvedStats) => <Outlet context={{ allStats: resolvedStats, sessions }} />}
-      </Await>
-    </Suspense>
+    <Outlet context={{ allStats: allStats ?? undefined, sessions }} />
   </div>
 }
 
