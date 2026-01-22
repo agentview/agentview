@@ -3,7 +3,7 @@ import { type CommentMessage, type Run, type Score, type Session, type SessionBa
 import { findItemConfigById, findMatchingRunConfigs, requireAgentConfig } from "agentview/configUtils";
 import { enhanceSession, getActiveRuns, getAllSessionItems, getLastRun, getVersions } from "agentview/sessionUtils";
 import type { AgentConfig, ScoreConfig, SessionItemConfig, SessionItemDisplayComponentProps } from "agentview/types";
-import { AlertCircleIcon, ChevronDown, CircleGauge, InfoIcon, MessageCirclePlus, UsersIcon } from "lucide-react";
+import { AlertCircleIcon, ChevronDown, CircleGauge, InfoIcon, Loader2, MessageCirclePlus, UsersIcon } from "lucide-react";
 import { useEffect, useLayoutEffect, useOptimistic, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { LoaderFunctionArgs, RouteObject } from "react-router";
@@ -432,10 +432,11 @@ function SessionDetails({ sessionBase, agentConfig }: { sessionBase: SessionBase
 
 function ShareForm({ session }: { session: Session }) {
     const fetcher = useFetcher();
+    const isProcessing = fetcher.state !== 'idle';
     return <fetcher.Form method="put" action={`/users/${session.user.id}/update`}>
         <input type="hidden" name="space" value={session.user.space === "shared-playground" ? "playground" : "shared-playground"} />
-        <Button variant={"outline"} size="sm" type="submit">
-            <UsersIcon fill={session.user.space === "shared-playground" ? "black" : "none"} stroke={session.user.space === "shared-playground" ? "none" : "black"} /> {session.user.space === "shared-playground" ? "Shared" : "Share"}
+        <Button variant={"outline"} size="sm" type="submit" disabled={isProcessing}>
+            {isProcessing ? <Loader2 className="animate-spin" /> : <UsersIcon fill={session.user.space === "shared-playground" ? "black" : "none"} stroke={session.user.space === "shared-playground" ? "none" : "black"} />} {session.user.space === "shared-playground" ? "Shared" : "Share"}
         </Button>
     </fetcher.Form>
 }
