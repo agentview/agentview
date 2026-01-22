@@ -30,7 +30,12 @@ async function loader({ request }: LoaderFunctionArgs) {
   }
 
   try {
-    const shouldLoadImmediately = !window.location.pathname.startsWith('/sessions');
+    const currentParams = new URLSearchParams(window.location.search);
+    const isSamePage =
+      currentParams.get('agent') === (listParams.agent ?? null) &&
+      currentParams.get('space') === (listParams.space ?? null) &&
+      currentParams.get('page') === (listParams.page?.toString() ?? null);
+    const shouldLoadImmediately = !isSamePage;
 
     // Sessions: sync on first load, async on revalidation
     const sessionsResult = shouldLoadImmediately
