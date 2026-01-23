@@ -20,8 +20,8 @@
             "group": "Getting started",
             "pages": [
               "getting-started/index",
-              "getting-started/quickstart",
-              "getting-started/why"
+              "getting-started/how-it-works",
+              "getting-started/quickstart"
             ]
           },
           {
