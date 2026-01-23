@@ -1,0 +1,40 @@
+---
+title: "Development"
+description: "Learn how the default local development environment for AgentView works"
+---
+
+Although the AgentView backend is in the cloud, the Studio and configuration are in your local codebase. This architecture has 2 advantages:
+- simple code-first configuration
+- since Studio is not "fixed app", but a React package, you can easily customise any part of the experience simply by providing custom React components.
+
+### Studio
+
+Studio is a single page application built in React Router 7 and shipped as an `npm` package.
+
+In our starer example Studio is a simple Vite app run in this way (see `./index.tsx`):
+
+```ts
+import "./styles.css";
+import { renderStudio } from "agentview";
+import agentviewConfig from "./agentview.config";
+
+renderStudio(
+    document.getElementById("agentview"), 
+    agentviewConfig
+);
+```
+
+Studio deliberalty doesn't rely on server runtime, it's pure client-side application. Thanks to this it's trivial to build it as a static site and just drop it onto any static hosting.
+
+### Configuration
+
+All the AgentView configuration is in `agentview.config.tsx` file. This file lives in Studio project and must be provided to Studio in `renderStudio(...)`.
+
+All the agent definition information (mostly schemas) is sent to the AgentView Server. Thanks to this Server can do proper validation and prevent incorrect data getting into your system.
+
+
+
+
+Now when you run `npm run dev` in your Studio project, each time `agentview.config.tsx` is changed, it's gonna be synchronised with the Server.
+
+You can also do it manually by running `npx agentview config push` in the Studio project.

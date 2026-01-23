@@ -20,8 +20,15 @@
             "group": "Getting started",
             "pages": [
               "getting-started/index",
-              "getting-started/how-it-works",
-              "getting-started/quickstart"
+              "getting-started/how-it-works"
+            ]
+          },
+          {
+            "group": "Setup and development",
+            "pages": [
+              "setup-and-development/installation",
+              "setup-and-development/development",
+              "setup-and-development/deployment"
             ]
           },
           {
@@ -31,6 +38,7 @@
               "concepts/agents-and-sessions",
               "concepts/items-validation",
               "concepts/users",
+              "concepts/spaces",
               "concepts/version-control",
               "concepts/error-handling"
             ]

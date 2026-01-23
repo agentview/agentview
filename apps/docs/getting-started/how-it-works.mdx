@@ -44,6 +44,18 @@ Making `generateResponse` work well is **AI Engineering**. AgentView on purpose 
 
 Since our Chat Endpoint just reads parameters, calls `generateResponse` function and returns output, it's also stateless. It doesn't provide persistence so if you wanted to play with an agent, you'd have to build probably a front-end app and store history of conversation in `localStorage` or something.
 
+To ship this agent, you need to handle:
+
+| Problem | What it means |
+|---------|---------------|
+| **Persistence** | Store session history server-side |
+| **Locking** | Prevent concurrent requests to the same session |
+| **Multi-session** | Users can have multiple conversations |
+| **Auth** | Secure sessions so users can only access their own |
+| **Versioning** | Handle agent updates without breaking old sessions |
+| **Validation** | Ensure inputs/outputs match expected schemas |
+
+
 This is okay for prototyping and testing your agent locally but there's a huge amount of work to be done on top of it to make it production-ready:
 - **Persistence** - the API should be stateful and remember session history.
 - **Locking** - if you're response is being currently generated, the endpoint shouldn't allow new requests to be made.
@@ -87,17 +99,6 @@ export default defineConfig({
               content: z.string(),
             }),
           },
-          steps: [
-            {
-              schema: z.looseObject({
-                type: z.literal("reasoning"),
-                summary: z.array(z.object({
-                  type: z.literal("summary_text"),
-                  text: z.string(),
-                })),
-              })
-            }
-          ],
           output: {
             schema: z.looseObject({
               type: z.literal("message"),
@@ -188,13 +189,24 @@ app.onError((error, c) => {
 
 Without touching `generateResponse` function, we've built a production-ready Agent Endpoint that handles persistence, locking, multiple sessions, security, versioning, validation etc.
 
-## Studio
+### Flexible data format
 
-Studio is an extremely customisable and collaborative data viewer for your agents. Below we're providing custom components for each item of our session and also input component for playground:
+AgentView stores your session data in extremely simple and powerful data format. In essenese, each session data is just an array of items, wehere each item can have absolutely arbitrary schema. Each object like session, run or item can be also extended with metadata. 
+
+## Studio - vibe-codeable data viewer
+
+AgentView comes with an extremely customisable and collaborative data viewer for your agent data.
+
+Here's important note from Hamel (your should read Hamel):
+
+>  #### The Most Important AI Investment: A Simple Data Viewer
+> The single most impactful investment I’ve seen AI teams make isn’t a fancy evaluation dashboard – it’s building a customized interface that lets anyone examine what their AI is actually doing. I emphasize customized because every domain has unique needs that off-the-shelf tools rarely address. When reviewing apartment leasing conversations, you need to see the full chat history and scheduling context. For real estate queries, you need the property details and source documents right there. Even small UX decisions – like where to place metadata or which filters to expose – can make the difference between a tool people actually use and one they avoid.
+
+Studio is the app you can confogure with your custom React components. Let's define how our agent items are displayed and how the input component looks like:
+
 
 ```typescript highlight={14,25-31,44,48-52}
 export default defineConfig({
-  apiBaseUrl: "http://localhost:1990",
   agents: [
     {
       name: "simple_chat",
@@ -250,10 +262,18 @@ export default defineConfig({
 });
 ```
 
-It's all you need to look at session data, create new sessions.
+Now you can easily add test sessions withing the viewer and see the results in a domain-specific way.
 
 ### Collaboration
 
-You can invite members of your organisation. Everybody can comment on any item like in Notion. You can also get notified on new comments.
+Studio is collaborative. You can invite members of your organisation. Everybody can comment on any item like in Notion. You can also get notified on new comments.
 
-You can later add new scores, so that users can score the output of the agent in a beautiful way.
+### Scores
+
+You can define custom scores for each item, provide custom components for them. 
+
+### Further customisation
+
+Studio allows you to **customise everything**. Session Card view, add custom pages, customise new session screen to prefill required metadata etc.
+
+The architectural goal of Studio is to make it vibe-codeable. We provide you with a "good frame" (a design system, good practices), you fill it with your custom stuff.

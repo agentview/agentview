@@ -4,11 +4,10 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite",
+    "dev:studio": "vite",
     "start": "vite preview",
-    "agent:dev": "tsx watch agent.ts",
-    "typecheck": "tsc",
-    "all:dev": "concurrently \"npm run agent:dev\" \"npm run dev\""
+    "dev:agent": "tsx watch agent.ts",
+    "dev": "concurrently \"npm run dev:studio\" \"npm run dev:agent\""
   },
   "dependencies": {
     "@agentview/studio": "workspace:*",

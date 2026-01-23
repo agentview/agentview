@@ -1,0 +1,96 @@
+---
+title: "Installation"
+description: "Start building with AgentView in minutes"
+---
+
+## Set up an account
+
+1. Create an account [here](https://agentview.app/signup).
+2. Generate development API Key in `API Keys` tab.
+
+## Create a project
+
+Start by creating AgentView project:
+
+```bash
+npm create agentview@latest my-agentview-project
+```
+
+This will install example project in `my-agentview-project/` dir. Go to the project:
+
+```
+cd my-agentview-project
+```
+
+It's a simple Vite app with AgentView Studio. All the AgentView configuration is in `agentview.config.tsx` file. The demo Chat Endpoint is in `agent.ts` file.
+
+## Set up environment variables
+
+Before you start, you need to set up environment variables. Create a `.env` file in the root of the project and add the following variables:
+
+1. `OPENAI_API_KEY` - your OpenAI API key (it's needed since demo is using Responses API)
+2. `AGENTVIEW_API_KEY` - paste your development API key from the previous step.
+
+## Run Chat Endpoint
+
+Let's run the chat endpoint:
+
+```bash
+npm run dev:agent
+```
+
+It should be running at `localhost:3000`.
+
+It's a simple Hono HTTP server computing AI responses using OpenAI Responses API and AgentView SDK.
+
+### Test 
+
+Let's test the chat endpoint:
+
+```bash
+curl -X POST --json '{ "input": { "type": "message", "role": "user", "content": "Hey, my name is Bob." } }' http://localhost:3000/simple_chat
+```
+
+You should get a response in a following JSON format:
+
+```ts
+{
+  "id": "SESSION_ID",
+  "output": [ /* output items */],
+  "token": "USER_TOKEN"
+}
+```
+
+Let's continue the thread by sending new message (insert `SESSION_ID` and `USER_TOKEN` from the previous response):
+
+```bash
+curl -X POST --json '{
+    "id": "SESSION_ID",
+    "input": {"type": "message", "role": "user", "content": "Hello, what was my name again?"},
+    "token": "USER_TOKEN"
+  }' http://localhost:3000/simple_chat
+```
+
+You should get a response which shows that the agent remembers your name. AgentView correctly stores the conversation history and remembers the context of the conversation.
+
+Let's send an incorrect input:
+
+```bash
+curl -i -X POST --json '{ "input": { "type": "message", "role": "user", "content": 100 } }' http://localhost:3000/simple_chat
+```
+
+This triggers `422` error, as the input is not a string. AgentView handles the validation and provides a correct HTTP status code.
+
+
+## Run Studio
+
+Let's run the studio:
+
+```bash
+npm install
+npm run dev:studio
+```
+
+Studio should be running at `localhost:1989`.
+
+After you log in you should see the sessions we just created via curl. You can create new sessions from the Studio UI, browse them, comment on them, etc.

@@ -1,0 +1,36 @@
+---
+title: "Spaces"
+---
+
+In the Studio sidebar you'll see links named `Production`, `Shared` or `Playground`. We call them **Spaces**.
+
+The purpose of the Space is to separate users and sessions into different logical buckets:
+1. **`production`** - the real-world production users & sessions
+2. **`playground`** - "test" users & sessions created by team member in playground. Not visible for other team members.
+3. **`shared-playground`** - same as `playground`, but visible for all team members.
+
+As we explained in [Users](/concepts/users) chapter, each AgentView Session belongs to a User, and it's actually the User object that has a `space` property.
+
+### Creating user in a specific space
+
+Users are created explicitly with `av.createUser` or implicitly when you run `av.createSession` without passing `userId` parameter. Both functions can take `space` parameter:
+
+```ts
+// explicit user creation in `production` space
+const user = await av.createUser({ space: "production" });
+
+// implicit user creation in `shared-playground` space
+const session = await av.createSession({ 
+    agent: "my_agent", 
+    space: "shared-playground"
+});
+```
+
+### Defaults
+
+AgentView comes with a default behaviour thanks to which you usually don't need to pass `space` parameter. It differs based on the API Key you use:
+
+1. **Development API Key** - default space is `playground` belonging to the key's owner.
+2. **Production API Key** - default space is `production`.
+
+For security reasons, you can't create sessions in `production` space when you use Development API Key.
