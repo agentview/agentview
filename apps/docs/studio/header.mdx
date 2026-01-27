@@ -1,0 +1,21 @@
+---
+title: "Session Header"
+---
+
+Each session comes with a header that displays session properties. You can easily set your own by providing `displayProperties` property:
+
+```typescript
+export default defineConfig({
+  agents: [
+    {
+      displayProperties: [
+        {
+          title: "User Location",
+          value: ({ session }) => <strong>{ session.metadata?.userLocation }</strong>
+        }
+      ],
+      // ...
+    }
+  ]
+})
+```

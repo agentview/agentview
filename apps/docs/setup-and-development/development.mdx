@@ -1,21 +1,19 @@
 ---
 title: "Development"
-description: "Learn how the default local development environment for AgentView works"
+description: "Learn how local development with AgentView works"
 ---
 
-Although the AgentView backend is in the cloud, the Studio and configuration are in your local codebase. This architecture has 2 advantages:
-- simple code-first configuration
-- since Studio is not "fixed app", but a React package, you can easily customise any part of the experience simply by providing custom React components.
+## Project Structure
 
-### Studio
+Studio is not a typical fixed SaaS web app hosted on AgentView servers. Instead, it's shipped as an `npm` package, which you can run and host yourself. Thanks to this architecture, you can customise any part of the experience just by providing custom React components in your codebase.  
 
-Studio is a single page application built in React Router 7 and shipped as an `npm` package.
+The starer AgentView project is basically a Vite app with AgentView Studio. The files like `vite.config.ts`, `index.html`, `index.tsx` etc. are just standard Vite files.
 
-In our starer example Studio is a simple Vite app run in this way (see `./index.tsx`):
+If you look at `index.tsx` file you'll see that it's just a simple call to `renderStudio` function from `@agentview/studio` package:
 
 ```ts
 import "./styles.css";
-import { renderStudio } from "agentview";
+import { renderStudio } from "@agentview/studio";
 import agentviewConfig from "./agentview.config";
 
 renderStudio(
@@ -24,17 +22,36 @@ renderStudio(
 );
 ```
 
-Studio deliberalty doesn't rely on server runtime, it's pure client-side application. Thanks to this it's trivial to build it as a static site and just drop it onto any static hosting.
+Since Studio is just a Vite app, all you need to do to run it is to run:
 
-### Configuration
+```bash
+npx vite
+```
 
-All the AgentView configuration is in `agentview.config.tsx` file. This file lives in Studio project and must be provided to Studio in `renderStudio(...)`.
+The production build can be done with `npx vite build`.
 
-All the agent definition information (mostly schemas) is sent to the AgentView Server. Thanks to this Server can do proper validation and prevent incorrect data getting into your system.
+Under the hood Studio is a React app built with React Router 7 (which is the successor of Remix Run) built in data mode. It doesn't require any server runtime so that it can be run as a static site.
 
+### `agentview.config.tsx`
 
+In the root directory of the Studio project you'll find `agentview.config.tsx` file. It's the main configuration file for AgentView.
 
+As you can see above, the config is passed to the `renderStudio` function, so that Studio is aware of your configuration.
 
-Now when you run `npm run dev` in your Studio project, each time `agentview.config.tsx` is changed, it's gonna be synchronised with the Server.
+The configuration is also used by AgentView backend. For example, if you provide Zod schemas for your session items, backend will validate the items against the schemas. The config is synced with the backend each time you open the Studio.
 
-You can also do it manually by running `npx agentview config push` in the Studio project.
+**Your local config is never overriding production**. Your local config is bound to your personal Development API Key you use locally. Any call to AgentView API that uses this key will also apply local config. Production uses your Production API Key, so your Production config is always in effect.
+
+### Data storage in local development
+
+Even during local development, no data is ever stored locally, everything is stored in AgentView hosted backend. Since you use your personal Develpoment API Key, the sessions are by default sent to your personal "Playground" space, not visible for other team members. Also, if not explicitly changed, all the versions will be automatically suffixed with `-dev` (e.g. `0.0.1-dev`, `0.0.2-dev`, etc.).
+
+To prevent accidents, development keys can't create sessions in `production` space.
+
+### Chat Endpoint
+
+The starer project comes with a `agent.ts` file. It's a simple Hono HTTP server computing AI responses using OpenAI Responses API and AgentView SDK.
+
+It's important to understand that it's just an example. You can build your API app with Chat Endpoint however you want. Our example uses Hono, but it could be FastAPI Python app, or it could be Typescript built with Vercel functions, etc.
+
+Also, there's no reason it must be in AgentView Studio repository. It could be a totally separate repo. If you use monorepo, you can have Studio and your API app with Chat Endpoint as separate packages.

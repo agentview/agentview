@@ -45,7 +45,6 @@ The Agent definition above is enough to create a session and add a bunch of item
 import { AgentView } from "agentview";
 
 const av = new AgentView({
-  apiBaseUrl: "http://localhost:1990",
   apiKey: process.env.AGENTVIEW_API_KEY,
 });
 
@@ -140,19 +139,11 @@ Item is a totally arbitrary object that represents that something happened in th
 - handoffs to other agents in multi-agent systems
 - any custom block
 
-Items are **incremental**. It means that each time you update run with `items` they'll be **appended** at to the list. Removing items is not possible.
+Items are **append-only**. It means that each time you update run with `items` they'll be appended at the end of the list. Removing items is not possible.
 
 Each Item is displayed as a separate block in Studio, can have its own custom component, can be commentable, can have its custom scores, feedback etc.
 
 It's worth highlighting that Item in AgentView is just a JSON, it can be *anything*. AgentView goal is to be as unopinionated as possible and therefore doesn't force you into any pre-defined message formats. This allows to make it really framework-agnostic. For example, it's trivial to just send items from AgentsSDK, Responses API, AI SDK, LangChain, without any trouble.
-
-#### Squashing items into array
-
-The array representation is simple and powerful. It's how OpenAI models the conversation history in Responses API or Agents SDK and we believe it's the best way to represent the conversation history.
-
-However, some frameworks like LangChain or AI SDK from Vercel represent history as a list of messages, where message has parts.
-
-(TO-DO!!!)
 
 ### Session `state`
 

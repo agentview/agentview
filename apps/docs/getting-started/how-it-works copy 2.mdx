@@ -3,9 +3,7 @@ title: "How it works?"
 description: "Quick explanation of how AgentView works"
 ---
 
-## It starts with stateless AI logic
-
-Imagine you're building a conversational agent, like a customer support chatbot. You want to have full ownership over the AI logic, you don't want to overpay for black-box SaaS - great!
+Imagine you're building a conversational agent, like a customer support chatbot. You want to have full ownership over the AI logic instead of paying for black-box SaaS. Good call!
 
 The first thing you're gonna need is a HTTP endpoint that takes user input and generates AI responses. We call such endpoint a **Chat Endpoint**. Here's an example of the endpoint in TS+Hono:
 
@@ -19,28 +17,30 @@ app.post('/chat', async (c) => {
 });
 ```
 
-We put all the AI logic in `generateResponse` function. Here's an example using OpenAI Responses API:
+All the AI logic is in a **stateless** `generateResponse` function. Here's an example using OpenAI Responses API:
 
 ```typescript
-const generateResponse = async (history: any[], input: any) => {
+const generateResponse = async (messages: any[]) => {
   const response = await client.responses.create({
       model: "gpt-5-nano",
       reasoning: { effort: "low", summary: "detailed" },
       instructions: "You are a helpful assistant.",
-      input: [...history, input],
+      input: messages,
     });
 
   return response.output;
 };
 ```
 
-In this example `generateResponse` it's very simple, in reality it'd gonna have prompts, tools, RAG, etc. They key point is that `generateResponse` is **stateless**. It takes all the inputs required to generate a response and returns the response, but it doesn't save nor load any state from the database. It could be implemented vanilal or with some AI framework like LangGraph or AI SDK. 
+For the demo purposes `generateResponse` is very simple, it's just a single LLM call. In reality all the **AI Engineering** will go there: prompts, tools, RAG, etc.
 
-## Make endpoint production-ready
+The core idea behind AgentView is that **you can build your AI logic however you want**. You can use an AI framework like LangGraph, AI SDK, or go vanilla. Actually, your Chat Endpoint can be in Python, Typescript or any other language you prefer. We believe it's too early to say which abstraction layer is the best, so AgentView is **framework- and language-agnostic for the AI part**.
 
-Our Chat Endpoint is not very practical yet. It's totally stateless and doesn't provide any persistence. If you want to play with an agent, you'd have to build a front-end app and store history of conversation in `localStorage` and send it back and forth between the client and the server.
+### There's a lot of work around your AI logic
 
-To ship this agent, you need to handle:
+Even if your AI logic is the smartest in the world, your Chat Endpoint is not very practical yet. For example, it doesn't provide any persistence. So if you want to play with your agent, you'd have to build a front-end app and store history of conversation in `localStorage` and send entire conversation history back and forth between the client and the server. Of course, it's not something you want in production.
+
+Persistence is just one of the problems you need to handle. Here's a full list of things you need to consider:
 
 | Problem | What it means |
 |---------|---------------|
@@ -52,15 +52,26 @@ To ship this agent, you need to handle:
 | **Validation** | Ensure inputs/outputs match expected schemas |
 | **Disconnections** | Handle user switching tabs, losing connection, etc. |
 
-Quick you'll realise that it's not just how endpoint works, but how **others** can interact with it.
-- showing sessions list
-- managing users within organisations
-- playground, letting users to organise
-- collaboration - users should be able to share their sessions, comment, mention, get notified
+This is just a **backend** part.
 
-All those things are not related to AI Engineering, they're stadnard boring engineering tasks. Making it all right takes a lot of time
+As you progress you'll quickly realise there's also a big chunk of **front-end** work to be done. You'll need an environment where people can play with your agent and collaborate on the outputs. I think a good analogy is a CMS. You might build a website, but there's still need to be an app where non-technical users can work on it: collaborate on content, preview, etc.
 
-## AgentView SDK to the rescue
+| Problem | What it means |
+|---------|---------------|
+| **Browsing sessions** | Showing sessions list |
+| **Managing users** | Creating, updating, deleting users |
+| **Playground** | Playing around with your agent without breaking production |
+| **Collaboration** | Users should be able to share their sessions, comment, mention, get notified |
+
+Both **backend** and **front-end** parts are not related to **AI Engineering**, they're stadnard boring engineering tasks. The job of AgentView is to handle them for you without contraining how you build your AI logic.
+
+### Bulletproof your Chat Endpoint
+
+AgentView provides 2 things:
+- backend for conversational agents. It provides API to create, manage and access sessions, runs, items, users, etc.
+- front-end for collaborative data viewer. It allows you to view, debug, run playgrounds, and collaborate with your team.
+
+
 
 AgentView handles all the boring stuff while letting you write your AI code in any way you want. It has 2 parts:
 - **Cloud Server** - handles sessions, users, persistence, locking, versioning, etc. It exposes REST API called **AgentView API**. You can use it directly, but it's recommended to use SDK.

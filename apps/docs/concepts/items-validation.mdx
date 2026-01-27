@@ -1,5 +1,5 @@
 ---
-title: "Schema Validation"
+title: "Schema"
 ---
 
 AgentView is schema-less. Your stored session items don't have enforced structure similar to SQL databases.
@@ -158,11 +158,11 @@ export default defineConfig({
 })
 ```
 
-`.meta{ callId }` marks the field as a tool call id.
+`.meta({ callId: true })` marks the field as a tool call id.
 
-There are a bunch of validations done automatically:
-- there might be only one tool call with a given call id
-- there might be only one tool result for this id, must be in the same run, and must be after the tool call
+Tool call step defined provides a bunch of validations.
+- only one tool call with a given call id is allowed
+- there might be only one tool result for this id, must be in the same run, and must go after the tool call
 
 ### Loose validation
 
@@ -228,8 +228,8 @@ This is very handy because often there are bunch of fields you want to validate 
 
 ### Multiple runs
 
-You can you define multiple run types for an agent. Here's how matching algorithm works:
-1. Whenever you add or update the run, AgentView first matches the run input item against all the available runs, to find the run.
-2. If it finds a match, it will use the run schemas to validate the rest of the items in the run.
+Your agent can have multiple run definitions. Each run goes with its own input, output and step schemas. Here's how AgentView does the matching:
+1. Whenever you add or update the run, AgentView first matches the run input item against all the available run definitions in the config, to find the run.
+2. If it finds a match, it will use the found run schemas to validate the rest of the items in the run.
 
 This implies that run inputs must be "distinguishable" from each other on the schema level. If 2 schemas match the same input, AgentView will treat this as an error.

@@ -1,0 +1,147 @@
+---
+title: "Session Items"
+---
+
+The most common customisation is providing a custom view for session items. You can set it via `displayComponent` property of the session item. It's just a React component:
+
+{ /* <prompt>
+  - copy apps/examples/typescript-basic/agentview.config.tsx file into following snippet
+  - highlight `displayComponent` lines (and entire components that are values of `displayComponent` property)
+</prompt> */ }
+
+```tsx highlight={19,30-36,49}
+import { z } from "zod";
+import { defineConfig } from "agentview";
+import { AssistantMessage, ItemCard, ItemCardMarkdown, ItemCardTitle, UserMessage, UserMessageInput } from "@agentview/studio";
+import { Brain } from "lucide-react";
+
+export default defineConfig({
+  apiBaseUrl: "http://localhost:1990",
+  agents: [
+    {
+      name: "simple_chat",
+      runs: [
+        {
+          input: {
+            schema: z.object({
+              type: z.literal("message"),
+              role: z.literal("user"),
+              content: z.string(),
+            }),
+            displayComponent: ({ item }) => <UserMessage>{item.content}</UserMessage>,
+          },
+          steps: [
+            {
+              schema: z.looseObject({
+                type: z.literal("reasoning"),
+                summary: z.array(z.object({
+                  type: z.literal("summary_text"),
+                  text: z.string(),
+                })),
+              }),
+              displayComponent: ({ item }) => {
+                return (
+                  <ItemCard size="sm" variant="fill">
+                    <ItemCardTitle><Brain /> Thinking</ItemCardTitle>
+                    <ItemCardMarkdown text={item.summary?.map((s: any) => s?.text ?? "").join("\n\n") ?? "Hidden reasoning summary."} />
+                  </ItemCard>
+                );
+              }
+            }
+          ],
+          output: {
+            schema: z.looseObject({
+              type: z.literal("message"),
+              role: z.literal("assistant"),
+              content: z.array(z.object({
+                type: z.literal("output_text"),
+                text: z.string(),
+              })),
+            }),
+            displayComponent: ({ item }) => <AssistantMessage>{item.content.map((c: any) => c?.text ?? "").join("\n\n")}</AssistantMessage>
+          }
+        }
+      ],
+      inputComponent: ({ submit, cancel, isRunning }) => <UserMessageInput
+        onSubmit={(val) => submit("http://localhost:3000/simple_chat", { input: { content: val, type: "message", role: "user" } })}
+        onCancel={cancel}
+        isRunning={isRunning}
+      />
+    }
+  ]
+});
+```
+
+{ /* <prompt>
+  - look up the properties type of `displayComponent` property
+  - create a table "Prop" | "Description" | "Type"
+  - descriptions shoudl be very short in this case. Item "content of your session item", session: current session object, etc.
+</prompt> */ }
+
+Here are `displayComponent` properties:
+
+| Prop | Description | Type |
+|------|-------------|------|
+| `item` | Content of the session item | `any` |
+| `session` | Current session object | `Session` |
+| `run` | Current run object | `Run` |
+| `resultItem` | Only for tool calls, content of the tool call result | `any` |
+
+
+#### Matching items
+
+AgentView finds the right `displayComponent` for a session item by matching the provided schemas. **If the item matches more than 1 schema the component won't be displayed**.
+
+This implies that your items should be uniquely discriminatable. You should be able to discriminate between them by schemas. It's usually done by `type`, but for AI apps it's a bit more tricky, for example function calls are discriminated by `name`, type for all tools are the same.
+
+#### Hiding items
+
+You can hide items by setting `displayComponent` to `null`.
+
+#### Tool calls
+
+Tool calls come in pairs: call and result. Also, if you use paralell tool calls, the call and result blocks might not be consecutive. We find the best UX to display then with a single component.
+
+You can define tools via `callResult` property (read more here: [items validation](/concepts/items-validation#tool-calls)).
+
+{ /* <prompt>
+  - copy apps/examples/typescript-weather-agent/agentview.config.tsx file into following snippet
+  - remove imports, leave only `export default defineConfig({...})` block
+  - leave the step with function call intact, but comment out (with "// ..." or alike) input, output, other steps, etc... make it short and focused on the function call.
+</prompt> */ }
+
+```tsx
+export default defineConfig({
+  agents: [
+    {
+      name: "weather-chat",
+      runs: [
+        {
+          input: { /* ... */ },
+          output: { /* ... */ },
+          steps: [
+            // ...
+            {
+              schema: z.looseObject({
+                type: z.literal("function_call"),
+                name: z.literal("weather_tool"),
+                callId: z.string().meta({ callId: true }),
+              }),
+              callResult: {
+                schema: z.looseObject({
+                  type: z.literal("function_call_result"),
+                  callId: z.string().meta({ callId: true }),
+                })
+              },
+              displayComponent: ({ item, resultItem }) => { /* ... */ }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+})
+```
+
+When the tool call is done, both `item` and `resultItem` are set. When call is in progress, `resultItem` is `undefined`.
+

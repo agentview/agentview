@@ -1,0 +1,42 @@
+---
+title: "New Session"
+---
+
+Members of your organisation can create new playground sessions by clicking on "Create Session" button. However, your session might require some metadata to be properly created.
+
+You can provide a custom form by setting `newSessionComponent` property:
+
+{ /* <prompt>
+  - copy apps/examples/typescript-weather-agent/agentview.config.tsx file into following snippet
+  - remove imports, leave only `export default defineConfig({...})` block
+  - remove almost everything, leave only `name`, `metadata` and `newSessionComponent` properties so that user understands what's going on.
+</prompt> */ }
+
+```tsx
+export default defineConfig({
+  agents: [
+    {
+      name: "weather-chat",
+      metadata: {
+        userLocation: z.string()
+      },
+      newSessionComponent: ({ submit, isRunning }) => {
+        return <div>
+          <Input type="text" placeholder="Enter your location" />
+          <Button type="submit" disabled={isRunning}>Create Session</Button>
+        </div>
+      }
+    }
+  ]
+})
+```
+
+`submit` function takes 2 properties:
+
+| Prop | Description | Type |
+|------|-------------|------|
+| `submit` | A function creates new session with proper metadata | `(values: { metadata?: Record<string, any> }) => void` |
+| `isRunning` | `true` if session is being created | `boolean` |
+
+When you call it and session is created successfully it will redirect user to the session page.
+

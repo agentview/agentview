@@ -3,8 +3,6 @@ title: "How it works?"
 description: "Quick explanation of how AgentView works"
 ---
 
-## What it takes to build an agent?
-
 Imagine you're building a conversational agent, like a customer support chatbot. You want to have full ownership over the AI logic instead of paying for black-box SaaS. Good call!
 
 The first thing you're gonna need is a HTTP endpoint that takes user input and generates AI responses. We call such endpoint a **Chat Endpoint**. Here's an example of the endpoint in TS+Hono:
@@ -19,7 +17,7 @@ app.post('/chat', async (c) => {
 });
 ```
 
-All the AI logic is in a **stateless** `generateResponse` function. Here's an example using OpenAI Responses API:
+We put all the AI logic into a **stateless** function called `generateResponse`. Here's an example of such function using OpenAI Responses API:
 
 ```typescript
 const generateResponse = async (messages: any[]) => {
@@ -36,11 +34,120 @@ const generateResponse = async (messages: any[]) => {
 
 For the demo purposes `generateResponse` is very simple, it's just a single LLM call. In reality all the **AI Engineering** will go there: prompts, tools, RAG, etc.
 
-The core idea behind AgentView is that **you can build your AI logic however you want**. You can use an AI framework like LangGraph, AI SDK, or go vanilla. Actually, your Chat Endpoint can be in Python, Typescript or any other language you prefer. We believe it's too early to say which abstraction layer is the best, so AgentView is **framework- and language-agnostic for the AI part**.
+The core idea behind AgentView is that **you can build your AI logic however you want**. You can use an AI framework like LangGraph, AI SDK, or go vanilla. Actually, your Chat Endpoint can be in Python, Typescript or any other language you prefer.
+
+AgentView solves not an AI part, but "everything around the AI" part.
 
 ### There's a lot of work around your AI logic
 
 Even if you made your AI logic work well enough, there's still *a lot* to do. For example, our Chat Endpoint doesn't provide persistence. If you build a web UI to play with your agent you'll have to store conversation history in `localStorage` and send it all back and forth between the client and the server. Of course, it's not something you want in production.
+
+**AgentView is a hosted backend for conversational agents** that handles such problems for you. Here's how you can add persistence to your Chat Endpoint:
+
+```typescript highlight={8-18, 22-26}
+const av = new AgentView({
+  apiKey: process.env.AGENTVIEW_API_KEY
+})
+
+app.post('/chat', async (c) => {
+  const { session_id, input } = await c.req.json(); 
+
+  const session = session_id ?
+    await av.getSession({ id: session_id }) : 
+    await av.createSession({ agent: "my_agent" });
+
+  const history = session.items;
+
+  const run = await av.createRun({ 
+    sessionId: session.id,
+    items: [input], 
+    version: "0.0.1"
+  });
+
+  const response = await generateResponse([...history, input]);
+
+  await av.updateRun({
+    id: run.id,
+    status: "completed",
+    items: response.output
+  });
+
+  return c.json({
+    session_id: session.id,
+    output: response.output
+  });
+})
+```
+
+We also need to register `my_agent` in the AgentView configuration file:
+
+```typescript
+export default defineConfig({
+  agents: [
+    {
+      name: "my_agent",
+      runs: [
+        {
+          input: {
+            schema: z.object({
+              type: z.literal("message"),
+              role: z.literal("user"),
+              content: z.string(),
+            }),
+          },
+          output: {
+            schema: z.looseObject({
+              type: z.literal("message"),
+              role: z.literal("assistant"),
+              content: z.array(z.object({
+                type: z.literal("output_text"),
+                text: z.string(),
+              })),
+            }),
+          }
+        }
+      ]
+    }
+  ]
+})
+```
+
+This is all you need to add quite a lot of features to your Chat Endpoint:
+1. **Persistence.** The Chat Endpoint is stateful now. It just takes session id and the user input, remembers the entire conversation history and sends it back to the endpoint.
+2. **Validation.** The endpoint is validated against the schema provided by you.
+3. **Locking.** AgentView manages session lifecycle via "Runs". When you create a new run the session is locked until the run is completed. Such mechanism prevents concurrent requests to the same session.
+4. **Multi-session.** Users can easily create new sessions simply by leaving `session_id` empty.
+5. **Versioning**. Every run gets a current agent version, in this case `0.0.1`. If you make a breaking change in your agent and the new version is not semver-compatible, the run will fail. This mechanism protects from continuation of sessions incompatible with new agent versions.
+
+
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+
+
+
 
 Persistence is just one of the problems you need to handle. Here's a full list of things you need to consider:
 

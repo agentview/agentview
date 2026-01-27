@@ -1,0 +1,31 @@
+---
+title: "Run Dialog"
+---
+
+Below each run there's a footer with "Run" button. It displays a dialog with run details. You can customize it by providing `displayProperties` property:
+
+```tsx
+export default defineConfig({
+  agents: [
+    {
+      name: "my_agent",
+      runs: [
+          {
+            displayProperties: [
+              {
+                title: "Input tokens",
+                value: ({ run }) => run?.metadata?.usage?.inputTokens
+              },
+              {
+                title: "Output tokens",
+                value: ({ run }) => run?.metadata?.usage?.outputTokens
+              }
+            ]
+            // ...
+          }
+        }
+      ]
+    }
+  ]
+})
+```

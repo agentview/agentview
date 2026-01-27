@@ -17,7 +17,7 @@
         "tab": "Guides",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Hello",
             "pages": [
               "getting-started/index",
               "getting-started/how-it-works"
@@ -34,7 +34,6 @@
           {
             "group": "Core concepts",
             "pages": [
-              "concepts/architecture-overview",
               "concepts/agents-and-sessions",
               "concepts/items-validation",
               "concepts/users",
@@ -44,9 +43,15 @@
             ]
           },
           {
-            "group": "Studio",
+            "group": "Studio customisation",
             "pages": [
-              "studio/studio"
+              "studio/items",
+              "studio/input",
+              "studio/header",
+              "studio/run-dialog",
+              "studio/new-session",
+              "studio/scores",
+              "studio/custom-pages"
             ]
           }
         ]

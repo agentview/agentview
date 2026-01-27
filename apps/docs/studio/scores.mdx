@@ -1,0 +1,115 @@
+---
+title: "Scores"
+---
+
+Each Session Item can have custom scores. Each score is just a name, schema and custom components for input and display.
+
+{ /* <prompt>
+  - copy apps/examples/typescript-weather-agent/agentview.config.tsx file into following snippet
+  - remove imports, leave only `export default defineConfig({...})` block
+  - add only the import of score types (multiSelect, select)
+  - leave only the output section with scores definitions.
+  - highlight `scores`
+</prompt> */ }
+
+```tsx
+import { select, multiSelect } from "@agentview/studio";
+
+export default defineConfig({
+  agents: [
+    {
+      name: "weather-chat",
+      runs: [
+        {
+          output: {
+            schema: ...,
+            scores: [
+              select({
+                name: "forecast_accuracy",
+                title: "Forecast Accuracy",
+                options: [
+                  { value: "accurate", label: "Accurate", color: Colors.green },
+                  { value: "partially_accurate", label: "Partially Accurate", color: Colors.yellow },
+                  { value: "inaccurate", label: "Inaccurate", color: Colors.red },
+                ]
+              }),
+              multiSelect({
+                name: "style",
+                title: "Style",
+                options: [
+                  { value: "too-long", label: "Too long" },
+                  { value: "too-brief", label: "Too brief" },
+                  { value: "confusing", label: "Confusing" },
+                  { value: "overly-technical", label: "Overly technical" },
+                ]
+              })
+            ]
+          }
+        }
+      ]
+    }
+  ]
+})
+```
+
+`select` and `multiSelect` are handy helpers to build basic scores faster.
+
+You can build your own scores with custom schemas and custom components. Each score is actually just an object with following properties:
+
+| Prop | Description | Type |
+|------|-------------|------|
+| `name` | The name of the score | `string` |
+| `schema` | The schema of the score | `z.ZodSchema` |
+| `inputComponent` | The component to render the input in Scores dialog | `ControlComponent` |
+| `displayComponent` | The component to render the display in Comments section | `React.Component<{ value: any }>` |
+| `actionBarComponent` | The component to render the action bar below the item display component | `ControlComponent` |
+
+### Like Component
+
+Each `output` component by default gets a "Like" score. It's a simple boolean score that is displayed in the action bar below the item display component.
+
+You can disable it by setting `disableLike` property to `true`:
+
+```tsx
+export default defineConfig({
+  agents: [
+    {
+      name: "weather-chat",
+      runs: [
+        {
+          output: {
+            schema: ...,
+            disableLike: true
+          }
+        }
+      ]
+    }
+  ]
+})
+```
+
+If you want to add like to other components than output, you can use `like()` helper:
+
+```tsx
+import { like } from "@agentview/studio";
+
+export default defineConfig({
+  agents: [
+    {
+      name: "weather-chat",
+      runs: [
+        {
+          steps: [
+            {
+              schema: ...,
+              scores: [
+                like()
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+})
+```
