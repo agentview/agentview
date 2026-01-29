@@ -5,6 +5,10 @@ import type { LucideIcon } from "lucide-react";
 import { ArrowRight, BookOpen } from "lucide-react";
 import { cn } from "@agentview/studio/lib/utils";
 
+const EMAIL = "a.r.dabrowski@gmail.com";
+const X_URL = "https://x.com/ardabrowski";
+
+
 export async function clientLoader({ request }: Route.LoaderArgs) {
   const session = await authClient.getSession();
   return { isAuthenticated: !!session.data };
@@ -136,21 +140,19 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
           <span className="inline-block mb-4 px-3 py-1 text-sm font-medium bg-[#C95B37]/10 text-[#C95B37] rounded-full">
             Beta Preview
           </span>
-          <h1 className="text-2xl md:text-4xl lg:text-5xl font-medium tracking-tight max-w-3xl">
-          AgentView is a framework-agnostic UI Studio and backend for teams who build conversational agents in code.
+          <h1 className="text-4xl md:text-5xl lg:text-7xl font-medium tracking-tight ">
+          The “CMS” for agents
           </h1>
           <p className="mt-6 text-xl opacity-66 max-w-lg">
-            Backend + Studio for teams building conversational AI.
-            <br />
-            Without touching your AI code.
+          AgentView is a framework-agnostic UI Studio and backend for teams who build conversational agents in code.
           </p>
           <div className="mt-8 flex items-center gap-4">
-            <Link to="/signup">
+            <Link to="/signup" className="hidden md:block">
               <HeroButton variant="accent" icon={ArrowRight} iconPosition="right">
                 Start building
               </HeroButton>
             </Link>
-            <Link to={import.meta.env.VITE_AGENTVIEW_DOCS_URL} target="_blank">
+            <Link to={import.meta.env.VITE_AGENTVIEW_DOCS_URL}>
               <HeroButton variant="outline" icon={BookOpen}>
                 Read the docs
               </HeroButton>
@@ -201,17 +203,22 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
               Backend is in <span className="font-semibold text-foreground">Beta Preview</span> — free to use with 500 sessions and 5 team members. No credit card required.
               Need more?{" "}
               <a
-                href="mailto:hello@agentview.dev"
+                href={`mailto:${EMAIL}`}
                 className="text-[#C95B37] hover:underline"
               >
                 Just reach out
               </a>
               .
             </p>
-            <div className="mt-8">
-              <Link to="/signup">
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <Link to="/signup" className="hidden md:block">
                 <HeroButton variant="accent" icon={ArrowRight} iconPosition="right">
                   Start building
+                </HeroButton>
+              </Link>
+              <Link to={import.meta.env.VITE_AGENTVIEW_DOCS_URL}>
+                <HeroButton variant="outline" icon={BookOpen}>
+                  Read the docs
                 </HeroButton>
               </Link>
             </div>
@@ -225,7 +232,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
           <p>
             Questions or feedback? Reach the founder on{" "}
             <a
-              href="https://x.com/ardabrowski"
+              href={X_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-foreground/80 hover:text-foreground underline"
@@ -234,7 +241,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
             </a>{" "}
             or{" "}
             <a
-              href="mailto:hello@agentview.dev"
+              href={`mailto:${EMAIL}`}
               className="text-foreground/80 hover:text-foreground underline"
             >
               email
