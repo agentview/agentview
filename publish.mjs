@@ -104,6 +104,9 @@ async function publishPackages(version) {
     process.exit(1);
   }
 
+  // Build packages
+  buildPackages();
+
   // Bump versions
   bumpRootVersion(bumpType, preid);
   const version = await getRootVersion();
@@ -122,7 +125,7 @@ async function publishPackages(version) {
   // process.env.AGENTVIEW_API_IMAGE = preid === "local" ? localTag : versionTag;
 
   // Build packages (should be after AGENTVIEW_API_IMAGE is set, it's used in create-agentview)
-  buildPackages();
+  // buildPackages();
 
   // Publish npm packages
   await publishPackages(version);
