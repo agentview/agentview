@@ -189,31 +189,56 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
         />
 
         {/* Beta Pricing */}
-        <section className="max-w-7xl mx-auto my-24 text-center">
-          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
-            Free during beta
-          </h2>
-          <p className="mt-4 text-foreground/70 max-w-md mx-auto">
-            Get started with 500 sessions and up to 5 team members.
-            <br />
-            Need more?{" "}
-            <a
-              href="mailto:hello@agentview.dev"
-              className="text-[#C95B37] hover:underline"
-            >
-              Reach out
-            </a>
-            .
-          </p>
-          <div className="mt-8">
-            <Link to="/signup">
-              <HeroButton variant="accent" icon={ArrowRight} iconPosition="right">
-                Start building
-              </HeroButton>
-            </Link>
+        <section className="max-w-7xl mx-auto my-32">
+          <div className="bg-white border border-foreground/20 rounded-xl p-12 text-center max-w-xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
+              Free during beta
+            </h2>
+            <p className="mt-4 text-foreground/70">
+              Get started with 500 sessions and up to 5 team members.
+              <br />
+              Need more?{" "}
+              <a
+                href="mailto:hello@agentview.dev"
+                className="text-[#C95B37] hover:underline"
+              >
+                Reach out
+              </a>
+              .
+            </p>
+            <div className="mt-8">
+              <Link to="/signup">
+                <HeroButton variant="accent" icon={ArrowRight} iconPosition="right">
+                  Start building
+                </HeroButton>
+              </Link>
+            </div>
           </div>
         </section>
       </main>
+
+      {/* Footer */}
+      <footer className="py-16 text-center text-base text-foreground/60">
+        <p>
+          We're early. Questions or feedback? Reach the founder on{" "}
+          <a
+            href="https://x.com/ardabrowski"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-foreground/80 hover:text-foreground underline"
+          >
+            X
+          </a>{" "}
+          or{" "}
+          <a
+            href="mailto:hello@agentview.dev"
+            className="text-foreground/80 hover:text-foreground underline"
+          >
+            email
+          </a>
+          .
+        </p>
+      </footer>
     </div>
   );
 }
