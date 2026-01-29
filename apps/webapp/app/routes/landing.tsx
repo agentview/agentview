@@ -136,8 +136,8 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
           <span className="inline-block mb-4 px-3 py-1 text-sm font-medium bg-[#C95B37]/10 text-[#C95B37] rounded-full">
             Beta Preview
           </span>
-          <h1 className="text-5xl md:text-6xl lg:text-6xl font-semibold tracking-tight">
-            The "CMS" for agents
+          <h1 className="text-5xl md:text-6xl lg:text-4xl font-medium tracking-tight max-w-3xl">
+          AgentView is a framework-agnostic UI Studio and backend for teams who build conversational agents in code.
           </h1>
           <p className="mt-6 text-xl opacity-66 max-w-lg">
             Backend + Studio for teams building conversational AI.
