@@ -10,7 +10,7 @@ export async function clientLoader({ request }: Route.LoaderArgs) {
   return { isAuthenticated: !!session.data };
 }
 
-type ButtonVariant = "primary" | "outline" | "pill";
+type ButtonVariant = "primary" | "accent" | "outline";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -33,10 +33,11 @@ function HeroButton({
 
   const variants: Record<ButtonVariant, string> = {
     primary:
+      "bg-neutral-900 text-white hover:bg-neutral-900/90 rounded-full h-10 px-5 text-sm focus:ring-neutral-900",
+    accent:
       "bg-[#C95B37] text-white hover:bg-[#B34E2D] rounded-full h-10 px-5 text-sm focus:ring-[#C95B37]",
     outline:
       "bg-white text-foreground border border-foreground/20 hover:bg-foreground/5 rounded-full h-10 px-5 text-sm focus:ring-foreground/30",
-    pill: "bg-white text-foreground border border-foreground/20 hover:bg-foreground/5 rounded-full h-10 px-5 text-sm focus:ring-foreground/30",
   };
 
   return (
@@ -66,11 +67,11 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
           <nav>
             {isAuthenticated ? (
               <Link to="/dashboard">
-                <HeroButton variant="pill">Dashboard</HeroButton>
+                <HeroButton variant="primary">Dashboard</HeroButton>
               </Link>
             ) : (
               <Link to="/signup">
-                <HeroButton variant="pill">Sign up</HeroButton>
+                <HeroButton variant="primary">Sign up</HeroButton>
               </Link>
             )}
           </nav>
@@ -90,8 +91,8 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
           </p>
           <div className="mt-8 flex items-center gap-4">
             <Link to="/signup">
-              <HeroButton variant="primary" icon={ArrowRight} iconPosition="right">
-                Get Started
+              <HeroButton variant="accent" icon={ArrowRight} iconPosition="right">
+                Start building
               </HeroButton>
             </Link>
             <Link to={import.meta.env.VITE_AGENTVIEW_DOCS_URL} target="_blank">
@@ -104,7 +105,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
 
         {/* Product Screenshot */}
         <section className="max-w-7xl mx-auto px-6 pb-16">
-          <div className="bg-[#1a1a1a] rounded-2xl p-4 md:px-32 py-12 shadow-2xl">
+          <div className="bg-neutral-900 rounded-2xl p-4 md:px-32 py-12 shadow-2xl">
             <img
               src="/main.png"
               alt="AgentView Studio"
