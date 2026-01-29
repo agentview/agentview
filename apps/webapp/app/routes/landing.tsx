@@ -187,6 +187,32 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
           description="It's like Google Docs for your agent data. Share, comment, score, mention, get notified with ease."
           imagePosition="right"
         />
+
+        {/* Beta Pricing */}
+        <section className="max-w-7xl mx-auto my-24 text-center">
+          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
+            Free during beta
+          </h2>
+          <p className="mt-4 text-foreground/70 max-w-md mx-auto">
+            Get started with 500 sessions and up to 5 team members.
+            <br />
+            Need more?{" "}
+            <a
+              href="mailto:hello@agentview.dev"
+              className="text-[#C95B37] hover:underline"
+            >
+              Reach out
+            </a>
+            .
+          </p>
+          <div className="mt-8">
+            <Link to="/signup">
+              <HeroButton variant="accent" icon={ArrowRight} iconPosition="right">
+                Start building
+              </HeroButton>
+            </Link>
+          </div>
+        </section>
       </main>
     </div>
   );
