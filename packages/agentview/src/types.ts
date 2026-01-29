@@ -1,6 +1,6 @@
 import type { RouteObject } from "react-router";
 import type { BaseScoreConfig, BaseSessionItemConfig, BaseAgentConfig, BaseAgentViewConfig, BaseRunConfig } from "./configTypes.js";
-import type { Run, Session, SessionItem } from "./apiTypes.js";
+import type { Run, Session, SessionBase, SessionItem } from "./apiTypes.js";
 import { enhanceSession } from "./sessionUtils.js";
 import { z } from "zod";
 
@@ -91,7 +91,7 @@ export type NewSessionComponentProps = {
 export type NewSessionComponent = React.ComponentType<NewSessionComponentProps>
 
 export type AgentConfig = BaseAgentConfig<RunConfig> & {
-  displayProperties?: DisplayProperty<{ session: Session }>[];
+  displayProperties?: DisplayProperty<{ session: SessionBase }>[];
   newSessionComponent?: NewSessionComponent;
   inputComponent?: AgentInputComponent;
   // run?: RunConfig;
