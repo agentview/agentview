@@ -1,7 +1,7 @@
 {
   "name": "@agentview/monorepo",
   "private": true,
-  "version": "0.1.8",
+  "version": "0.1.9",
   "scripts": {
     "publish": "node ./publish.mjs",
     "db:clear": "pnpm --filter ./apps/api db:clear",
