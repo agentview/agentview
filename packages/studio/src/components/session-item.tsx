@@ -17,7 +17,7 @@ const messageVariants = cva(
                 default:
                     "",
                 fill:
-                    "px-3 py-2 rounded-lg bg-gray-100",
+                    "px-3 py-2 rounded-lg bg-neutral-100",
             }
         },
         defaultVariants: {
@@ -159,7 +159,7 @@ const jsonViewVariants = cva(
         variants: {
             variant: {
                 default:
-                    "p-3 rounded-md bg-gray-50",
+                    "p-3 rounded-md bg-neutral-50",
                 ghost:
                     "",
             }
@@ -185,160 +185,6 @@ export function JSONView({ value, className, ...props }: VariantProps<typeof jso
         {JSON.stringify(value, null, 2)}
     </pre>
 }
-
-
-
-
-
-
-
-
-
-// const itemCardVariants = cva(
-//     "",
-//     {
-//         variants: {
-//             variant: {
-//                 default:
-//                     "",
-//                 outline:
-//                     "px-3 py-2 rounded-lg border",
-//                 fill:
-//                     "px-3 py-2 rounded-lg bg-gray-100",
-//             },
-//             size: {
-//                 default: "text-md",
-//                 sm: "text-sm"
-//             },
-//         },
-//         defaultVariants: {
-//             variant: "default",
-//             size: "default",
-//         },
-//     }
-// )
-
-// type ItemCardVariant = VariantProps<typeof itemCardVariants>["variant"];
-// type ItemCardSize = VariantProps<typeof itemCardVariants>["size"];
-
-
-// const ItemCardContext = React.createContext<{ variant: ItemCardVariant, size: ItemCardSize, collapsible: boolean } | undefined>(undefined);
-
-// export function ItemCard({
-//     variant,
-//     size,
-//     collapsible = false,
-//     defaultOpen = false,
-//     className,
-//     children,
-//     ...props
-// }: VariantProps<typeof itemCardVariants> & React.ComponentProps<"div"> & { collapsible?: boolean, defaultOpen?: boolean }) {
-//     const content = (
-//         <ItemCardContext.Provider value={{ variant, size, collapsible }}>
-//             <div className={cn(itemCardVariants({ variant, size }), className)} {...props}>
-//                 {children}
-//             </div>
-//         </ItemCardContext.Provider>
-//     );
-
-//     if (collapsible) {
-//         return <Collapsible defaultOpen={defaultOpen} className="group">{content}</Collapsible>;
-//     }
-
-//     return content;
-// }
-
-// export function ItemCardTitle({ className, children, ...props }: React.ComponentProps<"div">) {
-//     const context = React.useContext(ItemCardContext);
-//     const size = context?.size ?? "default";
-//     const collapsible = context?.collapsible ?? false;
-
-//     const content = (
-//         <div
-//             className={cn(
-//                 "text-muted-foreground font-normal flex items-center",
-//                 size === "sm" ? "gap-1" : "gap-1.5",
-//                 collapsible
-//                     ? (size === "sm" ? "group-data-[state=open]:mb-1" : "group-data-[state=open]:mb-0.5")
-//                     : (size === "sm" ? "mb-1" : "mb-0.5"),
-//                 "[&_svg]:pointer-events-none [&_svg]:shrink-0",
-//                 size === "sm" ? "[&_svg:not([class*='size-'])]:size-3" : "[&_svg:not([class*='size-'])]:size-4",
-//                 collapsible && "cursor-pointer select-none",
-//                 className
-//             )}
-//             {...props}
-//         >
-//             {children}
-//             {collapsible && (
-//                 <ChevronDownIcon className={cn(
-//                     "ml-auto transition-transform duration-200",
-//                     size === "sm" ? "size-3" : "size-4",
-//                     "group-data-[state=open]:rotate-[-180deg]"
-//                 )} />
-//             )}
-//         </div>
-//     );
-
-//     if (collapsible) {
-//         return <CollapsibleTrigger asChild>{content}</CollapsibleTrigger>;
-//     }
-
-//     return content;
-// }
-
-// export function ItemCardContent({ className, children, ...props }: React.ComponentProps<"div"> & { children: React.ReactNode }) {
-//     const context = React.useContext(ItemCardContext);
-//     const collapsible = context?.collapsible ?? false;
-
-//     const content = <div className={cn("", className)} {...props}>
-//         {children}
-//     </div>;
-
-//     if (collapsible) {
-//         return <CollapsibleContent>{content}</CollapsibleContent>;
-//     }
-
-//     return content;
-// }
-
-// // export function ItemCardMarkdown({ text, className, ...props }: { text: string, className?: string } & React.ComponentProps<"div">) {
-// //     const context = React.useContext(ItemCardContext);
-// //     const size = context?.size ?? "default";
-
-// //     return <div
-// //         className={cn("prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-foreground", size === "sm" ? "text-sm" : "text-md", className)}
-// //         {...props}
-// //         dangerouslySetInnerHTML={{ __html: marked.parse(text, { async: false }) }}
-// //     ></div>
-// // }
-
-// export function ItemCardMarkdown({ text, className, ...props }: { text: string, className?: string } & React.ComponentProps<"div">) {
-//     const context = React.useContext(ItemCardContext);
-//     const size = context?.size ?? "default";
-
-//     return <div
-//         className={cn("prose prose-ul:list-disc prose-ol:list-decimal prose-a:underline text-foreground", size === "sm" ? "text-sm" : "text-md", className)}
-
-//         {...props}
-//         dangerouslySetInnerHTML={{ __html: marked.parse(text, { async: false }) }}
-//     ></div>
-// }
-
-// export function ItemCardJSON({ value, className, ...props }: { value: any, className?: string } & React.ComponentProps<"pre">) {
-//     const context = React.useContext(ItemCardContext);
-//     const variant = context?.variant ?? "default";
-//     const size = context?.size ?? "default";
-
-//     return <pre className={cn(
-//         "overflow-x-scroll bg-gray-50 m-0",
-//         variant === "fill" ? "" : "p-3 rounded-md",
-//         size === "sm" ? "text-xs" : "text-sm",
-//         className)}
-//         {...props}
-//     >
-//         {JSON.stringify(value, null, 2)}
-//     </pre>
-// }
 
 
 export function AutoContent({ children }: { children: React.ReactNode }) {

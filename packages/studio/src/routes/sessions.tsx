@@ -170,32 +170,32 @@ export function SessionCard({ session, listParams, sessionStats }: { session: Se
   return <div key={session.id}>
     <NavLink to={`/sessions/${session.id}?${toQueryParams(listParams)}`}>
       {({ isActive, isPending }) => (
-        <div className={`p-3 border-b hover:bg-gray-50 transition-colors duration-50 ${isActive ? 'bg-gray-100' : ''}`}>
+        <div className={`p-3 border-b hover:bg-neutral-50 transition-colors duration-50 ${isActive ? 'bg-neutral-100' : ''}`}>
           <div className="flex flex-col gap-1">
 
             <div className="flex flex-row gap-1 justify-between">
 
               <div className="flex flex-row gap-2 items-center">
-                { !author && <MessageCircle className="size-4 text-gray-500" />}
+                { !author && <MessageCircle className="size-4 text-neutral-500" />}
                 { author && <UserAvatar image={author?.user.image} className="flex-shrink-0" size="sm" />}
 
                 <div className={`text-sm ${hasUnreads ? 'font-semibold' : 'font-normal'}`}>
                   Session {session.handle}
                 </div>
 
-                {/* {isPending && <Loader2 className="size-3 animate-spin text-gray-500" />} */}
+                {/* {isPending && <Loader2 className="size-3 animate-spin text-neutral-500" />} */}
 
               </div>
 
               <div className="flex flex-row gap-1 items-center">
-                <div className="text-xs text-gray-500">{timeAgoShort(date)}</div>
+                <div className="text-xs text-neutral-500">{timeAgoShort(date)}</div>
                 {itemsMentionsCount > 0 && <NotificationBadge>@</NotificationBadge>}
                 {itemsMentionsCount === 0 && itemsEventsCount > 0 && <NotificationDot />}
               </div>
 
             </div>
-            { session.summary && <div className="text-sm truncate  text-gray-600">{session.summary}</div> }
-            {/* <div className="text-xs text-gray-500 mt-1">0.0.1-dev</div> */}
+            { session.summary && <div className="text-sm truncate  text-neutral-600">{session.summary}</div> }
+            {/* <div className="text-xs text-neutral-500 mt-1">0.0.1-dev</div> */}
           </div>
         </div>
       )}

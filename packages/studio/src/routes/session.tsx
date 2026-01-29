@@ -7,7 +7,7 @@ import { AlertCircleIcon, ChevronDown, CircleGauge, InfoIcon, Loader2, MessageCi
 import { useEffect, useLayoutEffect, useOptimistic, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { LoaderFunctionArgs, RouteObject } from "react-router";
-import { Await, data, Link, Outlet, useFetcher, useLoaderData, useNavigate, useOutletContext, useRevalidator } from "react-router";
+import { data, Link, Outlet, useFetcher, useLoaderData, useNavigate, useOutletContext, useRevalidator } from "react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 import { DisplayProperties } from "../components/DisplayProperties";
@@ -17,7 +17,6 @@ import { ErrorBoundary } from "../components/internal/ErrorBoundary";
 import { AVFormField } from "../components/internal/form";
 import { ItemsWithCommentsLayout } from "../components/internal/ItemsWithCommentsLayout";
 import { Loader } from "../components/internal/Loader";
-import { Skeleton } from "../components/ui/skeleton";
 import { Pill } from "../components/Pill";
 import { PropertyList, PropertyListItem, PropertyListTextValue, PropertyListTitle } from "../components/PropertyList";
 import { AssistantMessage, Step, StepContent, StepTitle, UserMessage } from "../components/session-item";

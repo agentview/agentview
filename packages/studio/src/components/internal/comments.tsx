@@ -290,7 +290,7 @@ export function CommentsThread({ session, item, itemConfig, selected = false, on
     }, []);
 
     return (
-        <div ref={containerRef} className={`rounded-lg ${selected ? "bg-white border" : "bg-gray-50"}`} data-comment={true} onClick={(e) => {
+        <div ref={containerRef} className={`rounded-lg ${selected ? "bg-white border" : "bg-neutral-50"}`} data-comment={true} onClick={(e) => {
             if (!selected) {
                 onSelect(item)
             }
@@ -321,7 +321,7 @@ export function CommentMessageHeader({ title, subtitle, actions, singleLineMessa
                 <div className="text-sm font-medium">
                     {title}
                 </div>
-                <div className="text-xs text-gray-400">
+                <div className="text-xs text-neutral-400">
                     {subtitle}
                 </div>
             </div>
@@ -332,7 +332,7 @@ export function CommentMessageHeader({ title, subtitle, actions, singleLineMessa
     return <div className="flex items-center gap-2 mb-1">
         {/* Thumbnail */}
         <div
-            className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0"
+            className="w-8 h-8 rounded-full bg-neutral-300 flex-shrink-0"
             style={{ width: 32, height: 32 }}
         />
         <div className="flex-1">
@@ -341,7 +341,7 @@ export function CommentMessageHeader({ title, subtitle, actions, singleLineMessa
                     <div className="text-sm font-medium ">
                         {title}
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-neutral-400">
                         {subtitle}
                     </div>
                 </div>

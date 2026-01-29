@@ -44,7 +44,7 @@ const PropertyListTitle: React.FC<PropertyListTitleProps> = ({
   className,
 }) => {
   return (
-    <span className={cn("text-sm text-gray-600 w-[160px] flex-shrink-0 truncate", className)}>
+    <span className={cn("text-sm text-neutral-600 w-[160px] flex-shrink-0 truncate", className)}>
       {children}
     </span>
   );
@@ -60,7 +60,7 @@ const PropertyListTextValue: React.FC<PropertyListTextValueProps> = ({
     <span className={cn(
       "text-sm",
       isMonospace && "font-mono",
-      isMuted && "text-gray-400",
+      isMuted && "text-neutral-400",
       className
     )}>
       {children}

@@ -37,7 +37,7 @@ export function AVFormField<TInput = any, TOutput = TInput>(props: AVFormFieldPr
             if (variant === "row") {
                 return <FormItem className="flex flex-row gap-4 items-start space-y-0">
                     {props.label && (
-                        <FormLabel className="text-sm text-gray-600 w-[160px] flex-shrink-0 pt-1.5 truncate">
+                        <FormLabel className="text-sm text-neutral-600 w-[160px] flex-shrink-0 pt-1.5 truncate">
                             {props.label}
                         </FormLabel>
                     )}

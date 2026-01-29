@@ -77,7 +77,7 @@ export function ItemsWithCommentsLayoutTest() {
                                     e.stopPropagation();
                                     handleHeightChange(item.id, false);
                                 }}
-                                className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 text-xs font-bold flex items-center justify-center"
+                                className="w-6 h-6 rounded bg-neutral-200 hover:bg-neutral-300 text-xs font-bold flex items-center justify-center"
                                 disabled={item.comments.height <= 100}
                             >
                                 -
@@ -87,7 +87,7 @@ export function ItemsWithCommentsLayoutTest() {
                                     e.stopPropagation();
                                     handleHeightChange(item.id, true);
                                 }}
-                                className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 text-xs font-bold flex items-center justify-center"
+                                className="w-6 h-6 rounded bg-neutral-200 hover:bg-neutral-300 text-xs font-bold flex items-center justify-center"
                             >
                                 +
                             </button>

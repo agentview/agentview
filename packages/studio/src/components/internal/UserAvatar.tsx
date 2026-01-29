@@ -12,7 +12,7 @@ const sizeMap = {
     }
 }
 
-const defaultColor = "var(--color-gray-100)";
+const defaultColor = "var(--color-neutral-100)";
 
 export function UserAvatar({ image, className, size = "md" }: { image: string | undefined | null, className?: string, size?: "sm" | "md" }) {
     let color = defaultColor;

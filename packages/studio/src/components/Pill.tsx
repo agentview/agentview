@@ -27,7 +27,7 @@ function Pill({
   return (
     <div
       className={cn(pillVariants({ size, className }))}
-      style={{ backgroundColor: color ?? "var(--color-gray-200)" }}
+      style={{ backgroundColor: color ?? "var(--color-neutral-200)" }}
       {...props}
     />
   )
