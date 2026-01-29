@@ -144,7 +144,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
           The “CMS” for agents
           </h1>
           <p className="mt-6 text-xl opacity-66 max-w-lg">
-          AgentView is a framework-agnostic UI Studio and backend for teams who build conversational agents in code.
+          Framework-agnostic UI Studio and backend for conversational agents built with code.
           </p>
           <div className="mt-8 flex items-center gap-4">
             <Link to="/signup" className="hidden md:block">
