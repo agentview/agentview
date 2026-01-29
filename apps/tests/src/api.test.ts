@@ -377,7 +377,7 @@ describe('API', () => {
       const CONFIG = { agents: [], __internal: { disableSummaries: true } };
       const CONFIG_WITH_ANIMAL = { ...CONFIG, animal: "dog" };
 
-      let environment = await av.updateEnvironment({ config: CONFIG_WITH_ANIMAL})
+      let environment = await av.updateEnvironment({ config: CONFIG_WITH_ANIMAL })
       expect(environment.config).toEqual(CONFIG);
 
       environment = await av.getEnvironment();
@@ -977,1183 +977,1112 @@ describe('API', () => {
       })
     })
 
-  //   describe("comments and scores endpoints", () => {
-  //     let testSession: Session
-  //     let testRun: Run
-  //     const commentsAgentName = 'agent-for-testing-comments';
+    //   describe("comments and scores endpoints", () => {
+    //     let testSession: Session
+    //     let testRun: Run
+    //     const commentsAgentName = 'agent-for-testing-comments';
 
-  //     beforeAll(async () => {
-  //       await av.updateEnvironment({
-  //         config: {
-  //           agents: [{
-  //             name: commentsAgentName,
-  //             runs: [{
-  //               input: { schema: z.looseObject({ type: z.literal("input") }) },
-  //               output: { schema: z.looseObject({ type: z.literal("output") }) },
-  //             }]
-  //           }]
-  //         }
-  //       })
-  //       testSession = await av.createSession({ agent: commentsAgentName, userId: initUser1.id })
-  //       testRun = await av.createRun({
-  //         sessionId: testSession.id,
-  //         version: '1.0.0',
-  //         items: [
-  //           { type: 'input' },
-  //           { type: 'output' }
-  //         ],
-  //         status: 'completed'
-  //       })
-  //       // Refresh session to get items
-  //       testSession = await av.getSession({ id: testSession.id })
-  //     })
+    //     beforeAll(async () => {
+    //       await av.updateEnvironment({
+    //         config: {
+    //           agents: [{
+    //             name: commentsAgentName,
+    //             runs: [{
+    //               input: { schema: z.looseObject({ type: z.literal("input") }) },
+    //               output: { schema: z.looseObject({ type: z.literal("output") }) },
+    //             }]
+    //           }]
+    //         }
+    //       })
+    //       testSession = await av.createSession({ agent: commentsAgentName, userId: initUser1.id })
+    //       testRun = await av.createRun({
+    //         sessionId: testSession.id,
+    //         version: '1.0.0',
+    //         items: [
+    //           { type: 'input' },
+    //           { type: 'output' }
+    //         ],
+    //         status: 'completed'
+    //       })
+    //       // Refresh session to get items
+    //       testSession = await av.getSession({ id: testSession.id })
+    //     })
 
-  //     test("getSessionComments returns empty array for session without comments", async () => {
-  //       const comments = await av.getSessionComments(testSession.id)
-  //       expect(comments).toEqual([])
-  //     })
+    //     test("getSessionComments returns empty array for session without comments", async () => {
+    //       const comments = await av.getSessionComments(testSession.id)
+    //       expect(comments).toEqual([])
+    //     })
 
-  //     test("getSessionScores returns empty array for session without scores", async () => {
-  //       const scores = await av.getSessionScores(testSession.id)
-  //       expect(scores).toEqual([])
-  //     })
+    //     test("getSessionScores returns empty array for session without scores", async () => {
+    //       const scores = await av.getSessionScores(testSession.id)
+    //       expect(scores).toEqual([])
+    //     })
 
-  //     test("getSessionComments returns 404 for non-existent session", async () => {
-  //       await expect(av.getSessionComments('00000000-0000-0000-0000-000000000000')).rejects.toThrowError(expect.objectContaining({
-  //         statusCode: 404,
-  //         message: expect.any(String),
-  //       }))
-  //     })
+    //     test("getSessionComments returns 404 for non-existent session", async () => {
+    //       await expect(av.getSessionComments('00000000-0000-0000-0000-000000000000')).rejects.toThrowError(expect.objectContaining({
+    //         statusCode: 404,
+    //         message: expect.any(String),
+    //       }))
+    //     })
 
-  //     test("getSessionScores returns 404 for non-existent session", async () => {
-  //       await expect(av.getSessionScores('00000000-0000-0000-0000-000000000000')).rejects.toThrowError(expect.objectContaining({
-  //         statusCode: 404,
-  //         message: expect.any(String),
-  //       }))
-  //     })
+    //     test("getSessionScores returns 404 for non-existent session", async () => {
+    //       await expect(av.getSessionScores('00000000-0000-0000-0000-000000000000')).rejects.toThrowError(expect.objectContaining({
+    //         statusCode: 404,
+    //         message: expect.any(String),
+    //       }))
+    //     })
 
-  //     test("getSession does not include commentMessages or scores on session items", async () => {
-  //       const session = await av.getSession({ id: testSession.id })
-  //       // After the refactor, session items should not have commentMessages or scores
-  //       for (const run of session.runs) {
-  //         for (const item of run.sessionItems) {
-  //           expect((item as any).commentMessages).toBeUndefined()
-  //           expect((item as any).scores).toBeUndefined()
-  //         }
-  //       }
-  //     })
-  //   })
-  // })
+    //     test("getSession does not include commentMessages or scores on session items", async () => {
+    //       const session = await av.getSession({ id: testSession.id })
+    //       // After the refactor, session items should not have commentMessages or scores
+    //       for (const run of session.runs) {
+    //         for (const item of run.sessionItems) {
+    //           expect((item as any).commentMessages).toBeUndefined()
+    //           expect((item as any).scores).toBeUndefined()
+    //         }
+    //       }
+    //     })
+    //   })
+    // })
 
 
-  describe("runs", () => {
-    test("creating run with non-existing sessionId", async () => {
-      await updateConfig()
+    describe("runs", () => {
+      test("creating run with non-existing sessionId", async () => {
+        await updateConfig()
 
-      await expect(av.createRun({ sessionId: 'non-existing', items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 404,
-        message: expect.any(String),
-      }))
-    })
+        await expect(av.createRun({ sessionId: 'non-existing', items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 404,
+          message: expect.any(String),
+        }))
+      })
 
-    test("updating run with non-existing run id", async () => {
-      await updateConfig()
+      test("updating run with non-existing run id", async () => {
+        await updateConfig()
 
-      await expect(av.updateRun({ id: 'non-existing', items: [baseOutput] })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 404,
-        message: expect.any(String),
-      }))
-    })
+        await expect(av.updateRun({ id: 'non-existing', items: [baseOutput] })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 404,
+          message: expect.any(String),
+        }))
+      })
 
-    test("creating run without items", async () => {
-      await updateConfig()
-      const session = await createSession()
+      test("creating run without items", async () => {
+        await updateConfig()
+        const session = await createSession()
 
-      await expect(av.createRun({ sessionId: session.id, items: [], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 422,
-        message: expect.any(String),
-      }))
-    })
+        await expect(av.createRun({ sessionId: session.id, items: [], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 422,
+          message: expect.any(String),
+        }))
+      })
 
-    test("new run defaults to in_progress status", async () => {
-      await updateConfig()
-      const session = await createSession()
+      test("new run defaults to in_progress status", async () => {
+        await updateConfig()
+        const session = await createSession()
 
-      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-      expect(run.status).toBe("in_progress")
-    })
+        const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+        expect(run.status).toBe("in_progress")
+      })
 
-    test("cannot create new run while previous is in progress", async () => {
-      await updateConfig()
-      const session = await createSession()
+      test("cannot create new run while previous is in progress", async () => {
+        await updateConfig()
+        const session = await createSession()
 
-      await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-      await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 422,
-        message: expect.any(String),
-      }))
-    })
+        await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+        await expect(av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 422,
+          message: expect.any(String),
+        }))
+      })
 
-    /** 
-     * RUN STATES TESTS 
-     * 
-     * This is automated set of test cases where we test different scenarios of runs.
-     **/
+      /** 
+       * RUN STATES TESTS 
+       * 
+       * This is automated set of test cases where we test different scenarios of runs.
+       **/
 
-    // TODO: Better error messages from bad matches!!!
+      // TODO: Better error messages from bad matches!!!
 
-    const baseTestCases: Array<{ title: string, scenarios: any[], lastRunStatus: ("in_progress" | "completed" | "failed" | undefined)[], error?: number | null, validateSteps?: boolean, strictMatching?: boolean, only?: boolean }> = [
-      {
-        title: "just input & output",
-        scenarios: [
-          [[baseInput, baseOutput]],
-          [[baseInput], [baseOutput]]
-        ],
-        lastRunStatus: ["completed", "failed"],
-        error: null
-      },
-      {
-        title: "input, 2 items, output",
-        scenarios: [
-          [[baseInput, baseStep, baseStep, baseOutput]],
-          [[baseInput], [baseStep], [baseStep], [baseOutput]],
-          [[baseInput], [baseStep, baseStep], [baseOutput]],
-          [[baseInput], [baseStep, baseStep, baseOutput]],
-        ],
-        lastRunStatus: ["completed", "failed", undefined], // in_progress (undefined) doesn't throw because we don't validate steps -> therefore output can be treated as step. 
-        error: null
-      },
-      {
-        title: "input, 2 items, output",
-        scenarios: [
-          [[baseInput, baseStep, baseStep, baseOutput]],
-          [[baseInput], [baseStep], [baseStep], [baseOutput]],
-          [[baseInput], [baseStep, baseStep], [baseOutput]],
-          [[baseInput], [baseStep, baseStep, baseOutput]],
-        ],
-        lastRunStatus: [undefined],
-        validateSteps: true,
-        error: 422,
-      },
-      {
-        title: "input, 2 steps, no output",
-        scenarios: [
-          [[baseInput, baseStep, baseStep]],
-          [[baseInput], [baseStep], [baseStep]],
-          [[baseInput], [baseStep, baseStep]],
-        ],
-        lastRunStatus: ["failed"],
-        error: null
-      },
-      {
-        title: "input, 2 items, no output",
-        scenarios: [
-          [[baseInput, baseStep, baseStep]],
-          [[baseInput], [baseStep], [baseStep]],
-          [[baseInput], [baseStep, baseStep]],
-        ],
-        lastRunStatus: ["completed"],
-        error: 422
-      },
-      {
-        title: "single item",
-        scenarios: [
-          [[baseInput]],
-        ],
-        lastRunStatus: ["completed"],
-        error: 422
-      },
-      {
-        title: "single item",
-        scenarios: [
-          [[baseInput]],
-        ],
-        lastRunStatus: ["failed"],
-        error: null
-      },
+      const baseTestCases: Array<{ title: string, scenarios: any[], lastRunStatus: ("in_progress" | "completed" | "failed" | undefined)[], error?: number | null, validateSteps?: boolean, strictMatching?: boolean, only?: boolean }> = [
+        {
+          title: "just input & output",
+          scenarios: [
+            [[baseInput, baseOutput]],
+            [[baseInput], [baseOutput]]
+          ],
+          lastRunStatus: ["completed", "failed"],
+          error: null
+        },
+        {
+          title: "input, 2 items, output",
+          scenarios: [
+            [[baseInput, baseStep, baseStep, baseOutput]],
+            [[baseInput], [baseStep], [baseStep], [baseOutput]],
+            [[baseInput], [baseStep, baseStep], [baseOutput]],
+            [[baseInput], [baseStep, baseStep, baseOutput]],
+          ],
+          lastRunStatus: ["completed", "failed", undefined], // in_progress (undefined) doesn't throw because we don't validate steps -> therefore output can be treated as step. 
+          error: null
+        },
+        {
+          title: "input, 2 items, output",
+          scenarios: [
+            [[baseInput, baseStep, baseStep, baseOutput]],
+            [[baseInput], [baseStep], [baseStep], [baseOutput]],
+            [[baseInput], [baseStep, baseStep], [baseOutput]],
+            [[baseInput], [baseStep, baseStep, baseOutput]],
+          ],
+          lastRunStatus: [undefined],
+          validateSteps: true,
+          error: 422,
+        },
+        {
+          title: "input, 2 steps, no output",
+          scenarios: [
+            [[baseInput, baseStep, baseStep]],
+            [[baseInput], [baseStep], [baseStep]],
+            [[baseInput], [baseStep, baseStep]],
+          ],
+          lastRunStatus: ["failed"],
+          error: null
+        },
+        {
+          title: "input, 2 items, no output",
+          scenarios: [
+            [[baseInput, baseStep, baseStep]],
+            [[baseInput], [baseStep], [baseStep]],
+            [[baseInput], [baseStep, baseStep]],
+          ],
+          lastRunStatus: ["completed"],
+          error: 422
+        },
+        {
+          title: "single item",
+          scenarios: [
+            [[baseInput]],
+          ],
+          lastRunStatus: ["completed"],
+          error: 422
+        },
+        {
+          title: "single item",
+          scenarios: [
+            [[baseInput]],
+          ],
+          lastRunStatus: ["failed"],
+          error: null
+        },
 
-      // Validation
-      {
-        title: "loose matching -> extra fields saved",
-        scenarios: [
-          [[baseInputExt, baseStepExt, baseStepExt, baseOutputExt]],
-          [[baseInputExt], [baseStepExt], [baseStepExt], [baseOutputExt]],
-          [[baseInputExt], [baseStepExt, baseStepExt], [baseOutputExt]],
-          [[baseInputExt], [baseStepExt, baseStepExt, baseOutputExt]],
-        ],
-        lastRunStatus: ["completed", "failed"],
-        error: null
-      },
-      {
-        title: "strict matching -> extra fields trimmed",
-        strictMatching: true,
-        scenarios: [
-          [[baseInputExt, baseOutputExt]],
-          [[baseInput], [baseStep, baseStep], [baseOutputExt]],
-          [[baseInput, baseStep, baseStep, baseOutputExt]],
-        ],
-        lastRunStatus: ["completed"],
-        error: null
-      },
-      {
-        title: "incorrect input item",
-        scenarios: [
-          [[wrongInput]],
-          [[wrongInput, baseStep]],
-          [[wrongInput, baseStep, baseStep, baseOutput]]
-        ],
-        lastRunStatus: ["completed", "failed"],
-        error: 422
-      },
-      {
-        title: "incorrect output item",
-        scenarios: [
-          [[baseInput, baseStep, wrongOutput]],
-          [[baseInput], [baseStep], [wrongOutput]],
-          [[baseInput], [baseStep, wrongOutput]],
-        ],
-        lastRunStatus: ["completed"],
-        error: 422
-      },
-      {
-        title: "incorrect output item",
-        scenarios: [
-          [[baseInput, baseStep, wrongOutput]],
-          [[baseInput], [baseStep], [wrongOutput]],
-          [[baseInput], [baseStep, wrongOutput]],
-        ],
-        lastRunStatus: ["failed"],
-        error: null // when there is no step validation and status becomes "failed", we don't know if the last item was output or step
-      },
-      {
-        title: "incorrect step item, validateSteps=false",
-        scenarios: [
-          [[baseInput, baseStep, wrongStep]],
-          [[baseInput], [baseStep], [wrongStep]],
-          [[baseInput], [baseStep, wrongStep]],
-        ],
-        // validateSteps: false -> default
-        lastRunStatus: [undefined],
-        error: null,
-      },
-      {
-        title: "incorrect step item, validateSteps=true",
-        scenarios: [
-          [[baseInput, baseStep, wrongStep]],
-          [[baseInput], [baseStep], [wrongStep]],
-          [[baseInput], [baseStep, wrongStep]],
-        ],
-        validateSteps: true,
-        lastRunStatus: [undefined],
-        error: 422,
-      },
-      // Tool calls validation
-      {
-        title: "tool calls, correct call, sequential",
-        scenarios: [
-          [[baseInput, fun1Call("xxx"), funResult("xxx"), baseOutput]],
-          [[baseInput, fun1Call("xxx"), funResult("xxx"), fun2Call("yyy"), funResult("yyy"), baseOutput]],
-          [[baseInput], [fun1Call("id1")], [funResult("id1")], [fun2Call("id2")], [funResult("id2")], [baseOutput]],
-          [[baseInput], [fun1Call("id1")], [funResult("id1"), fun2Call("id2")], [funResult("id2"), baseOutput]],
-        ],
-        validateSteps: true,
-        lastRunStatus: ["completed", "failed"],
-        error: null,
-      },
-      {
-        title: "tool calls, correct call, paralell",
-        scenarios: [
-          [[baseInput, fun1Call("1"), fun2Call("2"), fun1Call("3"), funResult("3"), funResult("1"), funResult("2"), baseOutput]],
-        ],
-        validateSteps: true,
-        lastRunStatus: ["completed", "failed"],
-        error: null,
-      },
-      {
-        title: "tool calls, not matching result",
-        scenarios: [
-          [[baseInput, funResult("xxx")]],
-          [[baseInput], [funResult("xxx")]],
+        // Validation
+        {
+          title: "loose matching -> extra fields saved",
+          scenarios: [
+            [[baseInputExt, baseStepExt, baseStepExt, baseOutputExt]],
+            [[baseInputExt], [baseStepExt], [baseStepExt], [baseOutputExt]],
+            [[baseInputExt], [baseStepExt, baseStepExt], [baseOutputExt]],
+            [[baseInputExt], [baseStepExt, baseStepExt, baseOutputExt]],
+          ],
+          lastRunStatus: ["completed", "failed"],
+          error: null
+        },
+        {
+          title: "strict matching -> extra fields trimmed",
+          strictMatching: true,
+          scenarios: [
+            [[baseInputExt, baseOutputExt]],
+            [[baseInput], [baseStep, baseStep], [baseOutputExt]],
+            [[baseInput, baseStep, baseStep, baseOutputExt]],
+          ],
+          lastRunStatus: ["completed"],
+          error: null
+        },
+        {
+          title: "incorrect input item",
+          scenarios: [
+            [[wrongInput]],
+            [[wrongInput, baseStep]],
+            [[wrongInput, baseStep, baseStep, baseOutput]]
+          ],
+          lastRunStatus: ["completed", "failed"],
+          error: 422
+        },
+        {
+          title: "incorrect output item",
+          scenarios: [
+            [[baseInput, baseStep, wrongOutput]],
+            [[baseInput], [baseStep], [wrongOutput]],
+            [[baseInput], [baseStep, wrongOutput]],
+          ],
+          lastRunStatus: ["completed"],
+          error: 422
+        },
+        {
+          title: "incorrect output item",
+          scenarios: [
+            [[baseInput, baseStep, wrongOutput]],
+            [[baseInput], [baseStep], [wrongOutput]],
+            [[baseInput], [baseStep, wrongOutput]],
+          ],
+          lastRunStatus: ["failed"],
+          error: null // when there is no step validation and status becomes "failed", we don't know if the last item was output or step
+        },
+        {
+          title: "incorrect step item, validateSteps=false",
+          scenarios: [
+            [[baseInput, baseStep, wrongStep]],
+            [[baseInput], [baseStep], [wrongStep]],
+            [[baseInput], [baseStep, wrongStep]],
+          ],
+          // validateSteps: false -> default
+          lastRunStatus: [undefined],
+          error: null,
+        },
+        {
+          title: "incorrect step item, validateSteps=true",
+          scenarios: [
+            [[baseInput, baseStep, wrongStep]],
+            [[baseInput], [baseStep], [wrongStep]],
+            [[baseInput], [baseStep, wrongStep]],
+          ],
+          validateSteps: true,
+          lastRunStatus: [undefined],
+          error: 422,
+        },
+        // Tool calls validation
+        {
+          title: "tool calls, correct call, sequential",
+          scenarios: [
+            [[baseInput, fun1Call("xxx"), funResult("xxx"), baseOutput]],
+            [[baseInput, fun1Call("xxx"), funResult("xxx"), fun2Call("yyy"), funResult("yyy"), baseOutput]],
+            [[baseInput], [fun1Call("id1")], [funResult("id1")], [fun2Call("id2")], [funResult("id2")], [baseOutput]],
+            [[baseInput], [fun1Call("id1")], [funResult("id1"), fun2Call("id2")], [funResult("id2"), baseOutput]],
+          ],
+          validateSteps: true,
+          lastRunStatus: ["completed", "failed"],
+          error: null,
+        },
+        {
+          title: "tool calls, correct call, paralell",
+          scenarios: [
+            [[baseInput, fun1Call("1"), fun2Call("2"), fun1Call("3"), funResult("3"), funResult("1"), funResult("2"), baseOutput]],
+          ],
+          validateSteps: true,
+          lastRunStatus: ["completed", "failed"],
+          error: null,
+        },
+        {
+          title: "tool calls, not matching result",
+          scenarios: [
+            [[baseInput, funResult("xxx")]],
+            [[baseInput], [funResult("xxx")]],
 
-          [[baseInput, fun1Call("xxx"), funResult("xxx_different")]],
-          [[baseInput], [fun1Call("xxx")], [funResult("xxx_different")]],
-        ],
-        validateSteps: true,
-        lastRunStatus: [undefined],
-        error: 422,
-      },
-    ]
+            [[baseInput, fun1Call("xxx"), funResult("xxx_different")]],
+            [[baseInput], [fun1Call("xxx")], [funResult("xxx_different")]],
+          ],
+          validateSteps: true,
+          lastRunStatus: [undefined],
+          error: 422,
+        },
+      ]
 
-    for (const testCase of baseTestCases) {
-      let counter = 0;
-      for (const scenario of testCase.scenarios) {
-        counter++;
+      for (const testCase of baseTestCases) {
+        let counter = 0;
+        for (const scenario of testCase.scenarios) {
+          counter++;
 
-        for (const lastRunStatus of testCase.lastRunStatus) {
-          const title = `${testCase.title} / scenario ${counter} / ${lastRunStatus} -> ${testCase.error ? `error ${testCase.error}` : "ok"}`
+          for (const lastRunStatus of testCase.lastRunStatus) {
+            const title = `${testCase.title} / scenario ${counter} / ${lastRunStatus} -> ${testCase.error ? `error ${testCase.error}` : "ok"}`
 
-          const testFn = testCase.only ? test.only : test;
+            const testFn = testCase.only ? test.only : test;
 
-          testFn(title, async () => {
-            await updateConfig({ strictMatching: testCase.strictMatching, validateSteps: testCase.validateSteps });
+            testFn(title, async () => {
+              await updateConfig({ strictMatching: testCase.strictMatching, validateSteps: testCase.validateSteps });
 
-            const session = await createSession()
+              const session = await createSession()
 
-            let run: Run | undefined;
-            let expected_history: any[] = [];
+              let run: Run | undefined;
+              let expected_history: any[] = [];
 
-            for (const iteration of scenario) {
-              const isLast = iteration === scenario[scenario.length - 1];
-              const isFirst = iteration === scenario[0];
+              for (const iteration of scenario) {
+                const isLast = iteration === scenario[scenario.length - 1];
+                const isFirst = iteration === scenario[0];
 
-              let expectedStatus: string;
-              let expectedHasFinishedAt: boolean;
-              let promise: any;
+                let expectedStatus: string;
+                let expectedHasFinishedAt: boolean;
+                let promise: any;
 
-              if (isFirst && isLast) {
-                promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status: lastRunStatus });
-                expectedStatus = lastRunStatus ?? "in_progress";
-                expectedHasFinishedAt = expectedStatus !== "in_progress";
-              } else if (isLast) {
-                promise = av.updateRun({ id: run!.id, items: iteration, status: lastRunStatus })
-                expectedStatus = lastRunStatus ?? "in_progress";
-                expectedHasFinishedAt = expectedStatus !== "in_progress";
-              } else if (isFirst) {
-                promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0" })
-                expectedStatus = "in_progress";
-                expectedHasFinishedAt = false;
-              } else {
-                promise = av.updateRun({ id: run!.id, items: iteration })
-                expectedStatus = "in_progress";
-                expectedHasFinishedAt = false;
-              }
-
-              if (testCase.error && isLast) {
-                await expect(promise).rejects.toThrowError(expect.objectContaining({
-                  statusCode: testCase.error,
-                  message: expect.any(String),
-                }))
-
-                const { items, lastRun } = await av.getSession({ id: session.id });
-                expect(deepCompare(items, expected_history)).toBe(true)
-
-                if (lastRun) {
-                  expect(lastRun.status).toBe("in_progress")
-                }
-              }
-              else {
-                run = await promise! as Run;
-                expect(run.status).toBe(expectedStatus)
-
-                if (expectedHasFinishedAt) {
-                  expect(run.finishedAt).toBeTruthy()
+                if (isFirst && isLast) {
+                  promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0", status: lastRunStatus });
+                  expectedStatus = lastRunStatus ?? "in_progress";
+                  expectedHasFinishedAt = expectedStatus !== "in_progress";
+                } else if (isLast) {
+                  promise = av.updateRun({ id: run!.id, items: iteration, status: lastRunStatus })
+                  expectedStatus = lastRunStatus ?? "in_progress";
+                  expectedHasFinishedAt = expectedStatus !== "in_progress";
+                } else if (isFirst) {
+                  promise = av.createRun({ sessionId: session.id, items: iteration, version: "1.0.0" })
+                  expectedStatus = "in_progress";
+                  expectedHasFinishedAt = false;
                 } else {
-                  expect(run.finishedAt).toBeNull()
+                  promise = av.updateRun({ id: run!.id, items: iteration })
+                  expectedStatus = "in_progress";
+                  expectedHasFinishedAt = false;
                 }
 
-                if (testCase.strictMatching) {
-                  expected_history = [...expected_history, ...removeDoubleUnderscoreKeys(iteration)]; // for strict matching we expect all the extra fields to be trimmed, we represent them as __{field}
+                if (testCase.error && isLast) {
+                  await expect(promise).rejects.toThrowError(expect.objectContaining({
+                    statusCode: testCase.error,
+                    message: expect.any(String),
+                  }))
+
+                  const { items, lastRun } = await av.getSession({ id: session.id });
+                  expect(deepCompare(items, expected_history)).toBe(true)
+
+                  if (lastRun) {
+                    expect(lastRun.status).toBe("in_progress")
+                  }
                 }
                 else {
-                  expected_history = [...expected_history, ...iteration];
+                  run = await promise! as Run;
+                  expect(run.status).toBe(expectedStatus)
+
+                  if (expectedHasFinishedAt) {
+                    expect(run.finishedAt).toBeTruthy()
+                  } else {
+                    expect(run.finishedAt).toBeNull()
+                  }
+
+                  if (testCase.strictMatching) {
+                    expected_history = [...expected_history, ...removeDoubleUnderscoreKeys(iteration)]; // for strict matching we expect all the extra fields to be trimmed, we represent them as __{field}
+                  }
+                  else {
+                    expected_history = [...expected_history, ...iteration];
+                  }
+
+                  const { lastRun, items } = await av.getSession({ id: session.id });
+
+                  // console.log('history', history);
+                  // console.log('expected_history', expected_history);
+                  expect(deepCompare(items, expected_history)).toBe(true)
+
+                  expect(lastRun?.status).toBe(expectedStatus)
                 }
-
-                const { lastRun, items } = await av.getSession({ id: session.id });
-
-                // console.log('history', history);
-                // console.log('expected_history', expected_history);
-                expect(deepCompare(items, expected_history)).toBe(true)
-
-                expect(lastRun?.status).toBe(expectedStatus)
               }
-            }
-          })
+            })
+          }
         }
       }
-    }
 
 
-    test("cannot add items or change status after completion", async () => {
-      await updateConfig()
-      const session = await createSession()
-
-      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-      const completed = await av.updateRun({ id: run.id, items: [baseOutput], status: "completed", metadata: { trace_id: "abc" } })
-      expect(completed.status).toBe("completed")
-
-      await expect(av.updateRun({ id: run.id, items: [baseStep] })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 422,
-        message: expect.any(String),
-      }))
-
-      await expect(av.updateRun({ id: run.id, status: "failed" })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 422,
-        message: expect.any(String),
-      }))
-
-    })
-
-    test("failReason can be set only on failed runs", async () => {
-      await updateConfig()
-      const session = await createSession()
-
-      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-
-      const failReason = { message: "oops" }
-
-      await expect(av.updateRun({ id: run.id, items: [baseStep], failReason })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 422,
-        message: expect.any(String),
-      }))
-
-      await expect(av.updateRun({ id: run.id, items: [baseOutput], failReason, status: "completed" })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 422,
-        message: expect.any(String),
-      }))
-
-      const updated = await av.updateRun({ id: run.id, items: [baseOutput], status: "failed", failReason })
-      expect(updated.failReason).toEqual(failReason)
-    })
-
-
-    describe("versioning", () => {
-      test("incorrect formats fail", async () => {
+      test("cannot add items or change status after completion", async () => {
         await updateConfig()
         const session = await createSession()
 
-        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput], version: "xxx" }), 422)
-        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput], version: "blah.blah.blah" }), 422)
+        const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+        const completed = await av.updateRun({ id: run.id, items: [baseOutput], status: "completed", metadata: { trace_id: "abc" } })
+        expect(completed.status).toBe("completed")
+
+        await expect(av.updateRun({ id: run.id, items: [baseStep] })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 422,
+          message: expect.any(String),
+        }))
+
+        await expect(av.updateRun({ id: run.id, status: "failed" })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 422,
+          message: expect.any(String),
+        }))
 
       })
 
-      test("compatibility enforced - playground", async () => {
+      test("failReason can be set only on failed runs", async () => {
         await updateConfig()
         const session = await createSession()
 
-        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2" }) // allow for partial version
-        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2.3" })
-        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2.4" }) // higher patch works
-        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.0" }) // higher minor works
+        const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
 
-        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.2.2" }), 422) // smaller patch fails
-        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "2.0.0" }), 422) // different minor fails
+        const failReason = { message: "oops" }
 
-        // suffixes
-        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.3" })
-        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.3-dev" })
-        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.3-xxx" })
-        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.4" })
-        await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.4-local" })
+        await expect(av.updateRun({ id: run.id, items: [baseStep], failReason })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 422,
+          message: expect.any(String),
+        }))
 
-        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.3-local" }), 422) // smaller patch fails even with suffix
-        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.3-xxx" }), 422) // smaller patch with §§different suffix fails
-        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "2.0.0" }), 422) // different suffix fails
-        await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "2.0.0-dev" }), 422) // different suffix fails
+        await expect(av.updateRun({ id: run.id, items: [baseOutput], failReason, status: "completed" })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 422,
+          message: expect.any(String),
+        }))
+
+        const updated = await av.updateRun({ id: run.id, items: [baseOutput], status: "failed", failReason })
+        expect(updated.failReason).toEqual(failReason)
       })
 
-      test("no suffix in playground results in -dev suffix", async () => {
+
+      describe("versioning", () => {
+        test("incorrect formats fail", async () => {
+          await updateConfig()
+          const session = await createSession()
+
+          await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput], version: "xxx" }), 422)
+          await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput], version: "blah.blah.blah" }), 422)
+
+        })
+
+        test("compatibility enforced - playground", async () => {
+          await updateConfig()
+          const session = await createSession()
+
+          await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2" }) // allow for partial version
+          await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2.3" })
+          await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.2.4" }) // higher patch works
+          await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.0" }) // higher minor works
+
+          await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.2.2" }), 422) // smaller patch fails
+          await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "2.0.0" }), 422) // different minor fails
+
+          // suffixes
+          await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.3" })
+          await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.3-dev" })
+          await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.3-xxx" })
+          await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.4" })
+          await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], status: "completed", version: "1.3.4-local" })
+
+          await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.3-local" }), 422) // smaller patch fails even with suffix
+          await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.3-xxx" }), 422) // smaller patch with §§different suffix fails
+          await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "2.0.0" }), 422) // different suffix fails
+          await expectToFail(av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "2.0.0-dev" }), 422) // different suffix fails
+        })
+
+        test("no suffix in playground results in -dev suffix", async () => {
+          await updateConfig()
+          const session = await createSession()
+          const run = await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0" })
+          expect(run.version).toBe("1.3.0-dev")
+        })
+
+        test("playground suffix can be overriden", async () => {
+          await updateConfig()
+          const session = await createSession()
+          const run = await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0-xxx" })
+          expect(run.version).toBe("1.3.0-xxx")
+        })
+
+        test("no suffix in production is no suffix", async () => {
+          await updateConfig({ prod: true })
+          const session = await createSession()
+          const run = await avProd.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0" })
+          expect(run.version).toBe("1.3.0")
+        })
+
+        test("production can't have suffixed versions", async () => {
+          await updateConfig({ prod: true })
+          const session = await avProd.createSession({ agent: "test", userId: initProdUser.id })
+
+          await expectToFail(avProd.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0-dev" }), 422) // production can't have suffixes
+          await expectToFail(avProd.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.1-local" }), 422) // production can't have suffixes
+        })
+
+      });
+
+      test("userToken scoped permissions", async () => {
         await updateConfig()
         const session = await createSession()
-        const run = await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0" })
-        expect(run.version).toBe("1.3.0-dev")
+
+        await expect(av.as(initUser2).createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 401,
+          message: expect.any(String),
+        }))
       })
 
-      test("playground suffix can be overriden", async () => {
+      // METADATA
+
+      test("create / with known metadata / saved", async () => {
+        await updateConfig({ runMetadata: { product_id: z.string() } })
+        const session = await createSession()
+        const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { product_id: "123" } })
+
+        expect(run.metadata).toMatchObject({
+          product_id: "123",
+        })
+      })
+
+      test("create / optional & nullable metadata / all saved as null", async () => {
+        await updateConfig({ runMetadata: { x: z.nullable(z.string()), y: z.nullable(z.number()) } })
+
+        const session = await createSession()
+        const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { product_id: "123" } })
+
+        expect(run.metadata).toMatchObject({
+          x: null,
+          y: null,
+        })
+      })
+
+      test("create / with known metadata + allowUnknownMetadata=false / saved", async () => {
+        await updateConfig({ runMetadata: { product_id: z.string() }, allowUnknownMetadata: false })
+
+        const session = await createSession()
+        const run = await av.createRun({
+          sessionId: session.id,
+          items: [baseInput],
+          version: "1.0.0",
+          metadata: { product_id: "123" }
+        })
+
+        expect(run.metadata).toMatchObject({
+          product_id: "123",
+        })
+      })
+
+      test("create / with unknown metadata / saved", async () => {
         await updateConfig()
         const session = await createSession()
-        const run = await av.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0-xxx" })
-        expect(run.version).toBe("1.3.0-xxx")
+        const run = await av.createRun({
+          sessionId: session.id,
+          items: [baseInput],
+          version: "1.0.0",
+          metadata: { product_id: "123" }
+        })
+
+        expect(run.metadata).toMatchObject({
+          product_id: "123",
+        })
       })
 
-      test("no suffix in production is no suffix", async () => {
-        await updateConfig({ prod: true })
+      test("create / with unknown metadata + allowUnknownMetadata=false / failed", async () => {
+        await updateConfig({ allowUnknownMetadata: false })
+
         const session = await createSession()
-        const run = await avProd.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0" })
-        expect(run.version).toBe("1.3.0")
+        await expect(av.createRun({
+          sessionId: session.id,
+          items: [baseInput],
+          version: "1.0.0",
+          metadata: { product_id: "123" }
+        })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 422,
+          message: expect.any(String),
+        }))
       })
 
-      test("production can't have suffixed versions", async () => {
-        await updateConfig({ prod: true })
-        const session = await avProd.createSession({ agent: "test", userId: initProdUser.id })
+      test("create / with incompatible metadata / fails", async () => {
+        await updateConfig({ runMetadata: { product_id: z.string() } })
 
-        await expectToFail(avProd.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.0-dev" }), 422) // production can't have suffixes
-        await expectToFail(avProd.createRun({ sessionId: session.id, items: [baseInput, baseOutput], version: "1.3.1-local" }), 422) // production can't have suffixes
+        const session = await createSession()
+        await expect(av.createRun({
+          sessionId: session.id,
+          items: [baseInput],
+          version: "1.0.0",
+          metadata: { product_id: 123 }
+        })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 422,
+          message: expect.any(String),
+        }))
       })
 
-    });
+      test("update metadata", async () => {
+        await updateConfig({ runMetadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false })
 
-    test("userToken scoped permissions", async () => {
-      await updateConfig()
-      const session = await createSession()
+        const session = await createSession()
+        const run = await av.createRun({
+          sessionId: session.id,
+          items: [baseInput],
+          version: "1.0.0",
+          metadata: { field1: "A", field2: 0 }
+        })
 
-      await expect(av.as(initUser2).createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 401,
-        message: expect.any(String),
-      }))
+        const updated = await av.updateRun({ id: run.id, metadata: { field1: "B", field2: 1 } })
+        expect(updated.metadata).toEqual({ field1: "B", field2: 1 })
+      })
+
+      test("update metadata - partial update", async () => {
+        await updateConfig({ runMetadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false })
+
+        const session = await createSession()
+        const run = await av.createRun({
+          sessionId: session.id,
+          items: [baseInput],
+          version: "1.0.0",
+          metadata: { field1: "A", field2: 0 }
+        })
+
+        const updated = await av.updateRun({ id: run.id, metadata: { field1: "B" } })
+        expect(updated.metadata).toEqual({ field1: "B", field2: 0 })
+      })
+
+      test("update metadata - make field null", async () => {
+        await updateConfig({ runMetadata: { field1: z.string(), field2: z.number().nullable() }, allowUnknownMetadata: false })
+
+        const session = await createSession()
+        const run = await av.createRun({
+          sessionId: session.id,
+          items: [baseInput],
+          version: "1.0.0",
+          metadata: { field1: "A", field2: 0 }
+        })
+
+        const updated = await av.updateRun({ id: run.id, metadata: { field2: null } })
+        expect(updated.metadata).toEqual({ field1: "A", field2: null })
+      })
+
+      test("update metadata only - validation enforced", async () => {
+        await updateConfig({ runMetadata: { product_id: z.string() }, allowUnknownMetadata: false })
+
+        const session = await createSession()
+        const run = await av.createRun({
+          sessionId: session.id,
+          items: [baseInput],
+          version: "1.0.0",
+          metadata: { product_id: "A" }
+        })
+
+        await expect(av.updateRun({ id: run.id, metadata: { wrong: "x" } })).rejects.toThrowError(expect.objectContaining({
+          statusCode: 422,
+          message: expect.any(String),
+        }))
+      })
+
+      test("metadata can be updated AFTER the run is completed", async () => {
+        await updateConfig({ runMetadata: { product_id: z.string() } })
+        const session = await createSession()
+        let run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { product_id: "123" } })
+
+        expect(run.metadata).toMatchObject({
+          product_id: "123",
+        })
+
+        run = await av.updateRun({ id: run.id, items: [baseOutput], status: "completed", metadata: { product_id: "456" } })
+        expect(run.metadata).toMatchObject({
+          product_id: "456",
+        })
+
+        run = await av.updateRun({ id: run.id, metadata: { product_id: "789" } })
+        expect(run.metadata).toMatchObject({
+          product_id: "789",
+        })
+      })
+
     })
 
-    // METADATA
+    describe("keep-alive and expiration", () => {
+      const SHORT_TIMEOUT = 3000; // 3 seconds - worker runs every 1s
 
-    test("create / with known metadata / saved", async () => {
-      await updateConfig({ runMetadata: { product_id: z.string() } })
-      const session = await createSession()
-      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { product_id: "123" } })
+      const updateConfigWithTimeout = async (idleTimeout: number) => {
+        const inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() })
+        const outputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("assistant"), content: z.string() })
 
-      expect(run.metadata).toMatchObject({
-        product_id: "123",
-      })
-    })
+        const config = {
+          agents: [
+            {
+              name: "test",
+              runs: [
+                {
+                  input: { schema: inputSchema },
+                  output: { schema: outputSchema },
+                  idleTimeout,
+                }
+              ]
+            }
+          ]
+        }
 
-    test("create / optional & nullable metadata / all saved as null", async () => {
-      await updateConfig({ runMetadata: { x: z.nullable(z.string()), y: z.nullable(z.number()) } })
-
-      const session = await createSession()
-      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { product_id: "123" } })
-
-      expect(run.metadata).toMatchObject({
-        x: null,
-        y: null,
-      })
-    })
-
-    test("create / with known metadata + allowUnknownMetadata=false / saved", async () => {
-      await updateConfig({ runMetadata: { product_id: z.string() }, allowUnknownMetadata: false })
-
-      const session = await createSession()
-      const run = await av.createRun({
-        sessionId: session.id,
-        items: [baseInput],
-        version: "1.0.0",
-        metadata: { product_id: "123" }
-      })
-
-      expect(run.metadata).toMatchObject({
-        product_id: "123",
-      })
-    })
-
-    test("create / with unknown metadata / saved", async () => {
-      await updateConfig()
-      const session = await createSession()
-      const run = await av.createRun({
-        sessionId: session.id,
-        items: [baseInput],
-        version: "1.0.0",
-        metadata: { product_id: "123" }
-      })
-
-      expect(run.metadata).toMatchObject({
-        product_id: "123",
-      })
-    })
-
-    test("create / with unknown metadata + allowUnknownMetadata=false / failed", async () => {
-      await updateConfig({ allowUnknownMetadata: false })
-
-      const session = await createSession()
-      await expect(av.createRun({
-        sessionId: session.id,
-        items: [baseInput],
-        version: "1.0.0",
-        metadata: { product_id: "123" }
-      })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 422,
-        message: expect.any(String),
-      }))
-    })
-
-    test("create / with incompatible metadata / fails", async () => {
-      await updateConfig({ runMetadata: { product_id: z.string() } })
-
-      const session = await createSession()
-      await expect(av.createRun({
-        sessionId: session.id,
-        items: [baseInput],
-        version: "1.0.0",
-        metadata: { product_id: 123 }
-      })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 422,
-        message: expect.any(String),
-      }))
-    })
-
-    test("update metadata", async () => {
-      await updateConfig({ runMetadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false })
-
-      const session = await createSession()
-      const run = await av.createRun({
-        sessionId: session.id,
-        items: [baseInput],
-        version: "1.0.0",
-        metadata: { field1: "A", field2: 0 }
-      })
-
-      const updated = await av.updateRun({ id: run.id, metadata: { field1: "B", field2: 1 } })
-      expect(updated.metadata).toEqual({ field1: "B", field2: 1 })
-    })
-
-    test("update metadata - partial update", async () => {
-      await updateConfig({ runMetadata: { field1: z.string(), field2: z.number() }, allowUnknownMetadata: false })
-
-      const session = await createSession()
-      const run = await av.createRun({
-        sessionId: session.id,
-        items: [baseInput],
-        version: "1.0.0",
-        metadata: { field1: "A", field2: 0 }
-      })
-
-      const updated = await av.updateRun({ id: run.id, metadata: { field1: "B" } })
-      expect(updated.metadata).toEqual({ field1: "B", field2: 0 })
-    })
-
-    test("update metadata - make field null", async () => {
-      await updateConfig({ runMetadata: { field1: z.string(), field2: z.number().nullable() }, allowUnknownMetadata: false })
-
-      const session = await createSession()
-      const run = await av.createRun({
-        sessionId: session.id,
-        items: [baseInput],
-        version: "1.0.0",
-        metadata: { field1: "A", field2: 0 }
-      })
-
-      const updated = await av.updateRun({ id: run.id, metadata: { field2: null } })
-      expect(updated.metadata).toEqual({ field1: "A", field2: null })
-    })
-
-    test("update metadata only - validation enforced", async () => {
-      await updateConfig({ runMetadata: { product_id: z.string() }, allowUnknownMetadata: false })
-
-      const session = await createSession()
-      const run = await av.createRun({
-        sessionId: session.id,
-        items: [baseInput],
-        version: "1.0.0",
-        metadata: { product_id: "A" }
-      })
-
-      await expect(av.updateRun({ id: run.id, metadata: { wrong: "x" } })).rejects.toThrowError(expect.objectContaining({
-        statusCode: 422,
-        message: expect.any(String),
-      }))
-    })
-
-    test("metadata can be updated AFTER the run is completed", async () => {
-      await updateConfig({ runMetadata: { product_id: z.string() } })
-      const session = await createSession()
-      let run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0", metadata: { product_id: "123" } })
-
-      expect(run.metadata).toMatchObject({
-        product_id: "123",
-      })
-
-      run = await av.updateRun({ id: run.id, items: [baseOutput], status: "completed", metadata: { product_id: "456" } })
-      expect(run.metadata).toMatchObject({
-        product_id: "456",
-      })
-
-      run = await av.updateRun({ id: run.id, metadata: { product_id: "789" } })
-      expect(run.metadata).toMatchObject({
-        product_id: "789",
-      })
-    })
-
-  })
-
-  describe("keep-alive and expiration", () => {
-    const SHORT_TIMEOUT = 3000; // 3 seconds - worker runs every 1s
-
-    const updateConfigWithTimeout = async (idleTimeout: number) => {
-      const inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() })
-      const outputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("assistant"), content: z.string() })
-
-      const config = {
-        agents: [
-          {
-            name: "test",
-            runs: [
-              {
-                input: { schema: inputSchema },
-                output: { schema: outputSchema },
-                idleTimeout,
-              }
-            ]
-          }
-        ]
+        await av.updateEnvironment({ config })
       }
 
-      await av.updateEnvironment({ config })
-    }
+      test("keepAliveRun returns expiresAt timestamp for in_progress run", async () => {
+        await updateConfigWithTimeout(SHORT_TIMEOUT)
+        const session = await av.createSession({ agent: "test", userId: initUser1.id })
+        const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
 
-    test("keepAliveRun returns expiresAt timestamp for in_progress run", async () => {
-      await updateConfigWithTimeout(SHORT_TIMEOUT)
-      const session = await av.createSession({ agent: "test", userId: initUser1.id })
-      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+        expect(run.status).toBe("in_progress")
 
-      expect(run.status).toBe("in_progress")
-
-      const result = await av.keepAliveRun({ id: run.id })
-      expect(result.expiresAt).not.toBeNull()
-      expect(typeof result.expiresAt).toBe("string")
-
-      // expiresAt should be in the future
-      const expiresAtTime = new Date(result.expiresAt!).getTime()
-      expect(expiresAtTime).toBeGreaterThan(Date.now())
-    })
-
-    test("keepAliveRun returns null expiresAt for completed run", async () => {
-      await updateConfigWithTimeout(SHORT_TIMEOUT)
-      const session = await av.createSession({ agent: "test", userId: initUser1.id })
-      const run = await av.createRun({
-        sessionId: session.id,
-        items: [baseInput, baseOutput],
-        version: "1.0.0",
-        status: "completed"
-      })
-
-      expect(run.status).toBe("completed")
-
-      const result = await av.keepAliveRun({ id: run.id })
-      expect(result.expiresAt).toBeNull()
-    })
-
-    test("run expires when idle timeout passes without keep-alive", async () => {
-      await updateConfigWithTimeout(SHORT_TIMEOUT)
-      const session = await av.createSession({ agent: "test", userId: initUser1.id })
-      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-
-      expect(run.status).toBe("in_progress")
-
-      // Wait for expiration (timeout + worker interval buffer)
-      // Worker runs every 5 seconds, so wait timeout + 6s to be safe
-      await new Promise(resolve => setTimeout(resolve, SHORT_TIMEOUT * 2))
-
-      const updatedSession = await av.getSession({ id: session.id })
-
-      expect(updatedSession.lastRun).toBeDefined()
-      expect(updatedSession.lastRun!.status).toBe("failed")
-      expect(updatedSession.lastRun!.failReason).toMatchObject({ message: "Timeout" })
-    }, 10000) // 10s timeout for this test
-
-    test("keep-alive prevents expiration", async () => {
-      await updateConfigWithTimeout(SHORT_TIMEOUT)
-      const session = await av.createSession({ agent: "test", userId: initUser1.id })
-      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
-
-      expect(run.status).toBe("in_progress")
-
-      // Keep the run alive by calling keepAliveRun before timeout expires
-      // Call it 3 times with 3s intervals (total 9s) while timeout is 6s
-      for (let i = 0; i < 3; i++) {
-        await new Promise(resolve => setTimeout(resolve, SHORT_TIMEOUT / 2))
         const result = await av.keepAliveRun({ id: run.id })
         expect(result.expiresAt).not.toBeNull()
-      }
+        expect(typeof result.expiresAt).toBe("string")
 
-      // Run should still be in_progress
-      const updatedSession = await av.getSession({ id: session.id })
-      const stillAliveRun = updatedSession.runs?.find(r => r.id === run.id)
+        // expiresAt should be in the future
+        const expiresAtTime = new Date(result.expiresAt!).getTime()
+        expect(expiresAtTime).toBeGreaterThan(Date.now())
+      })
 
-      expect(stillAliveRun).toBeDefined()
-      expect(stillAliveRun!.status).toBe("in_progress")
-    }, 10000) // 20s timeout for this test
+      test("keepAliveRun returns null expiresAt for completed run", async () => {
+        await updateConfigWithTimeout(SHORT_TIMEOUT)
+        const session = await av.createSession({ agent: "test", userId: initUser1.id })
+        const run = await av.createRun({
+          sessionId: session.id,
+          items: [baseInput, baseOutput],
+          version: "1.0.0",
+          status: "completed"
+        })
 
-    test("update run also resets expiration timer", async () => {
-      await updateConfigWithTimeout(SHORT_TIMEOUT)
-      const session = await av.createSession({ agent: "test", userId: initUser1.id })
-      const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+        expect(run.status).toBe("completed")
 
-      expect(run.status).toBe("in_progress")
+        const result = await av.keepAliveRun({ id: run.id })
+        expect(result.expiresAt).toBeNull()
+      })
 
-      // Wait half the timeout time, then update the run with output (should reset timer)
-      await new Promise(resolve => setTimeout(resolve, SHORT_TIMEOUT / 2))
-      await av.updateRun({ id: run.id, items: [baseOutput], status: "in_progress" })
+      test("run expires when idle timeout passes without keep-alive", async () => {
+        await updateConfigWithTimeout(SHORT_TIMEOUT)
+        const session = await av.createSession({ agent: "test", userId: initUser1.id })
+        const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
 
-      // Wait another full timeout time
-      await new Promise(resolve => setTimeout(resolve, SHORT_TIMEOUT))
+        expect(run.status).toBe("in_progress")
 
-      const updatedSession = await av.getSession({ id: session.id })
-      const stillAliveRun = updatedSession.runs?.find(r => r.id === run.id)
+        // Wait for expiration (timeout + worker interval buffer)
+        // Worker runs every 5 seconds, so wait timeout + 6s to be safe
+        await new Promise(resolve => setTimeout(resolve, SHORT_TIMEOUT * 2))
 
-      expect(stillAliveRun).toBeDefined()
-      expect(stillAliveRun!.status).toBe("in_progress")
-    }, 15000) // 15s timeout for this test
-  })
+        const updatedSession = await av.getSession({ id: session.id })
 
-  /**
-   * Webhook job tests - session.on_first_run_created
-   *
-   * These tests use a mock HTTP server to receive and verify webhook calls.
-   * The webhookUrl is configured via the config (not env var).
-   */
-  describe("webhook jobs - session.on_first_run_created", () => {
-    const WEBHOOK_PORT = 3456;
-    const WEBHOOK_URL = `http://localhost:${WEBHOOK_PORT}/webhook`;
+        expect(updatedSession.lastRun).toBeDefined()
+        expect(updatedSession.lastRun!.status).toBe("failed")
+        expect(updatedSession.lastRun!.failReason).toMatchObject({ message: "Timeout" })
+      }, 10000) // 10s timeout for this test
 
-    // Shared mock server state
-    let mockServer: {
-      server: import('http').Server;
-      requests: Array<{ body: any; timestamp: number }>;
-      close: () => Promise<void>;
-      setResponseHandler: (handler: (callIndex: number) => { status: number; body: any }) => void;
-      resetCallIndex: () => void;
-    } | null = null;
+      test("keep-alive prevents expiration", async () => {
+        await updateConfigWithTimeout(SHORT_TIMEOUT)
+        const session = await av.createSession({ agent: "test", userId: initUser1.id })
+        const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
 
-    // Create mock server with configurable response behavior
-    async function createMockWebhookServer(port: number) {
-      const http = await import('http');
-      const requests: Array<{ body: any; timestamp: number }> = [];
-      let callIndex = 0;
-      let responseHandler: (callIndex: number) => { status: number; body: any } = () => ({ status: 200, body: { ok: true } });
+        expect(run.status).toBe("in_progress")
 
-      const server = await new Promise<import('http').Server>((resolve) => {
-        const srv = http.createServer((req, res) => {
-          let body = '';
-          req.on('data', (chunk: Buffer) => body += chunk.toString());
-          req.on('end', () => {
-            const currentCall = callIndex++;
-            try {
-              requests.push({ body: JSON.parse(body), timestamp: Date.now() });
-            } catch {
-              requests.push({ body, timestamp: Date.now() });
-            }
+        // Keep the run alive by calling keepAliveRun before timeout expires
+        // Call it 3 times with 3s intervals (total 9s) while timeout is 6s
+        for (let i = 0; i < 3; i++) {
+          await new Promise(resolve => setTimeout(resolve, SHORT_TIMEOUT / 2))
+          const result = await av.keepAliveRun({ id: run.id })
+          expect(result.expiresAt).not.toBeNull()
+        }
 
-            const response = responseHandler(currentCall);
-            res.writeHead(response.status, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(response.body));
+        // Run should still be in_progress
+        const updatedSession = await av.getSession({ id: session.id })
+        const stillAliveRun = updatedSession.runs?.find(r => r.id === run.id)
+
+        expect(stillAliveRun).toBeDefined()
+        expect(stillAliveRun!.status).toBe("in_progress")
+      }, 10000) // 20s timeout for this test
+
+      test("update run also resets expiration timer", async () => {
+        await updateConfigWithTimeout(SHORT_TIMEOUT)
+        const session = await av.createSession({ agent: "test", userId: initUser1.id })
+        const run = await av.createRun({ sessionId: session.id, items: [baseInput], version: "1.0.0" })
+
+        expect(run.status).toBe("in_progress")
+
+        // Wait half the timeout time, then update the run with output (should reset timer)
+        await new Promise(resolve => setTimeout(resolve, SHORT_TIMEOUT / 2))
+        await av.updateRun({ id: run.id, items: [baseOutput], status: "in_progress" })
+
+        // Wait another full timeout time
+        await new Promise(resolve => setTimeout(resolve, SHORT_TIMEOUT))
+
+        const updatedSession = await av.getSession({ id: session.id })
+        const stillAliveRun = updatedSession.runs?.find(r => r.id === run.id)
+
+        expect(stillAliveRun).toBeDefined()
+        expect(stillAliveRun!.status).toBe("in_progress")
+      }, 15000) // 15s timeout for this test
+    })
+
+    /**
+     * Webhook job tests - session.on_first_run_created
+     *
+     * These tests use a mock HTTP server to receive and verify webhook calls.
+     * The webhookUrl is configured via the config (not env var).
+     */
+    describe("webhook jobs - session.on_first_run_created", () => {
+      const WEBHOOK_PORT = 3456;
+      const WEBHOOK_URL = `http://localhost:${WEBHOOK_PORT}/webhook`;
+
+      // Shared mock server state
+      let mockServer: {
+        server: import('http').Server;
+        requests: Array<{ body: any; timestamp: number }>;
+        close: () => Promise<void>;
+        setResponseHandler: (handler: (callIndex: number) => { status: number; body: any }) => void;
+        resetCallIndex: () => void;
+      } | null = null;
+
+      // Create mock server with configurable response behavior
+      async function createMockWebhookServer(port: number) {
+        const http = await import('http');
+        const requests: Array<{ body: any; timestamp: number }> = [];
+        let callIndex = 0;
+        let responseHandler: (callIndex: number) => { status: number; body: any } = () => ({ status: 200, body: { ok: true } });
+
+        const server = await new Promise<import('http').Server>((resolve) => {
+          const srv = http.createServer((req, res) => {
+            let body = '';
+            req.on('data', (chunk: Buffer) => body += chunk.toString());
+            req.on('end', () => {
+              const currentCall = callIndex++;
+              try {
+                requests.push({ body: JSON.parse(body), timestamp: Date.now() });
+              } catch {
+                requests.push({ body, timestamp: Date.now() });
+              }
+
+              const response = responseHandler(currentCall);
+              res.writeHead(response.status, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify(response.body));
+            });
           });
+          srv.listen(port, () => resolve(srv));
         });
-        srv.listen(port, () => resolve(srv));
-      });
 
-      return {
-        server,
-        requests,
-        close: () => new Promise<void>(r => server.close(r as () => void)),
-        setResponseHandler: (handler: (callIndex: number) => { status: number; body: any }) => {
-          responseHandler = handler;
-        },
-        resetCallIndex: () => { callIndex = 0; },
-      };
-    }
-
-    // Helper to wait for webhook call with timeout
-    async function waitForWebhook(
-      predicate: (req: { body: any }) => boolean,
-      timeoutMs: number = 10000
-    ): Promise<{ body: any } | null> {
-      if (!mockServer) throw new Error('Mock server not initialized');
-      const startTime = Date.now();
-      while (Date.now() - startTime < timeoutMs) {
-        const match = mockServer.requests.find(predicate);
-        if (match) return match;
-        await new Promise(r => setTimeout(r, 500));
+        return {
+          server,
+          requests,
+          close: () => new Promise<void>(r => server.close(r as () => void)),
+          setResponseHandler: (handler: (callIndex: number) => { status: number; body: any }) => {
+            responseHandler = handler;
+          },
+          resetCallIndex: () => { callIndex = 0; },
+        };
       }
-      return null;
-    }
 
-    // Helper to update config with webhookUrl
-    const updateConfigWithWebhook = async () => {
-      const inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() });
-      const outputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("assistant"), content: z.string() });
-      const stepSchema = z.looseObject({ type: z.literal("reasoning"), content: z.string() });
-      const functionCallSchema = z.looseObject({ type: z.literal("function_call"), name: z.string(), callId: z.string().meta({ callId: true }) });
-      const functionResultSchema = z.looseObject({ type: z.literal("function_call_result"), callId: z.string().meta({ callId: true }) });
+      // Helper to wait for webhook call with timeout
+      async function waitForWebhook(
+        predicate: (req: { body: any }) => boolean,
+        timeoutMs: number = 10000
+      ): Promise<{ body: any } | null> {
+        if (!mockServer) throw new Error('Mock server not initialized');
+        const startTime = Date.now();
+        while (Date.now() - startTime < timeoutMs) {
+          const match = mockServer.requests.find(predicate);
+          if (match) return match;
+          await new Promise(r => setTimeout(r, 500));
+        }
+        return null;
+      }
 
-      await av.updateEnvironment({
-        config: {
-          webhookUrl: WEBHOOK_URL,
-          agents: [{
-            name: "test",
-            runs: [{
-              input: { schema: inputSchema },
-              steps: [{ schema: stepSchema }, { schema: functionCallSchema, callResult: { schema: functionResultSchema } }],
-              output: { schema: outputSchema },
+      // Helper to update config with webhookUrl
+      const updateConfigWithWebhook = async () => {
+        const inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() });
+        const outputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("assistant"), content: z.string() });
+        const stepSchema = z.looseObject({ type: z.literal("reasoning"), content: z.string() });
+        const functionCallSchema = z.looseObject({ type: z.literal("function_call"), name: z.string(), callId: z.string().meta({ callId: true }) });
+        const functionResultSchema = z.looseObject({ type: z.literal("function_call_result"), callId: z.string().meta({ callId: true }) });
+
+        await av.updateEnvironment({
+          config: {
+            webhookUrl: WEBHOOK_URL,
+            agents: [{
+              name: "test",
+              runs: [{
+                input: { schema: inputSchema },
+                steps: [{ schema: stepSchema }, { schema: functionCallSchema, callResult: { schema: functionResultSchema } }],
+                output: { schema: outputSchema },
+              }]
             }]
-          }]
-        },
+          },
+        });
+      };
+
+      // Start mock server before all webhook tests
+      beforeAll(async () => {
+        mockServer = await createMockWebhookServer(WEBHOOK_PORT);
       });
-    };
 
-    // Start mock server before all webhook tests
-    beforeAll(async () => {
-      mockServer = await createMockWebhookServer(WEBHOOK_PORT);
-    });
-
-    // Close mock server after all webhook tests
-    afterAll(async () => {
-      if (mockServer) {
-        await mockServer.close();
-        mockServer = null;
-      }
-    });
-
-    // Reset server state before each test
-    beforeEach(() => {
-      if (mockServer) {
-        mockServer.requests.length = 0;
-        mockServer.resetCallIndex();
-        mockServer.setResponseHandler(() => ({ status: 200, body: { ok: true } }));
-      }
-    });
-
-    test("first run triggers webhook with session_id", async () => {
-      await updateConfigWithWebhook();
-      const session = await av.createSession({ agent: "test", userId: initUser1.id });
-
-      const run = await av.createRun({
-        sessionId: session.id,
-        items: [baseInput],
-        version: "1.0.0"
-      });
-      expect(run).toBeDefined();
-
-      const webhookCall = await waitForWebhook(
-        (req) => req.body?.event === 'session.on_first_run_created' && req.body?.payload?.session_id === session.id,
-        15000
-      );
-
-      expect(webhookCall).not.toBeNull();
-      expect(webhookCall!.body.event).toBe('session.on_first_run_created');
-      expect(webhookCall!.body.payload.session_id).toBe(session.id);
-      expect(webhookCall!.body.job_id).toBeDefined();
-    }, 20000);
-
-    test("second run does NOT trigger webhook", async () => {
-      await updateConfigWithWebhook();
-      const session = await av.createSession({ agent: "test", userId: initUser1.id });
-
-      // Create first run
-      const run1 = await av.createRun({
-        sessionId: session.id,
-        items: [baseInput, baseOutput],
-        version: "1.0.0",
-        status: "completed"
-      });
-      expect(run1).toBeDefined();
-
-      // Wait for first webhook
-      const firstWebhook = await waitForWebhook(
-        (req) => req.body?.event === 'session.on_first_run_created' && req.body?.payload?.session_id === session.id,
-        15000
-      );
-      expect(firstWebhook).not.toBeNull();
-
-      const countAfterFirstRun = mockServer!.requests.length;
-
-      // Create second run
-      const run2 = await av.createRun({
-        sessionId: session.id,
-        items: [baseInput, baseOutput],
-        version: "1.0.0",
-        status: "completed"
-      });
-      expect(run2).toBeDefined();
-
-      // Wait to ensure no new webhook is triggered
-      await new Promise(r => setTimeout(r, 7000));
-
-      const newWebhooks = mockServer!.requests.filter(
-        (req, idx) => idx >= countAfterFirstRun && req.body?.payload?.session_id === session.id
-      );
-      expect(newWebhooks.length).toBe(0);
-    }, 30000);
-
-    test("webhook is retried on error response (at-least-once delivery)", async () => {
-      // Configure server to fail first 2 calls, succeed on 3rd
-      mockServer!.setResponseHandler((callIndex) => {
-        if (callIndex < 2) {
-          return { status: 500, body: { error: 'Simulated failure' } };
+      // Close mock server after all webhook tests
+      afterAll(async () => {
+        if (mockServer) {
+          await mockServer.close();
+          mockServer = null;
         }
-        return { status: 200, body: { ok: true } };
       });
 
-      await updateConfigWithWebhook();
-      const session = await av.createSession({ agent: "test", userId: initUser1.id });
-
-      const run = await av.createRun({
-        sessionId: session.id,
-        items: [baseInput],
-        version: "1.0.0"
-      });
-      expect(run).toBeDefined();
-
-      // Wait for retries (retry delays: 5s, 30s, 2min)
-      await new Promise(r => setTimeout(r, 15000));
-
-      const sessionWebhooks = mockServer!.requests.filter(
-        req => req.body?.payload?.session_id === session.id
-      );
-
-      // Expect at least 2 calls (initial + retry)
-      expect(sessionWebhooks.length).toBeGreaterThanOrEqual(2);
-
-      // All calls should have same event type and session_id
-      for (const webhook of sessionWebhooks) {
-        expect(webhook.body.event).toBe('session.on_first_run_created');
-        expect(webhook.body.payload.session_id).toBe(session.id);
-      }
-    }, 30000);
-  });
-
-  // describe('Session AI Summaries', () => {
-  //   test('session summary remains null by default in this test set', async () => {
-  //     // Create a session
-  //     const session = await av.createSession({ userId: initUser1.id, agent: 'test-agent' });
-  //     expect(session).toBeDefined();
-  //     expect(session.summary).toBeNull();
-
-  //     // Create first run (this triggers the webhook job which handles summary generation)
-  //     await av.createRun({
-  //       sessionId: session.id,
-  //       version: '1.0.0',
-  //       items: [
-  //         { type: 'message', content: 'Hello, I need help with the weather!' },
-  //         { type: 'output', content: 'I can help you with weather information!' }
-  //       ],
-  //       status: 'completed'
-  //     });
-
-  //     // Wait for the worker to process the job (worker runs every 5 seconds)
-  //     await new Promise(r => setTimeout(r, 7000));
-
-  //     // Fetch session again and verify summary is still null (because disableSummaries=true)
-  //     const updatedSession = await av.getSession({ id: session.id });
-  //     expect(updatedSession.summary).toBeNull();
-  //   }, 15000);
-  // });
-
-  describe("watchSession", () => {
-    test("yields session.snapshot for completed session then ends", async () => {
-      await updateConfig();
-      const session = await createSession();
-
-      // Create and complete a run
-      const run = await av.createRun({
-        sessionId: session.id,
-        items: [baseInput, baseOutput],
-        version: "1.0.0",
-        status: "completed"
-      });
-
-      // Watch the session - should get snapshot and complete immediately
-      const stream = await av.getSessionStream({ id: session.id });
-
-      expect(stream).toBeNull();
-
-
-      // const events: Array<{ event: WatchSessionEvent; session: Session }> = [];
-      // for await (const e of av.watchSession({ id: session.id })) {
-      //   events.push(e);
-      // }
-
-      // // Should get exactly 1 event
-      // expect(events.length).toBe(1);
-
-      // // Check event shape
-      // const event = events[0].event;
-      // expect(event.type).toBe("session.snapshot");
-      // expect(event.data).toBeDefined();
-      // expect(event.data.id).toBe(session.id);
-      // expect(event.data.runs).toBeDefined();
-      // expect(event.data.runs.length).toBe(1);
-      // expect(event.data.runs[0].id).toBe(run.id);
-
-      // // Check session state
-      // expect(events[0].session.id).toBe(session.id);
-      // expect(events[0].session.runs.length).toBe(1);
-      // expect(events[0].session.runs[0].status).toBe("completed");
-    });
-
-    test("streams run.updated events as items are added", async () => {
-      await updateConfig();
-      const session = await createSession();
-
-      // Create run with input (in_progress)
-      const run = await av.createRun({
-        sessionId: session.id,
-        items: [baseInput],
-        version: "1.0.0"
-      });
-      expect(run.status).toBe("in_progress");
-
-      // Collect events in background
-      const events: Array<{ event: WatchSessionEvent; session: Session }> = [];
-      const abortController = new AbortController();
-
-      const watchPromise = (async () => {
-        const stream = await av.getSessionStream({ id: session.id, signal: abortController.signal });
-        if (!stream) {
-          throw new Error('Stream is null');
+      // Reset server state before each test
+      beforeEach(() => {
+        if (mockServer) {
+          mockServer.requests.length = 0;
+          mockServer.resetCallIndex();
+          mockServer.setResponseHandler(() => ({ status: 200, body: { ok: true } }));
         }
+      });
 
-        for await (const e of stream) {
-          events.push(e);
-          // Stop after we get the completed status
-          if (e.session.runs[0]?.status === "completed") {
-            break;
+      test("first run triggers webhook with session_id", async () => {
+        await updateConfigWithWebhook();
+        const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+        const run = await av.createRun({
+          sessionId: session.id,
+          items: [baseInput],
+          version: "1.0.0"
+        });
+        expect(run).toBeDefined();
+
+        const webhookCall = await waitForWebhook(
+          (req) => req.body?.event === 'session.on_first_run_created' && req.body?.payload?.session_id === session.id,
+          15000
+        );
+
+        expect(webhookCall).not.toBeNull();
+        expect(webhookCall!.body.event).toBe('session.on_first_run_created');
+        expect(webhookCall!.body.payload.session_id).toBe(session.id);
+        expect(webhookCall!.body.job_id).toBeDefined();
+      }, 20000);
+
+      test("second run does NOT trigger webhook", async () => {
+        await updateConfigWithWebhook();
+        const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+        // Create first run
+        const run1 = await av.createRun({
+          sessionId: session.id,
+          items: [baseInput, baseOutput],
+          version: "1.0.0",
+          status: "completed"
+        });
+        expect(run1).toBeDefined();
+
+        // Wait for first webhook
+        const firstWebhook = await waitForWebhook(
+          (req) => req.body?.event === 'session.on_first_run_created' && req.body?.payload?.session_id === session.id,
+          15000
+        );
+        expect(firstWebhook).not.toBeNull();
+
+        const countAfterFirstRun = mockServer!.requests.length;
+
+        // Create second run
+        const run2 = await av.createRun({
+          sessionId: session.id,
+          items: [baseInput, baseOutput],
+          version: "1.0.0",
+          status: "completed"
+        });
+        expect(run2).toBeDefined();
+
+        // Wait to ensure no new webhook is triggered
+        await new Promise(r => setTimeout(r, 7000));
+
+        const newWebhooks = mockServer!.requests.filter(
+          (req, idx) => idx >= countAfterFirstRun && req.body?.payload?.session_id === session.id
+        );
+        expect(newWebhooks.length).toBe(0);
+      }, 30000);
+
+      test("webhook is retried on error response (at-least-once delivery)", async () => {
+        // Configure server to fail first 2 calls, succeed on 3rd
+        mockServer!.setResponseHandler((callIndex) => {
+          if (callIndex < 2) {
+            return { status: 500, body: { error: 'Simulated failure' } };
           }
+          return { status: 200, body: { ok: true } };
+        });
+
+        await updateConfigWithWebhook();
+        const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+        const run = await av.createRun({
+          sessionId: session.id,
+          items: [baseInput],
+          version: "1.0.0"
+        });
+        expect(run).toBeDefined();
+
+        // Wait for retries (retry delays: 5s, 30s, 2min)
+        await new Promise(r => setTimeout(r, 15000));
+
+        const sessionWebhooks = mockServer!.requests.filter(
+          req => req.body?.payload?.session_id === session.id
+        );
+
+        // Expect at least 2 calls (initial + retry)
+        expect(sessionWebhooks.length).toBeGreaterThanOrEqual(2);
+
+        // All calls should have same event type and session_id
+        for (const webhook of sessionWebhooks) {
+          expect(webhook.body.event).toBe('session.on_first_run_created');
+          expect(webhook.body.payload.session_id).toBe(session.id);
         }
-      })();
+      }, 30000);
+    });
 
-      // Give watch a moment to start
-      await new Promise(r => setTimeout(r, 500));
+    // describe('Session AI Summaries', () => {
+    //   test('session summary remains null by default in this test set', async () => {
+    //     // Create a session
+    //     const session = await av.createSession({ userId: initUser1.id, agent: 'test-agent' });
+    //     expect(session).toBeDefined();
+    //     expect(session.summary).toBeNull();
 
-      // Add step and output, then complete
-      await av.updateRun({
-        id: run.id,
-        items: [baseStep],
+    //     // Create first run (this triggers the webhook job which handles summary generation)
+    //     await av.createRun({
+    //       sessionId: session.id,
+    //       version: '1.0.0',
+    //       items: [
+    //         { type: 'message', content: 'Hello, I need help with the weather!' },
+    //         { type: 'output', content: 'I can help you with weather information!' }
+    //       ],
+    //       status: 'completed'
+    //     });
+
+    //     // Wait for the worker to process the job (worker runs every 5 seconds)
+    //     await new Promise(r => setTimeout(r, 7000));
+
+    //     // Fetch session again and verify summary is still null (because disableSummaries=true)
+    //     const updatedSession = await av.getSession({ id: session.id });
+    //     expect(updatedSession.summary).toBeNull();
+    //   }, 15000);
+    // });
+
+    describe("watchSession", () => {
+      test("yields session.snapshot for completed session then ends", async () => {
+        await updateConfig();
+        const session = await createSession();
+
+        // Create and complete a run
+        const run = await av.createRun({
+          sessionId: session.id,
+          items: [baseInput, baseOutput],
+          version: "1.0.0",
+          status: "completed"
+        });
+
+        // Watch the session - should get snapshot and complete immediately
+        const stream = await av.getSessionStream({ id: session.id });
+
+        expect(stream).toBeNull();
+
+
+        // const events: Array<{ event: WatchSessionEvent; session: Session }> = [];
+        // for await (const e of av.watchSession({ id: session.id })) {
+        //   events.push(e);
+        // }
+
+        // // Should get exactly 1 event
+        // expect(events.length).toBe(1);
+
+        // // Check event shape
+        // const event = events[0].event;
+        // expect(event.type).toBe("session.snapshot");
+        // expect(event.data).toBeDefined();
+        // expect(event.data.id).toBe(session.id);
+        // expect(event.data.runs).toBeDefined();
+        // expect(event.data.runs.length).toBe(1);
+        // expect(event.data.runs[0].id).toBe(run.id);
+
+        // // Check session state
+        // expect(events[0].session.id).toBe(session.id);
+        // expect(events[0].session.runs.length).toBe(1);
+        // expect(events[0].session.runs[0].status).toBe("completed");
       });
 
-      await new Promise(r => setTimeout(r, 1500)); // Wait for polling interval
+      test("streams run.updated events as items are added", async () => {
+        await updateConfig();
+        const session = await createSession();
 
-      await av.updateRun({
-        id: run.id,
-        items: [baseOutput],
-        status: "completed"
-      });
+        // Create run with input (in_progress)
+        const run = await av.createRun({
+          sessionId: session.id,
+          items: [baseInput],
+          version: "1.0.0"
+        });
+        expect(run.status).toBe("in_progress");
 
-      // Wait for watch to complete
-      await watchPromise;
+        // Collect events in background
+        const events: Array<{ event: WatchSessionEvent; session: Session }> = [];
+        const abortController = new AbortController();
 
-      // Should get at least 2 events: snapshot + at least one run.updated
-      expect(events.length).toBeGreaterThanOrEqual(2);
-
-      // First event should be session.snapshot
-      expect(events[0].event.type).toBe("session.snapshot");
-      expect(events[0].event.data.id).toBe(session.id);
-      expect(events[0].event.data.runs[0].sessionItems.length).toBe(1); // just input
-
-      // Subsequent events should be run.updated
-      const updateEvents = events.slice(1);
-      for (const e of updateEvents) {
-        expect(e.event.type).toBe("run.updated");
-        expect(e.event.data.id).toBe(run.id);
-      }
-
-      // Final session state should have all items
-      const finalSession = events[events.length - 1].session;
-      expect(finalSession.runs[0].status).toBe("completed");
-      expect(finalSession.runs[0].sessionItems.length).toBe(3); // input, step, output
-    }, 15000);
-
-    test("can be aborted via AbortSignal", async () => {
-      await updateConfig();
-      const session = await createSession();
-
-      // Create run (in_progress)
-      await av.createRun({
-        sessionId: session.id,
-        items: [baseInput],
-        version: "1.0.0"
-      });
-
-      const abortController = new AbortController();
-      const events: Array<{ event: WatchSessionEvent; session: Session }> = [];
-
-      const watchPromise = (async () => {
-        try {
+        const watchPromise = (async () => {
           const stream = await av.getSessionStream({ id: session.id, signal: abortController.signal });
           if (!stream) {
             throw new Error('Stream is null');
@@ -2161,177 +2090,252 @@ describe('API', () => {
 
           for await (const e of stream) {
             events.push(e);
-            // Abort after first event
-            if (events.length === 1) {
-              abortController.abort();
+            // Stop after we get the completed status
+            if (e.session.runs[0]?.status === "completed") {
+              break;
             }
           }
-        } catch (err: any) {
-          if (err?.name === 'AbortError') {
-            return 'aborted';
-          }
-          throw err;
+        })();
+
+        // Give watch a moment to start
+        await new Promise(r => setTimeout(r, 500));
+
+        // Add step and output, then complete
+        await av.updateRun({
+          id: run.id,
+          items: [baseStep],
+        });
+
+        await new Promise(r => setTimeout(r, 1500)); // Wait for polling interval
+
+        await av.updateRun({
+          id: run.id,
+          items: [baseOutput],
+          status: "completed"
+        });
+
+        // Wait for watch to complete
+        await watchPromise;
+
+        // Should get at least 2 events: snapshot + at least one run.updated
+        expect(events.length).toBeGreaterThanOrEqual(2);
+
+        // First event should be session.snapshot
+        expect(events[0].event.type).toBe("session.snapshot");
+        expect(events[0].event.data.id).toBe(session.id);
+        expect(events[0].event.data.runs[0].sessionItems.length).toBe(1); // just input
+
+        // Subsequent events should be run.updated
+        const updateEvents = events.slice(1);
+        for (const e of updateEvents) {
+          expect(e.event.type).toBe("run.updated");
+          expect(e.event.data.id).toBe(run.id);
         }
-        return 'completed';
-      })();
 
-      const result = await watchPromise;
+        // Final session state should have all items
+        const finalSession = events[events.length - 1].session;
+        expect(finalSession.runs[0].status).toBe("completed");
+        expect(finalSession.runs[0].sessionItems.length).toBe(3); // input, step, output
+      }, 15000);
 
-      // Should have gotten exactly 1 event (snapshot) before abort
-      expect(events.length).toBe(1);
-      expect(events[0].event.type).toBe("session.snapshot");
-      expect(events[0].event.data).toBeDefined();
-      expect(result).toBe('aborted');
-    }, 10000);
+      test("can be aborted via AbortSignal", async () => {
+        await updateConfig();
+        const session = await createSession();
+
+        // Create run (in_progress)
+        await av.createRun({
+          sessionId: session.id,
+          items: [baseInput],
+          version: "1.0.0"
+        });
+
+        const abortController = new AbortController();
+        const events: Array<{ event: WatchSessionEvent; session: Session }> = [];
+
+        const watchPromise = (async () => {
+          try {
+            const stream = await av.getSessionStream({ id: session.id, signal: abortController.signal });
+            if (!stream) {
+              throw new Error('Stream is null');
+            }
+
+            for await (const e of stream) {
+              events.push(e);
+              // Abort after first event
+              if (events.length === 1) {
+                abortController.abort();
+              }
+            }
+          } catch (err: any) {
+            if (err?.name === 'AbortError') {
+              return 'aborted';
+            }
+            throw err;
+          }
+          return 'completed';
+        })();
+
+        const result = await watchPromise;
+
+        // Should have gotten exactly 1 event (snapshot) before abort
+        expect(events.length).toBe(1);
+        expect(events[0].event.type).toBe("session.snapshot");
+        expect(events[0].event.data).toBeDefined();
+        expect(result).toBe('aborted');
+      }, 10000);
+    });
   });
-});
 
 
-describe('Multi-Tenancy isolation', () => {
-  let orgAApiKey: string;
-  let orgBApiKey: string;
-  let av_a: AgentView;
-  let av_b: AgentView;
+  describe('Multi-Tenancy isolation', () => {
+    let orgAApiKey: string;
+    let orgBApiKey: string;
+    let av_a: AgentView;
+    let av_b: AgentView;
 
-  beforeAll(async () => {
-    // Create two separate organizations
-    const orgASlug = "orga-" + Math.random().toString(36).slice(2);
-    const orgBSlug = "orgb-" + Math.random().toString(36).slice(2);
+    beforeAll(async () => {
+      // Create two separate organizations
+      const orgASlug = "orga-" + Math.random().toString(36).slice(2);
+      const orgBSlug = "orgb-" + Math.random().toString(36).slice(2);
 
-    console.log("Creating orgA:", orgASlug);
-    console.log("Creating orgB:", orgBSlug);
+      console.log("Creating orgA:", orgASlug);
+      console.log("Creating orgB:", orgBSlug);
 
-    const { apiKeyDev: apiKey1 } = await seedUsers(orgASlug);
-    const { apiKeyDev: apiKey2 } = await seedUsers(orgBSlug);
+      const { apiKeyDev: apiKey1 } = await seedUsers(orgASlug);
+      const { apiKeyDev: apiKey2 } = await seedUsers(orgBSlug);
 
-    orgAApiKey = apiKey1.key;
-    orgBApiKey = apiKey2.key;
+      orgAApiKey = apiKey1.key;
+      orgBApiKey = apiKey2.key;
 
-    av_a = new AgentView({ apiKey: orgAApiKey });
-    av_b = new AgentView({ apiKey: orgBApiKey });
+      av_a = new AgentView({ apiKey: orgAApiKey });
+      av_b = new AgentView({ apiKey: orgBApiKey });
 
-    const config = {
-      agents: [{
-        name: 'test-agent',
-        runs: [{
-          input: { schema: z.looseObject({ type: z.literal("message"), content: z.string() }) },
-          steps: [],
-          output: { schema: z.looseObject({ type: z.literal("output"), content: z.string() }) },
+      const config = {
+        agents: [{
+          name: 'test-agent',
+          runs: [{
+            input: { schema: z.looseObject({ type: z.literal("message"), content: z.string() }) },
+            steps: [],
+            output: { schema: z.looseObject({ type: z.literal("output"), content: z.string() }) },
+          }]
         }]
-      }]
-    };
+      };
 
-    // Set up config for both orgs
-    await av_a.updateEnvironment({ config });
-    await av_b.updateEnvironment({ config });
-  });
-
-  test('org_a cannot see org_b users', async () => {
-    // Create a user in org2
-    const user_a = await av_a.createUser({ space: 'playground' });
-    expect(user_a).toBeDefined();
-    expect(user_a.id).toBeDefined();
-
-    // Try to get that user from org1 - should fail with 404
-    await expect(av_b.getUser({ id: user_a.id })).rejects.toThrow();
-  });
-
-  test('org_a cannot see org_a sessions', async () => {
-    // Create a user and session in org2
-    const user_b = await av_b.createUser({ space: 'playground' });
-    const session_b = await av_b.createSession({ userId: user_b.id, agent: 'test-agent' });
-    expect(session_b).toBeDefined();
-
-    // Try to get that session from org1 - should fail with 404
-    // await expect(av_a.getSession({ id: session_b.id })).rejects.toThrow();
-  });
-
-  test('listing sessions only returns own org data', async () => {
-    // Create users and sessions in both orgs
-    const user_a = await av_a.createUser({ space: 'playground' });
-    const user_b = await av_b.createUser({ space: 'playground' });
-
-    const session_a = await av_a.createSession({ userId: user_a.id, agent: 'test-agent' });
-    const session_b = await av_b.createSession({ userId: user_b.id, agent: 'test-agent' });
-
-    // List sessions from org1
-    const sessions_a = await av_a.getSessions({ space: 'playground' });
-
-    // Should contain org1's session
-    expect(sessions_a.sessions.some(s => s.id === session_a.id)).toBe(true);
-
-    // Should NOT contain org2's session
-    expect(sessions_a.sessions.some(s => s.id === session_b.id)).toBe(false);
-  });
-
-  test('org1 cannot modify org2 resources', async () => {
-    // Create a session in org2 with a run
-    const user_b = await av_b.createUser({ space: 'playground' });
-    const session_b = await av_b.createSession({ userId: user_b.id, agent: 'test-agent' });
-
-    const run_b = await av_b.createRun({
-      sessionId: session_b.id,
-      version: '1.0.0',
-      items: [{ type: 'message', content: 'hello' }],
-      status: 'in_progress'
+      // Set up config for both orgs
+      await av_a.updateEnvironment({ config });
+      await av_b.updateEnvironment({ config });
     });
 
-    // Try to update the run from org1 - should fail
-    await expect(av_a.updateRun({
-      id: run_b.id,
-      status: 'completed',
-      items: [{ type: 'output', content: 'response' }]
-    })).rejects.toThrow();
+    test('org_a cannot see org_b users', async () => {
+      // Create a user in org2
+      const user_a = await av_a.createUser({ space: 'playground' });
+      expect(user_a).toBeDefined();
+      expect(user_a.id).toBeDefined();
+
+      // Try to get that user from org1 - should fail with 404
+      await expect(av_b.getUser({ id: user_a.id })).rejects.toThrow();
+    });
+
+    test('org_a cannot see org_a sessions', async () => {
+      // Create a user and session in org2
+      const user_b = await av_b.createUser({ space: 'playground' });
+      const session_b = await av_b.createSession({ userId: user_b.id, agent: 'test-agent' });
+      expect(session_b).toBeDefined();
+
+      // Try to get that session from org1 - should fail with 404
+      // await expect(av_a.getSession({ id: session_b.id })).rejects.toThrow();
+    });
+
+    test('listing sessions only returns own org data', async () => {
+      // Create users and sessions in both orgs
+      const user_a = await av_a.createUser({ space: 'playground' });
+      const user_b = await av_b.createUser({ space: 'playground' });
+
+      const session_a = await av_a.createSession({ userId: user_a.id, agent: 'test-agent' });
+      const session_b = await av_b.createSession({ userId: user_b.id, agent: 'test-agent' });
+
+      // List sessions from org1
+      const sessions_a = await av_a.getSessions({ space: 'playground' });
+
+      // Should contain org1's session
+      expect(sessions_a.sessions.some(s => s.id === session_a.id)).toBe(true);
+
+      // Should NOT contain org2's session
+      expect(sessions_a.sessions.some(s => s.id === session_b.id)).toBe(false);
+    });
+
+    test('org1 cannot modify org2 resources', async () => {
+      // Create a session in org2 with a run
+      const user_b = await av_b.createUser({ space: 'playground' });
+      const session_b = await av_b.createSession({ userId: user_b.id, agent: 'test-agent' });
+
+      const run_b = await av_b.createRun({
+        sessionId: session_b.id,
+        version: '1.0.0',
+        items: [{ type: 'message', content: 'hello' }],
+        status: 'in_progress'
+      });
+
+      // Try to update the run from org1 - should fail
+      await expect(av_a.updateRun({
+        id: run_b.id,
+        status: 'completed',
+        items: [{ type: 'output', content: 'response' }]
+      })).rejects.toThrow();
+    });
   });
-});
 
 
 
 
-/** Quick JSON.parse-based deep compare, ignores order of keys in objects */
-function deepCompare(a: any, b: any): boolean {
-  // simple primitives and types
-  if (a === b) return true;
-  if (typeof a !== typeof b) return false;
-  if (a === null || b === null) return a === b;
+  /** Quick JSON.parse-based deep compare, ignores order of keys in objects */
+  function deepCompare(a: any, b: any): boolean {
+    // simple primitives and types
+    if (a === b) return true;
+    if (typeof a !== typeof b) return false;
+    if (a === null || b === null) return a === b;
 
-  // arrays
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (!deepCompare(a[i], b[i])) return false;
-    }
-    return true;
-  }
-
-  // plain objects
-  if (typeof a === "object" && typeof b === "object") {
-    const aKeys = Object.keys(a);
-    const bKeys = Object.keys(b);
-    if (aKeys.length !== bKeys.length) return false;
-    for (const key of aKeys) {
-      if (!bKeys.includes(key)) return false;
-      if (!deepCompare(a[key], b[key])) return false;
-    }
-    return true;
-  }
-
-  // fallback
-  return false;
-}
-
-
-function removeDoubleUnderscoreKeys(obj: any): any {
-  if (Array.isArray(obj)) {
-    return obj.map(removeDoubleUnderscoreKeys);
-  } else if (obj && typeof obj === 'object') {
-    const result: any = {};
-    for (const key of Object.keys(obj)) {
-      if (!key.startsWith('__')) {
-        result[key] = removeDoubleUnderscoreKeys(obj[key]);
+    // arrays
+    if (Array.isArray(a) && Array.isArray(b)) {
+      if (a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) {
+        if (!deepCompare(a[i], b[i])) return false;
       }
+      return true;
     }
-    return result;
+
+    // plain objects
+    if (typeof a === "object" && typeof b === "object") {
+      const aKeys = Object.keys(a);
+      const bKeys = Object.keys(b);
+      if (aKeys.length !== bKeys.length) return false;
+      for (const key of aKeys) {
+        if (!bKeys.includes(key)) return false;
+        if (!deepCompare(a[key], b[key])) return false;
+      }
+      return true;
+    }
+
+    // fallback
+    return false;
   }
-  return obj;
-}
+
+
+  function removeDoubleUnderscoreKeys(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map(removeDoubleUnderscoreKeys);
+    } else if (obj && typeof obj === 'object') {
+      const result: any = {};
+      for (const key of Object.keys(obj)) {
+        if (!key.startsWith('__')) {
+          result[key] = removeDoubleUnderscoreKeys(obj[key]);
+        }
+      }
+      return result;
+    }
+    return obj;
+  }
+
+
+
+});
