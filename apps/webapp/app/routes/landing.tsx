@@ -86,6 +86,9 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
       {/* Hero Section */}
       <main className="flex-1">
         <section className="max-w-7xl mx-auto px-6 pt-32 pb-16">
+          <span className="inline-block mb-4 px-3 py-1 text-sm font-medium bg-[#C95B37]/10 text-[#C95B37] rounded-full">
+            Beta Preview
+          </span>
           <h1 className="text-5xl md:text-6xl lg:text-6xl font-semibold tracking-tight">
             The "CMS" for agents
           </h1>
