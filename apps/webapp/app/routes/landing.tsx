@@ -1,11 +1,54 @@
 import { Link } from "react-router";
 import type { Route } from "./+types/landing";
-import { Button } from "@agentview/studio/components/ui/button";
 import { authClient } from "~/authClient";
+import type { LucideIcon } from "lucide-react";
+import { ArrowRight, BookOpen } from "lucide-react";
+import { cn } from "@agentview/studio/lib/utils";
 
 export async function clientLoader({ request }: Route.LoaderArgs) {
   const session = await authClient.getSession();
   return { isAuthenticated: !!session.data };
+}
+
+type ButtonVariant = "primary" | "outline" | "pill";
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  icon?: LucideIcon;
+  iconPosition?: "left" | "right";
+  asChild?: boolean;
+  children: React.ReactNode;
+}
+
+function HeroButton({
+  variant = "primary",
+  icon: Icon,
+  iconPosition = "left",
+  className,
+  children,
+  ...props
+}: ButtonProps) {
+  const baseStyles =
+    "inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2";
+
+  const variants: Record<ButtonVariant, string> = {
+    primary:
+      "bg-[#C95B37] text-white hover:bg-[#B34E2D] rounded-full h-10 px-5 text-sm focus:ring-[#C95B37]",
+    outline:
+      "bg-white text-foreground border border-foreground/20 hover:bg-foreground/5 rounded-full h-10 px-5 text-sm focus:ring-foreground/30",
+    pill: "bg-white text-foreground border border-foreground/20 hover:bg-foreground/5 rounded-full h-10 px-5 text-sm focus:ring-foreground/30",
+  };
+
+  return (
+    <button
+      className={cn(baseStyles, variants[variant], className)}
+      {...props}
+    >
+      {Icon && iconPosition === "left" && <Icon className="size-4" />}
+      {children}
+      {Icon && iconPosition === "right" && <Icon className="size-4" />}
+    </button>
+  );
 }
 
 export default function LandingPage({ loaderData }: Route.ComponentProps) {
@@ -14,39 +57,21 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+      <header className="py-4">
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <img src="/logo_light.svg" alt="AgentView" className="h-7" />
           </Link>
 
-          <nav className="flex items-center gap-6">
-            <Link
-              to={import.meta.env.VITE_AGENTVIEW_DOCS_URL}
-              target="_blank"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Docs
-            </Link>
-            <a
-              href="#contact"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Contact us
-            </a>
+          <nav>
             {isAuthenticated ? (
-              <Button asChild>
-                <Link to={"/dashboard"}>Dashboard</Link>
-              </Button>
+              <Link to="/dashboard">
+                <HeroButton variant="pill">Dashboard</HeroButton>
+              </Link>
             ) : (
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" asChild>
-                  <Link to={"/login"}>Log in</Link>
-                </Button>
-                <Button asChild>
-                  <Link to={"/signup"}>Get Started</Link>
-                </Button>
-              </div>
+              <Link to="/signup">
+                <HeroButton variant="pill">Sign up</HeroButton>
+              </Link>
             )}
           </nav>
         </div>
@@ -54,47 +79,40 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
 
       {/* Hero Section */}
       <main className="flex-1">
-        <section className="container mx-auto px-4 py-24 text-center">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-            Build AI Agents with Confidence
+        <section className="max-w-7xl mx-auto px-6 pt-32 pb-16">
+          <h1 className="text-5xl md:text-6xl lg:text-6xl font-semibold tracking-tight">
+            The "CMS" for agents
           </h1>
-          <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-            AgentView helps you monitor, debug, and manage your AI agents in production.
-            Get full visibility into agent sessions, track user interactions, and ship reliable AI experiences.
+          <p className="mt-6 text-xl opacity-66 max-w-lg">
+            Backend + Studio for teams building conversational AI.
+            <br />
+            Without touching your AI code.
           </p>
-          <div className="mt-10 flex items-center justify-center gap-4">
-            <Button size="lg" asChild>
-              <Link to="/signup">Get Started</Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link to={import.meta.env.VITE_AGENTVIEW_DOCS_URL} target="_blank">Read the Docs</Link>
-            </Button>
+          <div className="mt-8 flex items-center gap-4">
+            <Link to="/signup">
+              <HeroButton variant="primary" icon={ArrowRight} iconPosition="right">
+                Get Started
+              </HeroButton>
+            </Link>
+            <Link to={import.meta.env.VITE_AGENTVIEW_DOCS_URL} target="_blank">
+              <HeroButton variant="outline" icon={BookOpen}>
+                Read the docs
+              </HeroButton>
+            </Link>
           </div>
         </section>
 
-        {/* Contact Section */}
-        <section id="contact" className="border-t bg-muted/50">
-          <div className="container mx-auto px-4 py-16 text-center">
-            <h2 className="text-2xl font-semibold">Contact Us</h2>
-            <p className="mt-4 text-muted-foreground">
-              Have questions? We'd love to hear from you.
-            </p>
-            <a
-              href="mailto:hello@agentview.com"
-              className="mt-4 inline-block text-primary hover:underline"
-            >
-              hello@agentview.com
-            </a>
+        {/* Product Screenshot */}
+        <section className="max-w-7xl mx-auto px-6 pb-16">
+          <div className="bg-[#1a1a1a] rounded-2xl p-4 md:px-32 py-12 shadow-2xl">
+            <img
+              src="/main.png"
+              alt="AgentView Studio"
+              className="w-full rounded-lg"
+            />
           </div>
         </section>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} AgentView. All rights reserved.</p>
-        </div>
-      </footer>
     </div>
   );
 }

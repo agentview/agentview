@@ -4,3 +4,9 @@
 html, body {
     background-color:#F7F8F3;
 }
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
