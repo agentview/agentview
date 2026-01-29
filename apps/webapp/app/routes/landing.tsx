@@ -52,6 +52,53 @@ function HeroButton({
   );
 }
 
+interface FeatureSectionProps {
+  title: string;
+  description: React.ReactNode;
+  imagePosition?: "left" | "right";
+  ctaText?: string;
+  ctaHref?: string;
+}
+
+function FeatureSection({
+  title,
+  description,
+  imagePosition = "right",
+  ctaText = "Get Started",
+  ctaHref = "/signup",
+}: FeatureSectionProps) {
+  return (
+    <section className="max-w-7xl mx-auto my-16">
+      <div className="">
+        <div
+          className={cn(
+            "flex flex-col md:flex-row gap-8 md:gap-12 items-start",
+            imagePosition === "left" && "md:flex-row-reverse"
+          )}
+        >
+          {/* Content */}
+          <div className="flex-1 space-y-2">
+            <h2 className="text-2xl md:text-xl font-medium tracking-tight">
+              {title}
+            </h2>
+            <p className="text-foreground/70">{description}</p>
+            {/* <Link to={ctaHref}>
+              <HeroButton variant="accent" className="mt-2">
+                {ctaText}
+              </HeroButton>
+            </Link> */}
+          </div>
+
+          {/* Image placeholder */}
+          <div className="flex-2 w-full">
+            <div className="bg-neutral-900 rounded-lg aspect-[4/3] w-full" />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function LandingPage({ loaderData }: Route.ComponentProps) {
   const { isAuthenticated } = loaderData;
 
@@ -59,7 +106,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="py-4">
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <img src="/logo_light.svg" alt="AgentView" className="h-7" />
           </Link>
@@ -85,7 +132,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
 
       {/* Hero Section */}
       <main className="flex-1">
-        <section className="max-w-7xl mx-auto px-6 pt-32 pb-16">
+        <section className="max-w-7xl mx-auto pt-32 pb-16">
           <span className="inline-block mb-4 px-3 py-1 text-sm font-medium bg-[#C95B37]/10 text-[#C95B37] rounded-full">
             Beta Preview
           </span>
@@ -112,8 +159,8 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
         </section>
 
         {/* Product Screenshot */}
-        <section className="max-w-7xl mx-auto px-6 pb-16">
-          <div className="bg-neutral-900 rounded-2xl p-4 md:px-32 py-12 shadow-2xl">
+        <section className="max-w-7xl mx-auto pb-16">
+          <div className="bg-neutral-900 rounded-xl p-4 md:px-32 py-12 shadow-2xl">
             <img
               src="/main.png"
               alt="AgentView Studio"
@@ -121,6 +168,25 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
             />
           </div>
         </section>
+
+        {/* Feature Sections */}
+        <FeatureSection
+          title="Framework-agnostic backend"
+          description="AgentView provides a simple SDK for persisting your sessions state. It stays out of your AI logic, so that you can use any framework you want or go vanilla."
+          imagePosition="right"
+        />
+
+        <FeatureSection
+          title="Extremely customizable Studio"
+          description={<span>Studio is session browser and playground for your agent focused on non-technical users like stakeholders or domain experts.<br/><br/>It's an open-source and self-hosted React app, so that you can customize by simply providing custom components.</span>}
+          imagePosition="right"
+        />
+
+        <FeatureSection
+          title="Collaboration as a first-class citizen"
+          description="It's like Google Docs for your agent data. Share, comment, score, mention, get notified with ease."
+          imagePosition="right"
+        />
       </main>
     </div>
   );
