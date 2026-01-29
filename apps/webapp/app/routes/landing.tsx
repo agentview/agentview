@@ -68,7 +68,7 @@ function FeatureSection({
   ctaHref = "/signup",
 }: FeatureSectionProps) {
   return (
-    <section className="max-w-7xl mx-auto my-16">
+    <section className="max-w-7xl mx-auto px-4 md:px-6 my-12 md:my-16">
       <div className="">
         <div
           className={cn(
@@ -106,7 +106,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <img src="/logo_light.svg" alt="AgentView" className="h-7" />
           </Link>
@@ -132,11 +132,11 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
 
       {/* Hero Section */}
       <main className="flex-1">
-        <section className="max-w-7xl mx-auto pt-32 pb-16">
+        <section className="max-w-7xl mx-auto px-4 md:px-6 pt-20 md:pt-32 pb-12 md:pb-16">
           <span className="inline-block mb-4 px-3 py-1 text-sm font-medium bg-[#C95B37]/10 text-[#C95B37] rounded-full">
             Beta Preview
           </span>
-          <h1 className="text-5xl md:text-6xl lg:text-4xl font-medium tracking-tight max-w-3xl">
+          <h1 className="text-2xl md:text-4xl lg:text-5xl font-medium tracking-tight max-w-3xl">
           AgentView is a framework-agnostic UI Studio and backend for teams who build conversational agents in code.
           </h1>
           <p className="mt-6 text-xl opacity-66 max-w-lg">
@@ -159,7 +159,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
         </section>
 
         {/* Product Screenshot */}
-        <section className="max-w-7xl mx-auto pb-16">
+        <section className="max-w-7xl mx-auto px-4 md:px-6 pb-12 md:pb-16">
           <div className="bg-neutral-900 rounded-xl p-4 md:px-32 py-12 shadow-2xl">
             <img
               src="/main.png"
@@ -189,8 +189,8 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
         />
 
         {/* Pricing / Open Source */}
-        <section className="max-w-7xl mx-auto mt-32 mb-16">
-          <div className="bg-white border border-foreground/20 rounded-xl p-12 text-center">
+        <section className="max-w-7xl mx-auto px-4 md:px-6 mt-20 md:mt-32 mb-12 md:mb-16">
+          <div className="bg-white border border-foreground/20 rounded-xl p-6 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
               Open-source Studio, hosted backend
             </h2>
@@ -221,7 +221,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
 
       {/* Footer */}
       <footer className="pb-4">
-        <div className="max-w-7xl mx-auto text-xl text-foreground/60 text-center">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 text-base md:text-xl text-foreground/60 text-center">
           <p>
             Questions or feedback? Reach the founder on{" "}
             <a
@@ -241,7 +241,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
             </a>
             .
           </p>
-          <p className="mt-32 text-sm text-foreground/40">
+          <p className="mt-16 md:mt-32 text-sm text-foreground/40">
             © {new Date().getFullYear()} AgentView
           </p>
         </div>
