@@ -3,7 +3,10 @@
   "private": true,
   "version": "0.1.9",
   "scripts": {
-    "publish": "node ./publish.mjs",
+    "release": "node ./scripts/release/index.mjs",
+    "release:build": "node ./scripts/release/build.mjs",
+    "release:version": "node ./scripts/release/version.mjs",
+    "release:publish": "node ./scripts/release/publish.mjs",
     "db:clear": "pnpm --filter ./apps/api db:clear",
     "db:generate": "pnpm --filter ./apps/api drizzle-kit generate",
     "dev:api": "pnpm --filter ./apps/api dev",
