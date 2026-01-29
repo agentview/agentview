@@ -70,9 +70,14 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
                 <HeroButton variant="primary">Dashboard</HeroButton>
               </Link>
             ) : (
-              <Link to="/signup">
-                <HeroButton variant="primary">Sign up</HeroButton>
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link to="/login">
+                  <HeroButton variant="outline">Log in</HeroButton>
+                </Link>
+                <Link to="/signup">
+                  <HeroButton variant="primary">Sign up</HeroButton>
+                </Link>
+              </div>
             )}
           </nav>
         </div>
