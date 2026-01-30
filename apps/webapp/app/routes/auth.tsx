@@ -11,8 +11,6 @@ export async function clientLoader({ request }: Route.LoaderArgs) : Promise<Acti
   const url = new URL(request.url);
   const originParam = url.searchParams.get('origin');
 
-  console.log('AUTH!!!!!', originParam);
-
   if (!originParam) {
     return {
       ok: false,
@@ -86,6 +84,7 @@ export default function AuthPage() {
               <AlertDescription>{loaderData.error.message}</AlertDescription>
             </Alert>
           }
+          { loaderData.ok && "Authenticating..." }
         </CardContent>
       </Card>
     </CardPageLayout>
