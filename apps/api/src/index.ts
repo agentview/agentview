@@ -878,28 +878,28 @@ app.openapi(usersPOSTRoute, async (c) => {
 })
 
 
-// const userMeRoute = createRoute({
-//   method: 'get',
-//   path: '/api/users/me',
-//   summary: 'Retrieve the current user',
-//   tags: ['Users'],
-//   responses: {
-//     200: response_data(UserSchema),
-//     404: response_error()
-//   },
-// })
+const userMeRoute = createRoute({
+  method: 'get',
+  path: '/api/users/me',
+  summary: 'Retrieve the current user',
+  tags: ['Users'],
+  responses: {
+    200: response_data(UserSchema),
+    404: response_error()
+  },
+})
 
-// app.openapi(userMeRoute, async (c) => {
-//   const principal = await authn(c.req.raw.headers)
-//   const user = principal.user;
+app.openapi(userMeRoute, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+  const user = principal.user;
 
-//   if (!user) {
-//     throw new HTTPException(422, { message: "You must provide an end user token to access this endpoint." });
-//   }
+  if (!user) {
+    throw new HTTPException(422, { message: "You must provide an end user token to access this endpoint." });
+  }
 
-//   await authorize(principal, { action: "end-user:read", user })
-//   return c.json(user, 200);
-// })
+  await authorize(principal, { action: "end-user:read", user })
+  return c.json(user, 200);
+})
 
 const publicMeRoute = createRoute({
   method: 'get',
