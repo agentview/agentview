@@ -138,7 +138,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
       <main className="flex-1">
         <section className="max-w-7xl mx-auto px-4 md:px-6 pt-20 md:pt-32 pb-12 md:pb-16">
           <span className="inline-block mb-4 px-3 py-1 text-sm font-medium bg-[#C95B37]/10 text-[#C95B37] rounded-full">
-            Beta Preview
+            Early Preview
           </span>
           <h1 className="text-4xl md:text-5xl lg:text-7xl font-medium tracking-tight ">
           The “CMS” for agents
@@ -200,7 +200,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
               Studio is MIT licensed. You can fork it, customize it, make it yours.
             </p>
             <p className="mt-3 text-foreground/70 max-w-xl mx-auto">
-              Backend is in <span className="font-semibold text-foreground">Beta Preview</span> — free to use with 500 sessions and 5 team members. No credit card required.
+              Backend is in <span className="font-semibold text-foreground">Early Preview</span> — free to use with 500 sessions and 5 team members. No credit card required.
               Need more?{" "}
               <a
                 href={`mailto:${EMAIL}`}
