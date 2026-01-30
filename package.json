@@ -14,7 +14,8 @@
     "dev:docs": "pnpm --filter ./apps/docs dev",
     "dev:drizzle-studio": "(cd apps/api && npx drizzle-kit studio)",
     "dev": "concurrently --colors -n api,webapp,docs,drizzle -c blue,green,yellow,magenta \"pnpm run dev:api\" \"pnpm run dev:webapp\" \"pnpm run dev:docs\" \"pnpm run dev:drizzle-studio\"",
-    "seed-users": "pnpm --filter ./apps/tests seed-users"
+    "seed-users": "pnpm --filter ./apps/tests seed-users",
+    "sync-openapi": "./scripts/sync-openapi.sh"
   },
   "pnpm": {
     "overrides": {

@@ -826,6 +826,8 @@ async function deleteComment(
 const usersPOSTRoute = createRoute({
   method: 'post',
   path: '/api/users',
+  summary: 'Create a user',
+  tags: ['Users'],
   request: {
     body: body(UserCreateSchema)
   },
@@ -876,31 +878,34 @@ app.openapi(usersPOSTRoute, async (c) => {
 })
 
 
-const userMeRoute = createRoute({
-  method: 'get',
-  path: '/api/users/me',
-  responses: {
-    200: response_data(UserSchema),
-    404: response_error()
-  },
-})
+// const userMeRoute = createRoute({
+//   method: 'get',
+//   path: '/api/users/me',
+//   summary: 'Retrieve the current user',
+//   tags: ['Users'],
+//   responses: {
+//     200: response_data(UserSchema),
+//     404: response_error()
+//   },
+// })
 
-app.openapi(userMeRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  const user = principal.user;
+// app.openapi(userMeRoute, async (c) => {
+//   const principal = await authn(c.req.raw.headers)
+//   const user = principal.user;
 
-  if (!user) {
-    throw new HTTPException(422, { message: "You must provide an end user token to access this endpoint." });
-  }
+//   if (!user) {
+//     throw new HTTPException(422, { message: "You must provide an end user token to access this endpoint." });
+//   }
 
-  await authorize(principal, { action: "end-user:read", user })
-  return c.json(user, 200);
-})
+//   await authorize(principal, { action: "end-user:read", user })
+//   return c.json(user, 200);
+// })
 
 const publicMeRoute = createRoute({
   method: 'get',
   path: '/api/public/me',
-  tags: ['public'],
+  summary: 'Retrieve the current user',
+  tags: ['Public'],
   responses: {
     200: response_data(UserSchema),
     404: response_error()
@@ -918,6 +923,8 @@ app.openapi(publicMeRoute, async (c) => {
 const userGETRoute = createRoute({
   method: 'get',
   path: '/api/users/{id}',
+  summary: 'Retrieve a user',
+  tags: ['Users'],
   request: {
     params: z.object({
       id: z.string(),
@@ -945,6 +952,8 @@ app.openapi(userGETRoute, async (c) => {
 const userByExternalIdGETRoute = createRoute({
   method: 'get',
   path: '/api/users/by-external-id/{external_id}',
+  summary: 'Retrieve a user by external id',
+  tags: ['Users'],
   request: {
     params: z.object({
       external_id: z.string(),
@@ -971,6 +980,8 @@ app.openapi(userByExternalIdGETRoute, async (c) => {
 const apiUsersPATCHRoute = createRoute({
   method: 'patch',
   path: '/api/users/{id}',
+  summary: 'Update a user',
+  tags: ['Users'],
   request: {
     body: body(UserCreateSchema)
   },
@@ -1177,6 +1188,8 @@ async function getSessions(tx: Transaction, params: SessionsGetQueryParams, prin
 const sessionsGETRoute = createRoute({
   method: 'get',
   path: '/api/sessions',
+  summary: 'List sessions',
+  tags: ['Sessions'],
   request: {
     query: SessionsGetQueryParamsSchema,
   },
@@ -1200,7 +1213,8 @@ app.openapi(sessionsGETRoute, async (c) => {
 const publicSessionsGETRoute = createRoute({
   method: 'get',
   path: '/api/public/sessions',
-  tags: ['public'],
+  summary: 'List sessions',
+  tags: ['Public'],
   request: {
     query: PublicSessionsGetQueryParamsSchema,
   },
@@ -1233,6 +1247,8 @@ type StatsResponse = {
 const sessionsGETStatsRoute = createRoute({
   method: 'get',
   path: '/api/sessions/stats',
+  summary: 'Get stats',
+  tags: ['Sessions'],
   request: {
     query: SessionsGetQueryParamsSchema.extend({
       granular: z.stringbool().optional()
@@ -1320,6 +1336,8 @@ app.openapi(sessionsGETStatsRoute, async (c) => {
 const sessionGETRoute = createRoute({
   method: 'get',
   path: '/api/sessions/{session_id}',
+  summary: 'Retrieve a session',
+  tags: ['Sessions'],
   request: {
     params: z.object({
       session_id: z.string(),
@@ -1342,74 +1360,12 @@ app.openapi(sessionGETRoute, async (c) => {
   })
 })
 
-const sessionCommentsGETRoute = createRoute({
-  method: 'get',
-  path: '/api/sessions/{session_id}/comments',
-  request: {
-    params: z.object({
-      session_id: z.string(),
-    }),
-  },
-  responses: {
-    200: response_data(z.array(CommentMessageSchema)),
-    404: response_error()
-  },
-})
-
-app.openapi(sessionCommentsGETRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  const { session_id } = c.req.param()
-
-  return withOrg(principal.organizationId, async (tx) => {
-    const session = await requireSession(tx, session_id);
-    await authorize(principal, { action: "end-user:read", user: session.user });
-
-    const comments = await tx.query.commentMessages.findMany({
-      where: eq(commentMessages.sessionItemId, sql`ANY(SELECT id FROM session_items WHERE session_id = ${session.id})`),
-      orderBy: (comment, { asc }) => [asc(comment.createdAt)],
-      with: {
-        score: true
-      }
-    });
-
-    return c.json(comments, 200);
-  })
-})
-
-const sessionScoresGETRoute = createRoute({
-  method: 'get',
-  path: '/api/sessions/{session_id}/scores',
-  request: {
-    params: z.object({
-      session_id: z.string(),
-    }),
-  },
-  responses: {
-    200: response_data(z.array(ScoreSchema)),
-    404: response_error()
-  },
-})
-
-app.openapi(sessionScoresGETRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  const { session_id } = c.req.param()
-
-  return withOrg(principal.organizationId, async (tx) => {
-    const session = await requireSession(tx, session_id);
-    await authorize(principal, { action: "end-user:read", user: session.user });
-
-    const sessionScores = await tx.query.scores.findMany({
-      where: eq(scores.sessionItemId, sql`ANY(SELECT id FROM session_items WHERE session_id = ${session.id})`),
-      orderBy: (score, { asc }) => [asc(score.createdAt)],
-    });
-
-    return c.json(sessionScores, 200);
-  })
-})
 
 const sessionPATCHRoute = createRoute({
   method: 'patch',
   path: '/api/sessions/{session_id}',
+  summary: 'Update a session',
+  tags: ['Sessions'],
   request: {
     params: z.object({
       session_id: z.string(),
@@ -1449,10 +1405,83 @@ app.openapi(sessionPATCHRoute, async (c) => {
   })
 })
 
+
+const sessionCommentsGETRoute = createRoute({
+  method: 'get',
+  path: '/api/sessions/{session_id}/comments',
+  summary: 'List comments',
+  tags: ['Sessions'],
+  request: {
+    params: z.object({
+      session_id: z.string(),
+    }),
+  },
+  responses: {
+    200: response_data(z.array(CommentMessageSchema)),
+    404: response_error()
+  },
+})
+
+app.openapi(sessionCommentsGETRoute, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+  const { session_id } = c.req.param()
+
+  return withOrg(principal.organizationId, async (tx) => {
+    const session = await requireSession(tx, session_id);
+    await authorize(principal, { action: "end-user:read", user: session.user });
+
+    const comments = await tx.query.commentMessages.findMany({
+      where: eq(commentMessages.sessionItemId, sql`ANY(SELECT id FROM session_items WHERE session_id = ${session.id})`),
+      orderBy: (comment, { asc }) => [asc(comment.createdAt)],
+      with: {
+        score: true
+      }
+    });
+
+    return c.json(comments, 200);
+  })
+})
+
+const sessionScoresGETRoute = createRoute({
+  method: 'get',
+  path: '/api/sessions/{session_id}/scores',
+  summary: 'List scores',
+  tags: ['Sessions'],
+  request: {
+    params: z.object({
+      session_id: z.string(),
+    }),
+  },
+  responses: {
+    200: response_data(z.array(ScoreSchema)),
+    404: response_error()
+  },
+})
+
+app.openapi(sessionScoresGETRoute, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+  const { session_id } = c.req.param()
+
+  return withOrg(principal.organizationId, async (tx) => {
+    const session = await requireSession(tx, session_id);
+    await authorize(principal, { action: "end-user:read", user: session.user });
+
+    const sessionScores = await tx.query.scores.findMany({
+      where: eq(scores.sessionItemId, sql`ANY(SELECT id FROM session_items WHERE session_id = ${session.id})`),
+      orderBy: (score, { asc }) => [asc(score.createdAt)],
+    });
+
+    return c.json(sessionScores, 200);
+  })
+})
+
+
 // Star a session
 const sessionStarPUTRoute = createRoute({
   method: 'put',
   path: '/api/sessions/{session_id}/star',
+  summary: 'Star a session',
+  tags: ['Sessions'],
   request: {
     params: z.object({
       session_id: z.string(),
@@ -1489,6 +1518,8 @@ app.openapi(sessionStarPUTRoute, async (c) => {
 const sessionStarDELETERoute = createRoute({
   method: 'delete',
   path: '/api/sessions/{session_id}/star',
+  summary: 'Unstar a session',
+  tags: ['Sessions'],
   request: {
     params: z.object({
       session_id: z.string(),
@@ -1526,6 +1557,8 @@ app.openapi(sessionStarDELETERoute, async (c) => {
 const sessionStarGETRoute = createRoute({
   method: 'get',
   path: '/api/sessions/{session_id}/star',
+  summary: 'Get star status',
+  tags: ['Sessions'],
   request: {
     params: z.object({
       session_id: z.string(),
@@ -1562,7 +1595,8 @@ app.openapi(sessionStarGETRoute, async (c) => {
 const publicSessionGETRoute = createRoute({
   method: 'get',
   path: '/api/public/sessions/{session_id}',
-  tags: ['public'],
+  summary: 'Retrieve a session',
+  tags: ['Public'],
   request: {
     params: z.object({
       session_id: z.string(),
@@ -1592,6 +1626,8 @@ app.openapi(publicSessionGETRoute, async (c) => {
 const sessionsPOSTRoute = createRoute({
   method: 'post',
   path: '/api/sessions',
+  summary: 'Create a session',
+  tags: ['Sessions'],
   request: {
     body: body(SessionCreateSchema)
   },
@@ -1804,6 +1840,8 @@ async function* watchSession(organizationId: string, initSession: Session, wait:
 const sessionStreamRoute = createRoute({
   method: 'get',
   path: '/api/sessions/{session_id}/stream',
+  summary: 'Stream updates',
+  tags: ['Sessions'],
   request: {
     params: z.object({
       session_id: z.string(),
@@ -1875,6 +1913,8 @@ app.openapi(sessionStreamRoute, async (c) => {
 const sessionSeenRoute = createRoute({
   method: 'post',
   path: '/api/sessions/{sessionId}/seen',
+  summary: 'Mark session as seen',
+  tags: ['Sessions'],
   request: {
     params: z.object({
       sessionId: z.string(),
@@ -2065,6 +2105,8 @@ function validateNonInputItems(runConfig: BaseRunConfig, previousRunItems: any[]
 const runsPOSTRoute = createRoute({
   method: 'post',
   path: '/api/runs',
+  summary: 'Create a run',
+  tags: ['Runs'],
   request: {
     body: body(RunCreateSchema)
   },
@@ -2254,6 +2296,8 @@ app.openapi(runsPOSTRoute, async (c) => {
 const runPATCHRoute = createRoute({
   method: 'patch',
   path: '/api/runs/{run_id}',
+  summary: 'Update a run',
+  tags: ['Runs'],
   request: {
     params: z.object({
       run_id: z.string(),
@@ -2369,6 +2413,8 @@ app.openapi(runPATCHRoute, async (c) => {
 const runKeepAliveRoute = createRoute({
   method: 'post',
   path: '/api/runs/{run_id}/keep-alive',
+  summary: 'Keep alive',
+  tags: ['Runs'],
   responses: {
     200: response_data(z.object({ expiresAt: z.string().nullable() })),
     400: response_error(),
@@ -2409,129 +2455,131 @@ app.openapi(runKeepAliveRoute, async (c) => {
   })
 })
 
-const runWatchRoute = createRoute({
-  method: 'get',
-  path: '/api/runs/{run_id}/watch',
-  request: {
-    params: z.object({
-      run_id: z.string()
-    })
-  },
-  responses: {
-    200: {
-      content: {
-        'text/event-stream': {
-          schema: z.string(),
-        },
-      },
-      description: "Streams items from the run",
-    },
-    400: response_error(),
-    404: response_error()
-  },
-})
+// const runWatchRoute = createRoute({
+//   method: 'get',
+//   path: '/api/runs/{run_id}/watch',
+//   summary: 'Watch Run',
+//   tags: ['Runs'],
+//   request: {
+//     params: z.object({
+//       run_id: z.string()
+//     })
+//   },
+//   responses: {
+//     200: {
+//       content: {
+//         'text/event-stream': {
+//           schema: z.string(),
+//         },
+//       },
+//       description: "Streams items from the run",
+//     },
+//     400: response_error(),
+//     404: response_error()
+//   },
+// })
 
 
-app.openapi(runWatchRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers);
-  const organizationId = principal.organizationId;
+// app.openapi(runWatchRoute, async (c) => {
+//   const principal = await authn(c.req.raw.headers);
+//   const organizationId = principal.organizationId;
 
-  const { run_id } = c.req.param()
+//   const { run_id } = c.req.param()
 
-  // Initial fetch with org context
-  const { session, lastRun } = await withOrg(organizationId, async (tx) => {
-    const run = await requireRun(tx, run_id)
-    const session_id = run.sessionId;
-    const session = await requireSession(tx, session_id)
+//   // Initial fetch with org context
+//   const { session, lastRun } = await withOrg(organizationId, async (tx) => {
+//     const run = await requireRun(tx, run_id)
+//     const session_id = run.sessionId;
+//     const session = await requireSession(tx, session_id)
 
-    authorize(principal, { action: "end-user:read", user: session.user });
+//     authorize(principal, { action: "end-user:read", user: session.user });
 
-    const lastRun = getLastRun(session)
-    return { session, lastRun };
-  });
+//     const lastRun = getLastRun(session)
+//     return { session, lastRun };
+//   });
 
-  const session_id = session.id;
+//   const session_id = session.id;
 
-  return streamSSE(c, async (stream) => {
-    let running = true;
-    stream.onAbort(() => {
-      running = false;
-    });
+//   return streamSSE(c, async (stream) => {
+//     let running = true;
+//     stream.onAbort(() => {
+//       running = false;
+//     });
 
-    // let's start with sending full run snapshot
-    await stream.writeSSE({
-      data: JSON.stringify(lastRun ?? null),
-      event: 'run.snapshot',
-    });
+//     // let's start with sending full run snapshot
+//     await stream.writeSSE({
+//       data: JSON.stringify(lastRun ?? null),
+//       event: 'run.snapshot',
+//     });
 
-    // close stream for runs that are not in_progress
-    if (lastRun?.status !== 'in_progress') {
-      return;
-    }
+//     // close stream for runs that are not in_progress
+//     if (lastRun?.status !== 'in_progress') {
+//       return;
+//     }
 
-    let previousRun = lastRun;
+//     let previousRun = lastRun;
 
-    /**
-     * POLLING HERE
-     * Soon we'll need to create a proper messaging, when some LLM API will be streaming characters then even NOTIFY/LISTEN won't make it performance-wise.
-     */
-    while (running) {
-      const session = await withOrg(organizationId, (tx) => requireSession(tx, session_id))
-      const lastRun = getLastRun(session)
+//     /**
+//      * POLLING HERE
+//      * Soon we'll need to create a proper messaging, when some LLM API will be streaming characters then even NOTIFY/LISTEN won't make it performance-wise.
+//      */
+//     while (running) {
+//       const session = await withOrg(organizationId, (tx) => requireSession(tx, session_id))
+//       const lastRun = getLastRun(session)
 
-      if (!lastRun) {
-        throw new Error('unreachable');
-      }
+//       if (!lastRun) {
+//         throw new Error('unreachable');
+//       }
 
-      // check for new items
-      const items = lastRun.sessionItems
-      const freshItems = items.filter(i => !previousRun.sessionItems.find(i2 => i2.id === i.id))
+//       // check for new items
+//       const items = lastRun.sessionItems
+//       const freshItems = items.filter(i => !previousRun.sessionItems.find(i2 => i2.id === i.id))
 
-      for (const item of freshItems) {
-        await stream.writeSSE({
-          data: JSON.stringify(item),
-          event: 'item.created',
-        });
-      }
+//       for (const item of freshItems) {
+//         await stream.writeSSE({
+//           data: JSON.stringify(item),
+//           event: 'item.created',
+//         });
+//       }
 
-      previousRun = {
-        ...previousRun,
-        sessionItems: [...previousRun.sessionItems, ...freshItems],
-      }
+//       previousRun = {
+//         ...previousRun,
+//         sessionItems: [...previousRun.sessionItems, ...freshItems],
+//       }
 
-      // check for state change
-      const runFieldsToCompare = ['id', 'createdAt', 'finishedAt', 'sessionId', 'versionId', 'status', 'failReason', 'version', 'metadata'] as const;
-      const changedFields: Partial<typeof lastRun> = {};
+//       // check for state change
+//       const runFieldsToCompare = ['id', 'createdAt', 'finishedAt', 'sessionId', 'versionId', 'status', 'failReason', 'version', 'metadata'] as const;
+//       const changedFields: Partial<typeof lastRun> = {};
 
-      for (const field of runFieldsToCompare) {
-        if (JSON.stringify(previousRun[field]) !== JSON.stringify(lastRun[field])) {
-          changedFields[field] = lastRun[field];
-        }
-      }
+//       for (const field of runFieldsToCompare) {
+//         if (JSON.stringify(previousRun[field]) !== JSON.stringify(lastRun[field])) {
+//           changedFields[field] = lastRun[field];
+//         }
+//       }
 
-      if (Object.keys(changedFields).length > 0) {
-        await stream.writeSSE({
-          data: JSON.stringify(changedFields),
-          event: 'run.state',
-        });
+//       if (Object.keys(changedFields).length > 0) {
+//         await stream.writeSSE({
+//           data: JSON.stringify(changedFields),
+//           event: 'run.state',
+//         });
 
-        // Update previousRun with the new values (excluding sessionItems)
-        previousRun = {
-          ...previousRun,
-          ...changedFields,
-        };
-      }
+//         // Update previousRun with the new values (excluding sessionItems)
+//         previousRun = {
+//           ...previousRun,
+//           ...changedFields,
+//         };
+//       }
 
-      // End if run is no longer in_progress
-      if (lastRun?.status !== 'in_progress') {
-        break;
-      }
+//       // End if run is no longer in_progress
+//       if (lastRun?.status !== 'in_progress') {
+//         break;
+//       }
 
-      // Wait 1s before next poll
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-  });
-});
+//       // Wait 1s before next poll
+//       await new Promise(resolve => setTimeout(resolve, 1000));
+//     }
+//   });
+// });
 
 
 
@@ -2540,6 +2588,8 @@ app.openapi(runWatchRoute, async (c) => {
 const itemSeenRoute = createRoute({
   method: 'post',
   path: '/api/sessions/{sessionId}/items/{itemId}/seen',
+  summary: 'Mark item as seen',
+  tags: ['Sessions'],
   request: {
     params: z.object({
       sessionId: z.string(),
@@ -2615,6 +2665,8 @@ app.openapi(itemSeenRoute, async (c) => {
 const commentsPOSTRoute = createRoute({
   method: 'post',
   path: '/api/sessions/{sessionId}/items/{itemId}/comments',
+  summary: 'Create a comment',
+  tags: ['Comments'],
   request: {
     params: z.object({
       sessionId: z.string(),
@@ -2653,6 +2705,8 @@ app.openapi(commentsPOSTRoute, async (c) => {
 const commentsDELETERoute = createRoute({
   method: 'delete',
   path: '/api/sessions/{sessionId}/items/{itemId}/comments/{commentId}',
+  summary: 'Delete a comment',
+  tags: ['Comments'],
   request: {
     params: z.object({
       sessionId: z.string(),
@@ -2689,6 +2743,8 @@ app.openapi(commentsDELETERoute, async (c) => {
 const commentsPUTRoute = createRoute({
   method: 'put',
   path: '/api/sessions/{sessionId}/items/{itemId}/comments/{commentId}',
+  summary: 'Update a comment',
+  tags: ['Comments'],
   request: {
     params: z.object({
       sessionId: z.string(),
@@ -2736,6 +2792,8 @@ app.openapi(commentsPUTRoute, async (c) => {
 const scoresPATCHRoute = createRoute({
   method: 'patch',
   path: '/api/sessions/{sessionId}/items/{itemId}/scores',
+  summary: 'Update scores',
+  tags: ['Scores'],
   request: {
     params: z.object({
       sessionId: z.string(),
@@ -2862,6 +2920,8 @@ app.get('/api/invitations/:invitation_id', async (c) => {
 const environmentGETRoute = createRoute({
   method: 'get',
   path: '/api/environment',
+  summary: 'Retrieve the environment',
+  tags: ['Environment'],
   responses: {
     200: response_data(EnvironmentSchema.nullable()),
   },
@@ -2880,6 +2940,8 @@ app.openapi(environmentGETRoute, async (c) => {
 const environmentPATCHRoute = createRoute({
   method: 'patch',
   path: '/api/environment',
+  summary: 'Update the environment',
+  tags: ['Environment'],
   request: {
     body: body(EnvironmentCreateSchema)
   },
@@ -2936,6 +2998,8 @@ app.openapi(environmentPATCHRoute, async (c) => {
 const healthRoute = createRoute({
   method: 'get',
   path: '/api/health',
+  summary: 'Health check',
+  tags: ['System'],
   responses: {
     200: response_data(z.object({
       status: z.literal("ok"),

@@ -58,7 +58,7 @@
       },
       {
         "tab": "API reference",
-        "openapi": "https://api.agentview.app/openapi"
+        "openapi": "openapi.json"
       }
 
     ]
