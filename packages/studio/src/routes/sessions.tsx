@@ -15,19 +15,10 @@ import { UserAvatar } from "../components/internal/UserAvatar";
 import { LoadingIndicator } from "../components/internal/LoadingIndicator";
 
 async function loader({ request }: LoaderFunctionArgs) {
-  const { listParams, needsRedirect } = getListParamsAndCheckForRedirect(request);
+  const { listParams, redirectUrl } = getListParamsAndCheckForRedirect(request);
 
-  if (needsRedirect) {
-    const url = new URL(request.url);
-    for (const [key, value] of Object.entries(listParams)) {
-      if (value === undefined) {
-        url.searchParams.delete(key);
-      }
-      else {
-        url.searchParams.set(key, value)
-      }
-    }
-    return redirect(url.toString());
+  if (redirectUrl) {
+    return redirect(redirectUrl.toString());
   }
 
   try {

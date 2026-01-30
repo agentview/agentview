@@ -62,7 +62,6 @@ export function getListParamsAndCheckForRedirect(request: Request) {
 
     return {
         listParams,
-        needsRedirect,
         redirectUrl: needsRedirect ? applyParamsToUrl(url, listParams) : undefined
     }
 }
