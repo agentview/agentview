@@ -44,7 +44,7 @@ function ErrorBoundary() {
 
 function HydrateFallback() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
+    <div className="flex items-center justify-center min-h-screen">
       <img
         src="/logo_light.svg"
         alt="AgentView Logo"

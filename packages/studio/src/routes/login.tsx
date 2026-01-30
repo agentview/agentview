@@ -56,15 +56,9 @@ function Component() {
 
   return (
     <CardPageLayout variant="poweredBy">
-
-          {loaderData?.organizationName && (
-            <p className="text-center text-muted-foreground text-sm mb-2">
-              {loaderData.organizationName}
-            </p>
-          )}
       <Card>
         <CardHeader>
-          <CardTitle className="text-center">Choose login provider</CardTitle>
+          <CardTitle className="text-center">Sign in to <span className="">{loaderData?.organizationName}</span></CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           <Button asChild variant="outline" className="w-full">
