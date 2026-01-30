@@ -13,6 +13,10 @@ export async function renderStudio(rootElement: HTMLElement | null, config: Agen
 
   import("./routes").then(({ routes }) => {
     const root = createRoot(rootElement);
-    root.render(<RouterProvider router={createBrowserRouter(routes(config.customRoutes))} unstable_useTransitions={true} />)
+    const router = createBrowserRouter(routes(config.customRoutes));
+
+    (window as any).agentview.router = router;
+    
+    root.render(<RouterProvider router={router} unstable_useTransitions={true} />)
   })
 }

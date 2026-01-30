@@ -46,7 +46,6 @@ import { agentview } from "../lib/agentview";
 import { getSessionCached, getOrganizationCached, type User, type Member, type Organization } from "../lib/auth-client";
 import { getCurrentAgent } from "../lib/currentAgent";
 import { SessionContext } from "../lib/SessionContext";
-import { setRevalidateCallback } from "../lib/swr-cache";
 
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -118,24 +117,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 function Component() {
   const { me, organization, locale, listStats, agent } = useLoaderData<typeof loader>()
-  const revalidator = useRevalidator();
   const location = useLocation();
-
-  // Wire up SWR cache to trigger React Router revalidation on data change
-  useEffect(() => {
-    setRevalidateCallback(() => {
-      console.log('revalidate from sidebar layout');
-      revalidator.revalidate()
-    });
-    // Also subscribe to cached SDK changes
-    // const unsubscribe = agentview.subscribe(() => {
-    //   revalidator.revalidate();
-    // });
-    return () => {
-      setRevalidateCallback(null);
-      // unsubscribe();
-    };
-  }, [revalidator]);
 
   // Helper function to get unseen count for a specific session type and list name
   const getUnseenCount = (sessionType: string, space: Space) => {

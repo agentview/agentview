@@ -42,7 +42,7 @@ function getCacheState(entry: CacheEntry<any>): CacheState {
 //   keyDependents.get(canonicalDep)!.add(canonicalKey);
 // }
 
-let revalidateCallback: (() => void) | null = null;
+// let revalidateCallback: (() => void) | null = null;
 
 function triggerBackgroundFetch<T>(
   key: string,
@@ -67,21 +67,17 @@ function triggerBackgroundFetch<T>(
   });
 }
 
-export function setRevalidateCallback(cb: (() => void) | null) {
-  revalidateCallback = cb;
-}
+// export function setRevalidateCallback(cb: (() => void) | null) {
+//   revalidateCallback = cb;
+// }
 
 export function revalidate() {
-  if (revalidateCallback) {
-    console.log('[cache] REVALIDATE, ok');
-    revalidateCallback();
-  } else {
-    console.log('[cache] REVALIDATE, no revalidate callback');
+  const router = (window as any).agentview.router;
+  if (!router) {
+    console.error("Router not found, can't revalidate");
+    return;
   }
-}
-
-export function hasRevalidateCallback() {
-  return revalidateCallback !== null;
+  router.revalidate();
 }
 
 export function invalidateByPrefix(prefix: string) {
