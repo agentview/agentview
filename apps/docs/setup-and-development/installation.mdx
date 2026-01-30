@@ -5,8 +5,7 @@ description: "Start building with AgentView in minutes"
 
 ## Set up an account
 
-1. Create an account [here](https://agentview.app/signup).
-2. Generate development API Key in `API Keys` tab.
+Create an account [here](https://agentview.app/signup).
 
 ## Create a project
 
@@ -26,10 +25,13 @@ It's a simple Vite app with AgentView Studio and demo Chat Endpoint in `agent.ts
 
 ## Set up environment variables
 
-Before you start, you need to set up environment variables. Create a `.env` file in the root of the project and add the following variables:
+Before you start, you need to set up environment variables. Go to your org Dashboard to the `API Keys` tab and generate a development API key.
 
-1. `OPENAI_API_KEY` - your OpenAI API key (it's needed since demo is using Responses API)
-2. `AGENTVIEW_API_KEY` - paste your development API key from the previous step.
+Here's what your `.env` file should look like:
+
+1. `VITE_AGENTVIEW_ORGANIZATION_ID` - your organization id, you can find it in Organization Details tab.
+2. `AGENTVIEW_API_KEY` - paste your development API key.
+3. `OPENAI_API_KEY` - your OpenAI API key (it's needed since demo is using Responses API)
 
 ## Run Chat Endpoint
 
