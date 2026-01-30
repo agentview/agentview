@@ -2915,6 +2915,28 @@ app.get('/api/invitations/:invitation_id', async (c) => {
   return c.json({ ...invitation, userExists: !!user, organization }, 200)
 })
 
+/* --------- ORGANIZATION PUBLIC INFO --------- */
+
+app.get('/api/organization/public-info', async (c) => {
+  const organizationId = c.req.header('x-organization-id');
+
+  if (!organizationId) {
+    return c.json({ name: null }, 200);
+  }
+
+  // Auth tables don't have RLS - safe to query directly
+  const organization = await db__dangerous.query.organizations.findFirst({
+    where: eq(organizations.id, organizationId),
+    columns: { name: true }
+  });
+
+  if (!organization) {
+    return c.json({ name: null }, 200);
+  }
+
+  return c.json({ name: organization.name }, 200);
+})
+
 /* --------- SCHEMAS ---------   */
 
 const environmentGETRoute = createRoute({

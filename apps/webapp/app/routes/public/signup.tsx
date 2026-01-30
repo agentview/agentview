@@ -10,7 +10,7 @@ import { betterAuthErrorToBaseError, type ActionResponse } from "@agentview/stud
 import { authClient } from "~/authClient";
 import { useNavigation } from "react-router";
 import { fetchInvitation } from "~/fetchInvitation";
-import { CardPageLayout } from "~/components/CardPageLayout";
+import { CardPageLayout } from "@agentview/studio/components/CardPageLayout";
 
 export async function clientLoader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);

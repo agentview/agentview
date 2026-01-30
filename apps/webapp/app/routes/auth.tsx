@@ -5,7 +5,7 @@ import { AlertCircleIcon } from "lucide-react";
 import { redirect, useLoaderData } from "react-router";
 import type { Route } from "./+types/auth";
 import { authClient } from "~/authClient";
-import { CardPageLayout } from "~/components/CardPageLayout";
+import { CardPageLayout } from "@agentview/studio/components/CardPageLayout";
 
 export async function clientLoader({ request }: Route.LoaderArgs) : Promise<ActionResponse | Response> {
   const url = new URL(request.url);

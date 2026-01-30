@@ -6,7 +6,7 @@ import { authClient } from "~/authClient";
 import type { Route } from "./+types/accept-invitation";
 import { Alert, AlertDescription, AlertTitle } from "@agentview/studio/components/ui/alert";
 import { fetchInvitation } from "~/fetchInvitation";
-import { CardPageLayout } from "~/components/CardPageLayout";
+import { CardPageLayout } from "@agentview/studio/components/CardPageLayout";
 
 export async function clientLoader({ request }: Route.LoaderArgs): Promise<ActionResponse | Response> {
   const url = new URL(request.url);

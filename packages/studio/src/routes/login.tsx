@@ -1,8 +1,10 @@
-import { redirect, type LoaderFunctionArgs, type RouteObject } from "react-router";
+import { redirect, useLoaderData, type LoaderFunctionArgs, type RouteObject } from "react-router";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { CardPageLayout } from "../components/CardPageLayout";
 import { authClient } from "../lib/auth-client";
-import { getWebAppUrl } from "agentview/urls";
+import { getWebAppUrl, getApiUrl } from "agentview/urls";
+import { config } from "../config";
 
 function getRedirectUrl(stringUrl: string) {
   const url = new URL(stringUrl);
@@ -32,25 +34,45 @@ async function loader({ request }: LoaderFunctionArgs) {
     url.searchParams.delete('token');
     return redirect(getRedirectUrl(url.toString()));
   }
+
+  // Fetch organization name
+  try {
+    const response = await fetch(new URL('/api/organization/public-info', getApiUrl()).toString(), {
+      headers: {
+        'X-Organization-Id': config.organizationId
+      }
+    });
+    const data = await response.json();
+    return { organizationName: data.name };
+  } catch {
+    return { organizationName: null };
+  }
 }
 
 function Component() {
+  const loaderData = useLoaderData<typeof loader>();
   const authUrl = new URL(getWebAppUrl() + "/auth");
   authUrl.searchParams.set("origin", window.location.href);
 
   return (
-    <div className="container mx-auto p-4 max-w-md mt-16">
+    <CardPageLayout variant="poweredBy">
+
+          {loaderData?.organizationName && (
+            <p className="text-center text-muted-foreground text-sm mb-2">
+              {loaderData.organizationName}
+            </p>
+          )}
       <Card>
         <CardHeader>
-          <CardTitle className="text-center">Login</CardTitle>
+          <CardTitle className="text-center">Choose login provider</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Button asChild className="w-full">
-            <a href={authUrl.toString()}>Login</a>
+        <CardContent className="flex flex-col gap-2">
+          <Button asChild variant="outline" className="w-full">
+            <a href={authUrl.toString()}>Email / password</a>
           </Button>
         </CardContent>
       </Card>
-    </div>
+    </CardPageLayout>
   );
 }
 

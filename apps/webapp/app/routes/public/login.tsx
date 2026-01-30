@@ -8,7 +8,7 @@ import { Label } from "@agentview/studio/components/ui/label";
 import { AlertCircleIcon, Loader2 } from "lucide-react";
 import { betterAuthErrorToBaseError, type ActionResponse } from "@agentview/studio/lib/errors";
 import { authClient } from "~/authClient";
-import { CardPageLayout } from "~/components/CardPageLayout";
+import { CardPageLayout } from "@agentview/studio/components/CardPageLayout";
 
 function getRedirectUrl(request: Request) {
   const url = new URL(request.url);
