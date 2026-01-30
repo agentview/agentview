@@ -64,7 +64,7 @@ export default function ApiKeys() {
       <div className="p-6 max-w-6xl">
         <h3 className="text-sm font-medium mb-2">.env</h3>
         <div className="mb-6 p-4 border rounded-md bg-muted/50">
-          <pre className="text-sm text-muted-foreground font-mono">
+          <pre className="text-sm text-foreground font-mono">
 {`VITE_AGENTVIEW_ORGANIZATION_ID=${orgId}
 AGENTVIEW_API_KEY=dev_...`}
           </pre>
