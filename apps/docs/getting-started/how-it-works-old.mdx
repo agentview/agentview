@@ -3,9 +3,9 @@ title: "How it works?"
 description: "Quick explanation of how AgentView works"
 ---
 
-## How is an agent built?
+## What it takes to build an agent?
 
-Imagine you're building a conversational agent, like a customer support chatbot.
+Imagine you're building a conversational agent, like a customer support chatbot. You want to have full ownership over the AI logic instead of paying for black-box SaaS. Good call!
 
 The first thing you're gonna need is a HTTP endpoint that takes user input and generates AI responses. We call such endpoint a **Chat Endpoint**. Here's an example of the endpoint in TS+Hono:
 
@@ -19,7 +19,7 @@ app.post('/chat', async (c) => {
 });
 ```
 
-We put all the AI logic into a **stateless** function called `generateResponse`. Here's an example of such function using OpenAI Responses API:
+All the AI logic is in a **stateless** `generateResponse` function. Here's an example using OpenAI Responses API:
 
 ```typescript
 const generateResponse = async (messages: any[]) => {
@@ -36,52 +36,127 @@ const generateResponse = async (messages: any[]) => {
 
 For the demo purposes `generateResponse` is very simple, it's just a single LLM call. In reality all the **AI Engineering** will go there: prompts, tools, RAG, etc.
 
-The core idea behind AgentView is that **you can build your AI logic however you want**. You can use an AI framework like LangGraph, AI SDK, or go vanilla. Actually, your Chat Endpoint can be in Python, Typescript or any other language you prefer.
+The core idea behind AgentView is that **you can build your AI logic however you want**. You can use an AI framework like LangGraph, AI SDK, or go vanilla. Actually, your Chat Endpoint can be in Python, Typescript or any other language you prefer. We believe it's too early to say which abstraction layer is the best, so AgentView is **framework- and language-agnostic for the AI part**.
 
-AgentView by design doesn't focus on the AI part, but on "everything around the AI".
-
-## There's a lot of work around your AI logic
+### There's a lot of work around your AI logic
 
 Even if you made your AI logic work well enough, there's still *a lot* to do. For example, our Chat Endpoint doesn't provide persistence. If you build a web UI to play with your agent you'll have to store conversation history in `localStorage` and send it all back and forth between the client and the server. Of course, it's not something you want in production.
 
-**AgentView is a backend for conversational agents** that handles such problems for you. Here's how you can add persistence to your Chat Endpoint simply by adding a bunch of **AgentView SDK** calls:
+Persistence is just one of the problems you need to handle. Here's a full list of things you need to consider:
 
-```typescript highlight={8-18, 22-26}
+| Problem | What it means |
+|---------|---------------|
+| **Persistence** | Store session history server-side |
+| **Locking** | Prevent concurrent requests to the same session |
+| **Multi-session** | Users can have multiple conversations |
+| **Auth** | Secure sessions so users can only access their own |
+| **Versioning** | Handle agent updates without breaking old sessions |
+| **Validation** | Ensure inputs/outputs match expected schemas |
+| **Disconnections** | Handle user switching tabs, losing connection, etc. |
+
+This is just a **backend** part.
+
+As you progress you'll quickly realise there's also a big chunk of **front-end** work to be done. You'll need an environment where people can play with your agent and collaborate on the outputs. I think a good analogy is a CMS. You might build a website, but there's still need to be an app where non-technical users can work on it: collaborate on content, preview, etc.
+
+| Problem | What it means |
+|---------|---------------|
+| **Browsing sessions** | Showing sessions list |
+| **Managing users** | Creating, updating, deleting users |
+| **Playground** | Playing around with your agent without breaking production |
+| **Collaboration** | Users should be able to share their sessions, comment, mention, get notified |
+
+Both **backend** and **front-end** parts are not really **AI logic**, they're stadnard boring engineering tasks.
+
+### AgentView handles the non-AI stuff
+
+The job of AgentView is to handle all the non-AI stuff for you without contraining how you build your AI logic. AgentView is 2 parts:
+- **Backend for conversational agents**. It provides hosted API and SDKs to create, manage and access sessions, runs, items, users, etc.
+- **Studio**. An ultra-flexible and collaborative data viewer for your agents. It allows you to view, debug, run playgrounds, and collaborate with your team. It's self-hosted and open-source React app.
+
+Let's quickly see how they work in practice.
+
+### Backend - bulletproof your Chat Endpoint
+
+As we already mentioned, our Chat Endpoint is stateless and therefore not very practical. It doesn't provide persistence or any other features mentioned above.
+
+Below is the same Chat Endpoint but with AgentView SDK functions applied. Read the comments to understand what's happening.
+
+```typescript
 const av = new AgentView({
   apiKey: process.env.AGENTVIEW_API_KEY
 })
 
 app.post('/chat', async (c) => {
-  const { session_id, input } = await c.req.json(); 
+  // instead of taking entire converation history we take:
+  // 1. id - session id
+  // 2. token - user authentication token
+  // 3. input - the last user message
+  const { id, token, input } = await c.req.json(); 
 
-  const session = session_id ?
-    await av.getSession({ id: session_id }) : 
-    await av.createSession({ agent: "my_agent" });
+  // Create a new user or authenticate if token exists.
+  const user = token ? 
+    await av.getUser({ token }) : 
+    await av.createUser();
+
+  // Create new session or fetch existing one and authorize user's access to the session.
+  const session = id ?
+    await av.as(user).getSession({ id }) : 
+    await av.as(user).createSession({ agent: "my_agent" });
 
   const history = session.items;
 
+  // Create a new run
+  // 1. session is now locked - no more runs can be started until this one finishes.
+  // 2. will error if session has incompatible version
   const run = await av.createRun({ 
     sessionId: session.id,
     items: [input], 
     version: "0.0.1"
   });
 
-  const response = await generateResponse([...history, input]);
+  try {
+    // Stateless AI logic stays the same!
+    const output = await generateResponse([...history, input]);
 
-  await av.updateRun({
-    id: run.id,
-    status: "completed",
-    items: response.output
-  });
+    // Save output items, mark run as completed (release the lock)
+    await av.updateRun({
+      id: run.id,
+      status: "completed",
+      items: output
+    });
 
-  return c.json({
-    session_id: session.id,
-    output: response.output
-  });
+    return c.json({
+      id: session.id,
+      output,
+      token: user.token,
+    })
+
+  } catch (error) {
+
+    // Mark run as failed and save error message (release the lock)
+    await av.updateRun({
+      id: run.id,
+      status: "failed",
+      failReason: {
+        message: (error as Error).message,
+      }
+    });
+
+    throw error;
+  }
+ 
 })
+
+// Errors from AgentView SDK are ready to be returned via HTTP with correct status code and body.
+app.onError((error, c) => {
+  if (error instanceof AgentViewError) {
+    return c.json({ ...error.details, message: error.message }, error.statusCode as any);
+  }
+  throw error;
+});
 ```
 
-We also need to register `my_agent` in the AgentView configuration file (all the configuration is in code):
+One last thing to be done is to add `my_agent` to the AgentView configuration. It can be done via `agentview.config.ts` file:
 
 ```typescript
 export default defineConfig({
@@ -114,26 +189,32 @@ export default defineConfig({
 })
 ```
 
-This is all you need to add quite a lot of features to your Chat Endpoint:
-1. **Persistence.** The Chat Endpoint is stateful now. It just takes session id and the user input, remembers the entire conversation history and sends it back to the endpoint.
-2. **Validation.** The endpoint is validated against the schema provided by you.
-3. **Locking.** AgentView manages session lifecycle via "Runs". When you create a new run the session is locked until the run is completed. Such mechanism prevents concurrent requests to the same session.
-4. **Multi-session.** Users can easily create new sessions simply by leaving `session_id` empty.
-5. **Versioning**. Every run gets a current agent version, in this case `0.0.1`. If you make a breaking change in your agent and the new version is not semver-compatible, the run will fail. This mechanism protects from continuation of sessions incompatible with new agent versions.
+Voila, that's all you need!
 
-This example was pretty simple. In reality there's much more to consider: grouping sessions by users, security, resumes, retries, handling disconnections, etc. The goal of AgentView is to handle all these things for you so you can focus 100% on AI Engineering.
+With a bunch of simple SDK calls we've built a production-ready stateful Agent Endpoint that handles persistence, locking, multiple sessions, security, versioning and validation. All **without any constraints on how you build your AI logic**, and **without any extra backend code**.
 
-## You need UI too
 
-As you progress you’ll quickly realise there’s also a big chunk of front-end work to be done. No one described it better than [Hamel](https://hamel.dev/blog/posts/field-guide/#the-most-important-ai-investment-a-simple-data-viewer/), so let's just quote him (btw, if you build agents, Hamel is a must-read):
+
+<Tip>
+#### Data format? Array is all you need.
+
+You might be wondering how AgentView stores your session data. The answer is simple:
+1. It's just an array of items with arbitrary JSON schema. They can be anything but most often it's user or assistant messages, reasoning blocks, tool calls, agent hand-offs, etc.
+2. Every object like session, run or item can be also extended with custom metadata.
+3. Each session might have additional `state` object that can change over time.
+
+We believe such format is flexible enough to handle most of the agentic use cases
+</Tip>
+
+## Studio - a vibe-codeable data viewer
+
+AgentView comes with Studio: an **extremely customisable** and **collaborative** data viewer for your agent data. The major inspiration for Studio comes [from Hamel](https://hamel.dev/blog/posts/field-guide/#the-most-important-ai-investment-a-simple-data-viewer/) (if you build agents, Hamel is a must-read):
 
 > #### The Most Important AI Investment: A Simple Data Viewer
 > 
 > The single most impactful investment I’ve seen AI teams make isn’t a fancy evaluation dashboard – it’s building a customized interface that lets anyone examine what their AI is actually doing. I emphasize customized because every domain has unique needs that off-the-shelf tools rarely address. When reviewing apartment leasing conversations, you need to see the full chat history and scheduling context. For real estate queries, you need the property details and source documents right there. Even small UX decisions – like where to place metadata or which filters to expose – can make the difference between a tool people actually use and one they avoid.
 
-In summary, you need an environment where people can play with your agent and collaborate on the outputs. It's oddly similar to a CMS. You might build a website, but there's still need to be an app where non-technical users can work on it: collaborate on content, preview, etc.
-
-To serve this need AgentView comes with **the Studio**. It's based on following principles:
+We agree with Hamel 100%. You **need** a great data viewer and it should meet following criteria:
 - **Customisable and domain-specific** - it should be tailored to the specific domain of your agent.
 - **Collaborative** - it should be possible to collaborate with your team on the data.
 - **Great UX** - it must be **extremely** easy to use for humans, especially non-technical ones, as they're often the domain experts that will tell you if your agent is working as expected.
@@ -143,7 +224,7 @@ In order to allow for customisation, Studio is **not** a standard centralised Sa
 
 Here's how you can provide custom components for your agent items and the input component for playground:
 
-```typescript highlight={13,24-31,43,47-51}
+```typescript highlight={14,25-31,44,48-52}
 export default defineConfig({
   agents: [
     {

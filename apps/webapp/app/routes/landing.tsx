@@ -79,16 +79,16 @@ function FeatureSection({
       <div className="">
         <div
           className={cn(
-            "flex flex-col md:flex-row gap-8 md:gap-12 items-start",
+            "flex flex-col lg:flex-row gap-8 md:gap-12 items-start",
             imagePosition === "left" && "md:flex-row-reverse"
           )}
         >
           {/* Content */}
           <div className="flex-1 space-y-2">
-            <h2 className="text-2xl md:text-xl font-medium tracking-tight">
+            <h2 className="text-xl font-medium tracking-tight">
               {title}
             </h2>
-            <p className="text-foreground/70">{description}</p>
+            <p className="text-foreground/70 max-w-md">{description}</p>
             {/* <Link to={ctaHref}>
               <HeroButton variant="accent" className="mt-2">
                 {ctaText}
@@ -222,7 +222,7 @@ await av.updateRun({
             <span>Studio is a session browser and playground for your agent. It's <span className="font-semibold">built for collaboration and simple enough for non-technical users</span> like stakeholders and domain experts. More feedback, better agents.</span>
           }
           imagePosition="right"
-          content={<img src="/studio-collaboration.png" alt="Collaborative Studio" />}
+          content={<img src="/studio-collaboration.png" alt="Collaborative Studio" className="max-w-[500px] min-w-0" />}
         />
 
 
@@ -253,7 +253,12 @@ await av.updateRun({
     multiSelect({
       name: "style",
       title: "Style",
-      options: ["too-long","too-brief", "confusing", "overly-technical"]
+      options: [
+        "too-long",
+        "too-brief",
+        "confusing",
+        "overly-technical"
+      ]
     })
   ]
 }`}
@@ -272,7 +277,7 @@ await av.updateRun({
               Studio is MIT licensed. You can fork it, customize it, make it yours.
             </p> */}
             <p className="mt-5 text-foreground/70 max-w-md mx-auto">
-              AgentView is in <span className="font-semibold text-foreground">Early Preview</span>—free for up to 3 team members, no credit card required. Need more seats?
+              AgentView is in <span className="font-semibold text-foreground">Early Preview</span>—free for up to 3 team members, no credit card required. Need more seats?&nbsp;
               <a
                 href={`mailto:${EMAIL}`}
                 className="text-[#C95B37] hover:underline"

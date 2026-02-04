@@ -1,6 +1,6 @@
 ---
 title: "Introduction"
-description: "AgentView is a framework-agnostic UI Studio and backend for teams who build conversational agents in code. It feels a bit like what a CMS is for websites, only for agents."
+description: "AgentView is a session viewer and backend for conversational agents. Framework-agnostic, collaborative, and fully extensible. It's feels a bit like a CMS, only for agents."
 ---
 
 <img src="/images/main.png" alt="AgentView overview"/>
@@ -10,11 +10,12 @@ If you're building agents in code (support bots, shopping assistants, etc.), you
 1. **The AI Engineering** – models, prompts, tools, RAG, memory, evals, monitoring, etc.
 2. **Everything around it** – session storage, APIs, session viewer, playgrounds for stakeholders, user management, email/slack integrations, etc.
 
-(1) is fun to build. (2) is not. AgentView takes (2) off your plate — all the annoying glue and infra you’d otherwise rebuild for the third time.
+The goal of AgentView is to solve as much of (2) as possible without constraining how you build your AI logic.
+
+(1) is fun to build. (2) is not. AgentView takes (2) off your plate — all the annoying glue and infra you probably don't want to maintain or rebuild every time.
 
 ### Stack-agnostic by design
 
-Most importantly, AgentView is **framework- and language-agnostic for the AI part**.
 Most AI frameworks force you into their hosted backend or they don't have one. AgentView flips that model – it wraps around your AI, not inside it.
 
 You keep full control of the agent logic: write your stateless AI function in Python or TypeScript, using any framework (aisdk, agents-sdk, LangChain, your own) — or **no framework at all**. AgentView just connects to it and handles the sessions, state, and UI around it.
@@ -40,4 +41,3 @@ You keep full control of the agent logic: write your stateless AI function in Py
 - **Communicate via TypeScript and Python SDKs**
 
 All AgentView configuration lives in code.  
-You focus on how your agent thinks. AgentView handles everything around it.
