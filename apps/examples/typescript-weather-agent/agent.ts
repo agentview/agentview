@@ -5,13 +5,9 @@ import 'dotenv/config';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
-import { OpenAI } from 'openai';
 import { weatherAgent } from './src/weatherAgent';
 
-
 const app = new Hono();
-const client = new OpenAI();
-
 const av = new AgentView()
 
 app.use('*', cors({
@@ -98,29 +94,6 @@ app.post('/weather-chat', async (c) => {
     }
   );
 })
-
-// app.post('/webhook', async (c) => {
-//   const { event, payload } = await c.req.json();
-
-//   console.log(`webhook received - ${event}`);
-
-//   if (event === 'session.on_first_run_created') {
-//     const session = await av.getSession({ id: payload.session_id });
-
-//     const response = await client.responses.parse({
-//       model: "gpt-5-nano",
-//       instructions: `You're gonna be given a JSON with first item of an AI agent session. Your task is to generate a summary for the session. It must be ultra short 1-liner, it's gonna be displayed as a title in a session card 300px wide (one line).`,
-//       input: JSON.stringify(session.items[0]),
-//       text: {
-//         format: zodTextFormat(z.object({ summary: z.string() }), "response"),
-//       }
-//     });
-
-//     await av.updateSession({ id: payload.session_id, summary: response.output_parsed?.summary });
-//   }
-
-//   return c.json({ });
-// })
 
 // Errors from AgentView SDK are ready to be returned via HTTP with correct status code and body.
 app.onError((error, c) => {

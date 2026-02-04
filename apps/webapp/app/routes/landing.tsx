@@ -62,6 +62,7 @@ interface FeatureSectionProps {
   imagePosition?: "left" | "right";
   ctaText?: string;
   ctaHref?: string;
+  image?: string;
 }
 
 function FeatureSection({
@@ -70,6 +71,7 @@ function FeatureSection({
   imagePosition = "right",
   ctaText = "Get Started",
   ctaHref = "/signup",
+  image,
 }: FeatureSectionProps) {
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-6 my-12 md:my-16">
@@ -93,9 +95,15 @@ function FeatureSection({
             </Link> */}
           </div>
 
-          {/* Image placeholder */}
+          {/* Image */}
           <div className="flex-2 w-full">
-            <div className="bg-neutral-900 rounded-lg aspect-[4/3] w-full" />
+            {image ? (
+              <div className="bg-neutral-900 rounded-lg p-4">
+                <img src={image} alt={title} className="w-full rounded" />
+              </div>
+            ) : (
+              <div className="bg-neutral-900 rounded-lg aspect-[4/3] w-full" />
+            )}
           </div>
         </div>
       </div>
@@ -140,8 +148,8 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
           <span className="inline-block mb-4 px-3 py-1 text-sm font-medium bg-[#C95B37]/10 text-[#C95B37] rounded-full">
             Early Preview
           </span>
-          <h1 className="text-4xl md:text-5xl lg:text-7xl font-medium tracking-tight ">
-          The “CMS” for agents
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight ">
+          Don't buy an agent.<br/>Build it.
           </h1>
           <p className="mt-6 text-xl opacity-66 max-w-lg">
           Framework-agnostic UI Studio and backend for conversational agents built with code.
@@ -176,6 +184,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
           title="Framework-agnostic backend"
           description="AgentView provides a simple SDK for persisting your sessions state. It stays out of your AI logic, so that you can use any framework you want or go vanilla."
           imagePosition="right"
+          image="/snippet.png"
         />
 
         <FeatureSection

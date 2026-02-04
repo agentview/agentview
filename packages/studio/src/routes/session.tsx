@@ -460,8 +460,12 @@ function DefaultToolComponent({ item, resultItem }: SessionItemDisplayComponentP
         result: resultItem
     }
 
-    // @ts-ignore
-    return <StepItem>{result}</StepItem>
+    return <Step>
+        <StepContent>
+            {/* @ts-ignore */}
+            {result}
+        </StepContent>
+    </Step>
 }
 
 function InputForm({ session, agentConfig, styles, onRunningStateChange }: { session: Session, agentConfig: AgentConfig, styles: Record<string, number>, onRunningStateChange?: (isRunning: boolean) => void }) {
