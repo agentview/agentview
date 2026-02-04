@@ -62,7 +62,7 @@ interface FeatureSectionProps {
   imagePosition?: "left" | "right";
   ctaText?: string;
   ctaHref?: string;
-  image?: string;
+  content?: React.ReactNode;
 }
 
 function FeatureSection({
@@ -71,7 +71,7 @@ function FeatureSection({
   imagePosition = "right",
   ctaText = "Get Started",
   ctaHref = "/signup",
-  image,
+  content,
 }: FeatureSectionProps) {
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-6 my-12 md:my-16">
@@ -97,9 +97,9 @@ function FeatureSection({
 
           {/* Image */}
           <div className="flex-2 w-full">
-            {image ? (
-              <div className="bg-neutral-900 rounded-lg p-4">
-                <img src={image} alt={title} className="w-full rounded" />
+            {content ? (
+              <div className="bg-neutral-900 rounded-lg p-4 md:p-12 flex justify-center items-center">
+                {content}
               </div>
             ) : (
               <div className="bg-neutral-900 rounded-lg aspect-[4/3] w-full" />
@@ -152,7 +152,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
           Don't buy an agent.<br/>Build it.
           </h1>
           <p className="mt-6 text-xl opacity-66 max-w-lg">
-          Framework-agnostic UI Studio and backend for conversational agents built with code.
+          Framework-agnostic session viewer and backend for conversational agents built in code.
           </p>
           <div className="mt-8 flex items-center gap-4">
             <Link to="/signup" className="hidden md:block">
@@ -182,22 +182,27 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
         {/* Feature Sections */}
         <FeatureSection
           title="Framework-agnostic backend"
-          description="AgentView provides a simple SDK for persisting your sessions state. It stays out of your AI logic, so that you can use any framework you want or go vanilla."
+          description={<span>AgentView by design <span className="font-semibold">stays out of your AI logic</span>. Use any framework or go vanilla. AgentView SDK wraps <span className="font-semibold">around</span> your AI code and persists your sessions state, so that you don't have to worry about backend.<br/><br/></span>}
           imagePosition="right"
-          image="/snippet.png"
+          content={<img src="/snippet-framework-agnostic.png" alt="Framework-agnostic backend" className="max-w-[450px]" />}
         />
 
         <FeatureSection
-          title="Extremely customizable Studio"
-          description={<span>Studio is session browser and playground for your agent focused on non-technical users like stakeholders or domain experts.<br/><br/>It's an open-source and self-hosted React app, so that you can customize by simply providing custom components.</span>}
-          imagePosition="right"
-        />
-
-        <FeatureSection
-          title="Collaboration as a first-class citizen"
+          title="Collaborative Studio"
           description="It's like Google Docs for your agent data. Share, comment, score, mention, get notified with ease."
           imagePosition="right"
+          content={<img src="/studio-collaboration.png" alt="Collaborative Studio" />}
         />
+
+
+
+        <FeatureSection
+          title="Customize Studio in code"
+          description={<span>Studio is session browser and playground for your agent focused on non-technical users like stakeholders or domain experts.<br/><br/>It's an open-source and self-hosted React app, so that you can customize by simply providing custom components.</span>}
+          imagePosition="right"
+          content={<img src="/image1.png" alt="Customize Studio in code" className="max-w-[450px]" />}
+        />
+
 
         {/* Pricing / Open Source */}
         <section className="max-w-7xl mx-auto px-4 md:px-6 mt-20 md:mt-32 mb-12 md:mb-16">
