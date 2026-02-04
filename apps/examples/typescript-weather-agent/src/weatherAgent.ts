@@ -16,12 +16,6 @@ export const weatherAgent = (options?: { userLocation: string }) => new Agent({
         location: z.string().describe('The city name to get weather for'),
       }),
       execute: async ({ location }) => {
-
-        // Sleep for 1 second before fetching weather data
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        return warsawWeather;
-
-        console.log('executing weather tool for location: ', location);
         const response = await fetch(`https://wttr.in/${encodeURIComponent(location)}?format=j2`);
         if (!response.ok) {
           return { error: 'Failed to fetch weather data' };

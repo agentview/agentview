@@ -4,6 +4,7 @@ import { authClient } from "~/authClient";
 import type { LucideIcon } from "lucide-react";
 import { ArrowRight, BookOpen } from "lucide-react";
 import { cn } from "@agentview/studio/lib/utils";
+import { CodeBlock } from "~/components/CodeBlock";
 
 const EMAIL = "a.r.dabrowski@gmail.com";
 const X_URL = "https://x.com/ardabrowski";
@@ -98,11 +99,11 @@ function FeatureSection({
           {/* Image */}
           <div className="flex-2 w-full">
             {content ? (
-              <div className="bg-neutral-900 rounded-lg p-4 md:p-12 flex justify-center items-center">
+              <div className="bg-neutral-900 rounded-sm p-4 md:p-8 flex justify-center items-center">
                 {content}
               </div>
             ) : (
-              <div className="bg-neutral-900 rounded-lg aspect-[4/3] w-full" />
+              <div className="bg-neutral-900 rounded-sm aspect-[4/3] w-full" />
             )}
           </div>
         </div>
@@ -149,10 +150,10 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
             Early Preview
           </span>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight ">
-          Don't buy an agent.<br/>Build it.
+          The “CMS” for agents
           </h1>
-          <p className="mt-6 text-xl opacity-66 max-w-lg">
-          Framework-agnostic session viewer and backend for conversational agents built in code.
+          <p className="mt-6 text-xl opacity-66 max-w-xl">
+          A session viewer and backend for conversational agents.<br/>Framework-agnostic, collaborative, and fully extensible.
           </p>
           <div className="mt-8 flex items-center gap-4">
             <Link to="/signup" className="hidden md:block">
@@ -170,26 +171,56 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
 
         {/* Product Screenshot */}
         <section className="max-w-7xl mx-auto px-4 md:px-6 pb-12 md:pb-16">
-          <div className="bg-neutral-900 rounded-xl p-4 md:px-32 py-12 shadow-2xl">
+          <div className="bg-neutral-900 rounded-sm p-4 md:px-32 py-12 shadow-2xl">
             <img
               src="/main.png"
               alt="AgentView Studio"
-              className="w-full rounded-lg"
+              className="w-full rounded-sm"
             />
           </div>
         </section>
 
         {/* Feature Sections */}
         <FeatureSection
-          title="Framework-agnostic backend"
-          description={<span>AgentView by design <span className="font-semibold">stays out of your AI logic</span>. Use any framework or go vanilla. AgentView SDK wraps <span className="font-semibold">around</span> your AI code and persists your sessions state, so that you don't have to worry about backend.<br/><br/></span>}
+          title="Use any framework"
+          description={<span>
+            Persist your session state without worrying about the backend. AgentView <span className="font-semibold">stays out of your AI logic</span>. Use any framework you want, or go vanilla.
+            </span>}
+            
+            
           imagePosition="right"
-          content={<img src="/snippet-framework-agnostic.png" alt="Framework-agnostic backend" className="max-w-[450px]" />}
+          content={
+            <CodeBlock
+              language="typescript"
+              code={`const session = id
+  ? await av.getSession({ id })
+  : await av.createSession({ agent: "my_agent" });
+
+const history = session.items;
+
+const run = await av.createRun({
+  sessionId: session.id,
+  items: [input],
+  version: "0.0.1",
+});
+
+/* Your custom AI logic goes here */
+const output = await generateResponse([...history, input]);
+
+await av.updateRun({
+  id: run.id,
+  status: "completed",
+  items: output,
+});`}
+            />
+          }
         />
 
         <FeatureSection
-          title="Collaborative Studio"
-          description="It's like Google Docs for your agent data. Share, comment, score, mention, get notified with ease."
+          title="Collaborate in Studio"
+          description={
+            <span>Studio is a session browser and playground for your agent. It's <span className="font-semibold">built for collaboration and simple enough for non-technical users</span> like stakeholders and domain experts. More feedback, better agents.</span>
+          }
           imagePosition="right"
           content={<img src="/studio-collaboration.png" alt="Collaborative Studio" />}
         />
@@ -197,25 +228,51 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
 
 
         <FeatureSection
-          title="Customize Studio in code"
-          description={<span>Studio is session browser and playground for your agent focused on non-technical users like stakeholders or domain experts.<br/><br/>It's an open-source and self-hosted React app, so that you can customize by simply providing custom components.</span>}
+          title="Customize in code"
+          description={<span>
+            Studio is an open-source, self-hosted React app built for deep customization. Every domain needs a different view—just drop in your own components and keep all configuration in code.
+          </span>}
           imagePosition="right"
-          content={<img src="/image1.png" alt="Customize Studio in code" className="max-w-[450px]" />}
+          content={
+            <CodeBlock
+              language="tsx"
+              code={`{
+  schema: z.looseObject({
+    type: z.literal("message"),
+    role: z.literal("assistant"),
+    content: z.array(z.object({
+      type: z.literal("output_text"),
+      text: z.string(),
+    })),
+  }),
+  displayComponent: ({ item }) => 
+    <AssistantMessage>
+      {item.content.map((part) => part.text.join("\\n\\n"))}
+    </AssistantMessage>,
+  scores: [
+    multiSelect({
+      name: "style",
+      title: "Style",
+      options: ["too-long","too-brief", "confusing", "overly-technical"]
+    })
+  ]
+}`}
+            />
+          }
         />
 
 
         {/* Pricing / Open Source */}
         <section className="max-w-7xl mx-auto px-4 md:px-6 mt-20 md:mt-32 mb-12 md:mb-16">
-          <div className="bg-white border border-foreground/20 rounded-xl p-6 md:p-12 text-center">
+          <div className="bg-white border border-foreground/20 rounded-sm p-6 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
-              Open-source Studio, hosted backend
+            Start building today
             </h2>
-            <p className="mt-4 text-foreground/70 max-w-xl mx-auto">
+            {/* <p className="mt-4 text-foreground/70 max-w-xl mx-auto">
               Studio is MIT licensed. You can fork it, customize it, make it yours.
-            </p>
-            <p className="mt-3 text-foreground/70 max-w-xl mx-auto">
-              Backend is in <span className="font-semibold text-foreground">Early Preview</span> — free to use with 500 sessions and 5 team members. No credit card required.
-              Need more?{" "}
+            </p> */}
+            <p className="mt-5 text-foreground/70 max-w-md mx-auto">
+              AgentView is in <span className="font-semibold text-foreground">Early Preview</span>—free for up to 3 team members, no credit card required. Need more seats?
               <a
                 href={`mailto:${EMAIL}`}
                 className="text-[#C95B37] hover:underline"

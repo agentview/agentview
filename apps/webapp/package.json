@@ -17,6 +17,7 @@
     "@tanstack/react-query-devtools": "^5.91.2",
     "better-auth": "^1.2.12",
     "dotenv": "^17.2.3",
+    "highlight.js": "^11.11.1",
     "isbot": "^5.1.31",
     "lucide-react": "^0.548.0",
     "react": "^19.2.3",
