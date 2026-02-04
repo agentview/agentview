@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import hljs from "highlight.js/lib/core";
 import typescript from "highlight.js/lib/languages/typescript";
+import "highlight.js/styles/github-dark.css";
 
 hljs.registerLanguage("typescript", typescript);
 hljs.registerLanguage("tsx", typescript);
@@ -16,57 +17,26 @@ export function CodeBlock({ code, language = "tsx" }: CodeBlockProps) {
   useEffect(() => {
     if (codeRef.current) {
       hljs.highlightElement(codeRef.current);
+
+      // Post-process to highlight JSX tags (PascalCase components)
+      const html = codeRef.current.innerHTML;
+      const jsxHighlighted = html.replace(
+        /(&lt;\/?)([A-Z][a-zA-Z0-9]*)(\s|&gt;|\/&gt;)/g,
+        '$1<span class="hljs-title class_">$2</span>$3'
+      );
+      codeRef.current.innerHTML = jsxHighlighted;
     }
   }, [code]);
 
   return (
-    <pre className="text-sm font-mono overflow-x-auto">
-      <code ref={codeRef} className={`language-${language}`}>
+    <pre className="text-sm font-mono overflow-x-auto" style={{ background: 'transparent' }}>
+      <code
+        ref={codeRef}
+        className={`language-${language}`}
+        style={{ background: 'transparent', color: '#e6edf3' }}
+      >
         {code}
       </code>
-      <style>{`
-        .hljs {
-          background: transparent;
-          color: #e5e7eb;
-        }
-        .hljs-keyword {
-          color: #c792ea;
-        }
-        .hljs-string {
-          color: #c3e88d;
-        }
-        .hljs-number {
-          color: #f78c6c;
-        }
-        .hljs-built_in {
-          color: #82aaff;
-        }
-        .hljs-function {
-          color: #82aaff;
-        }
-        .hljs-title {
-          color: #82aaff;
-        }
-        .hljs-attr {
-          color: #ffcb6b;
-        }
-        .hljs-variable {
-          color: #f07178;
-        }
-        .hljs-comment {
-          color: #6a737d;
-          font-style: italic;
-        }
-        .hljs-params {
-          color: #e5e7eb;
-        }
-        .hljs-property {
-          color: #80cbc4;
-        }
-        .hljs-literal {
-          color: #f78c6c;
-        }
-      `}</style>
     </pre>
   );
 }
