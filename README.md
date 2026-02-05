@@ -2,7 +2,7 @@
   <a href="#">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="packages/studio/public/logo_light.svg" height="40">
-      <img alt="agentview logo" src="packages/studio/public/logo.svg" height="40">
+      <img alt="agentview logo" src="packages/studio/public/logo_dark.svg" height="40">
     </picture>
   </a>
   <br/><br/>

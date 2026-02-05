@@ -71,13 +71,13 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:a.r.dabrowski@gmail.com"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Website",
+      "href": "https://agentview.app"
     }
   },
   "contextual": {
@@ -94,9 +94,9 @@
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/ardabrowski",
+      "github": "https://github.com/agentview/agentview",
+      "linkedin": "https://linkedin.com/in/a-r-dabrowski"
     }
   },
   "fonts": {
