@@ -1,6 +1,6 @@
 {
   "name": "@agentview/api",
-  "version": "0.1.12-canary.0",
+  "version": "0.1.12",
   "type": "module",
   "scripts": {
     "dev:http": "tsx watch src/index.ts",
