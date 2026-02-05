@@ -165,7 +165,6 @@ export default defineConfig({
       />
     }
   ],
-  // webhookUrl: "http://localhost:3000/webhook",
   customRoutes: [
     {
       type: "agent",
@@ -173,13 +172,6 @@ export default defineConfig({
       title: <><Book className="size-4" /> <span>Custom Page</span></>,
       route: {
         path: "/custom-page",
-        Component: CustomPage
-      }
-    },
-    {
-      type: "root",
-      route: {
-        path: "/lorem-ipsum",
         Component: CustomPage
       }
     }
