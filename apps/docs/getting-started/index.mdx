@@ -3,25 +3,20 @@ title: "Introduction"
 description: "AgentView is a session viewer and backend for conversational agents. Framework-agnostic, collaborative, and fully extensible. It's feels a bit like a CMS, only for agents."
 ---
 
-<img src="/images/main.png" alt="AgentView overview"/>
+<iframe src="https://www.youtube.com/embed/RIyVZ9t5ask?autoplay=0&mute=1&loop=1&playlist=RIyVZ9t5ask&rel=0&modestbranding=1" frameBorder="0" allow="autoplay" allowFullScreen className="w-full" style={{ aspectRatio: '496/400' }}></iframe>
 
 If you're building agents in code (support bots, shopping assistants, etc.), you're really doing two completely different jobs:
 
 1. **The AI Engineering** – models, prompts, tools, RAG, memory, evals, monitoring, etc.
 2. **Everything around it** – session storage, APIs, session viewer, playgrounds for stakeholders, user management, email/slack integrations, etc.
 
-The goal of AgentView is to solve as much of (2) as possible without constraining how you build your AI logic.
+The first part is fun, but the second part can take a ridiculous amount of time. The goal of AgentView is to handle (2) so you can focus on (1).
 
-(1) is fun to build. (2) is not. AgentView takes (2) off your plate — all the annoying glue and infra you probably don't want to maintain or rebuild every time.
+**AgentView is completely framework-agnostic**. You write a stateless AI logic in Python or TypeScript, with any framework or none at all. The **AgentView API and SDK** provides a persistence layer that stores and orchestrates your session state, so you never have to build or maintain a complex backend.
 
-### Stack-agnostic by design
+AgentView also includes **Studio**: a visual interface for exploring and managing your agents. It's designed for ease of use by non-technical users, with built-in support for collaboration. Studio is **extremly customisable**, you can provide your custom components for any part of the experience.
 
-Most AI frameworks force you into their hosted backend or they don't have one. AgentView flips that model – it wraps around your AI, not inside it.
-
-You keep full control of the agent logic: write your stateless AI function in Python or TypeScript, using any framework (aisdk, agents-sdk, LangChain, your own) — or **no framework at all**. AgentView just connects to it and handles the sessions, state, and UI around it.
-
-
-### Studio
+#### Studio features
 
 - **Browse and inspect real agent sessions**
 - **Invite teammates; multi-user by default**
@@ -29,7 +24,7 @@ You keep full control of the agent logic: write your stateless AI function in Py
 - **Use a realistic playground**: create private test sessions, share with stakeholders when ready
 - **Customize deeply**: define how sessions, cards, inputs, and custom pages render by providing React components in a config file
 
-### Backend
+#### Backend features
 
 - **Store session data** in a simple, flexible array-based format
 - **Validate data via schemas**

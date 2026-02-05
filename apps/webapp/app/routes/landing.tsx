@@ -171,20 +171,22 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
 
         {/* Product Screenshot */}
         <section className="max-w-7xl mx-auto px-4 md:px-6 pb-12 md:pb-16">
-          <div className="bg-neutral-900 rounded-sm p-4 md:px-32 py-12 shadow-2xl">
-            <img
+          <div className="bg-neutral-900 rounded-sm shadow-2xl">
+            {/* <img
               src="/main.png"
               alt="AgentView Studio"
               className="w-full rounded-sm"
-            />
+            /> */}
+            {/* <video src="/studio-demo.mp4" autoPlay muted loop className="w-full rounded-sm" /> */}
+            <iframe src="https://www.youtube.com/embed/RIyVZ9t5ask?autoplay=1&mute=1&loop=1&playlist=RIyVZ9t5ask&rel=0&modestbranding=1" frameBorder="0" allow="autoplay" allowFullScreen className="w-full aspect-[497/400] rounded-sm"></iframe>
           </div>
         </section>
 
         {/* Feature Sections */}
         <FeatureSection
-          title="Use any framework"
+          title="You own the AI part"
           description={<span>
-            Persist your session state without worrying about the backend. AgentView <span className="font-semibold">stays out of your AI logic</span>. Use any framework you want, or go vanilla.
+            AgentView <span className="font-semibold">stays out of your AI logic</span>, you can use any framework you want, or go vanilla. Persist session state with the <span className="font-semibold">AgentView SDK</span> without standing up your own backend.
             </span>}
             
             
@@ -230,7 +232,7 @@ await av.updateRun({
         <FeatureSection
           title="Customize in code"
           description={<span>
-            Studio is an open-source, self-hosted React app built for deep customization. Every domain needs a different view—just drop in your own components and keep all configuration in code.
+            Studio is an open-source, self-hosted React app built for <span className="font-semibold">deep customization</span>. Every domain needs a different view—just drop in your own components and keep all configuration in code.
           </span>}
           imagePosition="right"
           content={

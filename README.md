@@ -1,62 +1,48 @@
 <div align="center">
   <a href="#">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="apps/studio/public/logo_light.svg" height="40">
-      <img alt="agentview logo" src="apps/studio/public/logo.svg" height="40">
+      <source media="(prefers-color-scheme: dark)" srcset="packages/studio/public/logo_light.svg" height="40">
+      <img alt="agentview logo" src="packages/studio/public/logo.svg" height="40">
     </picture>
   </a>
   <br/><br/>
 </div>
 
-Agent View is an open-source UI and middleware layer for building, debugging, and managing your own conversational agents. Framework-agnostic and fully customizable.
+Agent View is an open-source session viewer and backend for conversational agents.
+Framework-agnostic, collaborative, and fully extensible. It’s feels a bit like a CMS, only for agents.
 
-### You own the AI part
+1. [Read the docs](https://docs.agentview.app)
+2. [Getting Started](https://docs.agentview.app)
 
-Agent View stays out of your AI logic. You provide the stateless endpoint with intelligence that can be built in any framework (LangGraph, CrewAI, Agents SDK, vanilla, etc) or programming language you prefer. Agent View keeps AI Engineers in control of the intelligence layer.
+## How it works?
 
-### Agent View handles the rest
+**AgentView is completely framework-agnostic**. You write a stateless AI logic in Python or TypeScript, with any framework or none at all. The **AgentView API and SDK** provides a persistence layer that stores and orchestrates your session state, so you never have to build or maintain a complex backend.
 
-Agent View takes your stateless endpoint and builts everything you need around it.
+AgentView also includes **Studio**: a visual interface for exploring and managing your agents. It's designed for ease of use by non-technical users, with built-in support for collaboration. Studio is **extremly customisable**, you can provide your custom components for any part of the experience.
 
-#### UI Studio
+## Features
 
-- View and debug conversations
-- Comment collaboratively on agent outputs (Google Docs-style)
-- Score outputs with teammates or domain experts
-- Manage users, permissions, and teams
-- Edit prompts and knowledge bases easily
-- Track agent versions
-- Test in "dev mode" without writing code
+#### Studio
 
-UI Studio is built with React and provides almost framework-level customisability. Every conversation item can have its custom view, you can add new screens, and override anything.
+- **Browse and inspect real agent sessions**
+- **Invite teammates; multi-user by default**
+- **Comment, mention, and get notified (Notion-style)**
+- **Use a realistic playground**: create private test sessions, share with stakeholders when ready
+- **Customize deeply**: define how sessions, cards, inputs, and custom pages render by providing React components in a config file
 
-#### Storage & Middleware
+#### Backend
 
-Agent View provides a server that handles a lot of stuff you probably don't want to worry about:
+- **Store session data** in a simple, flexible array-based format
+- **Validate data via schemas**
+- **Manage session lifecycle via runs**
+- **Track session versions** and prevent incompatible changes after agent updates
+- **Expose a clean, stateful API** with streaming
+- **Manage agent users and their sessions**
+- **Expose a public, read-only API** that can be called directly from the browser
+- **Communicate via TypeScript and Python SDKs**
 
-- Conversation storage
-- Clean, standardized **stateful** APIs for integration
-- Session management, re‑connects dropped clients, and lets you resume long‑running chats.
-- Integrations with channels: email, Slack, Whatsapp, etc. 
-- Hand-offs: it must be easy to pass the conversation to human when needed.
+## License
 
-## Why?
-
-Let's start what I believe in:
-
-- AI will make conversation the primary interface (again)
-- Every business will have a conversational agent. 
-- The conversational agents and how they behave will be of a **strategic** importance.
-
-For now, most of the conversational agents are done by SaaS (Fin, Decagon Sierra and 100 others). However, SaaS has a big problem:
-- vendor lock-in + black box, you actually don't have control
-- they have no "secret sauce", building agents is not **that hard**, it's mostly good prompts, tools + evals. It requires more services and less products.
-
-I'm product engineer turned AI engineer and built conversational agents for a couple of comapnies. I discvered I spent more time on a good scaffolding than on building agent itself. So well... AgentView! :)
-
-## Project status
-
-⚠️ Still cooking!
-
-Agent View is under active development. It’s not ready for prime time yet, but we’re sharing early to get feedback and build with the community.
+- AgentView Studio is MIT.
+- AgentView Backend is AGPL.
 
