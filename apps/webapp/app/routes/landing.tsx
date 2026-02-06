@@ -178,9 +178,10 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
               className="w-full rounded-sm"
             /> */}
             {/* <video src="/studio-demo.mp4" autoPlay muted loop className="w-full rounded-sm" /> */}
-            <iframe src="https://www.youtube.com/embed/RIyVZ9t5ask?autoplay=1&mute=1&loop=1&playlist=RIyVZ9t5ask&rel=0&modestbranding=1" frameBorder="0" allow="autoplay" allowFullScreen className="w-full aspect-[497/400] rounded-sm"></iframe>
+            <iframe src="https://www.youtube.com/embed/MQBzAv04ePY?autoplay=1&mute=1&loop=1&playlist=MQBzAv04ePY&rel=0&modestbranding=1" frameBorder="0" allow="autoplay" allowFullScreen className="w-full aspect-[3216/2160] rounded-sm"></iframe>
           </div>
         </section>
+        
 
         {/* Feature Sections */}
         <FeatureSection
