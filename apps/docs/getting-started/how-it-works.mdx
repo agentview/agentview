@@ -52,10 +52,10 @@ const av = new AgentView({
 })
 
 app.post('/chat', async (c) => {
-  const { session_id, input } = await c.req.json(); 
+  const { index, input } = await c.req.json(); 
 
-  const session = session_id ?
-    await av.getSession({ id: session_id }) : 
+  const session = id ?
+    await av.getSession({ id }) : 
     await av.createSession({ agent: "my_agent" });
 
   const history = session.items;
@@ -75,7 +75,7 @@ app.post('/chat', async (c) => {
   });
 
   return c.json({
-    session_id: session.id,
+    id: session.id,
     output: response.output
   });
 })
@@ -143,7 +143,7 @@ In order to allow for customisation, Studio is **not** a standard centralised Sa
 
 Here's how you can provide custom components for your agent items and the input component for playground:
 
-```typescript highlight={13,24-31,43,47-51}
+```tsx highlight={13,24-29,41,45-58}
 export default defineConfig({
   agents: [
     {
@@ -162,20 +162,18 @@ export default defineConfig({
             {
               schema: z.looseObject({
                 type: z.literal("reasoning"),
-                summary: z.array(z.object({
-                  type: z.literal("summary_text"),
+                content: z.array(z.object({
+                  type: z.literal("input_text"),
                   text: z.string(),
                 })),
               }),
-              displayComponent: ({ item }) => {
-                return (
-                  <ItemCard size="sm" variant="fill">
-                    <ItemCardTitle><Brain /> Thinking</ItemCardTitle>
-                    <ItemCardMarkdown text={item.summary?.map((s: any) => s?.text ?? "").join("\n\n") ?? "Hidden reasoning summary."} />
-                  </ItemCard>
-                );
-              }
-            }
+              displayComponent: ({ item }) => <Step collapsible>  
+                <StepTitle><Brain /> Thinking</StepTitle>
+                <StepContent>
+                  {item.content?.map(s => s.text).join("\n\n")}
+                </StepContent>
+              </Step>
+            },
           ],
           output: {
             schema: z.looseObject({
@@ -186,15 +184,21 @@ export default defineConfig({
                 text: z.string(),
               })),
             }),
-            displayComponent: ({ item }) => <AssistantMessage>{item.content.map((c: any) => c?.text ?? "").join("\n\n")}</AssistantMessage>
+            displayComponent: ({ item }) => <AssistantMessage>{item.content.map(c => c.text).join("\n\n")}</AssistantMessage>,
           }
         }
       ],
       inputComponent: ({ submit, cancel, isRunning, session }) => <UserMessageInput
-        onSubmit={(content) => submit("http://localhost:3000/chat", { 
-          input: { content, type: "message", role: "user" },
-          session_id: session.id
-        })}
+        onSubmit={(val) => {
+          submit("http://localhost:3000/weather-chat", {
+            id: session.id,
+            input: {
+              type: "message",
+              role: "user",
+              content: val,
+            }
+          })
+        }}
         onCancel={cancel}
         isRunning={isRunning}
       />

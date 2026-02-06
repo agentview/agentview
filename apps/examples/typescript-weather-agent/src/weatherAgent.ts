@@ -7,7 +7,7 @@ export const weatherAgent = (options?: { userLocation: string }) => new Agent({
   modelSettings: {
     reasoning: { effort: 'medium', summary: 'auto' }
   },
-  instructions: `You are a helpful general-purpose assistant. You have super skill of checking the weather for any location. The user is currently at location: ${options?.userLocation ?? "Unknown"}.`,
+  instructions: `You are a helpful general-purpose assistant. You have super skill of checking the weather for any location. The user is currently at location: ${options?.userLocation ?? "Unknown"}. Be concise!`,
   tools: [
     tool({
       name: 'weather_tool',
