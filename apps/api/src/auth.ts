@@ -2,7 +2,9 @@ import { betterAuth } from "better-auth";
 import { createAuthMiddleware, APIError } from "better-auth/api";
 import { apiKey, organization, bearer } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { eq, and, sql } from "drizzle-orm";
 import { db__dangerous } from "./db";
+import { members, invitations } from "./schemas/auth-schema";
 import { colorValues } from "agentview/colors";
 import { requireValidInvitation } from "./invitations";
 import { getAllowedOrigin } from "./getAllowedOrigin";
@@ -86,6 +88,32 @@ The AgentView Team`,
             if (ctx.path === "/sign-up/email") {
                 if (ctx.body.invitationId) {
                     await requireValidInvitation(ctx.body.invitationId, undefined, ctx.body.email)
+                }
+            }
+
+            // Enforce max 3 members per org on the free plan
+            if (ctx.path === "/organization/invite-member") {
+                const organizationId = ctx.body.organizationId;
+                if (organizationId) {
+                    const [memberCount] = await db__dangerous
+                        .select({ count: sql<number>`count(*)::int` })
+                        .from(members)
+                        .where(eq(members.organizationId, organizationId));
+
+                    const [pendingCount] = await db__dangerous
+                        .select({ count: sql<number>`count(*)::int` })
+                        .from(invitations)
+                        .where(and(
+                            eq(invitations.organizationId, organizationId),
+                            eq(invitations.status, "pending")
+                        ));
+
+                    const total = memberCount.count + pendingCount.count;
+                    if (total >= 3) {
+                        throw new APIError("FORBIDDEN", {
+                            message: "You've reached the maximum of 3 members on the free plan. Reach out to the founder if you need more."
+                        });
+                    }
                 }
             }
         }),
