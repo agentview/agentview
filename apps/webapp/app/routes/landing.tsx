@@ -1,13 +1,15 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import type { Route } from "./+types/landing";
 import { authClient } from "~/authClient";
 import type { LucideIcon } from "lucide-react";
-import { ArrowRight, BookOpen } from "lucide-react";
+import { ArrowRight, BookOpen, Menu, X } from "lucide-react";
 import { cn } from "@agentview/studio/lib/utils";
 import { CodeBlock } from "~/components/CodeBlock";
 
 const EMAIL = "a.r.dabrowski@gmail.com";
 const X_URL = "https://x.com/ardabrowski";
+const GITHUB_URL = "https://github.com/agentview/agentview";
 
 
 export async function clientLoader({ request }: Route.LoaderArgs) {
@@ -114,41 +116,130 @@ function FeatureSection({
 
 export default function LandingPage({ loaderData }: Route.ComponentProps) {
   const { isAuthenticated } = loaderData;
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const navLinks = [
+    { label: "Docs", href: import.meta.env.VITE_AGENTVIEW_DOCS_URL, external: true },
+    { label: "Pricing", href: "#pricing" },
+    { label: "Contact", href: "#contact" },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="py-4">
+      <header className="py-4 relative z-50">
         <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <img src="/logo_light.svg" alt="AgentView" className="h-7" />
           </Link>
 
-          <nav>
+          {/* Center nav links - hidden on mobile */}
+          <nav className="hidden md:flex items-center gap-6">
+            {navLinks.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                {...(link.external && !link.href.startsWith("mailto:")
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
+                className="text-sm text-foreground/70 hover:text-foreground transition-colors"
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+
+          {/* Right side - GitHub + auth buttons (hidden on mobile) */}
+          <div className="hidden md:flex items-center gap-4">
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-foreground/70 hover:text-foreground transition-colors"
+            >
+              <img src="/GitHub_Invertocat_Black.svg" alt="GitHub" className="size-5" />
+              <span className="text-sm">GitHub</span>
+            </a>
             {isAuthenticated ? (
               <Link to="/dashboard">
                 <HeroButton variant="primary">Dashboard</HeroButton>
               </Link>
             ) : (
-              <div className="flex items-center gap-3">
+              <>
                 <Link to="/login">
                   <HeroButton variant="outline">Log in</HeroButton>
                 </Link>
                 <Link to="/signup">
                   <HeroButton variant="primary">Sign up</HeroButton>
                 </Link>
-              </div>
+              </>
             )}
-          </nav>
+          </div>
+
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden text-foreground/70 hover:text-foreground transition-colors"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
+          </button>
         </div>
+
+        {/* Mobile dropdown - absolute, from very top, with spacer for header */}
+        {mobileMenuOpen && (
+          <div className="md:hidden absolute left-0 right-0 top-0 bg-white shadow-lg z-[-1]">
+            <div className="h-[60px]" />
+            <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col gap-4">
+              {navLinks.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  {...(link.external && !link.href.startsWith("mailto:")
+                    ? { target: "_blank", rel: "noopener noreferrer" }
+                    : {})}
+                  className="text-sm text-foreground/70 hover:text-foreground transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </a>
+              ))}
+              <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-foreground/70 hover:text-foreground transition-colors flex items-center gap-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <img src="/GitHub_Invertocat_Black.svg" alt="GitHub" className="size-4" />
+                GitHub
+              </a>
+              <div className="border-t border-foreground/10 pt-4 mt-2 flex flex-col gap-3">
+                {isAuthenticated ? (
+                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                    <HeroButton variant="primary" className="w-full">Dashboard</HeroButton>
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                      <HeroButton variant="outline" className="w-full">Log in</HeroButton>
+                    </Link>
+                    <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>
+                      <HeroButton variant="primary" className="w-full">Sign up</HeroButton>
+                    </Link>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
       <main className="flex-1">
-        <section className="max-w-7xl mx-auto px-4 md:px-6 pt-20 md:pt-32 pb-12 md:pb-16">
-          <span className="inline-block mb-4 px-3 py-1 text-sm font-medium bg-[#C95B37]/10 text-[#C95B37] rounded-full">
+        <section className="max-w-7xl mx-auto px-4 md:px-6 pt-20 md:pt-48 pb-12 md:pb-16">
+          {/* <span className="inline-block mb-4 px-3 py-1 text-sm font-medium bg-[#C95B37]/10 text-[#C95B37] rounded-full">
             Early Preview
-          </span>
+          </span> */}
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight ">
           The “CMS” for agents
           </h1>
@@ -271,7 +362,7 @@ await av.updateRun({
 
 
         {/* Pricing / Open Source */}
-        <section className="max-w-7xl mx-auto px-4 md:px-6 mt-20 md:mt-32 mb-12 md:mb-16">
+        <section id="pricing" className="max-w-7xl mx-auto px-4 md:px-6 mt-20 md:mt-32 mb-12 md:mb-16">
           <div className="bg-white border border-foreground/20 rounded-sm p-6 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
             Start building today
@@ -306,7 +397,7 @@ await av.updateRun({
       </main>
 
       {/* Footer */}
-      <footer className="pb-4">
+      <footer id="contact" className="pb-4">
         <div className="max-w-7xl mx-auto px-4 md:px-6 text-base md:text-xl text-foreground/60 text-center">
           <p>
             Questions or feedback? Reach the founder on{" "}
