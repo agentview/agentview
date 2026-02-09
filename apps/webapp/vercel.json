@@ -2,11 +2,11 @@
     "rewrites": [
       {
         "source": "/docs",
-        "destination": "https://docs.agentview.app/docs"
+        "destination": "https://agentview.mintlify.dev/docs"
       },
       {
         "source": "/docs/:match*",
-        "destination": "https://docs.agentview.app/docs/:match*"
+        "destination": "https://agentview.mintlify.dev/docs/:match*"
       }
     ]
   }
