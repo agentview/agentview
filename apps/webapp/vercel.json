@@ -1,0 +1,12 @@
+{
+    "rewrites": [
+      {
+        "source": "/docs",
+        "destination": "https://agentview.mintlify.dev/docs"
+      },
+      {
+        "source": "/docs/:match*",
+        "destination": "https://agentview.mintlify.dev/docs/:match*"
+      }
+    ]
+  }
