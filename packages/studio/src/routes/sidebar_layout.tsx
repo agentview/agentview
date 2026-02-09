@@ -30,6 +30,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarProvider,
+  SidebarTrigger,
 } from "../components/ui/sidebar";
 
 // Removed Framework Mode type import

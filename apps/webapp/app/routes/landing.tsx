@@ -129,6 +129,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
       {/* Header */}
       <header className="py-4 relative z-50">
         <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between">
+          <div className="flex items-center gap-12">
           <Link to="/" className="flex items-center">
             <img src="/logo_light.svg" alt="AgentView" className="h-7" />
           </Link>
@@ -148,6 +149,8 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
               </a>
             ))}
           </nav>
+
+          </div>
 
           {/* Right side - GitHub + auth buttons (hidden on mobile) */}
           <div className="hidden md:flex items-center gap-4">
@@ -247,7 +250,7 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
           A session viewer and backend for conversational agents.<br/>Framework-agnostic, collaborative, and fully extensible.
           </p>
           <div className="mt-8 flex items-center gap-4">
-            <Link to="/signup" className="hidden md:block">
+            <Link to="/signup">
               <HeroButton variant="accent" icon={ArrowRight} iconPosition="right">
                 Start building
               </HeroButton>
