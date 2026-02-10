@@ -11,8 +11,8 @@
 [AgentView](https://agentview.app) is a session viewer and backend for conversational agents.
 
 1. **Framework-agnostic**.
-2. **Collaborative**, focused on non-technical users like stakeholders and domain experts.
-3. **Customizable.**
+2. **Collaborative**, comment, mention and get notified about agent outputs like in Notion. Great for non-technical users like stakeholders and domain experts.
+3. **Customizable.** All the configuration is in code, you can provide custom components for any part of the experience.
 
 <img src="apps/docs/images/main.png" >
 
