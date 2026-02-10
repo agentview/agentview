@@ -290,9 +290,9 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
 
         {/* Feature Sections */}
         <FeatureSection
-          title="You own the AI part"
+          title="Framework-agnostic backend"
           description={<span>
-            AgentView <span className="font-semibold">stays out of your AI logic</span>, you can use any framework you want, or go vanilla. Persist session state with the <span className="font-semibold">AgentView SDK</span> without standing up your own backend.
+            Use the <span className="font-semibold">AgentView SDK</span> to persist session state without maintaining a complex backend of your own. AgentView <span className="font-semibold">stays out of your AI logic</span>, you can use any framework you want, or go vanilla.
             </span>}
             
             
