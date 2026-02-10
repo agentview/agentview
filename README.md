@@ -20,8 +20,6 @@
 
 For full documentation, visit https://agentview.app/docs
 
-Framework-agnostic, collaborative, and fully extensible. It’s feels a bit like a CMS, only for agents.
-
 ## How it works?
 
 **AgentView is completely framework-agnostic**. You write a stateless AI logic in Python or TypeScript, with any framework or none at all. The **AgentView API and SDK** provides a persistence layer that stores and orchestrates your session state, so you never have to build or maintain a complex backend.
