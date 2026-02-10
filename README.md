@@ -8,11 +8,19 @@
   <br/><br/>
 </div>
 
-Agent View is an open-source session viewer and backend for conversational agents.
-Framework-agnostic, collaborative, and fully extensible. It’s feels a bit like a CMS, only for agents.
+[AgentView](https://agentview.app) is a session viewer and backend for conversational agents.
 
-1. [Read the docs](https://docs.agentview.app)
-2. [Getting Started](https://docs.agentview.app)
+1. **Framework-agnostic**.
+2. **Collaborative**, focused on non-technical users like stakeholders and domain experts.
+3. **Customizable.**
+
+<img src="apps/docs/images/main.png" >
+
+## Documentation
+
+For full documentation, visit https://agentview.app/docs
+
+Framework-agnostic, collaborative, and fully extensible. It’s feels a bit like a CMS, only for agents.
 
 ## How it works?
 

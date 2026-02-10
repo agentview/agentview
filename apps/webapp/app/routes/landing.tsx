@@ -19,8 +19,11 @@ export async function clientLoader({ request }: Route.LoaderArgs) {
 
 type ButtonVariant = "primary" | "accent" | "outline";
 
+type ButtonSize = "default" | "sm";
+
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
+  size?: ButtonSize;
   icon?: LucideIcon;
   iconPosition?: "left" | "right";
   asChild?: boolean;
@@ -29,6 +32,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 function HeroButton({
   variant = "primary",
+  size = "default",
   icon: Icon,
   iconPosition = "left",
   className,
@@ -36,25 +40,32 @@ function HeroButton({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    "inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2";
+    "inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-full";
 
   const variants: Record<ButtonVariant, string> = {
     primary:
-      "bg-neutral-900 text-white hover:bg-neutral-900/90 rounded-full h-10 px-5 text-sm focus:ring-neutral-900",
+      "bg-neutral-900 text-white hover:bg-neutral-900/90 focus:ring-neutral-900",
     accent:
-      "bg-[#C95B37] text-white hover:bg-[#B34E2D] rounded-full h-10 px-5 text-sm focus:ring-[#C95B37]",
+      "bg-[#C95B37] text-white hover:bg-[#B34E2D] focus:ring-[#C95B37]",
     outline:
-      "bg-white text-foreground border border-foreground/20 hover:bg-foreground/5 rounded-full h-10 px-5 text-sm focus:ring-foreground/30",
+      "bg-white text-foreground border border-foreground/20 hover:bg-foreground/5 focus:ring-foreground/30",
   };
+
+  const sizes: Record<ButtonSize, string> = {
+    default: "h-10 px-5 text-sm",
+    sm: "h-8 px-4 text-sm",
+  };
+
+  const iconSize = size === "sm" ? "size-3" : "size-4";
 
   return (
     <button
-      className={cn(baseStyles, variants[variant], className)}
+      className={cn(baseStyles, variants[variant], sizes[size], className)}
       {...props}
     >
-      {Icon && iconPosition === "left" && <Icon className="size-4" />}
+      {Icon && iconPosition === "left" && <Icon className={iconSize} />}
       {children}
-      {Icon && iconPosition === "right" && <Icon className="size-4" />}
+      {Icon && iconPosition === "right" && <Icon className={iconSize} />}
     </button>
   );
 }
@@ -165,15 +176,15 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
             </a>
             {isAuthenticated ? (
               <Link to="/dashboard">
-                <HeroButton variant="primary">Dashboard</HeroButton>
+                <HeroButton variant="primary" size="sm">Dashboard</HeroButton>
               </Link>
             ) : (
               <>
                 <Link to="/login">
-                  <HeroButton variant="outline">Log in</HeroButton>
+                  <HeroButton variant="outline" size="sm">Log in</HeroButton>
                 </Link>
                 <Link to="/signup">
-                  <HeroButton variant="primary">Sign up</HeroButton>
+                  <HeroButton variant="accent" size="sm">Sign up</HeroButton>
                 </Link>
               </>
             )}
