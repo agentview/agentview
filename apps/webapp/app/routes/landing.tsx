@@ -418,17 +418,13 @@ await av.updateRun({
               </div>
               <p className="mt-1 text-sm text-foreground/60">Open source, your infrastructure</p>
               <ul className="mt-6 space-y-3 text-sm text-foreground/80 flex-1">
-                <li className="flex items-start gap-2">
-                  <span className="text-foreground/40 mt-0.5">—</span>
-                  Full source code access
-                </li>
-                <li className="flex items-start gap-2">
+              <li className="flex items-start gap-2">
                   <span className="text-foreground/40 mt-0.5">—</span>
                   Unlimited team members
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-foreground/40 mt-0.5">—</span>
-                  Community support
+                  Unlimited storage
                 </li>
               </ul>
               <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="mt-8">
@@ -468,36 +464,16 @@ await av.updateRun({
           </div>
         </section>
 
-        {/* Start Building CTA */}
-        <section className="max-w-7xl mx-auto px-4 md:px-6 mt-16 md:mt-24 mb-12 md:mb-16">
-          <div className="bg-white border border-foreground/20 rounded-sm p-6 md:p-12 text-center">
-            <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
-            Start building today
-            </h2>
-            <p className="mt-5 text-foreground/70 max-w-md mx-auto">
-              AgentView is in <span className="font-semibold text-foreground">Early Preview</span>—free for up to 3 team members, no credit card required.
-            </p>
-            <div className="mt-8 flex items-center justify-center gap-4">
-              <Link to="/signup" className="hidden md:block">
-                <HeroButton variant="accent" icon={ArrowRight} iconPosition="right">
-                  Start building
-                </HeroButton>
-              </Link>
-              <Link to={import.meta.env.VITE_AGENTVIEW_DOCS_URL}>
-                <HeroButton variant="outline" icon={BookOpen}>
-                  Read the docs
-                </HeroButton>
-              </Link>
-            </div>
-          </div>
-        </section>
       </main>
 
       {/* Footer */}
-      <footer id="contact" className="pb-4">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 text-base md:text-xl text-foreground/60 text-center">
-          <p>
-            Questions or feedback? Reach the founder on{" "}
+      <footer id="contact" className="mt-20 md:mt-32 pb-4">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
+          <h2 className="text-xl md:text-2xl font-semibold tracking-tight">
+            Reach out
+          </h2>
+          <p className="mt-4 text-foreground/60">
+            Curious about AgentView, have ideas, or just want to talk agents?<br/>Hit up the founder on{" "}
             <a
               href={X_URL}
               target="_blank"
@@ -513,9 +489,9 @@ await av.updateRun({
             >
               email
             </a>
-            .
+            —always happy to chat.
           </p>
-          <p className="mt-16 md:mt-32 text-sm text-foreground/40">
+          <p className="mt-24 md:mt-40 text-sm text-foreground/40">
             © {new Date().getFullYear()} AgentView
           </p>
         </div>
