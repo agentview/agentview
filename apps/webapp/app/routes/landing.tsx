@@ -257,8 +257,8 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight ">
           The “CMS” for agents
           </h1>
-          <p className="mt-6 text-xl opacity-66 max-w-xl">
-          A session viewer and backend for conversational agents.<br/>Framework-agnostic, collaborative, and fully extensible.
+          <p className="mt-6 text-xl opacity-66 max-w-xl text-balance">
+          An open-source session viewer and backend for conversational agents. Framework&#8209;agnostic, collaborative, and fully extensible.
           </p>
           <div className="mt-8 flex items-center gap-4">
             <Link to="/signup">
