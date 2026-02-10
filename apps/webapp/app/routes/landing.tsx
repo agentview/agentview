@@ -375,24 +375,107 @@ await av.updateRun({
         />
 
 
-        {/* Pricing / Open Source */}
-        <section id="pricing" className="max-w-7xl mx-auto px-4 md:px-6 mt-20 md:mt-32 mb-12 md:mb-16">
+        {/* Pricing */}
+        <section id="pricing" className="max-w-7xl mx-auto px-4 md:px-6 mt-20 md:mt-32">
+          <h2 className="text-xl md:text-2xl font-semibold tracking-tight ">
+            Pricing
+          </h2>
+          {/* <p className="mt-4 text-foreground/70 text-center max-w-lg mx-auto">
+            Get started for free. Scale when you're ready.
+          </p> */}
+
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Free */}
+            <div className="border border-foreground/20 rounded-sm p-6 flex flex-col bg-white">
+              <h3 className="text-lg font-semibold">Free</h3>
+              <div className="mt-3">
+                <span className="text-3xl font-semibold">$0</span>
+              </div>
+              <p className="mt-1 text-sm text-foreground/60">Get Started with AgentView quickly</p>
+              <ul className="mt-6 space-y-3 text-sm text-foreground/80 flex-1">
+
+                <li className="flex items-start gap-2">
+                  <span className="text-foreground/40 mt-0.5">—</span>
+                  3 team members
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-foreground/40 mt-0.5">—</span>
+                  1 GB session history storage
+                </li>
+              </ul>
+              <Link to="/signup" className="mt-8">
+                <HeroButton variant="accent" className="w-full" icon={ArrowRight} iconPosition="right">
+                  Get started
+                </HeroButton>
+              </Link>
+            </div>
+
+            {/* Self-hosted */}
+            <div className="border border-foreground/20 rounded-sm p-6 flex flex-col">
+              <h3 className="text-lg font-semibold">Self-hosted</h3>
+              <div className="mt-3">
+                <span className="text-3xl font-semibold">$0</span>
+              </div>
+              <p className="mt-1 text-sm text-foreground/60">Open source, your infrastructure</p>
+              <ul className="mt-6 space-y-3 text-sm text-foreground/80 flex-1">
+                <li className="flex items-start gap-2">
+                  <span className="text-foreground/40 mt-0.5">—</span>
+                  Full source code access
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-foreground/40 mt-0.5">—</span>
+                  Unlimited team members
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-foreground/40 mt-0.5">—</span>
+                  Community support
+                </li>
+              </ul>
+              <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="mt-8">
+                <HeroButton variant="outline" className="w-full">
+                  View on GitHub
+                </HeroButton>
+              </a>
+            </div>
+
+            {/* Need more? */}
+            <div className="border border-foreground/20 rounded-sm p-6 flex flex-col">
+              <h3 className="text-lg font-semibold">Need more?</h3>
+              <div className="mt-3">
+                <span className="text-3xl font-semibold">Let's talk</span>
+              </div>
+              <p className="mt-1 text-sm text-foreground/60">We'll figure it out together</p>
+              <ul className="mt-6 space-y-3 text-sm text-foreground/80 flex-1">
+                <li className="flex items-start gap-2">
+                  <span className="text-foreground/40 mt-0.5">—</span>
+                  Unlimited team members
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-foreground/40 mt-0.5">—</span>
+                  Unlimited storage
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-foreground/40 mt-0.5">—</span>
+                  Direct founder support
+                </li>
+              </ul>
+              <a href={`mailto:${EMAIL}`} className="mt-8">
+                <HeroButton variant="outline" className="w-full">
+                  Talk to founder
+                </HeroButton>
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* Start Building CTA */}
+        <section className="max-w-7xl mx-auto px-4 md:px-6 mt-16 md:mt-24 mb-12 md:mb-16">
           <div className="bg-white border border-foreground/20 rounded-sm p-6 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
             Start building today
             </h2>
-            {/* <p className="mt-4 text-foreground/70 max-w-xl mx-auto">
-              Studio is MIT licensed. You can fork it, customize it, make it yours.
-            </p> */}
             <p className="mt-5 text-foreground/70 max-w-md mx-auto">
-              AgentView is in <span className="font-semibold text-foreground">Early Preview</span>—free for up to 3 team members, no credit card required. Need more seats?&nbsp;
-              <a
-                href={`mailto:${EMAIL}`}
-                className="text-[#C95B37] hover:underline"
-              >
-                Just reach out
-              </a>
-              .
+              AgentView is in <span className="font-semibold text-foreground">Early Preview</span>—free for up to 3 team members, no credit card required.
             </p>
             <div className="mt-8 flex items-center justify-center gap-4">
               <Link to="/signup" className="hidden md:block">
