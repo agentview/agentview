@@ -8,11 +8,13 @@ Thumbs.db
 
 node_modules/
 dist/
+*.tsbuildinfo
 
 .env
 
 .internal/
 
 .claude/
+.agents/
 
 render.yaml
