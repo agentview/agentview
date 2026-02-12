@@ -2581,17 +2581,31 @@ describe('API', () => {
       expect(cancelled.status).toBe("cancelled");
     }, 30000);
 
-    test("PATCH cancellation: PATCH { status: 'cancelled' } → succeeds", async () => {
+    test("PATCH cancellation: PATCH { status: 'cancelled' } → succeeds and aborts connection", async () => {
       await updateConfigWithUrl();
       const session = await av.createSession({ agent: "test", userId: initUser1.id });
 
-      // Slow handler - keep stream open
+      // Track whether the connection was closed, and when it's connected
+      let connectionClosed = false;
+      let connectionEstablished: () => void;
+      const connectionEstablishedPromise = new Promise<void>(r => { connectionEstablished = r; });
+
       mockAgentServer!.setHandler((_body, res) => {
         res.writeHead(200, {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
         });
-        // Keep open - cancellation will abort
+        connectionEstablished();
+        // Send periodic keepalive events so the worker can detect cancellation
+        const keepalive = setInterval(() => {
+          if (!res.closed) {
+            res.write(`event: keepalive\ndata: {}\n\n`);
+          }
+        }, 500);
+        res.on('close', () => {
+          clearInterval(keepalive);
+          connectionClosed = true;
+        });
       });
 
       const run = await av.createRun({
@@ -2600,10 +2614,17 @@ describe('API', () => {
         version: "1.0.0",
       });
 
+      // Wait for the worker to actually connect to the mock agent before cancelling
+      await connectionEstablishedPromise;
+
       // Cancel the run
       const cancelled = await av.updateRun({ id: run.id, status: "cancelled" });
       expect(cancelled.status).toBe("cancelled");
       expect(cancelled.finishedAt).toBeDefined();
+
+      // Wait for the worker to detect cancellation on the next event and abort
+      await new Promise(r => setTimeout(r, 3000));
+      expect(connectionClosed).toBe(true);
     }, 30000);
 
     test("error event: agent sends event: error → run marked failed", async () => {
