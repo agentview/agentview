@@ -334,23 +334,14 @@ async function processAgentFetch(run: typeof runs.$inferSelect) {
         });
       }
       else if (event.name === 'version') {
-        if (versionReceived) {
-          throw new Error('Agent sent duplicate version event');
-        }
         versionReceived = true;
 
-        const versionString = typeof event.data === 'string' ? event.data : event.data?.version;
-        if (typeof versionString !== 'string') {
-          throw new Error('Agent version event must contain a version string');
-        }
-
-        // Get last previous run's version for compatibility check
         const previousRuns = session.runs.filter(r => r.id !== run.id);
         const lastPreviousRun = previousRuns[previousRuns.length - 1];
 
         await withOrg(run.organizationId, async (tx) => {
           const { versionId } = await resolveVersion(tx, {
-            versionString,
+            versionString: event.data,
             isProduction: session.user.space === 'production',
             isDev: session.user.space !== 'production',
             lastRunVersion: lastPreviousRun?.version ?? null,
@@ -366,7 +357,7 @@ async function processAgentFetch(run: typeof runs.$inferSelect) {
       }
       else if (event.name === 'run.patch') {
         if (!versionReceived) {
-          throw new Error('Agent must send version event before run.patch');
+          throw new Error('Agent must provide X-AgentView-Version response header');
         }
 
         try {

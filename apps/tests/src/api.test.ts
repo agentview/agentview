@@ -2397,12 +2397,16 @@ describe('API', () => {
       };
     }
 
-    function writeSSE(res: import('http').ServerResponse, events: SSEEvent[]) {
-      res.writeHead(200, {
+    function writeSSE(res: import('http').ServerResponse, events: SSEEvent[], opts?: { version?: string }) {
+      const headers: Record<string, string> = {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
-      });
+      };
+      if (opts?.version) {
+        headers['X-AgentView-Version'] = opts.version;
+      }
+      res.writeHead(200, headers);
       for (const ev of events) {
         res.write(`event: ${ev.event}\ndata: ${JSON.stringify(ev.data)}\n\n`);
       }
@@ -2462,16 +2466,15 @@ describe('API', () => {
       throw new Error(`Timed out waiting for run ${runId} to reach status ${statuses.join('|')}`);
     }
 
-    test("happy path: agent streams version + run.patch events with items + status completed", async () => {
+    test("happy path: agent streams run.patch events with version header", async () => {
       await updateConfigWithUrl();
       const session = await av.createSession({ agent: "test", userId: initUser1.id });
 
       mockAgentServer!.setHandler((_body, res) => {
         writeSSE(res, [
-          { event: "version", data: "1.0.0" },
           { event: "run.patch", data: { items: [{ type: "reasoning", content: "Thinking..." }] } },
           { event: "run.patch", data: { items: [{ type: "message", role: "assistant", content: "Hello!" }], status: "completed" } },
-        ]);
+        ], { version: "1.0.0" });
       });
 
       const run = await av.createRun({
@@ -2679,10 +2682,9 @@ describe('API', () => {
 
       mockAgentServer!.setHandler((_body, res) => {
         writeSSE(res, [
-          { event: "version", data: "1.0.0" },
           { event: "run.patch", data: { items: [{ type: "reasoning", content: "Thinking..." }] } },
           // Stream ends without completing (no status: 'completed')
-        ]);
+        ], { version: "1.0.0" });
       });
 
       const run = await av.createRun({
@@ -2701,12 +2703,11 @@ describe('API', () => {
 
       mockAgentServer!.setHandler((_body, res) => {
         writeSSE(res, [
-          { event: "version", data: "1.0.0" },
           { event: "run.patch", data: { items: [{ type: "reasoning", content: "Step 1" }] } },
           { event: "run.patch", data: { items: [{ type: "reasoning", content: "Step 2" }] } },
           { event: "run.patch", data: { items: [{ type: "reasoning", content: "Step 3" }] } },
           { event: "run.patch", data: { items: [{ type: "message", role: "assistant", content: "Final" }], status: "completed" } },
-        ]);
+        ], { version: "1.0.0" });
       });
 
       const run = await av.createRun({
@@ -2724,13 +2725,13 @@ describe('API', () => {
       expect(completedRun.sessionItems[4].content.content).toBe("Final");
     }, 30000);
 
-    test("agent must send version as first event (before run.patch)", async () => {
+    test("agent must provide X-AgentView-Version header", async () => {
       await updateConfigWithUrl();
       const session = await av.createSession({ agent: "test", userId: initUser1.id });
 
       mockAgentServer!.setHandler((_body, res) => {
+        // No version header → should fail when run.patch arrives
         writeSSE(res, [
-          // Send run.patch without version first - should fail
           { event: "run.patch", data: { items: [{ type: "reasoning", content: "Thinking..." }] } },
         ]);
       });
@@ -2742,7 +2743,7 @@ describe('API', () => {
 
       const failedRun = await waitForRunStatus(session.id, run.id, ["failed"]);
       expect(failedRun.status).toBe("failed");
-      expect(failedRun.failReason.message).toContain("version");
+      expect(failedRun.failReason.message).toContain("Version");
     }, 30000);
   });
 
