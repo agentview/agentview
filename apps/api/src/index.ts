@@ -1130,19 +1130,19 @@ async function getSessions(tx: Transaction, params: SessionsGetQueryParams, prin
   const offset = (page - 1) * limit;
   const baseFilter = getSessionListFilter(params, principal);
 
-  // Handle starred filter - requires joining with starredSessions table
-  const isStarred = params.starred === true || params.starred === 'true';
-  const starredJoin = (() => {
-    if (!isStarred) return null;
-    if (principal.type === 'user') {
-      throw new HTTPException(422, { message: "starred filter is only available for staff users" });
-    }
-    const memberId = requireMemberId(principal);
-    return and(
-      eq(starredSessions.sessionId, sessions.id),
-      eq(starredSessions.userId, memberId)
-    );
-  })();
+  // // Handle starred filter - requires joining with starredSessions table
+  // const isStarred = params.starred === true || params.starred === 'true';
+  // const starredJoin = (() => {
+  //   if (!isStarred) return null;
+  //   if (principal.type === 'user') {
+  //     throw new HTTPException(422, { message: "starred filter is only available for staff users" });
+  //   }
+  //   const memberId = requireMemberId(principal);
+  //   return and(
+  //     eq(starredSessions.sessionId, sessions.id),
+  //     eq(starredSessions.userId, memberId)
+  //   );
+  // })();
 
   // Build count query
   const countQuery = tx
@@ -1150,9 +1150,9 @@ async function getSessions(tx: Transaction, params: SessionsGetQueryParams, prin
     .from(sessions)
     .$dynamic();
 
-  if (starredJoin) {
-    countQuery.innerJoin(starredSessions, starredJoin);
-  }
+  // if (starredJoin) {
+  //   countQuery.innerJoin(starredSessions, starredJoin);
+  // }
 
   const totalCountResult = await countQuery
     .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
@@ -1166,9 +1166,9 @@ async function getSessions(tx: Transaction, params: SessionsGetQueryParams, prin
     .from(sessions)
     .$dynamic();
 
-  if (starredJoin) {
-    sessionsQuery.innerJoin(starredSessions, starredJoin);
-  }
+  // if (starredJoin) {
+  //   sessionsQuery.innerJoin(starredSessions, starredJoin);
+  // }
 
   const result = await sessionsQuery
     .leftJoin(endUsers, eq(sessions.userId, endUsers.id))
@@ -1476,121 +1476,121 @@ app.openapi(sessionScoresGETRoute, async (c) => {
 })
 
 
-// Star a session
-const sessionStarPUTRoute = createRoute({
-  method: 'put',
-  path: '/api/sessions/{session_id}/star',
-  summary: 'Star a session',
-  tags: ['Sessions'],
-  request: {
-    params: z.object({
-      session_id: z.string(),
-    }),
-  },
-  responses: {
-    200: response_data(z.object({ starred: z.boolean() })),
-    401: response_error(),
-    404: response_error(),
-  },
-})
+// // Star a session
+// const sessionStarPUTRoute = createRoute({
+//   method: 'put',
+//   path: '/api/sessions/{session_id}/star',
+//   summary: 'Star a session',
+//   tags: ['Sessions'],
+//   request: {
+//     params: z.object({
+//       session_id: z.string(),
+//     }),
+//   },
+//   responses: {
+//     200: response_data(z.object({ starred: z.boolean() })),
+//     401: response_error(),
+//     404: response_error(),
+//   },
+// })
 
-app.openapi(sessionStarPUTRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  const { session_id } = c.req.param()
+// app.openapi(sessionStarPUTRoute, async (c) => {
+//   const principal = await authn(c.req.raw.headers)
+//   const { session_id } = c.req.param()
 
-  const memberId = requireMemberId(principal);
+//   const memberId = requireMemberId(principal);
 
-  return withOrg(principal.organizationId, async (tx) => {
-    const session = await requireSession(tx, session_id);
-    authorize(principal, { action: "end-user:read", user: session.user });
+//   return withOrg(principal.organizationId, async (tx) => {
+//     const session = await requireSession(tx, session_id);
+//     authorize(principal, { action: "end-user:read", user: session.user });
 
-    await tx.insert(starredSessions).values({
-      organizationId: (principal as PrivatePrincipal).organizationId,
-      userId: memberId,
-      sessionId: session_id,
-    }).onConflictDoNothing();
+//     await tx.insert(starredSessions).values({
+//       organizationId: (principal as PrivatePrincipal).organizationId,
+//       userId: memberId,
+//       sessionId: session_id,
+//     }).onConflictDoNothing();
 
-    return c.json({ starred: true }, 200);
-  })
-})
+//     return c.json({ starred: true }, 200);
+//   })
+// })
 
-// Unstar a session
-const sessionStarDELETERoute = createRoute({
-  method: 'delete',
-  path: '/api/sessions/{session_id}/star',
-  summary: 'Unstar a session',
-  tags: ['Sessions'],
-  request: {
-    params: z.object({
-      session_id: z.string(),
-    }),
-  },
-  responses: {
-    200: response_data(z.object({ starred: z.boolean() })),
-    401: response_error(),
-    404: response_error(),
-  },
-})
+// // Unstar a session
+// const sessionStarDELETERoute = createRoute({
+//   method: 'delete',
+//   path: '/api/sessions/{session_id}/star',
+//   summary: 'Unstar a session',
+//   tags: ['Sessions'],
+//   request: {
+//     params: z.object({
+//       session_id: z.string(),
+//     }),
+//   },
+//   responses: {
+//     200: response_data(z.object({ starred: z.boolean() })),
+//     401: response_error(),
+//     404: response_error(),
+//   },
+// })
 
-app.openapi(sessionStarDELETERoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  const { session_id } = c.req.param()
+// app.openapi(sessionStarDELETERoute, async (c) => {
+//   const principal = await authn(c.req.raw.headers)
+//   const { session_id } = c.req.param()
 
-  const memberId = requireMemberId(principal);
+//   const memberId = requireMemberId(principal);
 
-  return withOrg(principal.organizationId, async (tx) => {
-    const session = await requireSession(tx, session_id);
-    authorize(principal, { action: "end-user:read", user: session.user });
+//   return withOrg(principal.organizationId, async (tx) => {
+//     const session = await requireSession(tx, session_id);
+//     authorize(principal, { action: "end-user:read", user: session.user });
 
-    await tx.delete(starredSessions).where(
-      and(
-        eq(starredSessions.userId, memberId),
-        eq(starredSessions.sessionId, session_id)
-      )
-    );
+//     await tx.delete(starredSessions).where(
+//       and(
+//         eq(starredSessions.userId, memberId),
+//         eq(starredSessions.sessionId, session_id)
+//       )
+//     );
 
-    return c.json({ starred: false }, 200);
-  })
-})
+//     return c.json({ starred: false }, 200);
+//   })
+// })
 
-// Check if session is starred
-const sessionStarGETRoute = createRoute({
-  method: 'get',
-  path: '/api/sessions/{session_id}/star',
-  summary: 'Get star status',
-  tags: ['Sessions'],
-  request: {
-    params: z.object({
-      session_id: z.string(),
-    }),
-  },
-  responses: {
-    200: response_data(z.object({ starred: z.boolean() })),
-    401: response_error(),
-    404: response_error(),
-  },
-})
+// // Check if session is starred
+// const sessionStarGETRoute = createRoute({
+//   method: 'get',
+//   path: '/api/sessions/{session_id}/star',
+//   summary: 'Get star status',
+//   tags: ['Sessions'],
+//   request: {
+//     params: z.object({
+//       session_id: z.string(),
+//     }),
+//   },
+//   responses: {
+//     200: response_data(z.object({ starred: z.boolean() })),
+//     401: response_error(),
+//     404: response_error(),
+//   },
+// })
 
-app.openapi(sessionStarGETRoute, async (c) => {
-  const principal = await authn(c.req.raw.headers)
-  const { session_id } = c.req.param()
+// app.openapi(sessionStarGETRoute, async (c) => {
+//   const principal = await authn(c.req.raw.headers)
+//   const { session_id } = c.req.param()
 
-  const memberId = requireMemberId(principal);
+//   const memberId = requireMemberId(principal);
 
-  return withOrg(principal.organizationId, async (tx) => {
-    const session = await requireSession(tx, session_id);
-    authorize(principal, { action: "end-user:read", user: session.user });
+//   return withOrg(principal.organizationId, async (tx) => {
+//     const session = await requireSession(tx, session_id);
+//     authorize(principal, { action: "end-user:read", user: session.user });
 
-    const star = await tx.query.starredSessions.findFirst({
-      where: and(
-        eq(starredSessions.userId, memberId),
-        eq(starredSessions.sessionId, session_id)
-      )
-    });
+//     const star = await tx.query.starredSessions.findFirst({
+//       where: and(
+//         eq(starredSessions.userId, memberId),
+//         eq(starredSessions.sessionId, session_id)
+//       )
+//     });
 
-    return c.json({ starred: !!star }, 200);
-  })
-})
+//     return c.json({ starred: !!star }, 200);
+//   })
+// })
 
 const publicSessionGETRoute = createRoute({
   method: 'get',
