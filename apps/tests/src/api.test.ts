@@ -2337,5 +2337,367 @@ describe('API', () => {
   }
 
 
+  /**
+   * Agent Endpoint Auto-Fetch tests.
+   * Tests the auto-fetch flow where an agent with a `url` in its config
+   * gets called automatically by the worker upon run creation.
+   */
+  describe("agent endpoint auto-fetch", () => {
+    const AGENT_PORT = 3457;
+    const AGENT_URL = `http://localhost:${AGENT_PORT}/agent`;
+
+    type SSEEvent = { event: string; data: any };
+
+    let mockAgentServer: {
+      server: import('http').Server;
+      requests: Array<{ body: any; timestamp: number }>;
+      close: () => Promise<void>;
+      setHandler: (handler: (body: any, res: import('http').ServerResponse) => void) => void;
+    } | null = null;
+
+    async function createMockAgentServer(port: number) {
+      const http = await import('http');
+      const requests: Array<{ body: any; timestamp: number }> = [];
+      const openSockets = new Set<import('net').Socket>();
+      let handler: (body: any, res: import('http').ServerResponse) => void = (_body, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+        res.end();
+      };
+
+      const server = await new Promise<import('http').Server>((resolve) => {
+        const srv = http.createServer((req, res) => {
+          let bodyStr = '';
+          req.on('data', (chunk: Buffer) => bodyStr += chunk.toString());
+          req.on('end', () => {
+            let parsedBody: any;
+            try {
+              parsedBody = JSON.parse(bodyStr);
+            } catch {
+              parsedBody = bodyStr;
+            }
+            requests.push({ body: parsedBody, timestamp: Date.now() });
+            handler(parsedBody, res);
+          });
+        });
+        srv.on('connection', (socket) => {
+          openSockets.add(socket);
+          socket.on('close', () => openSockets.delete(socket));
+        });
+        srv.listen(port, () => resolve(srv));
+      });
+
+      return {
+        server,
+        requests,
+        close: () => {
+          for (const socket of openSockets) socket.destroy();
+          return new Promise<void>(r => server.close(r as () => void));
+        },
+        setHandler: (h: (body: any, res: import('http').ServerResponse) => void) => { handler = h; },
+      };
+    }
+
+    function writeSSE(res: import('http').ServerResponse, events: SSEEvent[]) {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+      for (const ev of events) {
+        res.write(`event: ${ev.event}\ndata: ${JSON.stringify(ev.data)}\n\n`);
+      }
+      res.end();
+    }
+
+    const updateConfigWithUrl = async () => {
+      const inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() });
+      const outputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("assistant"), content: z.string() });
+      const stepSchema = z.looseObject({ type: z.literal("reasoning"), content: z.string() });
+
+      await av.updateEnvironment({
+        config: {
+          agents: [{
+            name: "test",
+            url: AGENT_URL,
+            runs: [{
+              input: { schema: inputSchema },
+              steps: [{ schema: stepSchema }],
+              output: { schema: outputSchema },
+            }]
+          }]
+        },
+      });
+    };
+
+    // Start mock server before all tests
+    beforeAll(async () => {
+      mockAgentServer = await createMockAgentServer(AGENT_PORT);
+    });
+
+    // Close mock server after all tests
+    afterAll(async () => {
+      if (mockAgentServer) {
+        await mockAgentServer.close();
+        mockAgentServer = null;
+      }
+    }, 30000);
+
+    // Reset state before each test
+    beforeEach(() => {
+      if (mockAgentServer) {
+        mockAgentServer.requests.length = 0;
+      }
+    });
+
+    async function waitForRunStatus(sessionId: string, runId: string, statuses: string[], timeoutMs: number = 15000): Promise<Run> {
+      const startTime = Date.now();
+      while (Date.now() - startTime < timeoutMs) {
+        const session = await av.getSession({ id: sessionId });
+        const run = session.runs.find(r => r.id === runId);
+        if (run && statuses.includes(run.status)) {
+          return run;
+        }
+        await new Promise(r => setTimeout(r, 500));
+      }
+      throw new Error(`Timed out waiting for run ${runId} to reach status ${statuses.join('|')}`);
+    }
+
+    test("happy path: agent streams run.patch events with items + status completed", async () => {
+      await updateConfigWithUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAgentServer!.setHandler((_body, res) => {
+        writeSSE(res, [
+          { event: "run.patch", data: { items: [{ type: "reasoning", content: "Thinking..." }] } },
+          { event: "run.patch", data: { items: [{ type: "message", role: "assistant", content: "Hello!" }], status: "completed" } },
+        ]);
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+        version: "1.0.0",
+      });
+
+      expect(run.status).toBe("in_progress");
+
+      // Wait for the worker to process the run
+      const completedRun = await waitForRunStatus(session.id, run.id, ["completed"]);
+      expect(completedRun.status).toBe("completed");
+      // Should have 3 items: input + step + output
+      expect(completedRun.sessionItems.length).toBe(3);
+      expect(completedRun.sessionItems[0].content.type).toBe("message");
+      expect(completedRun.sessionItems[0].content.role).toBe("user");
+      expect(completedRun.sessionItems[1].content.type).toBe("reasoning");
+      expect(completedRun.sessionItems[2].content.type).toBe("message");
+      expect(completedRun.sessionItems[2].content.role).toBe("assistant");
+
+      // Verify the agent received the session
+      expect(mockAgentServer!.requests.length).toBeGreaterThanOrEqual(1);
+      const agentRequest = mockAgentServer!.requests[0];
+      expect(agentRequest.body.session).toBeDefined();
+      expect(agentRequest.body.session.id).toBe(session.id);
+    }, 30000);
+
+    test("POST validation: creating run with >1 item when url set → 422", async () => {
+      await updateConfigWithUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      await expectToFail(av.createRun({
+        sessionId: session.id,
+        items: [
+          { type: "message", role: "user", content: "Hi" },
+          { type: "reasoning", content: "step" },
+        ],
+        version: "1.0.0",
+      }), 422);
+    });
+
+    test("POST validation: setting status when url set → 422", async () => {
+      await updateConfigWithUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      await expectToFail(av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+        version: "1.0.0",
+        status: "completed",
+      }), 422);
+    });
+
+    test("POST validation: setting state when url set → 422", async () => {
+      await updateConfigWithUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      await expectToFail(av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+        version: "1.0.0",
+        state: { foo: "bar" },
+      }), 422);
+    });
+
+    test("POST validation: setting failReason when url set → 422", async () => {
+      await updateConfigWithUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      await expectToFail(av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+        version: "1.0.0",
+        status: "failed",
+        failReason: { message: "error" },
+      }), 422);
+    });
+
+    test("PATCH blocked: PATCH with items while fetchStatus active → 422", async () => {
+      await updateConfigWithUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      // Set up a slow handler so the run stays in fetching state
+      mockAgentServer!.setHandler((_body, res) => {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+        });
+        // Keep the stream open - don't end it
+        // The cancellation below will cause the worker to abort
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+        version: "1.0.0",
+      });
+
+      // Try to patch with items - should fail
+      await expectToFail(av.updateRun({
+        id: run.id,
+        items: [{ type: "reasoning", content: "Thinking..." }],
+      }), 422);
+
+      // Cancel the run to clean up
+      const cancelled = await av.updateRun({ id: run.id, status: "cancelled" });
+      expect(cancelled.status).toBe("cancelled");
+    }, 30000);
+
+    test("PATCH cancellation: PATCH { status: 'cancelled' } → succeeds", async () => {
+      await updateConfigWithUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      // Slow handler - keep stream open
+      mockAgentServer!.setHandler((_body, res) => {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+        });
+        // Keep open - cancellation will abort
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+        version: "1.0.0",
+      });
+
+      // Cancel the run
+      const cancelled = await av.updateRun({ id: run.id, status: "cancelled" });
+      expect(cancelled.status).toBe("cancelled");
+      expect(cancelled.finishedAt).toBeDefined();
+    }, 30000);
+
+    test("error event: agent sends event: error → run marked failed", async () => {
+      await updateConfigWithUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAgentServer!.setHandler((_body, res) => {
+        writeSSE(res, [
+          { event: "error", data: { message: "Something went wrong" } },
+        ]);
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+        version: "1.0.0",
+      });
+
+      const failedRun = await waitForRunStatus(session.id, run.id, ["failed"]);
+      expect(failedRun.status).toBe("failed");
+      expect(failedRun.failReason).toBeDefined();
+    }, 30000);
+
+    test("bad HTTP response: agent returns 500 → run marked failed", async () => {
+      await updateConfigWithUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAgentServer!.setHandler((_body, res) => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: "Internal Server Error" }));
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+        version: "1.0.0",
+      });
+
+      const failedRun = await waitForRunStatus(session.id, run.id, ["failed"]);
+      expect(failedRun.status).toBe("failed");
+      expect(failedRun.failReason).toBeDefined();
+    }, 30000);
+
+    test("stream ends without completion → run fails", async () => {
+      await updateConfigWithUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAgentServer!.setHandler((_body, res) => {
+        writeSSE(res, [
+          { event: "run.patch", data: { items: [{ type: "reasoning", content: "Thinking..." }] } },
+          // Stream ends without completing (no status: 'completed')
+        ]);
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+        version: "1.0.0",
+      });
+
+      const failedRun = await waitForRunStatus(session.id, run.id, ["failed"]);
+      expect(failedRun.status).toBe("failed");
+      expect(failedRun.failReason.message).toContain("Agent stream ended without completing");
+    }, 30000);
+
+    test("multiple incremental patches: items accumulate correctly", async () => {
+      await updateConfigWithUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAgentServer!.setHandler((_body, res) => {
+        writeSSE(res, [
+          { event: "run.patch", data: { items: [{ type: "reasoning", content: "Step 1" }] } },
+          { event: "run.patch", data: { items: [{ type: "reasoning", content: "Step 2" }] } },
+          { event: "run.patch", data: { items: [{ type: "reasoning", content: "Step 3" }] } },
+          { event: "run.patch", data: { items: [{ type: "message", role: "assistant", content: "Final" }], status: "completed" } },
+        ]);
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+        version: "1.0.0",
+      });
+
+      const completedRun = await waitForRunStatus(session.id, run.id, ["completed"]);
+      expect(completedRun.status).toBe("completed");
+      // Should have 5 items: input + 3 steps + output
+      expect(completedRun.sessionItems.length).toBe(5);
+      expect(completedRun.sessionItems[1].content.content).toBe("Step 1");
+      expect(completedRun.sessionItems[2].content.content).toBe("Step 2");
+      expect(completedRun.sessionItems[3].content.content).toBe("Step 3");
+      expect(completedRun.sessionItems[4].content.content).toBe("Final");
+    }, 30000);
+  });
+
 
 });

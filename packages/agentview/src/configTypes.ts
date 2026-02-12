@@ -25,6 +25,7 @@ export interface BaseRunConfig<TSessionItemConfig extends BaseSessionItemConfig 
 
 export interface BaseAgentConfig<TRunConfig extends BaseRunConfig = BaseRunConfig> {
     name: string;
+    url?: string;
     metadata?: Metadata | undefined;
     allowUnknownMetadata?: boolean;
     runs?: TRunConfig[];

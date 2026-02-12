@@ -104,10 +104,12 @@ export const runs = pgTable("runs", {
   status: varchar("status", { length: 255 }).notNull(),
   failReason: jsonb("fail_reason"),
   responseData: jsonb("response_data"),
-  metadata: jsonb("metadata")
+  metadata: jsonb("metadata"),
+  fetchStatus: varchar("fetch_status", { length: 24 }).$type<'pending' | 'fetching'>(),
 }, (table) => [
   index('runs_expires_at_status_idx').on(table.expiresAt, table.status),
   index('runs_session_id_created_at_idx').on(table.sessionId, table.createdAt),
+  index('runs_fetch_status_idx').on(table.fetchStatus),
   createTenantPolicy('runs'),
 ]);
 

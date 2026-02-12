@@ -20,7 +20,7 @@ export type AgentAPIEvent = {
   data: any
 }
 
-export async function* callAgentAPI(body: RunBody, url: string): AsyncGenerator<AgentAPIEvent, void, unknown> {
+export async function* callAgentAPI(body: RunBody, url: string, signal?: AbortSignal): AsyncGenerator<AgentAPIEvent, void, unknown> {
   let response : Response;
 
   try {
@@ -30,6 +30,7 @@ export async function* callAgentAPI(body: RunBody, url: string): AsyncGenerator<
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      signal,
     })
 
     const responseData : any = {

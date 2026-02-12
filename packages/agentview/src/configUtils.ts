@@ -267,6 +267,7 @@ function baseConfigSchema<T extends z.ZodType>(jsonSchemaSchema: T) {
     return z.object({
         agents: z.array(z.object({
             name: z.string(),
+            url: z.string().optional(),
             metadata: z.record(z.string(), jsonSchemaSchema).optional(),
             allowUnknownMetadata: z.boolean().optional(),
             runs: z.array(z.object({

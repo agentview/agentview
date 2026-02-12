@@ -57,6 +57,7 @@ import type { Transaction } from './types';
 import { updateInboxes } from './updateInboxes';
 import { findUser } from './users';
 import { randomBytes } from 'crypto';
+import { applyRunPatch } from './applyRunPatch';
 
 
 await initDb();
@@ -2131,11 +2132,29 @@ app.openapi(runsPOSTRoute, async (c) => {
     const config = await requireConfig(tx, principal)
     const agentConfig = requireAgentConfig(config, session.agent)
 
+    const isAutoFetch = !!agentConfig.url;
+
     const lastRun = getLastRun(session)
 
     /** Only one in_progress run is allowed per session **/
     if (lastRun?.status === 'in_progress') {
       throw new HTTPException(422, { message: `Can't create a run because session has already a run in progress.` });
+    }
+
+    /** Auto-fetch validation: when agent has url, restrict what can be set on creation **/
+    if (isAutoFetch) {
+      if (body.items.length !== 1) {
+        throw new AgentViewError("When agent has a url, run must have exactly 1 item (input).", 422);
+      }
+      if (body.status && body.status !== 'in_progress') {
+        throw new AgentViewError("When agent has a url, status must be 'in_progress' (or omitted).", 422);
+      }
+      if (body.state !== undefined) {
+        throw new AgentViewError("When agent has a url, state cannot be set on creation.", 422);
+      }
+      if (body.failReason !== undefined && body.failReason !== null) {
+        throw new AgentViewError("When agent has a url, failReason cannot be set on creation.", 422);
+      }
     }
 
     /** Version compatibility checking **/
@@ -2202,7 +2221,7 @@ app.openapi(runsPOSTRoute, async (c) => {
     const isFinished = status === 'completed' || status === 'cancelled' || status === 'failed';
     const finishedAt = isFinished ? new Date().toISOString() : null;
     const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
-    const expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
+    const expiresAt = isAutoFetch ? null : (isFinished ? null : new Date(Date.now() + idleTimeout).toISOString());
 
     const version = versionToString(parsedVersion);
 
@@ -2224,6 +2243,7 @@ app.openapi(runsPOSTRoute, async (c) => {
       finishedAt,
       versionId: versionRow.id,
       metadata,
+      fetchStatus: isAutoFetch ? 'pending' : null,
     }).returning();
 
     await tx.insert(sessionItems).values(
@@ -2325,83 +2345,36 @@ app.openapi(runPATCHRoute, async (c) => {
 
     authorize(principal, { action: "end-user:update", user: session.user });
 
+    // Guard: if run has active fetchStatus, only allow cancellation
+    if (run.fetchStatus) {
+      const hasOnlyStatus = body.status === 'cancelled'
+        && !body.items?.length
+        && body.metadata === undefined
+        && body.state === undefined
+        && body.failReason === undefined;
+
+      if (!hasOnlyStatus) {
+        throw new AgentViewError("Cannot modify a run while agent fetch is in progress. Only cancellation is allowed.", 422);
+      }
+
+      // // Cancel the auto-fetch run
+      // await tx.update(runs).set({
+      //   fetchStatus: null,
+      //   status: 'cancelled',
+      //   finishedAt: new Date().toISOString(),
+      //   expiresAt: null,
+      //   updatedAt: new Date().toISOString(),
+      // }).where(eq(runs.id, run.id));
+
+      // const updatedSession = await requireSession(tx, session.id);
+      // const newRun = getLastRun(updatedSession)!;
+      // return c.json(newRun, 201);
+    }
+
     const config = await requireConfig(tx, principal)
     const agentConfig = requireAgentConfig(config, session.agent)
 
-    /** Find matching run **/
-    const inputItem = run.sessionItems[0].content;
-
-    const runConfig = requireRunConfig(agentConfig, inputItem);
-
-    /** Validate items */
-    const items = body.items ?? [];
-
-    if (items.length > 0 && run.status !== 'in_progress') {
-      throw new AgentViewError("Cannot add items to a finished run.", 422);
-    }
-
-    const parsedItems = validateNonInputItems(runConfig, run.sessionItems.map(sessionItem => sessionItem.content), items, body.status ?? 'in_progress');
-
-    /** State */
-    if (body.state !== undefined && run.status !== 'in_progress') {
-      throw new AgentViewError("Cannot set state to a finished run.", 422);
-    }
-
-    /** Metadata **/
-    const metadata = parseMetadata(runConfig.metadata, runConfig.allowUnknownMetadata ?? true, body.metadata ?? {}, run.metadata ?? {});
-
-    /** Status, finished at, failReason */
-    if (run.status !== 'in_progress' && body.status && body.status !== run.status) {
-      throw new AgentViewError("Cannot change the status of a finished run.", 422);
-    }
-
-    const status = body.status ?? 'in_progress';
-    const failReason = body.failReason ?? null;
-
-    if (failReason) {
-      if (run.status !== 'in_progress') {
-        throw new AgentViewError("failReason cannot be set for a finished run.", 422);
-      }
-      else if (status !== 'failed') {
-        throw new AgentViewError("failReason can only be set when changing status to 'failed'.", 422);
-      }
-    }
-
-    const isFinished = status === 'completed' || status === 'failed' || status === 'cancelled';
-    const finishedAt = run.finishedAt ?? (isFinished ? new Date().toISOString() : null);
-    const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
-    const expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
-
-    const organizationId = principal.organizationId;
-    if (parsedItems.length > 0) {
-      await tx.insert(sessionItems).values(
-        parsedItems?.map(item => ({
-          organizationId,
-          sessionId: session.id,
-          content: item,
-          runId: run.id
-        }))
-      );
-    }
-
-    await tx.update(runs).set({
-      status,
-      metadata,
-      failReason,
-      finishedAt,
-      expiresAt,
-      updatedAt: new Date().toISOString(),
-    }).where(eq(runs.id, run.id));
-
-    if (body.state !== undefined) {
-      await tx.insert(sessionItems).values({
-        organizationId,
-        sessionId: session.id,
-        content: body.state,
-        runId: run.id,
-        isState: true,
-      })
-    }
+    await applyRunPatch(tx, principal.organizationId, run.id, run, session.id, agentConfig, body);
 
     const updatedSession = await requireSession(tx, session.id);
     const newRun = getLastRun(updatedSession)!;
