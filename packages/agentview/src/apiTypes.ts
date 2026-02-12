@@ -95,7 +95,7 @@ export const RunSchema = z.object({
   finishedAt: z.iso.date().nullable(),
   status: z.string(),
   failReason: z.any().nullable(),
-  version: z.string(),
+  version: z.string().nullable(),
   metadata: z.record(z.string(), z.any()).nullable(),
   sessionItems: z.array(SessionItemSchema),
 
@@ -106,7 +106,7 @@ export const RunSchema = z.object({
 export const RunCreateSchema = z.object({
   sessionId: z.string(),
   items: z.array(z.record(z.string(), z.any())),
-  version: z.string(),
+  version: z.string().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
   status: z.enum(['in_progress', 'completed', 'cancelled', 'failed']).optional(),
   state: z.any().optional(),

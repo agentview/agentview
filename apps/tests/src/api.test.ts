@@ -2462,12 +2462,13 @@ describe('API', () => {
       throw new Error(`Timed out waiting for run ${runId} to reach status ${statuses.join('|')}`);
     }
 
-    test("happy path: agent streams run.patch events with items + status completed", async () => {
+    test("happy path: agent streams version + run.patch events with items + status completed", async () => {
       await updateConfigWithUrl();
       const session = await av.createSession({ agent: "test", userId: initUser1.id });
 
       mockAgentServer!.setHandler((_body, res) => {
         writeSSE(res, [
+          { event: "version", data: "1.0.0" },
           { event: "run.patch", data: { items: [{ type: "reasoning", content: "Thinking..." }] } },
           { event: "run.patch", data: { items: [{ type: "message", role: "assistant", content: "Hello!" }], status: "completed" } },
         ]);
@@ -2476,14 +2477,15 @@ describe('API', () => {
       const run = await av.createRun({
         sessionId: session.id,
         items: [{ type: "message", role: "user", content: "Hi" }],
-        version: "1.0.0",
       });
 
       expect(run.status).toBe("in_progress");
+      expect(run.version).toBeFalsy(); // version not set yet at creation time
 
       // Wait for the worker to process the run
       const completedRun = await waitForRunStatus(session.id, run.id, ["completed"]);
       expect(completedRun.status).toBe("completed");
+      expect(completedRun.version).toBe("1.0.0-dev"); // dev suffix applied
       // Should have 3 items: input + step + output
       expect(completedRun.sessionItems.length).toBe(3);
       expect(completedRun.sessionItems[0].content.type).toBe("message");
@@ -2509,6 +2511,16 @@ describe('API', () => {
           { type: "message", role: "user", content: "Hi" },
           { type: "reasoning", content: "step" },
         ],
+      }), 422);
+    });
+
+    test("POST validation: setting version when url set → 422", async () => {
+      await updateConfigWithUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      await expectToFail(av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
         version: "1.0.0",
       }), 422);
     });
@@ -2520,7 +2532,6 @@ describe('API', () => {
       await expectToFail(av.createRun({
         sessionId: session.id,
         items: [{ type: "message", role: "user", content: "Hi" }],
-        version: "1.0.0",
         status: "completed",
       }), 422);
     });
@@ -2532,7 +2543,6 @@ describe('API', () => {
       await expectToFail(av.createRun({
         sessionId: session.id,
         items: [{ type: "message", role: "user", content: "Hi" }],
-        version: "1.0.0",
         state: { foo: "bar" },
       }), 422);
     });
@@ -2544,7 +2554,6 @@ describe('API', () => {
       await expectToFail(av.createRun({
         sessionId: session.id,
         items: [{ type: "message", role: "user", content: "Hi" }],
-        version: "1.0.0",
         status: "failed",
         failReason: { message: "error" },
       }), 422);
@@ -2567,7 +2576,6 @@ describe('API', () => {
       const run = await av.createRun({
         sessionId: session.id,
         items: [{ type: "message", role: "user", content: "Hi" }],
-        version: "1.0.0",
       });
 
       // Try to patch with items - should fail
@@ -2611,7 +2619,6 @@ describe('API', () => {
       const run = await av.createRun({
         sessionId: session.id,
         items: [{ type: "message", role: "user", content: "Hi" }],
-        version: "1.0.0",
       });
 
       // Wait for the worker to actually connect to the mock agent before cancelling
@@ -2640,7 +2647,6 @@ describe('API', () => {
       const run = await av.createRun({
         sessionId: session.id,
         items: [{ type: "message", role: "user", content: "Hi" }],
-        version: "1.0.0",
       });
 
       const failedRun = await waitForRunStatus(session.id, run.id, ["failed"]);
@@ -2660,7 +2666,6 @@ describe('API', () => {
       const run = await av.createRun({
         sessionId: session.id,
         items: [{ type: "message", role: "user", content: "Hi" }],
-        version: "1.0.0",
       });
 
       const failedRun = await waitForRunStatus(session.id, run.id, ["failed"]);
@@ -2674,6 +2679,7 @@ describe('API', () => {
 
       mockAgentServer!.setHandler((_body, res) => {
         writeSSE(res, [
+          { event: "version", data: "1.0.0" },
           { event: "run.patch", data: { items: [{ type: "reasoning", content: "Thinking..." }] } },
           // Stream ends without completing (no status: 'completed')
         ]);
@@ -2682,7 +2688,6 @@ describe('API', () => {
       const run = await av.createRun({
         sessionId: session.id,
         items: [{ type: "message", role: "user", content: "Hi" }],
-        version: "1.0.0",
       });
 
       const failedRun = await waitForRunStatus(session.id, run.id, ["failed"]);
@@ -2696,6 +2701,7 @@ describe('API', () => {
 
       mockAgentServer!.setHandler((_body, res) => {
         writeSSE(res, [
+          { event: "version", data: "1.0.0" },
           { event: "run.patch", data: { items: [{ type: "reasoning", content: "Step 1" }] } },
           { event: "run.patch", data: { items: [{ type: "reasoning", content: "Step 2" }] } },
           { event: "run.patch", data: { items: [{ type: "reasoning", content: "Step 3" }] } },
@@ -2706,7 +2712,6 @@ describe('API', () => {
       const run = await av.createRun({
         sessionId: session.id,
         items: [{ type: "message", role: "user", content: "Hi" }],
-        version: "1.0.0",
       });
 
       const completedRun = await waitForRunStatus(session.id, run.id, ["completed"]);
@@ -2717,6 +2722,27 @@ describe('API', () => {
       expect(completedRun.sessionItems[2].content.content).toBe("Step 2");
       expect(completedRun.sessionItems[3].content.content).toBe("Step 3");
       expect(completedRun.sessionItems[4].content.content).toBe("Final");
+    }, 30000);
+
+    test("agent must send version as first event (before run.patch)", async () => {
+      await updateConfigWithUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAgentServer!.setHandler((_body, res) => {
+        writeSSE(res, [
+          // Send run.patch without version first - should fail
+          { event: "run.patch", data: { items: [{ type: "reasoning", content: "Thinking..." }] } },
+        ]);
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+      });
+
+      const failedRun = await waitForRunStatus(session.id, run.id, ["failed"]);
+      expect(failedRun.status).toBe("failed");
+      expect(failedRun.failReason.message).toContain("version");
     }, 30000);
   });
 

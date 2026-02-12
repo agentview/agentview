@@ -58,6 +58,7 @@ import { updateInboxes } from './updateInboxes';
 import { findUser } from './users';
 import { randomBytes } from 'crypto';
 import { applyRunPatch } from './applyRunPatch';
+import { resolveVersion } from './versions';
 
 
 await initDb();
@@ -1953,41 +1954,6 @@ app.openapi(sessionSeenRoute, async (c) => {
 /* --------- RUNS --------- */
 
 
-type ParsedVersion = {
-  major: number;
-  minor: number;
-  patch: number;
-  suffix?: string;
-};
-
-function parseVersion(version: string): ParsedVersion | undefined {
-  // Accept version strings like '1.2.3', 'v1.2.3', '1', '1.2', possibly with suffixes like '-beta', '-alpha.1'
-  // Normalize: '1' -> '1.0.0', '1.2' -> '1.2.0'
-  const m = version.match(/^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-(.+))?$/);
-  if (!m) return undefined;
-
-  const major = Number(m[1]);
-  const minor = m[2] !== undefined ? Number(m[2]) : 0;
-  const patch = m[3] !== undefined ? Number(m[3]) : 0;
-  const suffix = m[4];
-
-  if (Number.isNaN(major) || Number.isNaN(minor) || Number.isNaN(patch)) return undefined;
-
-  return { major, minor, patch, ...(suffix ? { suffix } : {}) };
-}
-
-function versionToString(version: ParsedVersion): string {
-  return `${version.major}.${version.minor}.${version.patch}${version.suffix ? `-${version.suffix}` : ''}`;
-}
-
-function compareVersions(v1: ParsedVersion, v2: ParsedVersion): number {
-  // Returns: -1 if v1 < v2, 0 if v1 === v2, 1 if v1 > v2
-  // Note: Suffixes are ignored for comparison purposes
-  if (v1.major !== v2.major) return v1.major < v2.major ? -1 : 1;
-  if (v1.minor !== v2.minor) return v1.minor < v2.minor ? -1 : 1;
-  if (v1.patch !== v2.patch) return v1.patch < v2.patch ? -1 : 1;
-  return 0;
-}
 
 
 /**
@@ -2155,41 +2121,34 @@ app.openapi(runsPOSTRoute, async (c) => {
       if (body.failReason !== undefined && body.failReason !== null) {
         throw new AgentViewError("When agent has a url, failReason cannot be set on creation.", 422);
       }
+      if (body.version !== undefined) {
+        throw new AgentViewError("When agent has a url, version cannot be set on creation (the agent endpoint provides it).", 422);
+      }
     }
 
-    /** Version compatibility checking **/
-    const parsedVersion = parseVersion(body.version);
-    if (!parsedVersion) {
-      throw new HTTPException(422, { message: "Invalid version number format. Should be like '1.2.3-xxx'" });
+    if (!isAutoFetch && !body.version) {
+      throw new AgentViewError("Version is required.", 422);
     }
 
-    if (session.user.space === 'production' && parsedVersion.suffix) { // production sessions can't have suffixes
-      throw new HTTPException(422, { message: "Production sessions can't have suffixed versions." });
-    }
-
+    const organizationId = principal.organizationId;
     const env = getEnv(principal);
     const environment = await requireEnvironment(tx, env);
 
-    if (env.type === 'dev' && !parsedVersion.suffix) {
-      parsedVersion.suffix = 'dev';
-    }
+    let versionId: string | null = null;
+    let version: string | null = null;
 
-    if (lastRun?.version) { // compare semantic versions when previous version exists
-      const lastVersionParsed = parseVersion(lastRun.version);
-      if (!lastVersionParsed) {
-        throw new HTTPException(422, { message: "Invalid version format in previous run." });
-      }
-
-      // Major version must match (major version changes are breaking)
-      if (lastVersionParsed.major !== parsedVersion.major) {
-        throw new HTTPException(422, { message: "Cannot continue a session with a different major version." });
-      }
-
-      // Current version must be >= last version (minor and patch upgrades are backward-compatible)
-      const comparison = compareVersions(parsedVersion, lastVersionParsed);
-      if (comparison < 0) {
-        throw new HTTPException(422, { message: "Cannot continue a session with an older version." });
-      }
+    if (!isAutoFetch) {
+      const resolved = await resolveVersion(tx, {
+        versionString: body.version!,
+        isProduction: session.user.space === 'production',
+        isDev: env.type === 'dev',
+        lastRunVersion: lastRun?.version ?? null,
+        organizationId,
+        sessionId: body.sessionId,
+        existingSessionVersions: (session.versions as string[]) ?? [],
+      });
+      versionId = resolved.versionId;
+      version = resolved.version;
     }
 
     /** Validate input item **/
@@ -2223,17 +2182,7 @@ app.openapi(runsPOSTRoute, async (c) => {
     const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
     const expiresAt = isAutoFetch ? null : (isFinished ? null : new Date(Date.now() + idleTimeout).toISOString());
 
-    const version = versionToString(parsedVersion);
-
     // Create run and items
-    const organizationId = principal.organizationId;
-    await tx.insert(versions).values({
-      organizationId,
-      version,
-    }).onConflictDoNothing();
-
-    const [versionRow] = await tx.select().from(versions).where(eq(versions.version, version)).limit(1);
-
     const [insertedRun] = await tx.insert(runs).values({
       organizationId,
       sessionId: body.sessionId,
@@ -2241,7 +2190,7 @@ app.openapi(runsPOSTRoute, async (c) => {
       failReason,
       expiresAt,
       finishedAt,
-      versionId: versionRow.id,
+      versionId,
       metadata,
       fetchStatus: isAutoFetch ? 'pending' : null,
     }).returning();
@@ -2264,15 +2213,6 @@ app.openapi(runsPOSTRoute, async (c) => {
         runId: insertedRun.id,
         isState: true,
       })
-    }
-
-    // Update session's versions array if this version is new
-    const existingVersions: string[] = (session.versions as string[]) ?? [];
-    if (!existingVersions.includes(version)) {
-      await tx.update(sessions).set({
-        versions: [...existingVersions, version],
-        updatedAt: new Date().toISOString(),
-      }).where(eq(sessions.id, body.sessionId));
     }
 
     // Queue webhook job on first run (for summary generation and/or webhook delivery)

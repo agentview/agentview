@@ -9,6 +9,7 @@ import { fetchSession } from './sessions';
 import { callAgentAPI, AgentAPIError } from './agentApi';
 import { BaseConfigSchemaToZod } from 'agentview/configUtils';
 import { applyRunPatch } from './applyRunPatch';
+import { resolveVersion } from './versions';
 import type { RunBody } from 'agentview/apiTypes';
 
 await initDb();
@@ -308,6 +309,7 @@ async function processAgentFetch(run: typeof runs.$inferSelect) {
     const body: RunBody = { session };
 
     let streamCompleted = false;
+    let versionReceived = false;
 
     for await (const event of callAgentAPI(body, agentUrl, abortController.signal)) {
       // Check for cancellation on each event
@@ -331,7 +333,42 @@ async function processAgentFetch(run: typeof runs.$inferSelect) {
           }).where(eq(runs.id, run.id));
         });
       }
+      else if (event.name === 'version') {
+        if (versionReceived) {
+          throw new Error('Agent sent duplicate version event');
+        }
+        versionReceived = true;
+
+        const versionString = typeof event.data === 'string' ? event.data : event.data?.version;
+        if (typeof versionString !== 'string') {
+          throw new Error('Agent version event must contain a version string');
+        }
+
+        // Get last previous run's version for compatibility check
+        const previousRuns = session.runs.filter(r => r.id !== run.id);
+        const lastPreviousRun = previousRuns[previousRuns.length - 1];
+
+        await withOrg(run.organizationId, async (tx) => {
+          const { versionId } = await resolveVersion(tx, {
+            versionString,
+            isProduction: session.user.space === 'production',
+            isDev: session.user.space !== 'production',
+            lastRunVersion: lastPreviousRun?.version ?? null,
+            organizationId: run.organizationId,
+            sessionId: run.sessionId,
+          });
+
+          await tx.update(runs).set({
+            versionId,
+            updatedAt: new Date().toISOString(),
+          }).where(eq(runs.id, run.id));
+        });
+      }
       else if (event.name === 'run.patch') {
+        if (!versionReceived) {
+          throw new Error('Agent must send version event before run.patch');
+        }
+
         try {
           await withOrg(run.organizationId, async (tx) => {
             // Re-fetch run to get current state (items may have been added)
