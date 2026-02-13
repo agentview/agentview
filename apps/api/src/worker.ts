@@ -312,6 +312,9 @@ async function processAgentFetch(run: typeof runs.$inferSelect) {
     let versionReceived = false;
 
     for await (const event of callAgentAPI(body, agentUrl, abortController.signal)) {
+      
+      console.log('----');
+      console.log('event', event);
       // Check for cancellation on each event
       const runStatus = await withOrg(run.organizationId, async (tx) => {
 
@@ -323,8 +326,10 @@ async function processAgentFetch(run: typeof runs.$inferSelect) {
 
         return currentRun.status;
       });
+      console.log('run status', runStatus);
 
       if (runStatus !== 'in_progress') {
+        console.log('aborting');
         abortController.abort();
         return;
       }

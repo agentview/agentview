@@ -37,47 +37,62 @@ app.post('/weather-chat', async (c) => {
 
   console.log('running!');
   
-  // @ts-ignore
-  c.env.incoming.on('close', () => {
-    console.log('connection closed!');
-  });
+  c.req.raw.signal.addEventListener('abort', () => {
+    console.log('disconnected!')
+  })
 
   return streamSSE(
     c,
     async (stream) => {
-      for await (const event of result) {
-        if (event.type === 'run_item_stream_event') {
-          const item = event.item.rawItem;
-
-          console.log('item: ', item);
-
-          await stream.writeSSE({
-            data: JSON.stringify({ items: [item] }),
-            event: 'run.patch',
-          });
-        }
+      let i = 0;
+      while(!c.req.raw.signal.aborted) {
+        console.log('sending event', i);
+        
+        await stream.writeSSE({
+          data: JSON.stringify({ items: [{
+            type: 'reasoning',
+            content: [
+              {
+                type: 'input_text',
+                text: `Hello, how are you? ${i}`
+              }
+            ]
+          }] }),
+          event: 'run.patch',
+        });
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        i++;
       }
 
-      const inputTokens = result.rawResponses.reduce((acc, rawResponse) => acc + rawResponse.usage?.inputTokens, 0);
-      const outputTokens = result.rawResponses.reduce((acc, rawResponse) => acc + rawResponse.usage?.outputTokens, 0);
 
-      // Get the final output item (last message from the agent)
-      // const finalOutput = result.finalOutput;
+      // for await (const event of result) {
+      //   if (event.type === 'run_item_stream_event') {
+      //     const item = event.item.rawItem;
 
-      // console.log('complete: ', finalOutput);
-      await stream.writeSSE({
-        data: JSON.stringify({
-          // items: finalOutput ? [finalOutput] : [],
-          status: "completed",
-          metadata: {
-            usage: {
-              inputTokens,
-              outputTokens
-            }
-          }
-        }),
-        event: 'run.patch',
-      });
+      //     console.log('item: ', item);
+
+      //     await stream.writeSSE({
+      //       data: JSON.stringify({ items: [item] }),
+      //       event: 'run.patch',
+      //     });
+      //   }
+      // }
+
+      // const inputTokens = result.rawResponses.reduce((acc, rawResponse) => acc + rawResponse.usage?.inputTokens, 0);
+      // const outputTokens = result.rawResponses.reduce((acc, rawResponse) => acc + rawResponse.usage?.outputTokens, 0);
+
+      // await stream.writeSSE({
+      //   data: JSON.stringify({
+      //     status: "completed",
+      //     metadata: {
+      //       usage: {
+      //         inputTokens,
+      //         outputTokens
+      //       }
+      //     }
+      //   }),
+      //   event: 'run.patch',
+      // });
     },
     async (error, stream) => {
       console.error('error: ', error);
