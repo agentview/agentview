@@ -313,13 +313,18 @@ async function processAgentFetch(run: typeof runs.$inferSelect) {
 
     for await (const event of callAgentAPI(body, agentUrl, abortController.signal)) {
       // Check for cancellation on each event
-      const [currentRun] = await db__dangerous
-        .select({ fetchStatus: runs.fetchStatus })
-        .from(runs)
-        .where(eq(runs.id, run.id))
-        .limit(1);
+      const isRunCancelled = await withOrg(run.organizationId, async (tx) => {
 
-      if (!currentRun || currentRun.fetchStatus === null) {
+        const [currentRun] = await tx
+          .select({ status: runs.status })
+          .from(runs)
+          .where(eq(runs.id, run.id))
+          .limit(1);
+
+        return currentRun.status === 'cancelled';
+      });
+
+      if (isRunCancelled) {
         abortController.abort();
         return;
       }

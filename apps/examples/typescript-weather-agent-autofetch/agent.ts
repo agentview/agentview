@@ -35,6 +35,13 @@ app.post('/weather-chat', async (c) => {
   c.header('X-AgentView-Version', '0.0.1');
   c.header('Content-Type', 'text/event-stream');
 
+  console.log('running!');
+  
+  // @ts-ignore
+  c.env.incoming.on('close', () => {
+    console.log('connection closed!');
+  });
+
   return streamSSE(
     c,
     async (stream) => {
@@ -55,12 +62,12 @@ app.post('/weather-chat', async (c) => {
       const outputTokens = result.rawResponses.reduce((acc, rawResponse) => acc + rawResponse.usage?.outputTokens, 0);
 
       // Get the final output item (last message from the agent)
-      const finalOutput = result.finalOutput;
+      // const finalOutput = result.finalOutput;
 
-      console.log('complete: ', finalOutput);
+      // console.log('complete: ', finalOutput);
       await stream.writeSSE({
         data: JSON.stringify({
-          items: finalOutput ? [finalOutput] : [],
+          // items: finalOutput ? [finalOutput] : [],
           status: "completed",
           metadata: {
             usage: {

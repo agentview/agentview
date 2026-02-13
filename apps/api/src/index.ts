@@ -2300,7 +2300,6 @@ app.openapi(runPATCHRoute, async (c) => {
 
       // Cancel the auto-fetch run (it passes the 'applyRunPatch' which is not allowed when auto fetching)
       await tx.update(runs).set({
-        fetchStatus: null,
         status: 'cancelled',
         finishedAt: new Date().toISOString(),
         expiresAt: null,

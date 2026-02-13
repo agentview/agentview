@@ -124,10 +124,7 @@ export async function* callAgentAPI(body: RunBody, url: string, signal?: AbortSi
     
     /** STREAMING RESPONSE **/
     else if (contentType.startsWith('text/event-stream')) {
-      console.log('START STREAMING RESPONSE');
-
       for await (const { event, data } of parseSSE(response.body)) {    
-        console.log('EVENT', event);
         let parsedData: any;
 
         if (event === "ping") {
@@ -236,7 +233,6 @@ async function* parseSSE(body: ReadableStream<Uint8Array<ArrayBufferLike>>): Asy
       }
 
       const chunk =decoder.decode(value, { stream: true });
-      console.log(chunk);
       buffer += chunk
       const blocks = buffer.split('\n\n')
       
