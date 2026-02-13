@@ -42,6 +42,8 @@ app.post('/weather-chat', async (c) => {
         if (event.type === 'run_item_stream_event') {
           const item = event.item.rawItem;
 
+          console.log('item: ', item);
+
           await stream.writeSSE({
             data: JSON.stringify({ items: [item] }),
             event: 'run.patch',
@@ -55,6 +57,7 @@ app.post('/weather-chat', async (c) => {
       // Get the final output item (last message from the agent)
       const finalOutput = result.finalOutput;
 
+      console.log('complete: ', finalOutput);
       await stream.writeSSE({
         data: JSON.stringify({
           items: finalOutput ? [finalOutput] : [],

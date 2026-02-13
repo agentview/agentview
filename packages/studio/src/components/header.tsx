@@ -5,15 +5,23 @@ import { SidebarTrigger } from "./ui/sidebar";
 interface HeaderProps {
   children: ReactNode;
   className?: string;
+  trigger?: boolean;
 }
 
-export function Header({ children, className = "" }: HeaderProps) {
+export function Header({ children, className = "", trigger = true }: HeaderProps) {
+const triggerEl = trigger ? <SidebarTrigger className="-mr-3 block md:hidden"/> : null;
+
   return (
     <div className={cn('py-3 px-6 border-b flex items-center justify-between min-h-[56px]', className)}>
-      <div>
-        {children}
-      </div>
-      <SidebarTrigger className="-mr-3 block md:hidden"/>
+
+      { triggerEl && <div>
+        {
+          children
+        }
+        { triggerEl }
+      </div>}
+
+      { !triggerEl && children }
     </div>
   );
 }

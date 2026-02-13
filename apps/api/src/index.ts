@@ -1710,8 +1710,9 @@ app.openapi(sessionsPOSTRoute, async (c) => {
 
 // watches session and its last run changes
 async function* watchSession(organizationId: string, initSession: Session, wait: boolean, randomId: string, signal: AbortSignal) {
-
   console.log(`[watch ${randomId}] wait: `, wait);
+
+  const initLastRunId = getLastRun(initSession)?.id;
 
   // if wait is true, we wait for the session to be in progress using lightweight polling
   if (wait) {
@@ -1724,7 +1725,7 @@ async function* watchSession(organizationId: string, initSession: Session, wait:
       // Use lightweight polling to check status without fetching full session
       const lastRunStatus = await withOrg(organizationId, async (tx) => fetchLastRunStatus(tx, initSession.id));
 
-      if (lastRunStatus?.status === 'in_progress') {
+      if (lastRunStatus?.status === 'in_progress' || lastRunStatus?.id !== initLastRunId) {
         // Only fetch full session once we know it's in progress
         initSession = await withOrg(organizationId, async (tx) => requireSession(tx, initSession.id));
         break;

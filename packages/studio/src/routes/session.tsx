@@ -95,7 +95,7 @@ function SessionShell({
 }) {
     return <>
         <div className="flex-grow-1 border-r flex flex-col">
-            <Header className="py-1">
+            <Header className="py-1" trigger={false}>
                 <HeaderTitle title={`Session ${sessionBase.handle}`} />
                 {headerExtra}
             </Header>
@@ -523,9 +523,10 @@ function InputForm({ session, agentConfig, styles, onRunningStateChange }: { ses
         try {
             await agentview.createRun({ sessionId: session.id, items });
         } catch (error: any) {
-            onRunningStateChange?.(false);
             console.error('Error creating run:', error);
             toast.error(`Error: "${error.message}". Check console.`);
+        } finally {
+           onRunningStateChange?.(false);
         }
     }
 
