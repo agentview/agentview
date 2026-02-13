@@ -518,6 +518,17 @@ function InputForm({ session, agentConfig, styles, onRunningStateChange }: { ses
         }
     }
 
+    const submit2 = async (items: any[]) => {
+        onRunningStateChange?.(true);
+        try {
+            await agentview.createRun({ sessionId: session.id, items });
+        } catch (error: any) {
+            onRunningStateChange?.(false);
+            console.error('Error creating run:', error);
+            toast.error(`Error: "${error.message}". Check console.`);
+        }
+    }
+
     const cancel = async () => {
         if (lastRun?.status === 'in_progress') {
             await agentview.updateRun({ id: lastRun.id, status: 'cancelled', sessionId: session.id });
@@ -547,6 +558,7 @@ function InputForm({ session, agentConfig, styles, onRunningStateChange }: { ses
                     <InputComponent
                         cancel={cancel}
                         submit={submit}
+                        submit2={submit2}
                         isRunning={isRunning}
                         session={enhanceSession(session)}
                         token={session.user.token}
