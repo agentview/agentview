@@ -1885,25 +1885,19 @@ app.openapi(sessionStreamRoute, async (c) => {
     return c.body(null, 204);
   }
 
-  const abortController = new AbortController();
-  const abortSignal = abortController.signal;
-
   const randomId = Math.random().toString(36).substring(2, 8);
   console.log(`[watch ${randomId}] starting request`)
-  const generator = watchSession(principal.organizationId, session, wait, randomId, abortSignal);
+  const generator = watchSession(principal.organizationId, session, wait, randomId, c.req.raw.signal);
 
-  // @ts-ignore
-  c.env.incoming.on('close', () => { // we do not need 'abort', it's deprecated. We might call .abort() multiple times, nothing will happen.
+  c.req.raw.signal.addEventListener('abort', () => {
     console.log(`[watch ${randomId}] close event`)
-    abortController.abort();
-  });
+  })
 
   // TODO: heartbeat
   return streamSSE(c, async (stream) => {
     for await (const event of generator) {
-      if (abortSignal.aborted) return;
+      if (c.req.raw.signal.aborted) return;
 
-      // console.log(`[session ${session.handle} watch] event: ${event.event}`);
       await stream.writeSSE({
         data: JSON.stringify(event.data),
         event: event.event,
