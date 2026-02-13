@@ -36,7 +36,7 @@ app.post('/weather-chat', async (c) => {
   c.header('Content-Type', 'text/event-stream');
 
   console.log('running!');
-  
+
   c.req.raw.signal.addEventListener('abort', () => {
     console.log('disconnected!')
   })
@@ -45,24 +45,52 @@ app.post('/weather-chat', async (c) => {
     c,
     async (stream) => {
       let i = 0;
-      while(!c.req.raw.signal.aborted) {
+      while (!c.req.raw.signal.aborted && i < 5) {
         console.log('sending event', i);
-        
+
         await stream.writeSSE({
-          data: JSON.stringify({ items: [{
-            type: 'reasoning',
-            content: [
-              {
-                type: 'input_text',
-                text: `Hello, how are you? ${i}`
-              }
-            ]
-          }] }),
+          data: JSON.stringify({
+            items: [{
+              type: 'reasoning',
+              content: [
+                {
+                  type: 'input_text',
+                  text: `Hello, how are you? ${i}`
+                }
+              ]
+            }]
+          }),
           event: 'run.patch',
         });
         await new Promise(resolve => setTimeout(resolve, 1000));
         i++;
       }
+
+      await stream.writeSSE({
+        data: JSON.stringify({
+          items: [{
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: `I'm done!`
+              }
+            ]
+          }],
+          status: 'completed',
+        }),
+        event: 'run.patch',
+      });
+
+      // schema: z.looseObject({
+      //   type: z.literal("message"),
+      //   role: z.literal("assistant"),
+      //   content: z.array(z.object({
+      //     type: z.literal("output_text"),
+      //     text: z.string(),
+      //   })),
+      // }),
 
 
       // for await (const event of result) {
