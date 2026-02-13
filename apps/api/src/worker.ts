@@ -501,7 +501,7 @@ setInterval(() => {
 // Run agent fetch processor every 2 seconds
 setInterval(() => {
   processAgentFetches();
-}, 2000);
+}, 1000);
 
 // Run immediately on startup
 processExpiredRuns();

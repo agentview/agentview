@@ -15,6 +15,7 @@ export class AgentAPIError extends Error {
   }
 }
 
+
 export type AgentAPIEvent = {
   name: string,
   data: any
@@ -90,40 +91,8 @@ export async function* callAgentAPI(body: RunBody, url: string, signal?: AbortSi
       })
     }
 
-      /** NON-STREAMING RESPONSE **/
-    if (contentType.startsWith('application/json')) {
-      let data: any;
-
-      try {
-        data = await response.json()
-      } catch(e) {
-        throw new AgentAPIError({
-          message: 'Error parsing JSON response',
-          eventData: data
-        })
-      }
-
-      // emit manifest
-      if (data.manifest) {
-        yield {
-          name: "manifest",
-          data: data.manifest
-        }
-      }
-
-      if (data.items) {
-        for (const item of data.items) {
-          yield {
-            name: "item",
-            data: item
-          }
-        }
-      }
-    }
-
-    
     /** STREAMING RESPONSE **/
-    else if (contentType.startsWith('text/event-stream')) {
+    if (contentType.startsWith('text/event-stream')) {
       for await (const { event, data } of parseSSE(response.body)) {    
         let parsedData: any;
 
@@ -159,7 +128,7 @@ export async function* callAgentAPI(body: RunBody, url: string, signal?: AbortSi
     }
     else {
       throw new AgentAPIError({
-        message: `Expected Content-Type "application/json" or "text/event-stream", got "${contentType}"`
+        message: `Expected Content-Type "text/event-stream", got "${contentType}"`
       })
     }
 
