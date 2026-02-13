@@ -2181,7 +2181,7 @@ app.openapi(runsPOSTRoute, async (c) => {
     const isFinished = status === 'completed' || status === 'cancelled' || status === 'failed';
     const finishedAt = isFinished ? new Date().toISOString() : null;
     const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
-    const expiresAt = isAutoFetch ? null : (isFinished ? null : new Date(Date.now() + idleTimeout).toISOString());
+    const expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
 
     // Create run and items
     const [insertedRun] = await tx.insert(runs).values({

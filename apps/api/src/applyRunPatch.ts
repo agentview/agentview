@@ -122,10 +122,6 @@ export function parseMetadata(metadataConfig: Metadata | undefined, allowUnknown
 }
 
 
-interface ApplyRunPatchOptions {
-  skipExpiryExtension?: boolean;
-}
-
 /**
  * Core run-update logic shared between the PATCH handler and the worker.
  * Validates items, metadata, status transitions, inserts items, and updates the run.
@@ -144,8 +140,7 @@ export async function applyRunPatch(
   },
   sessionId: string,
   agentConfig: BaseAgentConfig,
-  body: RunUpdate,
-  options?: ApplyRunPatchOptions
+  body: RunUpdate
 ): Promise<void> {
   /** Find matching run config **/
   const inputItem = run.sessionItems[0].content;
@@ -188,13 +183,8 @@ export async function applyRunPatch(
   const isFinished = status === 'completed' || status === 'failed' || status === 'cancelled';
   const finishedAt = run.finishedAt ?? (isFinished ? new Date().toISOString() : null);
 
-  let expiresAt: string | null;
-  if (options?.skipExpiryExtension) {
-    expiresAt = null;
-  } else {
-    const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
-    expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
-  }
+  const idleTimeout = runConfig.idleTimeout ?? DEFAULT_IDLE_TIME;
+  const expiresAt = isFinished ? null : new Date(Date.now() + idleTimeout).toISOString();
 
   if (parsedItems.length > 0) {
     await tx.insert(sessionItems).values(
