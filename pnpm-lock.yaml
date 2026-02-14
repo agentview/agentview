@@ -101,15 +101,24 @@ importers:
 
   apps/examples/ai-sdk-demo:
     dependencies:
+      '@agentview/studio':
+        specifier: workspace:*
+        version: link:../../../packages/studio
       '@ai-sdk/openai':
         specifier: ^3.0.26
         version: 3.0.26(zod@4.1.12)
       '@ai-sdk/react':
         specifier: ^3.0.81
         version: 3.0.81(react@19.2.3)(zod@4.1.12)
+      agentview:
+        specifier: workspace:*
+        version: link:../../../packages/agentview
       ai:
         specifier: ^6.0.79
         version: 6.0.79(zod@4.1.12)
+      lucide-react:
+        specifier: ^0.548.0
+        version: 0.548.0(react@19.2.3)
       next:
         specifier: ^15.0
         version: 15.5.12(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -132,6 +141,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.0
         version: 19.2.3(@types/react@19.2.7)
+      concurrently:
+        specifier: ^9.2.1
+        version: 9.2.1
       typescript:
         specifier: ^5.7
         version: 5.9.2

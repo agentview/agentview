@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev:studio": "npx agentview dev",
     "dev": "next dev",
+    "dev:both": "concurrently \"npm run dev:studio\" \"npm run dev\"",
     "build": "next build",
     "start": "next start"
   },
@@ -15,12 +17,16 @@
     "next": "^15.0",
     "react": "^19.0",
     "react-dom": "^19.0",
-    "zod": "^4.0"
+    "zod": "^4.0",
+    "@agentview/studio": "workspace:*",
+    "agentview": "workspace:*",
+    "lucide-react": "^0.548.0"
   },
   "devDependencies": {
     "@types/node": "^22.0",
     "@types/react": "^19.0",
     "@types/react-dom": "^19.0",
-    "typescript": "^5.7"
+    "typescript": "^5.7",    
+    "concurrently": "^9.2.1"
   }
 }

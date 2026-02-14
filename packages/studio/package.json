@@ -13,7 +13,7 @@
     "dev": "vite dev"
   },
   "bin": {
-    "agentview": "./src/bin/agentview.ts"
+    "agentview": "./src/bin/agentview.mjs"
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",

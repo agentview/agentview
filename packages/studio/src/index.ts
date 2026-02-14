@@ -1,6 +1,5 @@
 export { renderStudio } from "./renderStudio";
 
-
 export * from "./scores";
 
 export * from "./components/header";
@@ -18,3 +17,5 @@ export * from "./components/ToggleGroup";
 export * from "./components/PropertyList";
 
 export * from "./colors";
+
+export * from "./defineConfig";

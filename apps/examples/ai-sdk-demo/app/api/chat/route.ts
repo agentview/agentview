@@ -36,6 +36,8 @@ const weatherTool = tool({
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
+  console.log('messages: ', messages);
+
   const result = streamText({
     model: openai("gpt-5-mini"),
     system:
