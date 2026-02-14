@@ -1,4 +1,6 @@
 import { openai } from "@ai-sdk/openai";
+import { SessionBase } from "agentview";
+
 import {
   convertToModelMessages,
   streamText,
@@ -34,14 +36,12 @@ const weatherTool = tool({
 });
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
-
-  console.log('messages: ', messages);
+  const { messages, session }: { messages: UIMessage[], session: SessionBase } = await req.json();
 
   const result = streamText({
     model: openai("gpt-5-mini"),
     system:
-      "You are a helpful assistant with access to a weather tool. When the user asks about weather, use the tool to get real data. Be concise.",
+      `You are a helpful assistant with access to a weather tool. When the user asks about weather, use the tool to get real data. The user is currently at location: ${session.metadata?.userLocation ?? "Unknown"}. Be concise!`,
     messages: await convertToModelMessages(messages),
     tools: { weather: weatherTool },
     stopWhen: stepCountIs(5),
@@ -72,5 +72,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    headers: {
+      'X-AgentView-Version': '0.0.1',
+    },
+  });
 }

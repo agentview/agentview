@@ -80,7 +80,7 @@ export async function* callAgentAPIAISDK(
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, session: body.session }),
       signal,
     });
 

@@ -13,6 +13,7 @@ export default defineConfig({
     {
       name: "weather-chat",
       url: "http://localhost:3000/api/chat",
+      protocol: "ai-sdk",
       metadata: {
         userLocation: z.string()
       },
