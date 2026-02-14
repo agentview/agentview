@@ -14,9 +14,6 @@
     ".": "./src/index.ts",
     "./*": "./src/*.ts"
   },
-  "bin": {
-    "agentview": "./dist/bin/agentview.js"
-  },
   "publishConfig": {
     "access": "public",
     "main": "./dist/index.js",

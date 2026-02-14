@@ -12,10 +12,14 @@
     "build": "rm -rf dist && npm run build:ts && npm run build:tailwindcss-typography && npm run build:styles",
     "dev": "vite dev"
   },
+  "bin": {
+    "agentview": "./src/bin/agentview.ts"
+  },
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./dev": "./src/devServer.ts",
     "./components/*": "./src/components/*.tsx",
     "./components/ui/*": "./src/components/ui/*.tsx",
     "./components/internal/*": "./src/components/internal/*.tsx",
@@ -27,12 +31,19 @@
   },
   "publishConfig": {
     "access": "public",
+    "bin": {
+      "agentview": "./dist/bin/agentview.js"
+    },
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {
       ".": {
         "import": "./dist/index.js",
         "types": "./dist/index.d.ts"
+      },
+      "./dev": {
+        "import": "./dist/devServer.js",
+        "types": "./dist/devServer.d.ts"
       },
       "./components/*": {
         "import": "./dist/components/*.js",
@@ -95,23 +106,23 @@
     "tw-animate-css": "^1.3.5",
     "vaul": "^1.1.2",
     "zod": "^4.1.11",
-    "agentview": "workspace:*"
+    "agentview": "workspace:*",
+    "@tailwindcss/vite": "^4.1.4",
+    "@vitejs/plugin-react": "^5.1.2",
+    "tailwindcss": "^4.1.4",
+    "tsx": "^4.20.3",
+    "vite": "^6.3.3"
   },
   "devDependencies": {
-    "tsx": "^4.20.3",
     "@mdx-js/react": "^3.1.1",
     "@mdx-js/rollup": "^3.1.1",
     "@tailwindcss/typography": "^0.5.16",
-    "@tailwindcss/vite": "^4.1.4",
     "@types/node": "^20",
     "@types/pg": "^8.15.4",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
-    "@vitejs/plugin-react": "^5.1.2",
     "concurrently": "^9.2.1",
-    "tailwindcss": "^4.1.4",
     "typescript": "^5.8.3",
-    "vite": "^6.3.3",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.0.7"
   }

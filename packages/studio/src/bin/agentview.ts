@@ -1,14 +1,15 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 import 'dotenv/config'
-import { serializeConfig } from "../configUtils.js";
+import { serializeConfig } from "agentview/configUtils";
 
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import type { AgentViewConfig } from "../types.js";
-import { AgentView } from "../AgentView.js";
-import { AgentViewError } from "../AgentViewError.js";
+import type { AgentViewConfig } from "agentview/types";
+import { AgentView } from "agentview/AgentView";
+import { AgentViewError } from "agentview/AgentViewError";
+import { startDevServer } from "../devServer.js";
 
 const DEFAULT_CONFIG_FILES = [
   "agentview.config.ts",
@@ -19,12 +20,14 @@ const DEFAULT_CONFIG_FILES = [
 const HELP_TEXT = `Usage: agentview <command> [options]
 
 Commands:
-  config push [--config <path>]   Send the config file to the AgentView server once
-  config watch [--config <path>]  Watch the config file and sync on every change
-  help                            Show this message
+  dev [--config <path>] [-p <port>]  Start Studio dev server (default port: 1989)
+  config push [--config <path>]      Send the config file to the AgentView server once
+  config watch [--config <path>]     Watch the config file and sync on every change
+  help                               Show this message
 
 Options:
-  -c, --config <path>             Path to agentviewconfig.ts (defaults to common filenames in the current directory)`;
+  -c, --config <path>             Path to agentview config file (defaults to common filenames in the current directory)
+  -p, --port <port>               Port for the dev server (default: 1989)`;
 
 async function main() {
   const [, , ...args] = process.argv;
@@ -35,6 +38,22 @@ async function main() {
   }
 
   const [command, subcommand, ...rest] = args;
+
+  if (command === "dev") {
+    const restArgs = [subcommand, ...rest].filter(Boolean);
+    let configPath: string;
+    try {
+      configPath = resolveConfigPath(restArgs);
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exit(1);
+      return;
+    }
+
+    const port = parsePort(restArgs);
+    await startDevServer(configPath, { port });
+    return;
+  }
 
   if (command !== "config") {
     console.error(`Unknown command "${command}".`);
@@ -151,7 +170,7 @@ function getAPIKey(): string {
 
 async function pushConfig(configPath: string) {
   const config = await loadConfig(configPath);
-  
+
   const apiKey = getAPIKey();
 
   const av = new AgentView({
@@ -198,6 +217,22 @@ async function watchConfig(configPath: string) {
       pushAndReport();
     }, 100);
   });
+}
+
+function parsePort(args: string[]): number | undefined {
+  const portIndex = args.findIndex((arg) => arg === "--port" || arg === "-p");
+  if (portIndex === -1) return undefined;
+  const portStr = args[portIndex + 1];
+  if (!portStr) {
+    console.error("Missing value for --port");
+    process.exit(1);
+  }
+  const port = Number(portStr);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    console.error(`Invalid port: ${portStr}`);
+    process.exit(1);
+  }
+  return port;
 }
 
 void main();
