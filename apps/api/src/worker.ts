@@ -7,6 +7,7 @@ import { initDb } from './initDb';
 import { generateSessionSummary } from './summaries';
 import { fetchSession } from './sessions';
 import { callAgentAPI, AgentAPIError } from './agentApi';
+import { callAgentAPIAISDK } from './ai-sdk/agentApi';
 import { BaseConfigSchemaToZod } from 'agentview/configUtils';
 import { applyRunPatch } from './applyRunPatch';
 import { resolveVersion } from './versions';
@@ -308,10 +309,12 @@ async function processAgentFetch(run: typeof runs.$inferSelect) {
     // Call the agent endpoint
     const body: RunBody = { session };
 
+    const callFn = agentConfig.protocol === 'ai-sdk' ? callAgentAPIAISDK : callAgentAPI;
+
     let streamCompleted = false;
     let versionReceived = false;
 
-    for await (const event of callAgentAPI(body, agentUrl, abortController.signal)) {
+    for await (const event of callFn(body, agentUrl, abortController.signal)) {
       
       console.log('----');
       console.log('event', event);

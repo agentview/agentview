@@ -2747,5 +2747,445 @@ describe('API', () => {
     }, 30000);
   });
 
+  describe("agent endpoint auto-fetch (ai-sdk protocol)", () => {
+    const AI_SDK_AGENT_PORT = 3458;
+    const AI_SDK_AGENT_URL = `http://localhost:${AI_SDK_AGENT_PORT}/agent`;
+
+    let mockAISDKServer: {
+      server: import('http').Server;
+      requests: Array<{ body: any; timestamp: number }>;
+      close: () => Promise<void>;
+      setHandler: (handler: (body: any, res: import('http').ServerResponse) => void) => void;
+    } | null = null;
+
+    async function createMockServer(port: number) {
+      const http = await import('http');
+      const requests: Array<{ body: any; timestamp: number }> = [];
+      const openSockets = new Set<import('net').Socket>();
+      let handler: (body: any, res: import('http').ServerResponse) => void = (_body, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+        res.end();
+      };
+
+      const server = await new Promise<import('http').Server>((resolve) => {
+        const srv = http.createServer((req, res) => {
+          let bodyStr = '';
+          req.on('data', (chunk: Buffer) => bodyStr += chunk.toString());
+          req.on('end', () => {
+            let parsedBody: any;
+            try { parsedBody = JSON.parse(bodyStr); } catch { parsedBody = bodyStr; }
+            requests.push({ body: parsedBody, timestamp: Date.now() });
+            handler(parsedBody, res);
+          });
+        });
+        srv.on('connection', (socket) => {
+          openSockets.add(socket);
+          socket.on('close', () => openSockets.delete(socket));
+        });
+        srv.listen(port, () => resolve(srv));
+      });
+
+      return {
+        server,
+        requests,
+        close: () => {
+          for (const socket of openSockets) socket.destroy();
+          return new Promise<void>(r => server.close(r as () => void));
+        },
+        setHandler: (h: (body: any, res: import('http').ServerResponse) => void) => { handler = h; },
+      };
+    }
+
+    function writeAISDKStream(res: import('http').ServerResponse, chunks: any[], opts?: { version?: string }) {
+      const headers: Record<string, string> = {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      };
+      if (opts?.version) {
+        headers['X-AgentView-Version'] = opts.version;
+      }
+      res.writeHead(200, headers);
+      for (const chunk of chunks) {
+        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+      }
+      res.write('data: [DONE]\n\n');
+      res.end();
+    }
+
+    const updateConfigWithAiSdkUrl = async () => {
+      const inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() });
+      const outputSchema = z.looseObject({ type: z.literal("text"), text: z.string() });
+      const stepSchema = z.looseObject({ type: z.literal("reasoning"), text: z.string() });
+
+      await av.updateEnvironment({
+        config: {
+          agents: [{
+            name: "test",
+            url: AI_SDK_AGENT_URL,
+            protocol: 'ai-sdk',
+            runs: [{
+              input: { schema: inputSchema },
+              steps: [{ schema: stepSchema }],
+              output: { schema: outputSchema },
+            }]
+          }]
+        },
+      });
+    };
+
+    beforeAll(async () => {
+      mockAISDKServer = await createMockServer(AI_SDK_AGENT_PORT);
+    });
+
+    afterAll(async () => {
+      if (mockAISDKServer) {
+        await mockAISDKServer.close();
+        mockAISDKServer = null;
+      }
+    }, 30000);
+
+    beforeEach(() => {
+      if (mockAISDKServer) {
+        mockAISDKServer.requests.length = 0;
+      }
+    });
+
+    async function waitForRunStatus(sessionId: string, runId: string, statuses: string[], timeoutMs: number = 15000): Promise<Run> {
+      const startTime = Date.now();
+      while (Date.now() - startTime < timeoutMs) {
+        const session = await av.getSession({ id: sessionId });
+        const run = session.runs.find(r => r.id === runId);
+        if (run && statuses.includes(run.status)) {
+          return run;
+        }
+        await new Promise(r => setTimeout(r, 500));
+      }
+      throw new Error(`Timed out waiting for run ${runId} to reach status ${statuses.join('|')}`);
+    }
+
+    test("happy path: text response", async () => {
+      await updateConfigWithAiSdkUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAISDKServer!.setHandler((_body, res) => {
+        writeAISDKStream(res, [
+          { type: "start", messageId: "msg_1" },
+          { type: "text-start", id: "t1" },
+          { type: "text-delta", id: "t1", delta: "Hello " },
+          { type: "text-delta", id: "t1", delta: "world!" },
+          { type: "text-end", id: "t1" },
+          { type: "finish", finishReason: "stop" },
+        ], { version: "1.0.0" });
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+      });
+
+      expect(run.status).toBe("in_progress");
+
+      const completedRun = await waitForRunStatus(session.id, run.id, ["completed"]);
+      expect(completedRun.status).toBe("completed");
+      expect(completedRun.version).toBe("1.0.0-dev");
+      // Should have 2 items: input + text output
+      expect(completedRun.sessionItems.length).toBe(2);
+      expect(completedRun.sessionItems[0].content.type).toBe("message");
+      expect(completedRun.sessionItems[0].content.role).toBe("user");
+      expect(completedRun.sessionItems[1].content.type).toBe("text");
+      expect(completedRun.sessionItems[1].content.text).toBe("Hello world!");
+    }, 30000);
+
+    test("happy path: text + reasoning", async () => {
+      await updateConfigWithAiSdkUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAISDKServer!.setHandler((_body, res) => {
+        writeAISDKStream(res, [
+          { type: "start", messageId: "msg_1" },
+          { type: "reasoning-start", id: "r1" },
+          { type: "reasoning-delta", id: "r1", delta: "Let me think..." },
+          { type: "reasoning-end", id: "r1" },
+          { type: "text-start", id: "t1" },
+          { type: "text-delta", id: "t1", delta: "The answer is 42" },
+          { type: "text-end", id: "t1" },
+          { type: "finish", finishReason: "stop" },
+        ], { version: "1.0.0" });
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "What is the answer?" }],
+      });
+
+      const completedRun = await waitForRunStatus(session.id, run.id, ["completed"]);
+      expect(completedRun.status).toBe("completed");
+      // Should have 3 items: input + reasoning step + text output
+      expect(completedRun.sessionItems.length).toBe(3);
+      expect(completedRun.sessionItems[1].content.type).toBe("reasoning");
+      expect(completedRun.sessionItems[1].content.text).toBe("Let me think...");
+      expect(completedRun.sessionItems[2].content.type).toBe("text");
+      expect(completedRun.sessionItems[2].content.text).toBe("The answer is 42");
+    }, 30000);
+
+    test("happy path: tool call", async () => {
+      // Update config with tool-call step schema
+      const inputSchema = z.looseObject({ type: z.literal("message"), role: z.literal("user"), content: z.string() });
+      const outputSchema = z.looseObject({ type: z.literal("text"), text: z.string() });
+      const reasoningSchema = z.looseObject({ type: z.literal("reasoning"), text: z.string() });
+      const toolCallSchema = z.looseObject({ type: z.literal("tool-call"), toolCallId: z.string(), toolName: z.string(), state: z.string() });
+
+      await av.updateEnvironment({
+        config: {
+          agents: [{
+            name: "test",
+            url: AI_SDK_AGENT_URL,
+            protocol: 'ai-sdk',
+            runs: [{
+              input: { schema: inputSchema },
+              steps: [{ schema: reasoningSchema }, { schema: toolCallSchema }],
+              output: { schema: outputSchema },
+            }]
+          }]
+        },
+      });
+
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAISDKServer!.setHandler((_body, res) => {
+        writeAISDKStream(res, [
+          { type: "start", messageId: "msg_1" },
+          { type: "tool-input-start", toolCallId: "call_1", toolName: "getWeather" },
+          { type: "tool-input-delta", toolCallId: "call_1", inputTextDelta: '{"city":"NYC"}' },
+          { type: "tool-input-available", toolCallId: "call_1", toolName: "getWeather", input: { city: "NYC" } },
+          { type: "tool-output-available", toolCallId: "call_1", output: { temp: 72 } },
+          { type: "text-start", id: "t1" },
+          { type: "text-delta", id: "t1", delta: "It's 72F in NYC" },
+          { type: "text-end", id: "t1" },
+          { type: "finish", finishReason: "stop" },
+        ], { version: "1.0.0" });
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "What's the weather?" }],
+      });
+
+      const completedRun = await waitForRunStatus(session.id, run.id, ["completed"]);
+      expect(completedRun.status).toBe("completed");
+      // Should have 3 items: input + tool-call step + text output
+      expect(completedRun.sessionItems.length).toBe(3);
+      expect(completedRun.sessionItems[1].content.type).toBe("tool-call");
+      expect(completedRun.sessionItems[1].content.toolName).toBe("getWeather");
+      expect(completedRun.sessionItems[1].content.state).toBe("output-available");
+      expect(completedRun.sessionItems[1].content.input).toEqual({ city: "NYC" });
+      expect(completedRun.sessionItems[1].content.output).toEqual({ temp: 72 });
+      expect(completedRun.sessionItems[2].content.type).toBe("text");
+      expect(completedRun.sessionItems[2].content.text).toBe("It's 72F in NYC");
+    }, 30000);
+
+    test("version header: X-AgentView-Version → version set on run", async () => {
+      await updateConfigWithAiSdkUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAISDKServer!.setHandler((_body, res) => {
+        writeAISDKStream(res, [
+          { type: "start", messageId: "msg_1" },
+          { type: "text-start", id: "t1" },
+          { type: "text-delta", id: "t1", delta: "Hi" },
+          { type: "text-end", id: "t1" },
+          { type: "finish", finishReason: "stop" },
+        ], { version: "2.5.0" });
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+      });
+
+      const completedRun = await waitForRunStatus(session.id, run.id, ["completed"]);
+      expect(completedRun.version).toBe("2.5.0-dev");
+    }, 30000);
+
+    test("missing version header → run fails", async () => {
+      await updateConfigWithAiSdkUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAISDKServer!.setHandler((_body, res) => {
+        // No version header
+        writeAISDKStream(res, [
+          { type: "start", messageId: "msg_1" },
+          { type: "text-start", id: "t1" },
+          { type: "text-delta", id: "t1", delta: "Hi" },
+          { type: "text-end", id: "t1" },
+          { type: "finish", finishReason: "stop" },
+        ]);
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+      });
+
+      const failedRun = await waitForRunStatus(session.id, run.id, ["failed"]);
+      expect(failedRun.status).toBe("failed");
+      expect(failedRun.failReason.message).toContain("Version");
+    }, 30000);
+
+    test("error event → run marked failed", async () => {
+      await updateConfigWithAiSdkUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAISDKServer!.setHandler((_body, res) => {
+        writeAISDKStream(res, [
+          { type: "error", errorText: "Something went wrong" },
+        ], { version: "1.0.0" });
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+      });
+
+      const failedRun = await waitForRunStatus(session.id, run.id, ["failed"]);
+      expect(failedRun.status).toBe("failed");
+      expect(failedRun.failReason).toBeDefined();
+    }, 30000);
+
+    test("HTTP error: 500 → run marked failed", async () => {
+      await updateConfigWithAiSdkUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAISDKServer!.setHandler((_body, res) => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: "Internal Server Error" }));
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+      });
+
+      const failedRun = await waitForRunStatus(session.id, run.id, ["failed"]);
+      expect(failedRun.status).toBe("failed");
+      expect(failedRun.failReason).toBeDefined();
+    }, 30000);
+
+    test("stream ends without finish → run marked failed", async () => {
+      await updateConfigWithAiSdkUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAISDKServer!.setHandler((_body, res) => {
+        writeAISDKStream(res, [
+          { type: "start", messageId: "msg_1" },
+          { type: "text-start", id: "t1" },
+          { type: "text-delta", id: "t1", delta: "Partial..." },
+          { type: "text-end", id: "t1" },
+          // No finish event → stream ends without completing
+        ], { version: "1.0.0" });
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+      });
+
+      const failedRun = await waitForRunStatus(session.id, run.id, ["failed"]);
+      expect(failedRun.status).toBe("failed");
+      expect(failedRun.failReason.message).toContain("Agent stream ended without completing");
+    }, 30000);
+
+    test("request body format: sends UIMessage[] with correct history", async () => {
+      await updateConfigWithAiSdkUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      mockAISDKServer!.setHandler((_body, res) => {
+        writeAISDKStream(res, [
+          { type: "start", messageId: "msg_1" },
+          { type: "text-start", id: "t1" },
+          { type: "text-delta", id: "t1", delta: "Hi there" },
+          { type: "text-end", id: "t1" },
+          { type: "finish", finishReason: "stop" },
+        ], { version: "1.0.0" });
+      });
+
+      const run = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hello AI SDK" }],
+      });
+
+      await waitForRunStatus(session.id, run.id, ["completed"]);
+
+      // Verify request body format
+      expect(mockAISDKServer!.requests.length).toBeGreaterThanOrEqual(1);
+      const reqBody = mockAISDKServer!.requests[0].body;
+      expect(reqBody.messages).toBeDefined();
+      expect(Array.isArray(reqBody.messages)).toBe(true);
+      expect(reqBody.messages.length).toBe(1);
+      expect(reqBody.messages[0].role).toBe("user");
+      expect(reqBody.messages[0].parts).toBeDefined();
+      expect(reqBody.messages[0].parts[0].type).toBe("text");
+      expect(reqBody.messages[0].parts[0].text).toBe("Hello AI SDK");
+    }, 30000);
+
+    test("multi-turn: second request has full conversation history", async () => {
+      await updateConfigWithAiSdkUrl();
+      const session = await av.createSession({ agent: "test", userId: initUser1.id });
+
+      // First turn
+      mockAISDKServer!.setHandler((_body, res) => {
+        writeAISDKStream(res, [
+          { type: "start", messageId: "msg_1" },
+          { type: "text-start", id: "t1" },
+          { type: "text-delta", id: "t1", delta: "Hello!" },
+          { type: "text-end", id: "t1" },
+          { type: "finish", finishReason: "stop" },
+        ], { version: "1.0.0" });
+      });
+
+      const run1 = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "Hi" }],
+      });
+
+      await waitForRunStatus(session.id, run1.id, ["completed"]);
+
+      // Second turn
+      mockAISDKServer!.requests.length = 0;
+
+      mockAISDKServer!.setHandler((_body, res) => {
+        writeAISDKStream(res, [
+          { type: "start", messageId: "msg_2" },
+          { type: "text-start", id: "t2" },
+          { type: "text-delta", id: "t2", delta: "I'm fine!" },
+          { type: "text-end", id: "t2" },
+          { type: "finish", finishReason: "stop" },
+        ], { version: "1.0.0" });
+      });
+
+      const run2 = await av.createRun({
+        sessionId: session.id,
+        items: [{ type: "message", role: "user", content: "How are you?" }],
+      });
+
+      await waitForRunStatus(session.id, run2.id, ["completed"]);
+
+      // Verify second request has full history
+      expect(mockAISDKServer!.requests.length).toBeGreaterThanOrEqual(1);
+      const reqBody = mockAISDKServer!.requests[0].body;
+      expect(reqBody.messages).toBeDefined();
+      // Should have 3 messages: user1, assistant1, user2
+      expect(reqBody.messages.length).toBe(3);
+      expect(reqBody.messages[0].role).toBe("user");
+      expect(reqBody.messages[0].parts[0].text).toBe("Hi");
+      expect(reqBody.messages[1].role).toBe("assistant");
+      expect(reqBody.messages[1].parts[0].type).toBe("text");
+      expect(reqBody.messages[1].parts[0].text).toBe("Hello!");
+      expect(reqBody.messages[2].role).toBe("user");
+      expect(reqBody.messages[2].parts[0].text).toBe("How are you?");
+    }, 30000);
+  });
+
 
 });
