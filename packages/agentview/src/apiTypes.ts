@@ -9,6 +9,7 @@ export type Space = z.infer<typeof SpaceSchema>
 export const UserSchema = z.object({
   id: z.string(),
   externalId: z.string().nullable(),
+  email: z.string().nullable(),
   createdAt: z.iso.date(),
   updatedAt: z.iso.date(),
   createdBy: z.string().nullable(),
@@ -20,6 +21,7 @@ export type User = z.infer<typeof UserSchema>
 
 export const UserCreateSchema = UserSchema.pick({
   externalId: true,
+  email: true,
   space: true, // default -> playground
 }).partial()
 

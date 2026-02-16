@@ -36,6 +36,13 @@
       "when": 1770906689316,
       "tag": "0004_medical_shard",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1771246035446,
+      "tag": "0005_light_raza",
+      "breakpoints": true
     }
   ]
 }

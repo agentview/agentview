@@ -838,7 +838,7 @@ const usersPOSTRoute = createRoute({
   },
 })
 
-async function createUser(principal: PrivatePrincipal, space_?: Space | null, externalId?: string | null) {
+async function createUser(principal: PrivatePrincipal, space_?: Space | null, externalId?: string | null, email?: string | null) {
   const env = getEnv(principal);
   const space : Space = space_ ?? (env.type === 'prod' ? 'production' : 'playground'); // default space is set based on environment
 
@@ -863,6 +863,7 @@ async function createUser(principal: PrivatePrincipal, space_?: Space | null, ex
     const [newEndUser] = await tx.insert(endUsers).values({
       organizationId: principal.organizationId,
       externalId,
+      email,
       createdBy,
       space,
       token: randomBytes(32).toString('hex'),
@@ -875,7 +876,7 @@ async function createUser(principal: PrivatePrincipal, space_?: Space | null, ex
 app.openapi(usersPOSTRoute, async (c) => {
   const principal = await authn(c.req.raw.headers)
   const body = await c.req.valid('json')
-  const newUser = await createUser(principal, body.space, body.externalId);
+  const newUser = await createUser(principal, body.space, body.externalId, body.email);
   return c.json(newUser, 201);
 })
 
