@@ -12,6 +12,7 @@ import { BaseConfigSchemaToZod } from 'agentview/configUtils';
 import { applyRunPatch } from './applyRunPatch';
 import { resolveVersion } from './versions';
 import type { RunBody } from 'agentview/apiTypes';
+import { processGmailWatchRenewals } from './gmail/index';
 
 await initDb();
 
@@ -506,7 +507,13 @@ setInterval(() => {
   processAgentFetches();
 }, 1000);
 
+// Run Gmail watch renewal every hour
+setInterval(() => {
+  processGmailWatchRenewals();
+}, 60 * 60 * 1000);
+
 // Run immediately on startup
 processExpiredRuns();
 processWebhookJobs();
 processAgentFetches();
+processGmailWatchRenewals();

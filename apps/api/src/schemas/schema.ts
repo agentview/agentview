@@ -456,6 +456,23 @@ export const starredSessionsRelations = relations(starredSessions, ({ one }) => 
 }));
 
 
+export const gmailConnections = pgTable('gmail_connections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: text('organization_id').notNull().references(() => organizations.id).unique(),
+  accessToken: text('access_token').notNull(),
+  refreshToken: text('refresh_token').notNull(),
+  tokenExpiresAt: timestamp('token_expires_at', { withTimezone: true, mode: 'string' }),
+  emailAddress: varchar('email_address', { length: 255 }).notNull(),
+  historyId: text('history_id'),
+  watchExpiresAt: timestamp('watch_expires_at', { withTimezone: true, mode: 'string' }),
+  connectedBy: text('connected_by').notNull().references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+}, (table) => [
+  index('gmail_connections_email_idx').on(table.emailAddress),
+  createTenantPolicy('gmail_connections'),
+]);
+
 export const schema = {
   users,
   authSessions,
@@ -484,6 +501,7 @@ export const schema = {
   environments,
   starredSessions,
   webhookJobs,
+  gmailConnections,
 
   // endUserAuthSessionsRelations,
   sessionRelations,
