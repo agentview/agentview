@@ -50,6 +50,13 @@
       "when": 1771251294090,
       "tag": "0006_daily_lockjaw",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1771267073096,
+      "tag": "0007_acoustic_stepford_cuckoos",
+      "breakpoints": true
     }
   ]
 }

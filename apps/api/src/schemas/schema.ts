@@ -458,7 +458,7 @@ export const starredSessionsRelations = relations(starredSessions, ({ one }) => 
 
 export const gmailConnections = pgTable('gmail_connections', {
   id: uuid('id').primaryKey().defaultRandom(),
-  organizationId: text('organization_id').notNull().references(() => organizations.id).unique(),
+  organizationId: text('organization_id').notNull().references(() => organizations.id),
   accessToken: text('access_token').notNull(),
   refreshToken: text('refresh_token').notNull(),
   tokenExpiresAt: timestamp('token_expires_at', { withTimezone: true, mode: 'string' }),
@@ -469,6 +469,7 @@ export const gmailConnections = pgTable('gmail_connections', {
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 }, (table) => [
+  unique('gmail_connections_org_email_unique').on(table.organizationId, table.emailAddress),
   index('gmail_connections_email_idx').on(table.emailAddress),
   createTenantPolicy('gmail_connections'),
 ]);

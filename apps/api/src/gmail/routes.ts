@@ -84,7 +84,7 @@ gmailApp.get('/api/gmail/callback', async (c) => {
   // Setup push notifications
   const watch = await setupWatch(tokens.access_token, tokens.refresh_token);
 
-  // Upsert gmail connection (one per org)
+  // Upsert gmail connection (one per email per org)
   await withOrg(organizationId, async (tx) => {
     await tx
       .insert(gmailConnections)
@@ -101,7 +101,7 @@ gmailApp.get('/api/gmail/callback', async (c) => {
         connectedBy: memberId,
       })
       .onConflictDoUpdate({
-        target: gmailConnections.organizationId,
+        target: [gmailConnections.organizationId, gmailConnections.emailAddress],
         set: {
           accessToken: tokens.access_token!,
           refreshToken: tokens.refresh_token!,
