@@ -18,6 +18,7 @@ import { commentMentions, commentMessageEdits, commentMessages, environments, en
 import { withOrg } from './withOrg';
 import { AgentViewError } from 'agentview/AgentViewError';
 import {
+  EnvironmentBaseSchema,
   EnvironmentCreateSchema,
   EnvironmentSchema,
   SpaceSchema,
@@ -2538,6 +2539,41 @@ app.get('/api/organization/public-info', async (c) => {
 })
 
 /* --------- SCHEMAS ---------   */
+
+const environmentsListRoute = createRoute({
+  method: 'get',
+  path: '/api/environments',
+  summary: 'List all environments',
+  tags: ['Environment'],
+  responses: {
+    200: response_data(z.array(EnvironmentBaseSchema)),
+  },
+})
+
+app.openapi(environmentsListRoute, async (c) => {
+  const principal = await authn(c.req.raw.headers)
+  authorize(principal, { action: "environment:read" });
+
+  return withOrg(principal.organizationId, async (tx) => {
+    const rows = await tx
+      .select({
+        id: environments.id,
+        userId: environments.userId,
+        createdAt: environments.createdAt,
+        email: users.email,
+      })
+      .from(environments)
+      .leftJoin(users, eq(environments.userId, users.id))
+      .orderBy(environments.createdAt);
+
+    return c.json(rows.map(row => ({
+      id: row.id,
+      userId: row.userId,
+      name: row.email ? `dev-${row.email}` : "prod",
+      createdAt: row.createdAt,
+    })), 200)
+  })
+})
 
 const environmentGETRoute = createRoute({
   method: 'get',

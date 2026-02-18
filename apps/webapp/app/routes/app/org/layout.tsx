@@ -22,7 +22,7 @@ import {
   SidebarMenuItem,
   SidebarProvider
 } from "@agentview/studio/components/ui/sidebar";
-import { Building2, ChevronDown, ChevronsUpDownIcon, ChevronUp, HomeIcon, KeyRound, LockKeyhole, LogOut, Settings, UserIcon, UsersIcon } from "lucide-react";
+import { Building2, ChevronDown, ChevronsUpDownIcon, ChevronUp, HomeIcon, KeyRound, LockKeyhole, LogOut, MessageSquare, Settings, UserIcon, UsersIcon } from "lucide-react";
 
 import { UserAvatar } from "@agentview/studio/components/internal/UserAvatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@agentview/studio/components/ui/dropdown-menu";
@@ -229,6 +229,14 @@ export default function OrgLayout() {
                     <Link to={`${basePath}/members`}>
                       <UsersIcon className="h-4 w-4" />
                       <span>Members</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isMenuLinkActive("/channels")}>
+                    <Link to={`${basePath}/channels`}>
+                      <MessageSquare className="h-4 w-4" />
+                      <span>Channels</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

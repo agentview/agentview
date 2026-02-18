@@ -27,6 +27,9 @@ export default [
                 route(":memberId/delete", "routes/app/org/members-delete.tsx"),
                 route("invitations/:invitationId/cancel", "routes/app/org/members-invite-cancel.tsx"),
             ]),
+            route("channels", "routes/app/org/channels.tsx", [
+                route(":channelId/edit", "routes/app/org/channels-edit.tsx"),
+            ]),
         ]),
     ]),
 

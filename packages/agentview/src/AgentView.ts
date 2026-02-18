@@ -7,6 +7,7 @@ import {
   type RunUpdate,
   type SessionCreate,
   type SessionUpdate,
+  type EnvironmentBase,
   type Environment,
   type EnvironmentCreate,
   type Space,
@@ -198,6 +199,10 @@ export class AgentView {
 
   async updateUser(options: UserCreate & { id: string }): Promise<User> {
     return await this.request<User>('PATCH', `/api/users/${options.id}`, options)
+  }
+
+  async getEnvironments(): Promise<EnvironmentBase[]> {
+    return await this.request<EnvironmentBase[]>('GET', `/api/environments`)
   }
 
   async getEnvironment(): Promise<Environment> {

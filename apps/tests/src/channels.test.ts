@@ -42,7 +42,7 @@ describe('Channels', () => {
     expect(channel.type).toBe('email')
     expect(channel.name).toBe('Test Channel')
     expect(channel.status).toBe('active')
-    expect(channel.environmentId).toBeNull()
+    expect(channel.environment).toBeNull()
     expect(channel.agent).toBeNull()
   })
 
@@ -51,17 +51,19 @@ describe('Channels', () => {
     expect(channels.length).toBeGreaterThanOrEqual(1)
     const found = channels.find(c => c.id === channel.id)
     expect(found).toBeDefined()
-    expect(found!.environmentId).toBeNull()
+    expect(found!.environment).toBeNull()
     expect(found!.agent).toBeNull()
   })
 
-  test('update channel with environmentId + agent', async () => {
+  test('update channel with environment + agent', async () => {
     const updated = await av.updateChannel(channel.id, {
       environmentId,
       agent: 'support-agent',
     })
 
-    expect(updated.environmentId).toBe(environmentId)
+    expect(updated.environment).not.toBeNull()
+    expect(updated.environment!.id).toBe(environmentId)
+    expect(updated.environment!.name).toBe('prod')
     expect(updated.agent).toBe('support-agent')
     expect(updated.status).toBe('active')
   })
@@ -77,15 +79,15 @@ describe('Channels', () => {
     )
   })
 
-  test('update channel - invalid agent returns 422', async () => {
-    await expect(
-      av.updateChannel(channel.id, {
-        environmentId,
-        agent: 'nonexistent-agent',
-      })
-    ).rejects.toThrowError(
-      expect.objectContaining({ statusCode: 422 })
-    )
+  test('update channel - any agent name is accepted', async () => {
+    const updated = await av.updateChannel(channel.id, {
+      environmentId,
+      agent: 'any-agent-name',
+    })
+    expect(updated.agent).toBe('any-agent-name')
+
+    // Restore
+    await av.updateChannel(channel.id, { agent: 'support-agent' })
   })
 
   test('archive channel via PATCH', async () => {

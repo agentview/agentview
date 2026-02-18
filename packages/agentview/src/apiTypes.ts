@@ -185,17 +185,23 @@ export const SessionsGetQueryParamsSchema = PublicSessionsGetQueryParamsSchema.e
 export type PublicSessionsGetQueryParams = z.infer<typeof PublicSessionsGetQueryParamsSchema>
 export type SessionsGetQueryParams = z.infer<typeof SessionsGetQueryParamsSchema>
 
-export const EnvironmentSchema = z.object({
+export const EnvironmentBaseSchema = z.object({
   id: z.string(),
   userId: z.string().nullable(), // null = production config, string = user's dev config
-  config: z.any(),
+  name: z.string(),
   createdAt: z.iso.date(),
+})
+
+export type EnvironmentBase = z.infer<typeof EnvironmentBaseSchema>
+
+export const EnvironmentSchema = EnvironmentBaseSchema.extend({
+  config: z.any(),
 })
 
 export type Environment = z.infer<typeof EnvironmentSchema>
 
-export const EnvironmentCreateSchema = EnvironmentSchema.pick({
-  config: true,
+export const EnvironmentCreateSchema = z.object({
+  config: z.any(),
 })
 
 export type EnvironmentCreate = z.infer<typeof EnvironmentCreateSchema>
@@ -251,7 +257,7 @@ export const ChannelSchema = z.object({
   name: z.string().nullable(),
   address: z.string(),
   status: z.string(),
-  environmentId: z.string().nullable(),
+  environment: EnvironmentBaseSchema.nullable(),
   agent: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),

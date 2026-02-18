@@ -3,8 +3,9 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import { authn, authorize } from '../authMiddleware';
 import { withOrg } from '../withOrg';
 import { channels, channelMessages, environments } from '../schemas/schema';
+import { users } from '../schemas/auth-schema';
 import { response_data, response_error } from '../hono_utils';
-import { BaseConfigSchemaToZod } from 'agentview/configUtils';
+import { ChannelSchema, EnvironmentBaseSchema } from 'agentview/apiTypes';
 
 export const channelsApp = new OpenAPIHono();
 
@@ -42,6 +43,38 @@ function buildPaginationMetadata(totalCount: number, page: number, limit: number
   };
 }
 
+function formatChannelRow(row: {
+  id: string;
+  type: string;
+  name: string | null;
+  address: string;
+  status: string;
+  agent: string | null;
+  createdAt: string;
+  updatedAt: string;
+  envId: string | null;
+  envUserId: string | null;
+  envCreatedAt: string | null;
+  envUserEmail: string | null;
+}) {
+  return {
+    id: row.id,
+    type: row.type,
+    name: row.name,
+    address: row.address,
+    status: row.status,
+    environment: row.envId ? {
+      id: row.envId,
+      userId: row.envUserId,
+      name: row.envUserEmail ? `dev-${row.envUserEmail}` : 'prod',
+      createdAt: row.envCreatedAt!,
+    } : null,
+    agent: row.agent,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
 // --- POST /api/channels ---
 
 const channelPOSTRoute = createRoute({
@@ -64,17 +97,7 @@ const channelPOSTRoute = createRoute({
     },
   },
   responses: {
-    200: response_data(z.object({
-      id: z.string(),
-      type: z.string(),
-      name: z.string().nullable(),
-      address: z.string(),
-      status: z.string(),
-      environmentId: z.string().nullable(),
-      agent: z.string().nullable(),
-      createdAt: z.string(),
-      updatedAt: z.string(),
-    })),
+    200: response_data(ChannelSchema),
     401: response_error(),
   },
 });
@@ -111,13 +134,12 @@ channelsApp.openapi(channelPOSTRoute, async (c) => {
         name: channels.name,
         address: channels.address,
         status: channels.status,
-        environmentId: channels.environmentId,
         agent: channels.agent,
         createdAt: channels.createdAt,
         updatedAt: channels.updatedAt,
       });
 
-    return c.json(channel, 200);
+    return c.json({ ...channel, environment: null }, 200);
   });
 });
 
@@ -129,17 +151,7 @@ const channelsGETRoute = createRoute({
   summary: 'List channels',
   tags: ['Channels'],
   responses: {
-    200: response_data(z.array(z.object({
-      id: z.string(),
-      type: z.string(),
-      name: z.string().nullable(),
-      address: z.string(),
-      status: z.string(),
-      environmentId: z.string().nullable(),
-      agent: z.string().nullable(),
-      createdAt: z.string(),
-      updatedAt: z.string(),
-    }))),
+    200: response_data(z.array(ChannelSchema)),
     401: response_error(),
   },
 });
@@ -149,22 +161,27 @@ channelsApp.openapi(channelsGETRoute, async (c) => {
   authorize(principal, { action: 'environment:read' });
 
   return withOrg(principal.organizationId, async (tx) => {
-    const result = await tx
+    const rows = await tx
       .select({
         id: channels.id,
         type: channels.type,
         name: channels.name,
         address: channels.address,
         status: channels.status,
-        environmentId: channels.environmentId,
         agent: channels.agent,
         createdAt: channels.createdAt,
         updatedAt: channels.updatedAt,
+        envId: environments.id,
+        envUserId: environments.userId,
+        envCreatedAt: environments.createdAt,
+        envUserEmail: users.email,
       })
       .from(channels)
+      .leftJoin(environments, eq(channels.environmentId, environments.id))
+      .leftJoin(users, eq(environments.userId, users.id))
       .orderBy(desc(channels.createdAt));
 
-    return c.json(result, 200);
+    return c.json(rows.map(formatChannelRow), 200);
   });
 });
 
@@ -277,17 +294,7 @@ const channelPATCHRoute = createRoute({
     },
   },
   responses: {
-    200: response_data(z.object({
-      id: z.string(),
-      type: z.string(),
-      name: z.string().nullable(),
-      address: z.string(),
-      status: z.string(),
-      environmentId: z.string().nullable(),
-      agent: z.string().nullable(),
-      createdAt: z.string(),
-      updatedAt: z.string(),
-    })),
+    200: response_data(ChannelSchema),
     401: response_error(),
     404: response_error(),
     422: response_error(),
@@ -318,15 +325,6 @@ channelsApp.openapi(channelPATCHRoute, async (c) => {
       if (!env) {
         return c.json({ message: 'Environment not found' }, 422);
       }
-
-      // Validate agent exists in environment config
-      if (body.agent) {
-        const config = BaseConfigSchemaToZod.parse(env.config);
-        const agentConfig = config.agents?.find((a) => a.name === body.agent);
-        if (!agentConfig) {
-          return c.json({ message: `Agent '${body.agent}' not found in environment config` }, 422);
-        }
-      }
     }
 
     const updates: Record<string, any> = {
@@ -337,22 +335,32 @@ channelsApp.openapi(channelPATCHRoute, async (c) => {
     if (body.agent !== undefined) updates.agent = body.agent;
     if (body.status !== undefined) updates.status = body.status;
 
-    const [updated] = await tx
+    await tx
       .update(channels)
       .set(updates)
-      .where(eq(channels.id, channelId))
-      .returning({
+      .where(eq(channels.id, channelId));
+
+    // Re-fetch with environment join
+    const [row] = await tx
+      .select({
         id: channels.id,
         type: channels.type,
         name: channels.name,
         address: channels.address,
         status: channels.status,
-        environmentId: channels.environmentId,
         agent: channels.agent,
         createdAt: channels.createdAt,
         updatedAt: channels.updatedAt,
-      });
+        envId: environments.id,
+        envUserId: environments.userId,
+        envCreatedAt: environments.createdAt,
+        envUserEmail: users.email,
+      })
+      .from(channels)
+      .leftJoin(environments, eq(channels.environmentId, environments.id))
+      .leftJoin(users, eq(environments.userId, users.id))
+      .where(eq(channels.id, channelId));
 
-    return c.json(updated, 200);
+    return c.json(formatChannelRow(row), 200);
   });
 });
