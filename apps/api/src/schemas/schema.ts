@@ -87,8 +87,11 @@ export const sessions = pgTable("sessions", {
   agent: varchar("agent", { length: 255 }).notNull(),
   summary: text("summary"),
   versions: jsonb("versions").$type<string[]>().default([]),
+  channelId: uuid("channel_id").references(() => channels.id),
+  channelThreadId: varchar("channel_thread_id", { length: 255 }),
 }, (table) => [
   uniqueIndex('sessions_handle_org_unique').on(table.handleNumber, table.handleSuffix, table.organizationId),
+  index('sessions_channel_thread_idx').on(table.channelId, table.channelThreadId),
   createTenantPolicy('sessions'),
 ]);
 
@@ -291,11 +294,10 @@ export const sessionRelations = relations(sessions, ({ many, one }) => ({
   }),
   inboxItems: many(inboxItems),
   starredSessions: many(starredSessions),
-
-  // state: one(sessionItems, {
-  //   fields: [sessions.id],
-  //   references: [sessionItems.sessionId],
-  // }),
+  channel: one(channels, {
+    fields: [sessions.channelId],
+    references: [channels.id],
+  }),
 }));
 
 export const endUserRelations = relations(endUsers, ({ many, one }) => ({
@@ -464,6 +466,8 @@ export const channels = pgTable('channels', {
   address: varchar('address', { length: 255 }).notNull(),
   status: varchar('status', { length: 64 }).notNull().default('active'),
   config: jsonb('config').notNull(),
+  environmentId: uuid('environment_id').references(() => environments.id, { onDelete: 'set null' }),
+  agent: varchar('agent', { length: 255 }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 }, (table) => [
@@ -495,8 +499,13 @@ export const channelMessages = pgTable('channel_messages', {
   createTenantPolicy('channel_messages'),
 ]);
 
-export const channelsRelations = relations(channels, ({ many }) => ({
+export const channelsRelations = relations(channels, ({ many, one }) => ({
   channelMessages: many(channelMessages),
+  sessions: many(sessions),
+  environment: one(environments, {
+    fields: [channels.environmentId],
+    references: [environments.id],
+  }),
 }));
 
 export const channelMessagesRelations = relations(channelMessages, ({ one }) => ({

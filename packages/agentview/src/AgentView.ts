@@ -220,8 +220,16 @@ export class AgentView {
     return await this.request<Environment>('PATCH', `/api/environment`, { ...body, config: serializeConfig(config) })
   }
 
+  async createChannel(data: { type: string, name?: string, address: string, config?: any }): Promise<Channel> {
+    return await this.request<Channel>('POST', `/api/channels`, data)
+  }
+
   async getChannels(): Promise<Channel[]> {
     return await this.request<Channel[]>('GET', `/api/channels`)
+  }
+
+  async updateChannel(channelId: string, data: { environmentId?: string | null, agent?: string | null, status?: 'active' | 'archived' }): Promise<Channel> {
+    return await this.request<Channel>('PATCH', `/api/channels/${channelId}`, data)
   }
 
   async getChannelMessages(options: { channelId: string, page?: number, limit?: number, contact?: string, threadId?: string }): Promise<{ messages: ChannelMessage[], pagination: Pagination }> {

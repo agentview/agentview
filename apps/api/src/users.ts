@@ -49,7 +49,12 @@ type FindUserByTokenOptions = {
   token: string
 }
 
-export async function findUser(tx: Transaction, args: FindUserByIdOptions | FindUserByExternalIdOptions | FindUserByTokenOptions) {
+type FindUserByEmailOptions = {
+  email: string,
+  organizationId: string,
+}
+
+export async function findUser(tx: Transaction, args: FindUserByIdOptions | FindUserByExternalIdOptions | FindUserByTokenOptions | FindUserByEmailOptions) {
   if ('id' in args) {
     return await tx.query.endUsers.findFirst({
       where: eq(endUsers.id, args.id),
@@ -68,6 +73,15 @@ export async function findUser(tx: Transaction, args: FindUserByIdOptions | Find
   if ('token' in args) {
     return await tx.query.endUsers.findFirst({
       where: eq(endUsers.token, args.token), // fixme: this is terrible
+    });
+  }
+
+  if ('email' in args) {
+    return await tx.query.endUsers.findFirst({
+      where: and(
+        eq(endUsers.email, args.email),
+        eq(endUsers.organizationId, args.organizationId)
+      ),
     });
   }
 

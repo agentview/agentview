@@ -64,6 +64,13 @@
       "when": 1771360000000,
       "tag": "0008_channels",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1771450000000,
+      "tag": "0009_channel_processing",
+      "breakpoints": true
     }
   ]
 }
