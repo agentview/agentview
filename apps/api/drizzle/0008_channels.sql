@@ -21,6 +21,7 @@ CREATE TABLE "channel_messages" (
 	"organization_id" text NOT NULL,
 	"channel_id" uuid NOT NULL,
 	"direction" varchar(16) NOT NULL,
+	"contact_kind" varchar(32) NOT NULL,
 	"contact" varchar(255) NOT NULL,
 	"thread_id" varchar(255),
 	"source_id" varchar(255),

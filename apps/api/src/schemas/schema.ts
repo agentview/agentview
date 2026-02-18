@@ -477,6 +477,7 @@ export const channelMessages = pgTable('channel_messages', {
   organizationId: text('organization_id').notNull().references(() => organizations.id),
   channelId: uuid('channel_id').notNull().references(() => channels.id, { onDelete: 'cascade' }),
   direction: varchar('direction', { length: 16 }).notNull(), // 'incoming' | 'outgoing'
+  contactKind: varchar('contact_kind', { length: 32 }).notNull(), // 'email', 'phone', 'externalId', etc.
   contact: varchar('contact', { length: 255 }).notNull(),
   threadId: varchar('thread_id', { length: 255 }),
   sourceId: varchar('source_id', { length: 255 }),

@@ -262,6 +262,7 @@ export const ChannelMessageSchema = z.object({
   organizationId: z.string(),
   channelId: z.string(),
   direction: z.string(),
+  contactKind: z.string(),
   contact: z.string(),
   threadId: z.string().nullable(),
   sourceId: z.string().nullable(),

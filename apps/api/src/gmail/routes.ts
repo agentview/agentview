@@ -15,6 +15,12 @@ import {
 import { getProfile, setupWatch, fetchNewEmails } from './api';
 import type { GmailChannelConfig } from './types';
 
+/** Extract bare email from "Name <email>" or just "email" */
+function extractEmailAddress(from: string): string {
+  const match = from.match(/<([^>]+)>/);
+  return (match ? match[1] : from).trim().toLowerCase();
+}
+
 export const gmailApp = new OpenAPIHono();
 
 // --- GET /api/gmail/auth ---
@@ -189,12 +195,16 @@ gmailApp.post('/api/gmail/webhook', async (c) => {
 
     // Insert channel messages
     for (const email of result.emails) {
+      // Extract bare email address from "Name <email>" format
+      const fromEmail = extractEmailAddress(email.from);
+
       await withOrg(channel.organizationId, async (tx) => {
         await tx.insert(channelMessages).values({
           organizationId: channel.organizationId,
           channelId: channel.id,
           direction: 'incoming',
-          contact: email.from,
+          contactKind: 'email',
+          contact: fromEmail,
           threadId: email.threadId,
           sourceId: email.id,
           text: email.textBody,
