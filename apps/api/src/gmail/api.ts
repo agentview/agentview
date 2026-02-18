@@ -1,6 +1,51 @@
 import { google } from 'googleapis';
 import { createOAuth2Client } from './client';
 
+export type ParsedEmail = {
+  id: string;
+  threadId: string;
+  from: string;
+  to: string;
+  cc: string;
+  subject: string;
+  date: string;
+  snippet: string;
+  textBody: string | null;
+  htmlBody: string | null;
+};
+
+function decodeBase64Url(data: string): string {
+  const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
+  return Buffer.from(base64, 'base64').toString('utf-8');
+}
+
+function extractBody(payload: any): { textBody: string | null; htmlBody: string | null } {
+  let textBody: string | null = null;
+  let htmlBody: string | null = null;
+
+  function walk(part: any) {
+    if (!part) return;
+
+    if (part.body?.data) {
+      const decoded = decodeBase64Url(part.body.data);
+      if (part.mimeType === 'text/plain' && !textBody) {
+        textBody = decoded;
+      } else if (part.mimeType === 'text/html' && !htmlBody) {
+        htmlBody = decoded;
+      }
+    }
+
+    if (part.parts) {
+      for (const child of part.parts) {
+        walk(child);
+      }
+    }
+  }
+
+  walk(payload);
+  return { textBody, htmlBody };
+}
+
 type OnTokenRefresh = (tokens: { access_token: string; expiry_date: number | null }) => Promise<void>;
 
 function createAuthenticatedClient(
@@ -80,34 +125,32 @@ export async function fetchNewEmails(
       }
     }
 
-    const emails: Array<{
-      id: string;
-      from: string;
-      to: string;
-      subject: string;
-      date: string;
-      snippet: string;
-    }> = [];
+    const emails: ParsedEmail[] = [];
 
     for (const msgId of messageIds) {
       const msg = await gmail.users.messages.get({
         userId: 'me',
         id: msgId,
-        format: 'metadata',
-        metadataHeaders: ['From', 'To', 'Subject', 'Date'],
+        format: 'full',
       });
 
       const headers = msg.data.payload?.headers ?? [];
       const getHeader = (name: string) =>
         headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ?? '';
 
+      const { textBody, htmlBody } = extractBody(msg.data.payload);
+
       emails.push({
         id: msgId,
+        threadId: msg.data.threadId ?? '',
         from: getHeader('From'),
         to: getHeader('To'),
+        cc: getHeader('Cc'),
         subject: getHeader('Subject'),
         date: getHeader('Date'),
         snippet: msg.data.snippet ?? '',
+        textBody,
+        htmlBody,
       });
     }
 

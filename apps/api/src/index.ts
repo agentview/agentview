@@ -2640,6 +2640,11 @@ app.openapi(healthRoute, async (c) => {
 import { gmailApp } from './gmail/index';
 app.route('', gmailApp);
 
+/* --------- CHANNELS --------- */
+
+import { channelsApp } from './channels/routes';
+app.route('', channelsApp);
+
 /* --------- EMAILS --------- */
 
 // The OpenAPI documentation will be available at /doc

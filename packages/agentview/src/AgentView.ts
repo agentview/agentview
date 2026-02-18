@@ -21,6 +21,9 @@ import {
   type CommentMessageCreate,
   type ScoreCreate,
   type SessionStreamEvent,
+  type Channel,
+  type ChannelMessage,
+  type Pagination,
 } from './apiTypes.js'
 
 import { type AgentViewErrorBody, AgentViewError } from './AgentViewError.js'
@@ -215,6 +218,26 @@ export class AgentView {
     }
 
     return await this.request<Environment>('PATCH', `/api/environment`, { ...body, config: serializeConfig(config) })
+  }
+
+  async getChannels(): Promise<Channel[]> {
+    return await this.request<Channel[]>('GET', `/api/channels`)
+  }
+
+  async getChannelMessages(options: { channelId: string, page?: number, limit?: number, contact?: string, threadId?: string }): Promise<{ messages: ChannelMessage[], pagination: Pagination }> {
+    let path = `/api/channels/${options.channelId}/messages`
+    const params = new URLSearchParams()
+    if (options.page) params.append('page', options.page.toString())
+    if (options.limit) params.append('limit', options.limit.toString())
+    if (options.contact) params.append('contact', options.contact)
+    if (options.threadId) params.append('threadId', options.threadId)
+
+    const queryString = params.toString()
+    if (queryString) {
+      path += `?${queryString}`
+    }
+
+    return await this.request<{ messages: ChannelMessage[], pagination: Pagination }>('GET', path)
   }
 
   as(userOrToken: User | string) {

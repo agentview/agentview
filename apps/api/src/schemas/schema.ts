@@ -456,23 +456,54 @@ export const starredSessionsRelations = relations(starredSessions, ({ one }) => 
 }));
 
 
-export const gmailConnections = pgTable('gmail_connections', {
+export const channels = pgTable('channels', {
   id: uuid('id').primaryKey().defaultRandom(),
   organizationId: text('organization_id').notNull().references(() => organizations.id),
-  accessToken: text('access_token').notNull(),
-  refreshToken: text('refresh_token').notNull(),
-  tokenExpiresAt: timestamp('token_expires_at', { withTimezone: true, mode: 'string' }),
-  emailAddress: varchar('email_address', { length: 255 }).notNull(),
-  historyId: text('history_id'),
-  watchExpiresAt: timestamp('watch_expires_at', { withTimezone: true, mode: 'string' }),
-  connectedBy: text('connected_by').notNull().references(() => users.id),
+  type: varchar('type', { length: 64 }).notNull(), // 'gmail', etc.
+  name: varchar('name', { length: 255 }),
+  address: varchar('address', { length: 255 }).notNull(),
+  status: varchar('status', { length: 64 }).notNull().default('active'),
+  config: jsonb('config').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 }, (table) => [
-  unique('gmail_connections_org_email_unique').on(table.organizationId, table.emailAddress),
-  index('gmail_connections_email_idx').on(table.emailAddress),
-  createTenantPolicy('gmail_connections'),
+  unique('channels_org_type_address_unique').on(table.organizationId, table.type, table.address),
+  index('channels_address_idx').on(table.address),
+  createTenantPolicy('channels'),
 ]);
+
+export const channelMessages = pgTable('channel_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: text('organization_id').notNull().references(() => organizations.id),
+  channelId: uuid('channel_id').notNull().references(() => channels.id, { onDelete: 'cascade' }),
+  direction: varchar('direction', { length: 16 }).notNull(), // 'incoming' | 'outgoing'
+  contact: varchar('contact', { length: 255 }).notNull(),
+  threadId: varchar('thread_id', { length: 255 }),
+  sourceId: varchar('source_id', { length: 255 }),
+  text: text('text'),
+  attachments: jsonb('attachments'),
+  providerData: jsonb('provider_data'),
+  status: varchar('status', { length: 32 }).notNull(), // 'received' | 'processing' | 'processed' | 'pending' | 'sending' | 'sent' | 'failed'
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('channel_messages_channel_source_unique').on(table.channelId, table.sourceId),
+  index('channel_messages_channel_id_idx').on(table.channelId),
+  index('channel_messages_contact_idx').on(table.contact),
+  index('channel_messages_channel_thread_idx').on(table.channelId, table.threadId),
+  createTenantPolicy('channel_messages'),
+]);
+
+export const channelsRelations = relations(channels, ({ many }) => ({
+  channelMessages: many(channelMessages),
+}));
+
+export const channelMessagesRelations = relations(channelMessages, ({ one }) => ({
+  channel: one(channels, {
+    fields: [channelMessages.channelId],
+    references: [channels.id],
+  }),
+}));
 
 export const schema = {
   users,
@@ -502,7 +533,8 @@ export const schema = {
   environments,
   starredSessions,
   webhookJobs,
-  gmailConnections,
+  channels,
+  channelMessages,
 
   // endUserAuthSessionsRelations,
   sessionRelations,
@@ -520,4 +552,6 @@ export const schema = {
   inboxItemsRelations,
   usersRelations,
   starredSessionsRelations,
+  channelsRelations,
+  channelMessagesRelations,
 }

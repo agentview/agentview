@@ -243,6 +243,38 @@ export const SessionsPaginatedResponseSchema = z.object({
 export type SessionsPaginatedResponse = z.infer<typeof SessionsPaginatedResponseSchema>
 
 
+// Channels
+
+export const ChannelSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  name: z.string().nullable(),
+  address: z.string(),
+  status: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
+export type Channel = z.infer<typeof ChannelSchema>
+
+export const ChannelMessageSchema = z.object({
+  id: z.string(),
+  organizationId: z.string(),
+  channelId: z.string(),
+  direction: z.string(),
+  contact: z.string(),
+  threadId: z.string().nullable(),
+  sourceId: z.string().nullable(),
+  text: z.string().nullable(),
+  attachments: z.any().nullable(),
+  providerData: z.any().nullable(),
+  status: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
+export type ChannelMessage = z.infer<typeof ChannelMessageSchema>
+
 // run webhook / agent endpoint body
 export const RunBodySchema = z.object({
   session: SessionSchema,

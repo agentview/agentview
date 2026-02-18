@@ -1,9 +1,9 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { authn, authorize, requireMemberId } from '../authMiddleware';
 import { withOrg } from '../withOrg';
 import { db__dangerous } from '../db';
-import { gmailConnections } from '../schemas/schema';
+import { channels, channelMessages } from '../schemas/schema';
 import { response_data, response_error } from '../hono_utils';
 import {
   createOAuth2Client,
@@ -13,6 +13,7 @@ import {
   GMAIL_SCOPES,
 } from './client';
 import { getProfile, setupWatch, fetchNewEmails } from './api';
+import type { GmailChannelConfig } from './types';
 
 export const gmailApp = new OpenAPIHono();
 
@@ -84,34 +85,35 @@ gmailApp.get('/api/gmail/callback', async (c) => {
   // Setup push notifications
   const watch = await setupWatch(tokens.access_token, tokens.refresh_token);
 
-  // Upsert gmail connection (one per email per org)
+  const config: GmailChannelConfig = {
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+    tokenExpiresAt: tokens.expiry_date
+      ? new Date(tokens.expiry_date).toISOString()
+      : null,
+    historyId: watch.historyId,
+    watchExpiresAt: watch.expiration,
+    connectedBy: memberId,
+  };
+
+  // Upsert channel (one per email per org)
   await withOrg(organizationId, async (tx) => {
     await tx
-      .insert(gmailConnections)
+      .insert(channels)
       .values({
         organizationId,
-        accessToken: tokens.access_token!,
-        refreshToken: tokens.refresh_token!,
-        tokenExpiresAt: tokens.expiry_date
-          ? new Date(tokens.expiry_date).toISOString()
-          : null,
-        emailAddress: profile.emailAddress,
-        historyId: watch.historyId,
-        watchExpiresAt: watch.expiration,
-        connectedBy: memberId,
+        type: 'gmail',
+        name: profile.emailAddress,
+        address: profile.emailAddress,
+        status: 'active',
+        config,
       })
       .onConflictDoUpdate({
-        target: [gmailConnections.organizationId, gmailConnections.emailAddress],
+        target: [channels.organizationId, channels.type, channels.address],
         set: {
-          accessToken: tokens.access_token!,
-          refreshToken: tokens.refresh_token!,
-          tokenExpiresAt: tokens.expiry_date
-            ? new Date(tokens.expiry_date).toISOString()
-            : null,
-          emailAddress: profile.emailAddress,
-          historyId: watch.historyId,
-          watchExpiresAt: watch.expiration,
-          connectedBy: memberId,
+          config,
+          name: profile.emailAddress,
+          status: 'active',
           updatedAt: new Date().toISOString(),
         },
       });
@@ -142,73 +144,105 @@ gmailApp.post('/api/gmail/webhook', async (c) => {
       return c.json({ status: 'ok' }, 200);
     }
 
-    // Look up connection by email (cross-org)
-    const connection = await db__dangerous.query.gmailConnections.findFirst({
-      where: eq(gmailConnections.emailAddress, emailAddress),
+    // Look up channel by address (cross-org)
+    const channel = await db__dangerous.query.channels.findFirst({
+      where: and(eq(channels.type, 'gmail'), eq(channels.address, emailAddress)),
     });
 
-    if (!connection) {
-      console.log(`[gmail webhook] No connection found for ${emailAddress}`);
+    if (!channel) {
+      console.log(`[gmail webhook] No channel found for ${emailAddress}`);
       return c.json({ status: 'ok' }, 200);
     }
 
-    if (!connection.historyId) {
+    const channelConfig = channel.config as GmailChannelConfig;
+
+    if (!channelConfig.historyId) {
       console.log(`[gmail webhook] No historyId stored for ${emailAddress}`);
       return c.json({ status: 'ok' }, 200);
     }
 
-    // Fetch new emails
+    // Token refresh callback: read-then-write config pattern
     const onTokenRefresh = async (tokens: { access_token: string; expiry_date: number | null }) => {
-      await withOrg(connection.organizationId, async (tx) => {
-        await tx.update(gmailConnections).set({
-          accessToken: tokens.access_token,
-          tokenExpiresAt: tokens.expiry_date
-            ? new Date(tokens.expiry_date).toISOString()
-            : null,
+      await withOrg(channel.organizationId, async (tx) => {
+        const current = await tx.query.channels.findFirst({ where: eq(channels.id, channel.id) });
+        if (!current) return;
+        const currentConfig = current.config as GmailChannelConfig;
+        await tx.update(channels).set({
+          config: {
+            ...currentConfig,
+            accessToken: tokens.access_token,
+            tokenExpiresAt: tokens.expiry_date
+              ? new Date(tokens.expiry_date).toISOString()
+              : null,
+          },
           updatedAt: new Date().toISOString(),
-        }).where(eq(gmailConnections.id, connection.id));
+        }).where(eq(channels.id, channel.id));
       });
     };
 
     const result = await fetchNewEmails(
-      connection.accessToken,
-      connection.refreshToken,
-      connection.historyId,
+      channelConfig.accessToken,
+      channelConfig.refreshToken,
+      channelConfig.historyId,
       onTokenRefresh,
     );
 
-    // Print emails to console
+    // Insert channel messages
     for (const email of result.emails) {
-      console.log(`[gmail] New email received:`);
-      console.log(`  From: ${email.from}`);
-      console.log(`  To: ${email.to}`);
-      console.log(`  Subject: ${email.subject}`);
-      console.log(`  Date: ${email.date}`);
-      console.log(`  Snippet: ${email.snippet}`);
+      await withOrg(channel.organizationId, async (tx) => {
+        await tx.insert(channelMessages).values({
+          organizationId: channel.organizationId,
+          channelId: channel.id,
+          direction: 'incoming',
+          contact: email.from,
+          threadId: email.threadId,
+          sourceId: email.id,
+          text: email.textBody,
+          providerData: {
+            subject: email.subject,
+            htmlBody: email.htmlBody,
+            cc: email.cc,
+            date: email.date,
+            snippet: email.snippet,
+          },
+          status: 'received',
+        }).onConflictDoNothing({
+          target: [channelMessages.channelId, channelMessages.sourceId],
+        });
+      });
     }
 
-    // Update historyId
+    // Update historyId in channel config
     if (result.newHistoryId) {
-      await withOrg(connection.organizationId, async (tx) => {
-        await tx.update(gmailConnections).set({
-          historyId: result.newHistoryId!,
+      await withOrg(channel.organizationId, async (tx) => {
+        const current = await tx.query.channels.findFirst({ where: eq(channels.id, channel.id) });
+        if (!current) return;
+        const currentConfig = current.config as GmailChannelConfig;
+        await tx.update(channels).set({
+          config: { ...currentConfig, historyId: result.newHistoryId },
           updatedAt: new Date().toISOString(),
-        }).where(eq(gmailConnections.id, connection.id));
+        }).where(eq(channels.id, channel.id));
       });
     } else {
       // historyId too old, re-setup watch
       console.log(`[gmail webhook] History expired for ${emailAddress}, re-setting up watch`);
       const watch = await setupWatch(
-        connection.accessToken,
-        connection.refreshToken,
+        channelConfig.accessToken,
+        channelConfig.refreshToken,
         onTokenRefresh,
       );
-      await withOrg(connection.organizationId, async (tx) => {
-        await tx.update(gmailConnections).set({
-          historyId: watch.historyId,
-          watchExpiresAt: watch.expiration,
+      await withOrg(channel.organizationId, async (tx) => {
+        const current = await tx.query.channels.findFirst({ where: eq(channels.id, channel.id) });
+        if (!current) return;
+        const currentConfig = current.config as GmailChannelConfig;
+        await tx.update(channels).set({
+          config: {
+            ...currentConfig,
+            historyId: watch.historyId,
+            watchExpiresAt: watch.expiration,
+          },
           updatedAt: new Date().toISOString(),
-        }).where(eq(gmailConnections.id, connection.id));
+        }).where(eq(channels.id, channel.id));
       });
     }
   } catch (error) {

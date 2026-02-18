@@ -1,6 +1,6 @@
 import { db__dangerous } from './db';
 import { withOrg } from './withOrg';
-import { runs, webhookJobs, environments, sessionItems } from './schemas/schema';
+import { runs, webhookJobs, environments, sessionItems, channelMessages, channels } from './schemas/schema';
 import { eq, and, lt, or, isNull, desc } from 'drizzle-orm';
 import { getEnvironment, type Env } from './environments';
 import { initDb } from './initDb';
@@ -492,6 +492,42 @@ async function processAgentFetch(run: typeof runs.$inferSelect) {
   }
 }
 
+async function processChannelMessages() {
+  try {
+    const received = await db__dangerous
+      .select()
+      .from(channelMessages)
+      .where(eq(channelMessages.status, 'received'))
+      .limit(20);
+
+    for (const message of received) {
+      await withOrg(message.organizationId, async (tx) => {
+        await tx.update(channelMessages).set({
+          status: 'processing',
+          updatedAt: new Date().toISOString(),
+        }).where(eq(channelMessages.id, message.id));
+      });
+
+      // Look up the channel to get the type
+      const channel = await db__dangerous.query.channels.findFirst({
+        where: eq(channels.id, message.channelId),
+      });
+
+      const providerData = message.providerData as any;
+      console.log(`[channel-message] ${channel?.type ?? 'unknown'} | ${message.direction} | contact: ${message.contact} | subject: ${providerData?.subject ?? '-'} | text: ${message.text?.slice(0, 100) ?? '-'}`);
+
+      await withOrg(message.organizationId, async (tx) => {
+        await tx.update(channelMessages).set({
+          status: 'processed',
+          updatedAt: new Date().toISOString(),
+        }).where(eq(channelMessages.id, message.id));
+      });
+    }
+  } catch (error) {
+    console.error('Error in channel message processor:', error);
+  }
+}
+
 // Run expired runs processor every second
 setInterval(() => {
   processExpiredRuns();
@@ -507,6 +543,11 @@ setInterval(() => {
   processAgentFetches();
 }, 1000);
 
+// Run channel message processor every 2 seconds
+setInterval(() => {
+  processChannelMessages();
+}, 2000);
+
 // Run Gmail watch renewal every hour
 setInterval(() => {
   processGmailWatchRenewals();
@@ -516,4 +557,5 @@ setInterval(() => {
 processExpiredRuns();
 processWebhookJobs();
 processAgentFetches();
+processChannelMessages();
 processGmailWatchRenewals();
