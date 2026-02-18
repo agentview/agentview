@@ -515,6 +515,13 @@ export const channelMessagesRelations = relations(channelMessages, ({ one }) => 
   }),
 }));
 
+export const environmentsRelations = relations(environments, ({ one }) => ({
+  user: one(users, {
+    fields: [environments.userId],
+    references: [users.id],
+  }),
+}));
+
 export const schema = {
   users,
   authSessions,
@@ -564,4 +571,5 @@ export const schema = {
   starredSessionsRelations,
   channelsRelations,
   channelMessagesRelations,
+  environmentsRelations
 }

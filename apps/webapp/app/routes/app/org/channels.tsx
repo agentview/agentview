@@ -1,6 +1,6 @@
 import { useLoaderData, useParams, Link, Outlet, useRouteLoaderData } from "react-router";
 import type { Route } from "./+types/channels";
-import type { Channel } from "agentview/apiTypes";
+import type { Channel } from "agentview";
 import { Header, HeaderTitle } from "@agentview/studio/components/header";
 import { Button } from "@agentview/studio/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@agentview/studio/components/ui/alert";
@@ -32,6 +32,8 @@ export default function Channels() {
   const layoutData = useRouteLoaderData<typeof orgLayoutLoader>("routes/app/org/layout");
   const { channels } = useLoaderData<typeof clientLoader>();
   const { orgId } = useParams();
+
+  console.log(channels);
 
   const me = layoutData?.me;
 

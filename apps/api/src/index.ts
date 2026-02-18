@@ -2555,23 +2555,36 @@ app.openapi(environmentsListRoute, async (c) => {
   authorize(principal, { action: "environment:read" });
 
   return withOrg(principal.organizationId, async (tx) => {
-    const rows = await tx
-      .select({
-        id: environments.id,
-        userId: environments.userId,
-        createdAt: environments.createdAt,
-        email: users.email,
-      })
-      .from(environments)
-      .leftJoin(users, eq(environments.userId, users.id))
-      .orderBy(environments.createdAt);
+    const environments = await tx.query.environments.findMany({
+      columns: {
+        id: true,
+        // userId: true,
+        createdAt: true,
+      },
+      with: {
+        user: true,
+      },
+    });
 
-    return c.json(rows.map(row => ({
-      id: row.id,
-      userId: row.userId,
-      name: row.email ? `dev-${row.email}` : "prod",
-      createdAt: row.createdAt,
-    })), 200)
+    return c.json(environments, 200);
+
+    // const rows = await tx
+    //   .select({
+    //     id: environments.id,
+    //     userId: environments.userId,
+    //     createdAt: environments.createdAt,
+    //     email: users.email,
+    //   })
+    //   .from(environments)
+    //   .leftJoin(users, eq(environments.userId, users.id))
+    //   .orderBy(environments.createdAt);
+
+    // return c.json(rows.map(row => ({
+    //   id: row.id,
+    //   userId: row.userId,
+    //   name: row.email ? `dev:${row.email}` : "prod",
+    //   createdAt: row.createdAt,
+    // })), 200)
   })
 })
 

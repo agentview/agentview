@@ -21,17 +21,33 @@ export type Env = ProdEnv | DevEnv;
  * - userId = string: user's development config
  */
 export async function getEnvironment(tx: Transaction, env: Env) { // envId is actually either null (production) or user id (user's dev environment). For now!
-    const configRows = await tx
-        .select()
-        .from(environments)
-        .where(env.type === 'prod' ? isNull(environments.userId) : eq(environments.userId, env.memberId))
-        .limit(1);
 
-    if (configRows.length === 0) {
-        return undefined;
-    }
+    const environment = await tx.query.environments.findFirst({
+        columns: {
+          id: true,
+        //   userId: true,
+          createdAt: true,
+          config: true,
+        },
+        with: {
+          user: true,
+        },
+        where: env.type === 'prod' ? isNull(environments.userId) : eq(environments.userId, env.memberId),
+      });
 
-    return configRows[0] ?? undefined;
+    return environment ?? undefined;
+  
+    // const configRows = await tx
+    //     .select()
+    //     .from(environments)
+    //     .where(env.type === 'prod' ? isNull(environments.userId) : eq(environments.userId, env.memberId))
+    //     .limit(1);
+
+    // if (configRows.length === 0) {
+    //     return undefined;
+    // }
+
+    // return configRows[0] ?? undefined;
 }
 
 export async function requireEnvironment(tx: Transaction, env: Env) {

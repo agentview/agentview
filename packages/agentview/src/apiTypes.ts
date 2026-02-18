@@ -187,9 +187,10 @@ export type SessionsGetQueryParams = z.infer<typeof SessionsGetQueryParamsSchema
 
 export const EnvironmentBaseSchema = z.object({
   id: z.string(),
-  userId: z.string().nullable(), // null = production config, string = user's dev config
-  name: z.string(),
+  // userId: z.string().nullable(), // null = production config, string = user's dev config
+  // name: z.string(),
   createdAt: z.iso.date(),
+  user: z.any()
 })
 
 export type EnvironmentBase = z.infer<typeof EnvironmentBaseSchema>
