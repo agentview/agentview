@@ -33,8 +33,6 @@ export default function Channels() {
   const { channels } = useLoaderData<typeof clientLoader>();
   const { orgId } = useParams();
 
-  console.log(channels);
-
   const me = layoutData?.me;
 
   if (me && me.role !== "admin" && me.role !== "owner") {
@@ -99,7 +97,9 @@ export default function Channels() {
                     </TableCell>
                     <TableCell>
                       {channel.environment ? (
-                        <span className="text-sm">{channel.environment.name}</span>
+                        <span className="text-sm">
+                          {channel.environment.user ? `dev:${channel.environment.user.email}` : 'prod'}
+                        </span>
                       ) : (
                         <span className="text-sm text-muted-foreground">Not configured</span>
                       )}
